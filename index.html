@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="pt">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lion Hybrid Training — Starter</title>
+  <meta name="description" content="Treino híbrido baseado em fisiologia. Acesso ao programa AER + Comunidade LHT.">
+  <style>
+    :root{--bg:#0b0b0b;--fg:#f5f5f5;--acc:#d3a943;--mut:#b5b5b5;}
+    *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial;background:var(--bg);color:var(--fg)}
+    .wrap{max-width:960px;margin:0 auto;padding:28px}
+    .nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+    .logo{font-weight:800;letter-spacing:.3px}
+    .pill{display:inline-block;padding:8px 14px;border:1px solid #333;border-radius:999px;margin-right:8px;color:var(--fg);text-decoration:none}
+    .btn{display:inline-block;padding:14px 22px;border-radius:12px;background:var(--acc);color:#111;font-weight:700;text-decoration:none}
+    .hero{padding:40px 0 8px}
+    h1{font-size:34px;margin:0 0 8px}
+    p.lead{color:var(--mut);font-size:18px;margin:0 0 20px}
+    .grid{display:grid;gap:16px}
+    @media(min-width:820px){.grid{grid-template-columns:1.2fr 1fr}}
+    .card{background:#121212;border:1px solid #222;border-radius:16px;padding:20px}
+    .bullets li{margin:8px 0}
+    .price{font-size:36px;font-weight:800;margin:6px 0}
+    .mut{color:var(--mut)}
+    .kicker{font-size:12px;color:var(--mut);text-transform:uppercase;letter-spacing:.12em}
+    .tag{font-size:12px;background:#1a1a1a;border:1px solid #2a2a2a;padding:4px 8px;border-radius:999px;margin-left:8px}
+    .note{font-size:13px;color:var(--mut)}
+    footer{padding:32px 0;color:#8a8a8a;font-size:13px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="nav">
+      <div class="logo">🦁 Lion Hybrid Training</div>
+      <nav>
+        <a class="pill" href="#metodo">Método</a>
+        <a class="pill" href="#precos">Planos</a>
+        <a class="pill" href="#faq">FAQ</a>
+      </nav>
+    </header>
+
+    <section class="hero">
+      <span class="kicker">Treino híbrido real • fisiologia → prática</span>
+      <h1>Começa já com o <span style="color:var(--acc)">Starter</span></h1>
+      <p class="lead">Acesso ao <b>Programa AER</b> + Comunidade LHT. Tudo no TrainingPeaks. Sem apps extra.</p>
+      <!-- BOTÃO STRIPE -->
+      <a class="btn" href="https://buy.stripe.com/14A00l8TTbfVc7Cbi233W08" target="_blank" rel="noopener noreferrer">
+        Entrar agora
+      </a>
+      <div class="note" style="margin-top:10px">Pagamento seguro via Stripe • cancela quando quiseres</div>
+    </section>
+
+    <section id="metodo" class="grid" style="margin-top:28px">
+      <div class="card">
+        <h3>Porque resulta</h3>
+        <ul class="bullets">
+          <li>✔ Ciência sem complicação — fisiologia traduzida para treino prático.</li>
+          <li>✔ Plano certo, momento certo — progressões que respeitam o teu contexto.</li>
+          <li>✔ Integração total — tudo no TrainingPeaks, direto para o teu relógio.</li>
+          <li>✔ Holístico — corpo, mente e hábitos a remar na mesma direção.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Como funciona</h3>
+        <ol>
+          <li>Compra o Starter (Stripe).</li>
+          <li>Redireciona para o Onboarding (WhatsApp + TrainingPeaks + AER).</li>
+          <li>Ativa o programa e começa a treinar hoje.</li>
+        </ol>
+      </div>
+    </section>
+
+    <section id="precos" style="margin-top:22px">
+      <h3>Planos</h3>
+      <div class="grid">
+        <!-- Starter (ativo) -->
+        <div class="card">
+          <div><b>Starter</b> <span class="tag">Fundadores</span></div>
+          <div class="price">24,90€<span class="mut">/mês</span></div>
+          <p class="mut">Programa AER + Comunidade LHT. Ideal para começar.</p>
+          <a class="btn" href="https://buy.stripe.com/14A00l8TTbfVc7Cbi233W08" target="_blank" rel="noopener noreferrer">Aderir</a>
+          <p class="note" style="margin-top:8px">Subida de preço prevista nas próximas vagas.</p>
+        </div>
+        <!-- Pro (decoy futuro) -->
+        <div class="card">
+          <div><b>Pro</b> <span class="tag">Em breve</span></div>
+          <div class="price mut">59,60€</div>
+          <p class="mut">Acesso a <u>todos</u> os programas. Upgrade lógico após Starter.</p>
+        </div>
+        <!-- Elite (decoy futuro) -->
+        <div class="card">
+          <div><b>Elite</b> <span class="tag">Em breve</span></div>
+          <div class="price mut">149,90€</div>
+          <p class="mut">Acompanhamento 1:1 no TP + equipa (nutri, fisio, mental).</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="faq" class="card" style="margin-top:22px">
+      <h3>FAQ rápido</h3>
+      <p><b>É para iniciantes?</b> Sim — zonas e cargas ajustadas ao teu limiar.</p>
+      <p><b>Preciso de apps?</b> Não. Só TrainingPeaks (gratuito) + teu relógio.</p>
+      <p><b>Posso cancelar?</b> Sim, quando quiseres, sem fidelização.</p>
+    </section>
+
+    <footer>© Lion Hybrid Training — performance de endurance + força.</footer>
+  </div>
+</body>
+</html>
