@@ -12,9 +12,9 @@
   --text:#e4e8ef;
   --text-soft:#d7d9de;
   --muted:#b8bcc6;
-  --black:#0b0b0b;
-  --ink:#121212;
-  --panel:#141414;
+  --black:#1a1a1a;
+  --ink:#2a2a2a;
+  --panel:#2d2d2d;
   --maxw: 1100px;
   --py: clamp(36px, 6vw, 64px);
   --hero-img: url('../img/tua-imagem.png');
@@ -23,6 +23,7 @@
 
 /* -------- Base -------- */
 *{box-sizing:border-box}
+html{scroll-behavior:smooth}
 html,body{height:100%}
 body{
   margin:0;
@@ -64,7 +65,7 @@ header.hero h1 b{
 header.hero{
   position:relative;
   background:
-    linear-gradient(180deg, rgba(18,18,18,.75), rgba(10,10,10,.92)),
+    linear-gradient(180deg, rgba(15,15,15,.65), rgba(8,8,8,.75)),
     var(--hero-img);
   background-size:cover;
   background-position:center;
@@ -74,7 +75,7 @@ header.hero{
   align-items: flex-start; /* bring content towards top */
   /* Keep hero full-height but reduce top padding to pull logo/text up */
   padding: 24px 0 100px;
-  box-shadow: 0 0 80px rgba(0,0,0,.35) inset, 0 0 60px var(--gold-faint);
+  box-shadow: 0 0 80px rgba(0,0,0,.35) inset, 0 0 80px rgba(212,165,79,.15), 0 0 140px rgba(212,165,79,.12);
   overflow:hidden;
 }
 /* Scroll indicator (visual sugestão para continuar a explorar) */
@@ -96,22 +97,22 @@ header.hero{
   margin: 0 auto 26px;
   display: block;
   transition: filter 0.3s ease, transform .35s ease;
-  filter: drop-shadow(0 0 18px rgba(212,165,79,.25));
+  filter: drop-shadow(0 0 28px rgba(212,165,79,.45)) drop-shadow(0 0 14px rgba(212,165,79,.25)) drop-shadow(0 0 6px rgba(212,165,79,.15));
 }
 .hero h1{
   font-family:'Oswald',sans-serif;
   font-weight:700; text-transform:uppercase; letter-spacing:.8px;
   text-align:center; font-size:clamp(28px,5.5vw,62px);
   margin:0 0 12px; color:var(--gold);
-  text-shadow:0 0 18px rgba(212,165,79,.38);
+  text-shadow:0 0 24px rgba(212,165,79,.5), 0 0 12px rgba(212,165,79,.3);
   animation: goldPulse 4.6s ease-in-out infinite alternate;
 }
 @keyframes goldPulse{
-  0%{color:var(--gold);text-shadow:0 0 12px rgba(212,165,79,.28)}
-  100%{color:#f1cd7c;text-shadow:0 0 28px rgba(212,165,79,.55)}
+  0%{color:var(--gold);text-shadow:0 0 24px rgba(212,165,79,.5), 0 0 12px rgba(212,165,79,.3)}
+  100%{color:#f1cd7c;text-shadow:0 0 36px rgba(212,165,79,.65), 0 0 18px rgba(212,165,79,.4)}
 }
-.hero .lead{color:var(--text-soft); text-align:center; max-width:720px; margin:8px auto 20px; font-size:clamp(15px,1.7vw,18px)}
-.hero .copy{color:#cfd3db; text-align:center; max-width:780px; margin:0 auto 25px; font-size:clamp(14px,1.4vw,16px); line-height:1.6}
+.hero .lead{color:var(--text-soft); text-align:center; max-width:720px; margin:8px auto 20px; font-size:clamp(15px,1.7vw,18px); text-shadow: 0 1px 3px rgba(0,0,0,.4)}
+.hero .copy{color:#cfd3db; text-align:center; max-width:780px; margin:0 auto 25px; font-size:clamp(14px,1.4vw,16px); line-height:1.6; text-shadow: 0 1px 3px rgba(0,0,0,.4)}
 
 .cta-row{display:flex; gap:14px; justify-content:center; flex-wrap:wrap}
 .btn{
@@ -119,15 +120,15 @@ header.hero{
   padding:14px 28px; border-radius:14px; font-weight:600; letter-spacing:.2px;
   transition: transform .22s ease, filter .22s ease, box-shadow .22s ease, background .22s ease;
 }
-.btn.gold{background:linear-gradient(180deg,#b8913b,#9f7f33); color:#0f0f0f; box-shadow:0 0 14px rgba(212,165,79,.18); animation: softGlow 5.5s ease-in-out infinite alternate}
+.btn.gold{background:linear-gradient(180deg,#d4a54f,#b88a3c); color:#0f0f0f; box-shadow:0 0 20px rgba(212,165,79,.25), 0 0 10px rgba(212,165,79,.15); animation: softGlow 5.5s ease-in-out infinite alternate}
 .btn.ghost{background:transparent; color:var(--text); border:1px solid rgba(255,255,255,.12)}
 .btn:hover{transform:translateY(-2px)}
-@keyframes softGlow{0%{box-shadow:0 0 12px rgba(212,165,79,.12)}100%{box-shadow:0 0 26px rgba(212,165,79,.42)}}
+@keyframes softGlow{0%{box-shadow:0 0 20px rgba(212,165,79,.25), 0 0 10px rgba(212,165,79,.15)}100%{box-shadow:0 0 32px rgba(212,165,79,.5), 0 0 16px rgba(212,165,79,.3)}}
 
 /* Themed variant for Mindset trigger */
 .btn.mindset{
   background: radial-gradient(120% 150% at 30% -20%, rgba(212,165,79,.16), transparent 50%),
-              linear-gradient(180deg, rgba(18,18,18,.85), rgba(10,10,10,.92));
+              linear-gradient(180deg, rgba(40,40,40,.85), rgba(30,30,30,.92));
   color: var(--gold);
   border: 1px solid rgba(212,165,79,.35);
   box-shadow: 0 0 0 1px rgba(212,165,79,.12) inset, 0 6px 20px rgba(0,0,0,.35);
@@ -139,7 +140,7 @@ header.hero{
 .btn.mindset:focus-visible{ outline: 2px solid var(--gold-soft); outline-offset: 2px; }
 
 /* -------- Secções Internas -------- */
-section{background:radial-gradient(circle at 50% 0, #050505 0%, #000000 80%); padding:var(--py) 0}
+section{background:radial-gradient(circle at 50% 0, #2a2a2a 0%, #1a1a1a 80%); padding:var(--py) 0}
 #como-comecar {
   position: relative;
   z-index: 0;
@@ -161,11 +162,12 @@ section{background:radial-gradient(circle at 50% 0, #050505 0%, #000000 80%); pa
 
 section h2{
   font-family:'Oswald',sans-serif; text-transform:uppercase; letter-spacing:.6px;
-  font-weight:600; color:var(--gold-soft); font-size:clamp(22px,3.4vw,36px);
+  font-weight:600; color:var(--gold); font-size:clamp(22px,3.4vw,36px);
   margin:0 0 8px; text-align:center;
+  text-shadow: 0 2px 12px rgba(212,165,79,.3), 0 0 8px rgba(212,165,79,.2);
 }
 /* Sobre (fundador) — título sem transparência */
-#fundador h2{ color: var(--gold); }
+#fundador h2{ color: var(--gold); text-shadow: 0 2px 16px rgba(212,165,79,.4), 0 0 10px rgba(212,165,79,.25); }
 /* Trim inner margins to avoid extra vertical gaps */
 section > .container > *:first-child{ margin-top: 0; }
 section > .container > *:last-child{ margin-bottom: 0; }
@@ -180,11 +182,11 @@ section .intro{color:var(--muted); max-width:860px; margin:0 auto 18px; text-ali
 #fundador{
   position: relative;
   background:
-    linear-gradient(180deg, rgba(10,10,10,.70) 0%, rgba(10,10,10,.78) 40%, rgba(10,10,10,.88) 100%),
+    linear-gradient(180deg, rgba(12,12,12,.65) 0%, rgba(12,12,12,.72) 40%, rgba(10,10,10,.80) 100%),
     url('../img/founder-img.png');
   background-size: cover;
   background-position: center;
-  box-shadow: 0 0 80px rgba(0,0,0,.35) inset, 0 0 60px var(--gold-faint);
+  box-shadow: 0 0 80px rgba(0,0,0,.35) inset, 0 0 80px rgba(212,165,79,.15), 0 0 120px rgba(212,165,79,.1);
   overflow: hidden;
   min-height: clamp(420px, 60vh, 760px);
 }
@@ -262,7 +264,7 @@ section .intro{color:var(--muted); max-width:860px; margin:0 auto 18px; text-ali
   border:none; /* remove light outline around cards */
   border-radius:16px; padding:18px 16px;
   box-shadow: 0 8px 24px -6px rgba(0,0,0,.55), 0 0 22px rgba(0,0,0,.30) inset;
-  transition: transform .22s ease, box-shadow .22s ease, filter .22s ease;
+  transition: transform .35s cubic-bezier(0.4, 0, 0.2, 1), box-shadow .35s ease, filter .35s ease;
 }
 #como-funciona .step::before{ content: none; }
 #como-funciona .step::after{
@@ -276,12 +278,12 @@ section .intro{color:var(--muted); max-width:860px; margin:0 auto 18px; text-ali
 }
 #como-funciona .step > *{ position: relative; z-index: 2; }
 #como-funciona .step:hover{
-  transform: translateY(-2px);
-  filter: brightness(1.03);
+  transform: translateY(-6px) scale(1.02);
+  filter: brightness(1.05);
   box-shadow:
-    0 10px 28px -8px rgba(0,0,0,.65), /* deeper drop */
-    0 0 18px rgba(212,165,79,.18),     /* soft gold glow */
-    0 0 0 1px rgba(212,165,79,.20) inset; /* faint gold edge */
+    0 16px 36px -8px rgba(0,0,0,.70), /* deeper drop */
+    0 0 24px rgba(212,165,79,.22),     /* stronger gold glow */
+    0 0 0 1px rgba(212,165,79,.28) inset; /* more visible gold edge */
 }
 #como-funciona .step:hover::after{
   opacity: calc(var(--bg-dim, .60) - .10); /* reveal image slightly on hover */
@@ -329,11 +331,17 @@ section .intro{color:var(--muted); max-width:860px; margin:0 auto 18px; text-ali
   overflow: hidden; /* clip animated bg to card bounds */
   isolation: isolate; /* contain stacking so bg doesn't paint over siblings */
   display:flex; flex-direction:column;
+  transform: translateY(0);
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.4s ease;
+}
+.card:hover{
+  transform: translateY(-4px);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.06), 0 12px 32px rgba(0,0,0,.4);
 }
 .card::before{
   content:""; position:absolute; inset:0; border-radius:inherit; z-index:0;
   background:
-    linear-gradient(180deg, rgba(18,18,18,.80), rgba(10,10,10,.92)),
+    linear-gradient(180deg, rgba(40,40,40,.60), rgba(30,30,30,.72)),
     var(--hero-img);
   background-size: cover; background-position: center;
   filter: saturate(.95);
@@ -359,8 +367,9 @@ section .intro{color:var(--muted); max-width:860px; margin:0 auto 18px; text-ali
 }
 
 .card h3{
-  font-family:'Oswald',sans-serif; color:var(--gold-soft);
+  font-family:'Oswald',sans-serif; color:var(--gold);
   font-size:18px; font-weight:500; letter-spacing:.3px; margin:0 0 6px;
+  text-shadow: 0 2px 10px rgba(212,165,79,.25), 0 0 6px rgba(212,165,79,.15);
 }
 .card p{color:#c2c6cf; margin:0}
 .card .cta-row{margin-top:auto;}
@@ -397,13 +406,14 @@ section .intro{color:var(--muted); max-width:860px; margin:0 auto 18px; text-ali
 /* -------- Segundo Hero (AER) -------- */
 .hero-2{
   position:relative; overflow:hidden;
-  background: radial-gradient(120% 120% at 40% 10%, rgba(212,165,79,.10), rgba(10,10,10,.94));
+  background: radial-gradient(120% 120% at 40% 10%, rgba(212,165,79,.15), rgba(12,12,12,.94));
   padding: clamp(56px, 7vw, 96px) 0; text-align:center;
-  box-shadow: inset 0 0 60px rgba(0,0,0,.35);
+  box-shadow: inset 0 0 60px rgba(0,0,0,.35), 0 0 100px rgba(212,165,79,.12);
 }
 .hero-2 h3{
   font-family:'Oswald',sans-serif; text-transform:uppercase; letter-spacing:.6px;
-  font-size: clamp(22px,3.2vw,30px); color:var(--gold-soft); margin:0 0 8px;
+  font-size: clamp(22px,3.2vw,30px); color:var(--gold); margin:0 0 8px;
+  text-shadow: 0 2px 14px rgba(212,165,79,.35), 0 0 8px rgba(212,165,79,.2);
 }
 .hero-2 h2{
   font-family:"Agency FB","Athletic Endurance Runner","Oswald",sans-serif;
@@ -438,26 +448,26 @@ section .intro{color:var(--muted); max-width:860px; margin:0 auto 18px; text-ali
 .hero-2 {
   position: relative;
   background:
-    radial-gradient(120% 120% at 40% 10%, rgba(20,120,220,0.18), rgba(10,10,10,0.96)),
-    linear-gradient(180deg, rgba(18,110,220,0.26), rgba(10,70,180,0.40)),
+    radial-gradient(120% 120% at 40% 10%, rgba(30,140,255,0.28), rgba(12,12,12,0.88)),
+    linear-gradient(180deg, rgba(25,130,255,0.32), rgba(15,90,220,0.45)),
     url('../img/tua-imagem.png');
   background-size: cover;
   background-position: center;
   background-blend-mode: multiply;
-  box-shadow: inset 0 0 90px rgba(18,110,220,0.12);
+  box-shadow: inset 0 0 90px rgba(30,140,255,0.18), 0 0 120px rgba(212,165,79,.1);
 }
 .hero-2::before {
   content: "";
   position: absolute;
   inset: -2%;
   background:
-    radial-gradient(60% 80% at 0% 0%, rgba(20,120,220,0.14), transparent 70%),
-    radial-gradient(60% 80% at 100% 0%, rgba(20,120,220,0.12), transparent 70%),
-    radial-gradient(60% 80% at 0% 100%, rgba(20,120,220,0.12), transparent 70%),
-    radial-gradient(60% 80% at 100% 100%, rgba(20,120,220,0.14), transparent 70%);
-  filter: blur(16px) saturate(1.02);
-  opacity: 0.6;
-  mix-blend-mode: screen; /* nevoa azul leve nas pontas */
+    radial-gradient(60% 80% at 0% 0%, rgba(30,140,255,0.20), transparent 70%),
+    radial-gradient(60% 80% at 100% 0%, rgba(30,140,255,0.18), transparent 70%),
+    radial-gradient(60% 80% at 0% 100%, rgba(30,140,255,0.18), transparent 70%),
+    radial-gradient(60% 80% at 100% 100%, rgba(30,140,255,0.20), transparent 70%);
+  filter: blur(16px) saturate(1.08);
+  opacity: 0.7;
+  mix-blend-mode: screen; /* nevoa azul nas pontas */
   z-index: 0;
   pointer-events: none; /* nunca bloquear cliques nos botões */
 }
@@ -487,7 +497,7 @@ section .intro{color:var(--muted); max-width:860px; margin:0 auto 18px; text-ali
 .review-card::before{
   content:""; position:absolute; inset:0; border-radius:inherit; z-index:0;
   background:
-    linear-gradient(180deg, rgba(18,18,18,.82), rgba(10,10,10,.94)),
+    linear-gradient(180deg, rgba(40,40,40,.82), rgba(30,30,30,.94)),
     var(--hero-img);
   background-size: cover; background-position: center;
   animation: slowZoom 24s ease-in-out infinite alternate; pointer-events:none;
@@ -503,13 +513,13 @@ section .intro{color:var(--muted); max-width:860px; margin:0 auto 18px; text-ali
 footer{
   position: relative;
   background:
-    linear-gradient(180deg, rgba(18,18,18,.75), rgba(10,10,10,.92)),
+    linear-gradient(180deg, rgba(15,15,15,.70), rgba(10,10,10,.85)),
     url('../img/tua-imagem.png');
   background-size: cover;
   background-position: center;
   background-attachment: scroll;
   padding:36px 0 48px; text-align:center; color:#ffffff;
-  box-shadow: 0 0 80px rgba(0,0,0,.35) inset, 0 -14px 34px rgba(212,165,79,.10);
+  box-shadow: 0 0 80px rgba(0,0,0,.35) inset, 0 -14px 34px rgba(212,165,79,.15), 0 0 120px rgba(212,165,79,.08);
   overflow: hidden;
 }
 /* Ensure footer uses plain white text for all inline elements */
@@ -560,7 +570,7 @@ footer .legal span{opacity:.6}
 #metrics-faq .metric::before{
   content:""; position:absolute; inset:0; border-radius:inherit; z-index:0;
   background:
-    linear-gradient(180deg, rgba(18,18,18,.82), rgba(10,10,10,.94)),
+    linear-gradient(180deg, rgba(40,40,40,.82), rgba(30,30,30,.94)),
     var(--hero-img);
   background-size: cover; background-position: center;
   animation: slowZoom 26s ease-in-out infinite alternate;
@@ -579,7 +589,7 @@ footer .legal span{opacity:.6}
 #metrics-faq details::before{
   content:""; position:absolute; inset:0; border-radius:inherit; z-index:0;
   background:
-    linear-gradient(180deg, rgba(18,18,18,.82), rgba(10,10,10,.94)),
+    linear-gradient(180deg, rgba(40,40,40,.82), rgba(30,30,30,.94)),
     var(--hero-img);
   background-size: cover; background-position: center;
   animation: slowZoom 28s ease-in-out infinite alternate;
@@ -611,16 +621,29 @@ footer .legal span{opacity:.6}
 #metrics-faq details p{margin:8px 0 0; color:#cfd3db}
 
 /* -------- Animations on scroll -------- */
-.anim-in{opacity:0; transform: translateY(16px);}
-.anim-in.visible{opacity:1; transform:none; transition:opacity .7s ease, transform .7s ease}
-.delay-1{transition-delay:.08s}
-.delay-2{transition-delay:.16s}
-.delay-3{transition-delay:.24s}
+.anim-in{opacity:0; transform: translateY(20px);}
+.anim-in.visible{opacity:1; transform:none; transition:opacity .8s cubic-bezier(0.4, 0, 0.2, 1), transform .8s cubic-bezier(0.4, 0, 0.2, 1)}
+.delay-1{transition-delay:.1s}
+.delay-2{transition-delay:.2s}
+.delay-3{transition-delay:.3s}
+.delay-4{transition-delay:.4s}
+
+/* Smooth hover transitions for interactive elements */
+.btn, .card, .step, a[class*="btn"], button{
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Touch-friendly interactions for mobile */
+@media (hover: none) and (pointer: coarse) {
+  .btn:active, .card:active, .step:active {
+    transform: scale(0.98);
+  }
+}
 
 /* -------- Consent Banner -------- */
 .consent-banner{
   position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%);
-  background: rgba(10,10,10,.92);
+  background: rgba(30,30,30,.92);
   border: 1px solid rgba(255,255,255,.08);
   border-radius: 14px; padding: 12px 14px; z-index: 5000;
   box-shadow: 0 8px 22px rgba(0,0,0,.45), 0 0 0 1px rgba(212,165,79,.12) inset;
@@ -633,18 +656,31 @@ footer .legal span{opacity:.6}
 /* -------- Responsivo -------- */
 @media (max-width: 640px){
   .cta-row{gap:10px}
-  .btn{padding:12px 20px; border-radius:12px}
+  .btn{padding:12px 20px; border-radius:12px; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1)}
   .grid{grid-template-columns:1fr}
   .scroll-indicator{ bottom:22px; font-size:11px; }
   /* Top align hero content and reduce top padding for better first fold */
   header.hero{ min-height: 100vh; padding: 16px 0 90px; align-items:flex-start; }
-  .hero-logo { max-width: clamp(150px, 38vw, 220px); margin-bottom: 20px; }
+  .hero-logo { max-width: clamp(150px, 38vw, 220px); margin-bottom: 20px; animation: fadeIn 0.8s ease-out; }
   .hero .copy { font-size: 14px; line-height: 1.5; margin-bottom: 20px; }
   .list { margin: 12px auto 0; }
   .list li { margin: 6px 0; font-size: 14px; }
   .philosophy-img, .program-img { max-width: 95%; }
   .founder-img { width: clamp(180px, 60vw, 360px); height: auto; }
   .card-img { width: 40px; height: 40px; }
+  
+  /* Enhanced mobile interactions */
+  .card, .step, .review-card {
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .card:active, .step:active {
+    transform: scale(0.98);
+  }
+}
+
+@keyframes fadeIn{
+  from{opacity:0; transform:scale(0.95)}
+  to{opacity:1; transform:scale(1)}
 }
 
 /* Para dispositivos em landscape com altura pequena */
