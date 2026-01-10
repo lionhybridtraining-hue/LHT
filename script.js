@@ -94,3 +94,105 @@ if(document.readyState === 'loading'){
 } else {
   setupMindsetModal();
 }
+
+// ===== Consent + Analytics =====
+(function(){
+  const CONSENT_KEY = 'lht_consent';
+  const consentBanner = document.getElementById('consent-banner');
+  const btnAccept = document.getElementById('consent-accept');
+  const btnDecline = document.getElementById('consent-decline');
+
+  // Lightweight analytics adapter: console, gtag (GA4) or plausible
+  const Analytics = {
+    enabled: false,
+    init(){
+      this.enabled = true;
+      this.pageview();
+    },
+    pageview(){
+      if(!this.enabled) return;
+      // Google Analytics (gtag)
+      if(typeof window.gtag === 'function'){
+        window.gtag('event','page_view',{
+          page_title: document.title,
+          page_location: window.location.href,
+          page_path: window.location.pathname
+        });
+      }
+      // Plausible
+      else if(typeof window.plausible === 'function'){
+        window.plausible('pageview');
+      }
+      // Fallback: console
+      else {
+        console.info('[analytics] pageview', { path: window.location.pathname });
+      }
+    },
+    event(name, meta={}){
+      if(!this.enabled) return;
+      if(typeof window.gtag === 'function'){
+        window.gtag('event', name, meta);
+      } else if(typeof window.plausible === 'function'){
+        window.plausible(name, { props: meta });
+      } else {
+        console.info('[analytics] event', name, meta);
+      }
+    }
+  };
+
+  function getConsent(){ return localStorage.getItem(CONSENT_KEY); }
+  function setConsent(val){ localStorage.setItem(CONSENT_KEY, val); }
+
+  function maybeShowBanner(){
+    if(!consentBanner) return;
+    const c = getConsent();
+    if(c === 'accepted'){
+      consentBanner.hidden = true;
+      Analytics.init();
+    } else if(c === 'denied'){
+      consentBanner.hidden = true;
+    } else {
+      consentBanner.hidden = false;
+    }
+  }
+
+  // Wire buttons
+  if(btnAccept){
+    btnAccept.addEventListener('click', ()=>{
+      setConsent('accepted');
+      consentBanner.hidden = true;
+      Analytics.init();
+      Analytics.event('consent_accept');
+    });
+  }
+  if(btnDecline){
+    btnDecline.addEventListener('click', ()=>{
+      setConsent('denied');
+      consentBanner.hidden = true;
+      Analytics.event('consent_decline');
+    });
+  }
+
+  // Delegate click events for elements tagged with data-track
+  document.addEventListener('click', (e)=>{
+    const target = e.target.closest('[data-track]');
+    if(!target) return;
+    const name = target.getAttribute('data-track');
+    const meta = {
+      text: (target.textContent||'').trim().slice(0,60),
+      href: target.getAttribute('href')||undefined,
+      id: target.id||undefined,
+      role: target.getAttribute('role')||undefined
+    };
+    if(getConsent() === 'accepted'){
+      Analytics.event(name, meta);
+    }
+  }, { capture: true });
+
+  // Initialize on DOM ready
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', maybeShowBanner);
+  } else {
+    maybeShowBanner();
+  }
+})();
