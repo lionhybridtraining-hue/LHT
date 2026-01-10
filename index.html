@@ -1,109 +1,253 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="pt">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Lion Hybrid Training — Starter</title>
-  <meta name="description" content="Treino híbrido baseado em fisiologia. Acesso ao programa AER + Comunidade LHT.">
-  <style>
-    :root{--bg:#0b0b0b;--fg:#f5f5f5;--acc:#d3a943;--mut:#b5b5b5;}
-    *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial;background:var(--bg);color:var(--fg)}
-    .wrap{max-width:960px;margin:0 auto;padding:28px}
-    .nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
-    .logo{font-weight:800;letter-spacing:.3px}
-    .pill{display:inline-block;padding:8px 14px;border:1px solid #333;border-radius:999px;margin-right:8px;color:var(--fg);text-decoration:none}
-    .btn{display:inline-block;padding:14px 22px;border-radius:12px;background:var(--acc);color:#111;font-weight:700;text-decoration:none}
-    .hero{padding:40px 0 8px}
-    h1{font-size:34px;margin:0 0 8px}
-    p.lead{color:var(--mut);font-size:18px;margin:0 0 20px}
-    .grid{display:grid;gap:16px}
-    @media(min-width:820px){.grid{grid-template-columns:1.2fr 1fr}}
-    .card{background:#121212;border:1px solid #222;border-radius:16px;padding:20px}
-    .bullets li{margin:8px 0}
-    .price{font-size:36px;font-weight:800;margin:6px 0}
-    .mut{color:var(--mut)}
-    .kicker{font-size:12px;color:var(--mut);text-transform:uppercase;letter-spacing:.12em}
-    .tag{font-size:12px;background:#1a1a1a;border:1px solid #2a2a2a;padding:4px 8px;border-radius:999px;margin-left:8px}
-    .note{font-size:13px;color:var(--mut)}
-    footer{padding:32px 0;color:#8a8a8a;font-size:13px}
-  </style>
+  <title>Lion Hybrid Training — Comunidade</title>
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+  <meta name="description" content="Lion Hybrid Training — Força. Resistência. Consistência. A Comunidade onde ciência, propósito e treino híbrido se encontram." />
 </head>
 <body>
-  <div class="wrap">
-    <header class="nav">
-      <div class="logo">🦁 Lion Hybrid Training</div>
-      <nav>
-        <a class="pill" href="#metodo">Método</a>
-        <a class="pill" href="#precos">Planos</a>
-        <a class="pill" href="#faq">FAQ</a>
-      </nav>
-    </header>
 
-    <section class="hero">
-      <span class="kicker">Treino híbrido real • fisiologia → prática</span>
-      <h1>Começa já com o <span style="color:var(--acc)">Starter</span></h1>
-      <p class="lead">Acesso ao <b>Programa AER</b> + Comunidade LHT. Tudo no TrainingPeaks. Sem apps extra.</p>
-      <!-- BOTÃO STRIPE -->
-      <a class="btn" href="https://buy.stripe.com/14A00l8TTbfVc7Cbi233W08" target="_blank" rel="noopener noreferrer">
-        Entrar agora
+  <!-- ===== HERO ===== -->
+  <header class="hero" id="hero">
+    <div class="container center">
+  <img src="logo-lht.png" alt="Lion Hybrid Training Logo" class="hero-logo anim-in" width="280" height="220" fetchpriority="high" decoding="async">
+      <h1 class="anim-in delay-1">Força. Resistência. <strong>Mindset</strong>.</h1>
+      <p class="lead anim-in delay-2">Não é só sobre treino. É sobre <strong>quem te tornas</strong> quando decides <strong>não desistir</strong>.</p>
+      <p class="copy anim-in delay-3">
+        A Lion Hybrid Training nasceu da vontade de unir <strong>ciência, propósito e comunidade</strong>. <br>
+        Acreditamos que o treino é <strong>o caminho para te tornares mais forte</strong> — física e mentalmente.
+      </p>
+      <div class="cta-row anim-in delay-4">
+        <a class="btn gold" href="https://docs.google.com/forms/d/e/1FAIpQLSfLhPlXojO2-fEvi32VLitq6P7-WcAgD4Ro04lvGtlIlscUGA/viewform?usp=dialog" target="_blank" rel="noopener">Plano de Corrida Gratuito</a>
+        <a class="btn ghost" href="https://chat.whatsapp.com/JVsqO05fm4kLhbSaSiKL8n" target="_blank" rel="noopener" aria-label="Subscrever a Newsletter no WhatsApp (abre numa nova janela)">Subscrever a Newsletter</a>
+      </div>
+      <!-- Indicador de scroll (anima para incentivar a explorar) -->
+      <a href="#filosofia" class="scroll-indicator" aria-label="Descer para conhecer a Filosofia LHT">
+        <span class="scroll-text">Desce para explorar</span>
+        <svg class="chevron" width="30" height="30" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
       </a>
-      <div class="note" style="margin-top:10px">Pagamento seguro via Stripe • cancela quando quiseres</div>
-    </section>
+    </div>
+  </header>
 
-    <section id="metodo" class="grid" style="margin-top:28px">
-      <div class="card">
-        <h3>Porque resulta</h3>
-        <ul class="bullets">
-          <li>✔ Ciência sem complicação — fisiologia traduzida para treino prático.</li>
-          <li>✔ Plano certo, momento certo — progressões que respeitam o teu contexto.</li>
-          <li>✔ Integração total — tudo no TrainingPeaks, direto para o teu relógio.</li>
-          <li>✔ Holístico — corpo, mente e hábitos a remar na mesma direção.</li>
-        </ul>
+  <!-- ===== FILOSOFIA LHT ===== -->
+  <section id="filosofia">
+    <div class="container">
+      <h2>TREINO HÍBRIDO - Filosofia LHT</h2>
+      <p class="intro">
+        O conceito de Treino Híbrido foi inicialmente popularizado por <strong>Alex Viada</strong>, que demonstrou ser possível desenvolver <strong>força e endurance em simultâneo</strong>, sem comprometer o desempenho em nenhuma das áreas.
+        Mais tarde, <strong>Fergus Crawley</strong> refinou essa visão, definindo o treino híbrido como:
+      </p>
+      <p class="center mini">"The concurrent training of disciplines that do not inherently support one another and whose disparate components are not essential to success at any one sport."</p>
+      <p class="intro">
+        Em tradução livre: o treino híbrido é <strong>o desenvolvimento de capacidades aparentemente opostas</strong> — como correr longas distâncias e levantar cargas pesadas — com o objetivo de <strong>expandir o potencial humano</strong>.
+        Na Lion Hybrid Training, aplicamos esta filosofia à vida real. <strong>Não treinamos para o pódio</strong> — treinamos para <strong>viver melhor</strong>, com mais energia, propósito e equilíbrio.
+        Ser híbrido é escolher <strong>o caminho da consistência</strong>. É ser forte, resistente e capaz — dentro e fora do ginásio.
+      </p>
+      <p class="center mini">“Why train for one thing, when you can train for all things?”</p>
+      <div class="cta-row mindset-row">
+        <button type="button" class="btn mindset mindset-trigger" aria-label="Ver vídeo Mindset (abre modal)">Ver vídeo Mindset</button>
       </div>
-      <div class="card">
-        <h3>Como funciona</h3>
-        <ol>
-          <li>Compra o Starter (Stripe).</li>
-          <li>Redireciona para o Onboarding (WhatsApp + TrainingPeaks + AER).</li>
-          <li>Ativa o programa e começa a treinar hoje.</li>
-        </ol>
-      </div>
-    </section>
+    </div>
+  </section>
 
-    <section id="precos" style="margin-top:22px">
-      <h3>Planos</h3>
+  <!-- ===== COMO COMEÇAR ===== -->
+  <section id="como-comecar">
+    <div class="container center">
+      <h2>Junta-te a nós!</h2>
       <div class="grid">
-        <!-- Starter (ativo) -->
-        <div class="card">
-          <div><b>Starter</b> <span class="tag">Fundadores</span></div>
-          <div class="price">24,90€<span class="mut">/mês</span></div>
-          <p class="mut">Programa AER + Comunidade LHT. Ideal para começar.</p>
-          <a class="btn" href="https://buy.stripe.com/14A00l8TTbfVc7Cbi233W08" target="_blank" rel="noopener noreferrer">Aderir</a>
-          <p class="note" style="margin-top:8px">Subida de preço prevista nas próximas vagas.</p>
+        <article class="card anim-in">
+          <h3>Plano de Corrida Gratuito</h3>
+          <p>Responde ao questionário e recebe no teu email um <strong>plano ajustado à tua realidade</strong>, baseado em <strong>princípios científicos</strong> de fisiologia e treino.</p>
+          <ul class="list">
+            <li>Descobre o teu <strong>ritmo e zonas ideais</strong> de treino;</li>
+            <li>Aprende a <strong>estruturar o teu progresso</strong>;</li>
+            <li>Recebe um plano <strong>aplicável à tua rotina diária</strong>.</li>
+          </ul>
+          <div class="cta-row">
+            <a class="btn gold" href="https://docs.google.com/forms/d/e/1FAIpQLSfLhPlXojO2-fEvi32VLitq6P7-WcAgD4Ro04lvGtlIlscUGA/viewform?usp=dialog" target="_blank" rel="noopener">Receber o Plano Gratuito →</a>
+          </div>
+        </article>
+
+  <article class="card anim-in delay-1" id="newsletter">
+          <h3>Newsletter LHT (WhatsApp)</h3>
+          <p>Recebe conteúdos semanais sobre <strong>mindset, performance e estilo de vida híbrido</strong> — diretamente no teu WhatsApp. É o nosso <strong>canal gratuito</strong> de reflexões, dicas práticas e novidades.</p>
+          <ul class="list">
+            <li><strong>Inspiração e reflexões</strong> sobre treino e propósito;</li>
+            <li>Dicas e partilhas dos <strong>bastidores LHT</strong>;</li>
+            <li><strong>Acesso antecipado</strong> a programas, eventos e formações.</li>
+          </ul>
+          <div class="cta-row">
+            <a class="btn ghost" href="https://chat.whatsapp.com/JVsqO05fm4kLhbSaSiKL8n" target="_blank" rel="noopener" aria-label="Subscrever a Newsletter no WhatsApp (abre numa nova janela)">Subscrever a Newsletter →</a>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== COMO FUNCIONA ===== -->
+  <section id="como-funciona">
+    <div class="container center">
+      <h2>Torna-te um verdadeiro atleta híbrido</h2>
+      <div class="steps">
+        <div class="step anim-in" style="--step-bg:url('DSC00702.jpg'); --step-fallback:linear-gradient(180deg,#191919,#0f0f0f); --bg-dim:.80">
+          <span class="num">1</span>
+          <h3>Experimenta</h3>
+          <p>Plano inicial de corrida adaptado ao teu nível para criar momentum.</p>
         </div>
-        <!-- Pro (decoy futuro) -->
-        <div class="card">
-          <div><b>Pro</b> <span class="tag">Em breve</span></div>
-          <div class="price mut">59,60€</div>
-          <p class="mut">Acesso a <u>todos</u> os programas. Upgrade lógico após Starter.</p>
+  <div class="step anim-in delay-1" style="--step-bg:url('TP_coach.jpg'); --step-fallback:linear-gradient(180deg,#191919,#0f0f0f); --bg-dim:.80">
+          <span class="num">2</span>
+          <h3>Partilha</h3>
+          <p>Partilha a tua experiência e aprende com a comunidade LHT.</p>
         </div>
-        <!-- Elite (decoy futuro) -->
-        <div class="card">
-          <div><b>Elite</b> <span class="tag">Em breve</span></div>
-          <div class="price mut">149,90€</div>
-          <p class="mut">Acompanhamento 1:1 no TP + equipa (nutri, fisio, mental).</p>
+  <div class="step anim-in delay-2" style="--step-bg:url('DSC00791.jpg'); --step-fallback:linear-gradient(180deg,#191919,#0f0f0f); --bg-dim:.80">
+          <span class="num">3</span>
+          <h3>Evolui</h3>
+          <p>Começa a integrar força e endurance através do AER!</p>
         </div>
       </div>
-    </section>
+    </div>
+  </section>
 
-    <section id="faq" class="card" style="margin-top:22px">
-      <h3>FAQ rápido</h3>
-      <p><b>É para iniciantes?</b> Sim — zonas e cargas ajustadas ao teu limiar.</p>
-      <p><b>Preciso de apps?</b> Não. Só TrainingPeaks (gratuito) + teu relógio.</p>
-      <p><b>Posso cancelar?</b> Sim, quando quiseres, sem fidelização.</p>
-    </section>
+  <!-- ===== SEGUNDO HERO (AER) ===== -->
+  <section class="hero-2" id="aer">
+    <div class="container">
+      <h3>Become a Lion. Become Hybrid.</h3>
+      <h2>Pronto para o próximo passo?</h2>
+      <h4>Mais <strong>resistente,</strong> mais <strong>forte,</strong> mais <strong>atlético!</strong></h4>
+  <ul class="list left">
+        <li><strong>Programa completo no TrainingPeaks</strong>, ajustado ao teu nível e objetivo;</li>
+        <li><strong>Duas consultorias individuais</strong> com o treinador;</li>
+        <li>Acesso à <strong>Comunidade LHT no WhatsApp</strong>, com desafios, calendário de provas e um <strong>Sistema de Progressão exclusivo</strong>;</li>
+        <li>Ferramentas para acompanhares a tua evolução e <strong>medires o teu progresso</strong>.</li>
+        <br>
+      </ul>
+      <div class="cta-row">
+        <a class="btn gold" href="https://aer.lionhybridtraining.com" target="_blank" rel="noopener" aria-label="Começar o AER (abre numa nova janela)"> Começar agora!</a>
+      </div>
+    </div>
+  </section>
 
-    <footer>© Lion Hybrid Training — performance de endurance + força.</footer>
+  <!-- ===== FUTURO ===== -->
+  <section id="futuro">
+    <div class="container center">
+      <h2>A força não tem uma só forma.</h2>
+      <p class="intro">O AER é apenas o início. A Lion Hybrid Training vai expandir-se com programas de treino em várias modalidades — <strong>corrida, ciclismo, triatlo, calistenia, levantamento olímpico e muito mais</strong> — sempre com a mesma base: <strong>ciência, consistência e propósito</strong>. Porque o treino híbrido não é sobre fazer tudo. É sobre <strong>dominar o que te faz evoluir</strong>.</p>
+    </div>
+  </section>
+
+  <!-- ===== MÉTRICAS & FAQ ===== -->
+  <section id="metrics-faq">
+    <div class="container center">
+      <h2>Resultados & FAQ's</h2>
+      <div class="metrics">
+        <div class="metric"><span class="m-num">120+</span><span class="m-label">Experimentaram o AER</span></div>
+        <div class="metric"><span class="m-num">89%</span><span class="m-label">8+ semanas consistência</span></div>
+        <div class="metric"><span class="m-num">40+</span><span class="m-label">Subscreveram a Newsletter</span></div>
+        <div class="metric"><span class="m-num">24/7</span><span class="m-label">Ao teu ritmo</span></div>
+      </div>
+      <div class="faq">
+        <details>
+          <summary>O que é treino híbrido?</summary>
+          <p>É a integração estrutural de força e endurance sem sacrificar progressão em nenhuma. Focamo-nos em carga inteligente, recuperação e consistência.</p>
+        </details>
+        <details>
+          <summary>Preciso de muita experiência?</summary>
+          <p>Não. Ajustamos o ponto de partida ao teu nível e construímos capacidade progressivamente.</p>
+        </details>
+        <details>
+          <summary>O que recebo no AER?</summary>
+          <p>Plano no TrainingPeaks, consultorias, comunidade, sistema de progressão e métricas para monitorizar evolução.</p>
+        </details>
+        <details>
+          <summary>Como acompanho melhorias?</summary>
+          <p>Registos de carga, zonas de endurance, números de força, métricas de consistência semanal/mensal.</p>
+        </details>
+      </div>
+    </div>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {"@type": "Question","name": "O que é treino híbrido?","acceptedAnswer":{"@type": "Answer","text": "Integra força + endurance com progressão sem sacrificar nenhuma capacidade."}},
+        {"@type": "Question","name": "Preciso de muita experiência?","acceptedAnswer":{"@type": "Answer","text": "Não. O ponto de partida adapta-se ao teu nível."}},
+        {"@type": "Question","name": "O que recebo no AER?","acceptedAnswer":{"@type": "Answer","text": "Plano, consultorias, comunidade, sistema de progressão e métricas."}},
+        {"@type": "Question","name": "Como acompanho melhorias?","acceptedAnswer":{"@type": "Answer","text": "Através de carga, zonas, força e consistência semanal/mensal."}}
+      ]
+    }
+    </script>
+  </section>
+
+  <!-- ===== FUNDADOR ===== -->
+  <section id="fundador">
+    <div class="container center">
+      <h2>Trabalho com propósito.<br>Vivo com intenção.<br>Lidero pelo exemplo.</h2>
+      <!-- Foto do fundador -->
+      <div class="founder-image">
+        <img src="founder-img.png" alt="Rodrigo Libânio - Fundador LHT" class="founder-img">
+      </div>
+      
+      <p class="intro">Sou o <strong>Rodrigo Libânio</strong>, treinador, atleta híbrido e fundador da Lion Hybrid Training. Acredito que o treino é uma <strong>ferramenta de transformação pessoal</strong> — física, mental e emocional. Criei a LHT para ajudar <strong>pessoas reais, com vidas exigentes</strong>, a tornarem-se mais fortes e equilibradas, <strong>liderando pelo exemplo</strong>. Não é sobre ser o melhor. É sobre <strong>ser melhor do que ontem</strong>.</p>
+      <div class="cta-row">
+        <a class="btn ghost" href="sobre.html" aria-label="Ler mais sobre a minha história e contexto na página Sobre">Conhece a minha história →</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== BLOCO FINAL ===== -->
+  <section id="final" class="center">
+    <div class="container">
+      <h2>Estás pronto para elevar o teu padrão?</h2>
+      <p class="intro">Começa com o <strong>plano gratuito</strong>, aprende os fundamentos e depois <strong>compromete-te com o processo</strong> através do AER. <strong>O teu corpo é a ferramenta. A tua mente, o motor.</strong> O primeiro passo é teu.</p>
+      <div class="cta-row">
+        <a class="btn ghost" href="https://docs.google.com/forms/d/e/1FAIpQLSfLhPlXojO2-fEvi32VLitq6P7-WcAgD4Ro04lvGtlIlscUGA/viewform?usp=dialog" target="_blank" rel="noopener">Receber o meu plano gratuito</a>
+        <a class="btn gold" href="https://aer.lionhybridtraining.com" target="_blank" rel="noopener">Começar o AER</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== FOOTER ===== -->
+  <footer>
+    <div class="container">
+      <div>© 2025 Lion Hybrid Training · <a href="mailto:info@lionhybridtraining.com">info@lionhybridtraining.com</a></div>
+      
+      <nav class="legal">
+        <a href="politica-privacidade.html" rel="noopener">Política de Privacidade</a>
+        <span>·</span>
+        <a href="termos.html" rel="noopener">Termos e Condições</a>
+      </nav>
+      
+      <!-- Move socials to the very bottom -->
+      <nav class="socials" aria-label="Redes sociais (base)">
+        <a href="https://www.instagram.com/coach.rodrigolibanio" aria-label="Instagram" rel="noopener" target="_blank">
+         <img src="icons/instagram.png" alt="Instagram" width="20" height="20" loading="lazy" />
+        </a>
+        <a href="#" aria-label="YouTube" rel="noopener" target="_blank">
+         <img src="icons/youtube.png" alt="YouTube" width="20" height="20" loading="lazy" />
+        </a>
+        <a href="https://chat.whatsapp.com/JVsqO05fm4kLhbSaSiKL8n" aria-label="WhatsApp" rel="noopener" target="_blank">
+         <img src="icons/whatsapp.png" alt="WhatsApp" width="20" height="20" loading="lazy" />
+        </a>
+      </nav>
+    </div>
+  </footer>
+
+  <!-- Modal de vídeo Mindset (inicialmente oculto) -->
+  <div id="mindset-video-modal" class="mindset-modal" hidden aria-hidden="true" role="dialog" aria-label="Vídeo Mindset">
+    <video class="mindset-video" playsinline preload="metadata" controls poster="assets/video/lion-mentality-poster.jpg">
+      <source src="assets/video/lion-mentality.mp4" type="video/mp4">
+      O teu navegador não conseguiu carregar o vídeo.
+    </video>
+    <div class="mindset-fallback" hidden>
+      <p>Se o vídeo não iniciar, abre diretamente aqui:</p>
+      <p><a href="assets/video/lion-mentality.mp4" target="_blank" rel="noopener">Abrir vídeo Mindset</a></p>
+    </div>
   </div>
+  <script src="script.js"></script>
 </body>
 </html>
