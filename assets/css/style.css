@@ -17,7 +17,7 @@
   --panel:#141414;
   --maxw: 1100px;
   --py: clamp(36px, 6vw, 64px);
-  --hero-img: url('tua-imagem.png');
+  --hero-img: url('../img/tua-imagem.png');
   --mist-intensity: 0.50; /* intensidade da névoa dourada (0-1) */
 }
 
@@ -34,7 +34,7 @@ body{
   -moz-osx-font-smoothing:grayscale;
   overflow-x:hidden;
 }
-a{color:inherit;text-decoration:none}
+ a{color:inherit;text-decoration:none}
 
 /* Visually-hidden utility for semantic headings */
 .sr-only{
@@ -181,7 +181,7 @@ section .intro{color:var(--muted); max-width:860px; margin:0 auto 18px; text-ali
   position: relative;
   background:
     linear-gradient(180deg, rgba(10,10,10,.70) 0%, rgba(10,10,10,.78) 40%, rgba(10,10,10,.88) 100%),
-    url('founder-img.png');
+    url('../img/founder-img.png');
   background-size: cover;
   background-position: center;
   box-shadow: 0 0 80px rgba(0,0,0,.35) inset, 0 0 60px var(--gold-faint);
@@ -250,34 +250,58 @@ section .intro{color:var(--muted); max-width:860px; margin:0 auto 18px; text-ali
   display:grid; gap:20px; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); margin-top:24px;
 }
 #como-funciona .step{
-  /* Prep for optional darkened background image via CSS var: --step-bg: url('...') */
+  /* Background image is set inline in HTML; keep sizing rules here */
   position: relative;
   overflow: hidden;
-  background: transparent;
-  border:1px solid rgba(255,255,255,.05);
+  display: block; /* full-card clickable anchor */
+  cursor: pointer;
+  text-decoration: none;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  border:none; /* remove light outline around cards */
   border-radius:16px; padding:18px 16px;
-  box-shadow: 0 4px 18px -4px rgba(0,0,0,.45);
+  box-shadow: 0 8px 24px -6px rgba(0,0,0,.55), 0 0 22px rgba(0,0,0,.30) inset;
+  transition: transform .22s ease, box-shadow .22s ease, filter .22s ease;
 }
-#como-funciona .step::before{
-  /* Background image layer (set with inline style: --step-bg:url('...')) */
-  content:""; position:absolute; inset:0; border-radius:inherit;
-  background: var(--step-bg, var(--step-fallback, none)) center/cover no-repeat;
-  filter: brightness(var(--bg-dim, .45)) saturate(.9);
-  transform: scale(1.06);
-  z-index:0;
-}
+#como-funciona .step::before{ content: none; }
 #como-funciona .step::after{
-  /* Subtle overlay to ensure text legibility even without image */
+  /* Overlay opacity is directly controlled by --bg-dim (0–1) */
   content:""; position:absolute; inset:0; border-radius:inherit;
-  background: linear-gradient(180deg, rgba(25,25,25,.82), rgba(15,15,15,.92));
+  background: linear-gradient(180deg, rgba(0,0,0,1), rgba(0,0,0,1));
+  opacity: var(--bg-dim, .60);
+  pointer-events: none;
   z-index:1;
+  transition: opacity .22s ease;
 }
 #como-funciona .step > *{ position: relative; z-index: 2; }
+#como-funciona .step:hover{
+  transform: translateY(-2px);
+  filter: brightness(1.03);
+  box-shadow:
+    0 10px 28px -8px rgba(0,0,0,.65), /* deeper drop */
+    0 0 18px rgba(212,165,79,.18),     /* soft gold glow */
+    0 0 0 1px rgba(212,165,79,.20) inset; /* faint gold edge */
+}
+#como-funciona .step:hover::after{
+  opacity: calc(var(--bg-dim, .60) - .10); /* reveal image slightly on hover */
+}
+#como-funciona .step:focus-visible{
+  outline: 2px solid rgba(212,165,79,.35);
+  outline-offset: 2px;
+  border-radius: 16px;
+}
 #como-funciona .step h3{margin:4px 0 6px; font-family:'Oswald',sans-serif; font-size:16px; letter-spacing:.6px; text-transform:uppercase; color:var(--gold-soft)}
 #como-funciona .step p{margin:0; font-size:14px; color:#c5c9d1}
 #como-funciona .num{
   display:inline-flex; width:40px; height:40px; align-items:center; justify-content:center;
   border-radius:50%; background:rgba(212,165,79,.14); color:var(--gold); font-weight:600; font-size:14px; letter-spacing:.5px; box-shadow:0 0 0 1px rgba(212,165,79,.28), 0 4px 12px -2px rgba(0,0,0,.55);
+}
+/* Legibilidade: sombra leve no texto dentro dos cards */
+#como-funciona .step h3,
+#como-funciona .step p,
+#como-funciona .step .num{
+  text-shadow: 0 2px 6px rgba(0,0,0,.45);
 }
 
 .founder-image {
@@ -382,7 +406,7 @@ section .intro{color:var(--muted); max-width:860px; margin:0 auto 18px; text-ali
   font-size: clamp(22px,3.2vw,30px); color:var(--gold-soft); margin:0 0 8px;
 }
 .hero-2 h2{
-  font-family:"Agency FB","Athletic Endurance Runner",'Oswald',sans-serif;
+  font-family:"Agency FB","Athletic Endurance Runner","Oswald",sans-serif;
   text-transform:uppercase; letter-spacing:.8px;
   font-size: clamp(28px,5vw,56px);
   color:#ffffff;
@@ -416,7 +440,7 @@ section .intro{color:var(--muted); max-width:860px; margin:0 auto 18px; text-ali
   background:
     radial-gradient(120% 120% at 40% 10%, rgba(20,120,220,0.18), rgba(10,10,10,0.96)),
     linear-gradient(180deg, rgba(18,110,220,0.26), rgba(10,70,180,0.40)),
-    url('tua-imagem.png');
+    url('../img/tua-imagem.png');
   background-size: cover;
   background-position: center;
   background-blend-mode: multiply;
@@ -480,7 +504,7 @@ footer{
   position: relative;
   background:
     linear-gradient(180deg, rgba(18,18,18,.75), rgba(10,10,10,.92)),
-    url('tua-imagem.png');
+    url('../img/tua-imagem.png');
   background-size: cover;
   background-position: center;
   background-attachment: scroll;

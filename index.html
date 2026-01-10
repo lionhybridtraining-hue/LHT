@@ -5,16 +5,33 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Lion Hybrid Training — Comunidade</title>
   <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="assets/css/style.css" />
   <meta name="description" content="Lion Hybrid Training — Força. Resistência. Consistência. A Comunidade onde ciência, propósito e treino híbrido se encontram." />
   <!-- SEO: Canonical + Robots -->
   <link rel="canonical" href="https://lionhybridtraining.com/" />
   <meta name="robots" content="index, follow" />
   <!-- Favicon / App Icons -->
-  <link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16.png" />
-  <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png" />
-  <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon-180.png" />
-  <link rel="shortcut icon" href="icons/favicon-32.png" type="image/png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="assets/icons/favicon-16.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/apple-touch-icon-180.png" />
+  <link rel="shortcut icon" href="assets/icons/favicon-32.png" type="image/png" />
+
+  <!-- Google tag (gtag.js) — loaded globally; pageview sent after consent -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-K3EJSN5M4Y"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){ dataLayer.push(arguments); }
+    gtag('js', new Date());
+    // Consent Mode v2 — default deny before any config
+    gtag('consent', 'default', {
+      analytics_storage: 'denied',
+      ad_storage: 'denied',
+      ad_user_data: 'denied',
+      ad_personalization: 'denied'
+    });
+    // Disable auto page_view; we trigger it after consent in assets/js/script.js
+    gtag('config', 'G-K3EJSN5M4Y', { anonymize_ip: true, send_page_view: false });
+  </script>
 
   <!-- Open Graph -->
   <meta property="og:site_name" content="Lion Hybrid Training" />
@@ -23,24 +40,43 @@
   <meta property="og:title" content="Lion Hybrid Training — Comunidade" />
   <meta property="og:description" content="Lion Hybrid Training — Força. Resistência. Consistência. A Comunidade onde ciência, propósito e treino híbrido se encontram." />
   <meta property="og:url" content="https://lionhybridtraining.com/" />
-  <meta property="og:image" content="https://lionhybridtraining.com/assets/img/og-home-1200x630.jpg" />
-  <meta property="og:image:width" content="1200" />
-  <meta property="og:image:height" content="630" />
+  <meta property="og:image" content="https://lionhybridtraining.com/assets/img/logo-lht.png" />
+  <meta property="og:image:type" content="image/png" />
+  <meta property="og:image:width" content="1024" />
+  <meta property="og:image:height" content="1024" />
   <meta property="og:image:alt" content="Lion Hybrid Training — Força. Resistência. Consistência." />
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="Lion Hybrid Training — Comunidade" />
   <meta name="twitter:description" content="Força. Resistência. Consistência. Comunidade e treino híbrido com propósito." />
-  <meta name="twitter:image" content="https://lionhybridtraining.com/assets/img/og-home-1200x630.jpg" />
+  <meta name="twitter:image" content="https://lionhybridtraining.com/assets/img/logo-lht.png" />
   <meta name="twitter:image:alt" content="Lion Hybrid Training — Força. Resistência. Consistência." />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "Lion Hybrid Training",
+    "url": "https://lionhybridtraining.com/",
+    "logo": "https://lionhybridtraining.com/assets/img/logo-lht.png",
+    "sameAs": []
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "Lion Hybrid Training",
+    "url": "https://lionhybridtraining.com/"
+  }
+  </script>
 </head>
 <body>
 
   <!-- ===== HERO ===== -->
   <header class="hero" id="hero">
     <div class="container center">
-  <img src="logo-lht.png" alt="Lion Hybrid Training Logo" class="hero-logo anim-in" width="280" height="220" fetchpriority="high" decoding="async">
+  <img src="assets/img/logo-lht.png" alt="Lion Hybrid Training Logo" class="hero-logo anim-in" width="280" height="220" fetchpriority="high" decoding="async">
       <h1 class="anim-in delay-1">Força. Resistência. <strong>Mindset</strong>.</h1>
       <p class="lead anim-in delay-2">Não é só sobre treino. É sobre <strong>quem te tornas</strong> quando decides <strong>não desistir</strong>.</p>
       <p class="copy anim-in delay-3">
@@ -121,21 +157,21 @@
     <div class="container center">
       <h2>Torna-te um verdadeiro atleta híbrido</h2>
       <div class="steps">
-        <div class="step anim-in" style="--step-bg:url('DSC00702.jpg'); --step-fallback:linear-gradient(180deg,#191919,#0f0f0f); --bg-dim:.80">
+        <a class="step anim-in" href="https://docs.google.com/forms/d/e/1FAIpQLSfLhPlXojO2-fEvi32VLitq6P7-WcAgD4Ro04lvGtlIlscUGA/viewform?usp=dialog" target="_blank" rel="noopener" aria-label="Experimenta — Plano de Corrida Gratuito" style="background-image:url('assets/img/DSC00702.jpg'); background-size:cover; background-position:center; background-repeat:no-repeat; --bg-dim:.80">
           <span class="num">1</span>
           <h3>Experimenta</h3>
           <p>Plano inicial de corrida adaptado ao teu nível para criar momentum.</p>
-        </div>
-  <div class="step anim-in delay-1" style="--step-bg:url('TP_coach.jpg'); --step-fallback:linear-gradient(180deg,#191919,#0f0f0f); --bg-dim:.80">
+        </a>
+        <a class="step anim-in delay-1" href="https://chat.whatsapp.com/JVsqO05fm4kLhbSaSiKL8n" target="_blank" rel="noopener" aria-label="Partilha — Comunidade no WhatsApp" style="background-image:url('assets/img/TP_Coach.jpg'); background-size:cover; background-position:center; background-repeat:no-repeat; --bg-dim:.80">
           <span class="num">2</span>
           <h3>Partilha</h3>
           <p>Partilha a tua experiência e aprende com a comunidade LHT.</p>
-        </div>
-  <div class="step anim-in delay-2" style="--step-bg:url('DSC00791.jpg'); --step-fallback:linear-gradient(180deg,#191919,#0f0f0f); --bg-dim:.80">
+        </a>
+        <a class="step anim-in delay-2" href="https://buy.stripe.com/14AcN63Qi7p451SbkY97G00" target="_blank" rel="noopener" aria-label="Evolui — Reserva AER" style="background-image:url('assets/img/DSC00791.jpg'); background-size:cover; background-position:center; background-repeat:no-repeat; --bg-dim:.80">
           <span class="num">3</span>
           <h3>Evolui</h3>
           <p>Começa a integrar força e endurance através do AER!</p>
-        </div>
+        </a>
       </div>
     </div>
   </section>
@@ -263,7 +299,7 @@
       <h2>Trabalho com propósito.<br>Vivo com intenção.<br>Lidero pelo exemplo.</h2>
       <!-- Foto do fundador -->
       <div class="founder-image">
-        <img src="founder-img.png" alt="Rodrigo Libânio - Fundador LHT" class="founder-img">
+        <img src="assets/img/founder-img.png" alt="Rodrigo Libânio - Fundador LHT" class="founder-img">
       </div>
       
       <p class="intro">Sou o <strong>Rodrigo Libânio</strong>, treinador, atleta híbrido e fundador da Lion Hybrid Training. Acredito que o treino é uma <strong>ferramenta de transformação pessoal</strong> — física, mental e emocional. Criei a LHT para ajudar <strong>pessoas reais, com vidas exigentes</strong>, a tornarem-se mais fortes e equilibradas, <strong>liderando pelo exemplo</strong>. Não é sobre ser o melhor. É sobre <strong>ser melhor do que ontem</strong>.</p>
@@ -299,13 +335,13 @@
       <!-- Move socials to the very bottom -->
       <nav class="socials" aria-label="Redes sociais (base)">
         <a href="https://www.instagram.com/coach.rodrigolibanio" aria-label="Instagram" rel="noopener" target="_blank">
-         <img src="icons/instagram.png" alt="Instagram" width="20" height="20" loading="lazy" />
+         <img src="assets/icons/instagram.png" alt="Instagram" width="20" height="20" loading="lazy" />
         </a>
         <a href="#" aria-label="YouTube" rel="noopener" target="_blank">
-         <img src="icons/youtube.png" alt="YouTube" width="20" height="20" loading="lazy" />
+         <img src="assets/icons/youtube.png" alt="YouTube" width="20" height="20" loading="lazy" />
         </a>
         <a href="https://chat.whatsapp.com/JVsqO05fm4kLhbSaSiKL8n" aria-label="WhatsApp" rel="noopener" target="_blank">
-         <img src="icons/whatsapp.png" alt="WhatsApp" width="20" height="20" loading="lazy" />
+         <img src="assets/icons/whatsapp.png" alt="WhatsApp" width="20" height="20" loading="lazy" />
         </a>
       </nav>
     </div>
@@ -322,7 +358,7 @@
       <p><a href="assets/video/lion-mentality.mp4" target="_blank" rel="noopener">Abrir vídeo Mindset</a></p>
     </div>
   </div>
-  <script src="script.js"></script>
+  <script src="assets/js/script.js"></script>
   <!-- Consent banner (GDPR) -->
   <div id="consent-banner" class="consent-banner" hidden>
     <div class="consent-content">
@@ -340,7 +376,7 @@
     "@type": "Organization",
     "name": "Lion Hybrid Training",
     "url": "https://lionhybridtraining.com/",
-    "logo": "logo-lht.png",
+    "logo": "https://lionhybridtraining.com/assets/img/logo-lht.png",
     "sameAs": [
       "https://www.instagram.com/coach.rodrigolibanio",
       "https://chat.whatsapp.com/JVsqO05fm4kLhbSaSiKL8n"

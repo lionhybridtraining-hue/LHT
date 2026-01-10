@@ -98,14 +98,32 @@ if(document.readyState === 'loading'){
 // ===== Consent + Analytics =====
 (function(){
   const CONSENT_KEY = 'lht_consent';
+  const GA_ID = 'G-K3EJSN5M4Y';
   const consentBanner = document.getElementById('consent-banner');
   const btnAccept = document.getElementById('consent-accept');
   const btnDecline = document.getElementById('consent-decline');
 
   // Lightweight analytics adapter: console, gtag (GA4) or plausible
+  // Load Google Analytics (gtag) only after consent
+  function loadGtag(id){
+    if(window.gtag) return; // already loaded/initialized
+    // Define dataLayer + gtag before loading script so events are queued
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){ window.dataLayer.push(arguments); }
+    window.gtag = gtag;
+    gtag('js', new Date());
+    gtag('config', id, { anonymize_ip: true });
+    const s = document.createElement('script');
+    s.async = true;
+    s.src = `https://www.googletagmanager.com/gtag/js?id=${id}`;
+    document.head.appendChild(s);
+  }
+
   const Analytics = {
     enabled: false,
     init(){
+      // Gate GA behind consent
+      loadGtag(GA_ID);
       this.enabled = true;
       this.pageview();
     },
@@ -148,9 +166,17 @@ if(document.readyState === 'loading'){
     const c = getConsent();
     if(c === 'accepted'){
       consentBanner.hidden = true;
+      // Update Consent Mode to granted before initializing analytics
+      if(typeof window.gtag === 'function'){
+        window.gtag('consent', 'update', { analytics_storage: 'granted' });
+      }
       Analytics.init();
     } else if(c === 'denied'){
       consentBanner.hidden = true;
+      // Ensure denied is explicit in Consent Mode
+      if(typeof window.gtag === 'function'){
+        window.gtag('consent', 'update', { analytics_storage: 'denied' });
+      }
     } else {
       consentBanner.hidden = false;
     }
@@ -161,6 +187,9 @@ if(document.readyState === 'loading'){
     btnAccept.addEventListener('click', ()=>{
       setConsent('accepted');
       consentBanner.hidden = true;
+      if(typeof window.gtag === 'function'){
+        window.gtag('consent', 'update', { analytics_storage: 'granted' });
+      }
       Analytics.init();
       Analytics.event('consent_accept');
     });
@@ -169,6 +198,9 @@ if(document.readyState === 'loading'){
     btnDecline.addEventListener('click', ()=>{
       setConsent('denied');
       consentBanner.hidden = true;
+      if(typeof window.gtag === 'function'){
+        window.gtag('consent', 'update', { analytics_storage: 'denied' });
+      }
       Analytics.event('consent_decline');
     });
   }
