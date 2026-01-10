@@ -50,13 +50,13 @@ body{
   padding: clamp(18px, 3.6vw, 40px) 0 28px;
   text-align:center;
   background:
-    linear-gradient(180deg, rgba(15,15,15,.80), rgba(10,10,10,.94)),
+    linear-gradient(180deg, rgba(15,15,15,.70), rgba(10,10,10,.85)),
     var(--hero-img);
   background-size: cover;
   background-position: center;
   background-attachment: scroll;
   border-bottom: 1px solid rgba(212,165,79,.18);
-  box-shadow: 0 10px 30px rgba(0,0,0,.6), 0 0 80px rgba(212,165,79,.06);
+  box-shadow: 0 10px 30px rgba(0,0,0,.6), 0 0 100px rgba(212,165,79,.1);
 }
 /* Scroll indicator (igual conceito da landing) */
 .scroll-indicator{
@@ -76,7 +76,7 @@ body{
   font-size: clamp(20px, 3.6vw, 34px);
   color: var(--gold);
   line-height:1.1;
-  text-shadow: 0 2px 10px rgba(212,165,79,.25);
+  text-shadow: 0 2px 14px rgba(212,165,79,.35), 0 0 8px rgba(212,165,79,.2);
 }
 .hero-sub{
   margin:0 auto 20px;
@@ -150,7 +150,7 @@ body{
   color: var(--gold);
   font-weight:700;
   letter-spacing:.02em;
-  text-shadow: 0 1px 8px rgba(212,165,79,.2);
+  text-shadow: 0 2px 10px rgba(212,165,79,.3), 0 0 6px rgba(212,165,79,.15);
 }
 .about-body p{
   margin:0 0 10px;
@@ -175,14 +175,14 @@ body{
 footer{
   position: relative;
   background:
-    linear-gradient(180deg, rgba(15,15,15,.82), rgba(10,10,10,.96)),
+    linear-gradient(180deg, rgba(15,15,15,.72), rgba(10,10,10,.88)),
     url('../img/tua-imagem.png'); /* fallback reuse hero concept if exists */
   background-size: cover;
   background-position: center;
   padding:34px 0 46px;
   text-align:center;
   color:#ffffff;
-  box-shadow: 0 0 70px rgba(0,0,0,.35) inset, 0 -10px 30px rgba(212,165,79,.10), 0 0 80px rgba(212,165,79,.05);
+  box-shadow: 0 0 70px rgba(0,0,0,.35) inset, 0 -10px 30px rgba(212,165,79,.15), 0 0 100px rgba(212,165,79,.08);
   overflow:hidden;
 }
 footer a, footer strong, footer b{ color:#ffffff; }
@@ -223,7 +223,7 @@ footer .socials a:hover img{ filter: brightness(0) invert(1) drop-shadow(0 0 2px
 }
 .brand img{
   width: clamp(120px, 14vw, 180px);
-  filter: drop-shadow(0 0 20px rgba(212,165,79,0.25)) drop-shadow(0 0 8px rgba(212,165,79,0.1));
+  filter: drop-shadow(0 0 26px rgba(212,165,79,0.35)) drop-shadow(0 0 12px rgba(212,165,79,0.2));
 }
 
 /* ===== BLOCO GIF ===== */
