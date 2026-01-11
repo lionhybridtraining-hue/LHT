@@ -1,0 +1,42 @@
+backend:
+  name: git-gateway
+  branch: main
+
+media_folder: "assets/img/uploads"
+public_folder: "/assets/img/uploads"
+
+publish_mode: editorial_workflow
+
+collections:
+  - name: posts
+    label: Artigos
+    label_singular: Artigo
+    folder: "blog/posts"
+    create: true
+    extension: "md"
+    slug: "{{slug}}"
+    fields:
+      - { label: Título, name: title, widget: string }
+      - { label: Data, name: date, widget: datetime, format: "YYYY-MM-DD" }
+      - { label: Categoria, name: category, widget: string, default: "Artigo" }
+      - { label: Resumo, name: excerpt, widget: text, required: false }
+      - { label: Conteúdo, name: body, widget: markdown }
+
+  - name: posts_index
+    label: Lista de Artigos
+    files:
+      - label: Posts
+        name: posts_json
+        file: "blog/posts.json"
+        format: json
+        fields:
+          - label: Posts
+            name: items
+            widget: list
+            summary: "{{fields.title}} ({{fields.date}}) — {{fields.category}}"
+            fields:
+              - { label: Slug, name: slug, widget: string }
+              - { label: Título, name: title, widget: string }
+              - { label: Data, name: date, widget: datetime, format: "YYYY-MM-DD" }
+              - { label: Categoria, name: category, widget: string }
+              - { label: Resumo, name: excerpt, widget: text, required: false }

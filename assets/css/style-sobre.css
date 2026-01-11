@@ -185,6 +185,42 @@ footer{
   box-shadow: 0 0 70px rgba(0,0,0,.35) inset, 0 -10px 30px rgba(212,165,79,.15), 0 0 100px rgba(212,165,79,.08);
   overflow:hidden;
 }
+
+/* -------- Consent Banner (dark, translúcido) -------- */
+.consent-banner{
+  position: fixed; left: 0; right: 0; bottom: 0;
+  background: rgba(20,20,20,.86);
+  backdrop-filter: blur(6px) saturate(1.05);
+  border-top: 1px solid rgba(255,255,255,.08);
+  padding: 16px 22px; z-index: 5000;
+  box-shadow: 0 -6px 24px rgba(0,0,0,.45), 0 0 0 1px rgba(212,165,79,.10) inset;
+}
+.consent-content{ display:flex; gap:18px; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; max-width: 860px; margin: 0 auto; }
+.consent-title{ font-family:'Oswald',sans-serif; font-weight:600; font-size:18px; color:var(--gold); margin-bottom:6px; }
+.consent-text{ color:#cfd3db; font-size:14px; max-width: 720px; }
+.consent-actions{ display:flex; gap:10px; justify-content:flex-end; }
+.consent-banner .btn{ box-shadow:none; }
+.consent-banner .btn.gold{ animation:none; box-shadow:none; }
+
+.consent-modal[hidden]{ display:none; }
+.consent-modal{ position:fixed; inset:0; z-index:6000; display:flex; align-items:center; justify-content:center; background: rgba(0,0,0,.65); backdrop-filter: blur(2px); }
+.consent-modal-panel{
+  width:min(680px, 92vw);
+  background: linear-gradient(180deg, rgba(34,34,34,.94), rgba(24,24,24,.92));
+  color: var(--text);
+  border-radius:12px; padding: 18px 18px 14px;
+  border: 1px solid rgba(255,255,255,.08);
+  box-shadow: 0 14px 34px rgba(0,0,0,.45), 0 0 0 1px rgba(212,165,79,.10) inset;
+}
+.consent-modal-title{ font-family:'Oswald',sans-serif; font-size:20px; margin:4px 0 8px; color: var(--gold); }
+.consent-modal-desc{ font-size:14px; color:#cfd3db; }
+.consent-list{ list-style:none; padding:0; margin:12px 0 14px; }
+.consent-item{ display:flex; gap:10px; align-items:flex-start; }
+.consent-item input{ margin-top:4px; }
+.consent-item span{ display:flex; flex-direction:column; }
+.consent-item small{ color:#9aa0a6; font-size:12px; }
+.consent-modal-actions{ display:flex; gap:10px; justify-content:flex-end; margin-top:8px; }
+.consent-privacy{ display:inline-block; margin-top:10px; font-size:13px; color:var(--gold); text-decoration:underline; }
 footer a, footer strong, footer b{ color:#ffffff; }
 footer a{ opacity:.92; transition: opacity .2s ease, text-decoration-color .2s ease; }
 footer a:hover{ opacity:1; text-decoration: underline; text-underline-offset:3px; }
