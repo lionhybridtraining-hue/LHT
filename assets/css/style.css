@@ -651,7 +651,10 @@ footer .legal span{opacity:.6}
 }
 .consent-content{ display:flex; gap:12px; align-items:center; justify-content:space-between; flex-wrap:wrap; }
 .consent-text{ color:#cfd3db; font-size:14px; }
-.consent-actions{ display:flex; gap:8px; }
+.consent-actions{ display:flex; gap:8px; justify-content:center; }
+/* Remove button glow/animation inside consent banner only */
+.consent-banner .btn{ box-shadow:none; }
+.consent-banner .btn.gold{ animation:none; box-shadow:none; }
 
 /* -------- Responsivo -------- */
 @media (max-width: 640px){

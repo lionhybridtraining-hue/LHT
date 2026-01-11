@@ -358,11 +358,10 @@
       <p><a href="assets/video/lion-mentality.mp4" target="_blank" rel="noopener">Abrir vídeo Mindset</a></p>
     </div>
   </div>
-  <script src="assets/js/script.js"></script>
   <!-- Consent banner (GDPR) -->
   <div id="consent-banner" class="consent-banner" hidden>
     <div class="consent-content">
-      <div class="consent-text">Usamos cookies para medir visitas e cliques (melhorar a experiência). Queres permitir?</div>
+      <div class="consent-text">Usamos métricas anónimas de para melhorar a qualidade do site. Permitir a recolha?</div>
       <div class="consent-actions">
         <button class="btn gold" id="consent-accept" data-track="consent_accept">Aceitar</button>
         <button class="btn ghost" id="consent-decline" data-track="consent_decline">Recusar</button>
@@ -398,5 +397,7 @@
     "offers": {"@type": "Offer", "url": "https://buy.stripe.com/14AcN63Qi7p451SbkY97G00", "price": "0", "priceCurrency": "EUR", "availability": "https://schema.org/InStock"}
   }
   </script>
+  <!-- Main JS should load after consent banner exists -->
+  <script src="assets/js/script.js"></script>
 </body>
 </html>
