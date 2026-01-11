@@ -10,6 +10,65 @@
     }
   }
 
+  async function fetchJson(url){
+    const res = await fetch(url, { cache: 'no-cache' });
+    if(!res.ok) return null;
+    return res.json();
+  }
+
+  function normalizeList(data){
+    if(Array.isArray(data)) return data;
+    if(data && Array.isArray(data.items)) return data.items;
+    if(data && Array.isArray(data.posts)) return data.posts;
+    return [];
+  }
+
+  function mergePosts(indexPosts, apiPosts){
+    const bySlug = new Map();
+    apiPosts.forEach(p=> { if(p && p.slug) bySlug.set(p.slug, p); });
+
+    const used = new Set();
+    const merged = [];
+
+    // Keep curated order from posts.json, but fill missing fields from API
+    indexPosts.forEach(p=>{
+      if(!p || !p.slug) return;
+      const fromApi = bySlug.get(p.slug) || {};
+      used.add(p.slug);
+      merged.push({
+        ...fromApi,
+        ...p
+      });
+    });
+
+    // Append any new posts not yet in posts.json
+    apiPosts.forEach(p=>{
+      if(!p || !p.slug) return;
+      if(used.has(p.slug)) return;
+      merged.push(p);
+    });
+
+    return merged;
+  }
+
+  async function fetchPosts(){
+    let apiPosts = [];
+    let indexPosts = [];
+
+    try{
+      apiPosts = normalizeList(await fetchJson('/api/posts'));
+    }catch(e){}
+
+    try{
+      indexPosts = normalizeList(await fetchJson('blog/posts.json'));
+    }catch(e){}
+
+    if(indexPosts.length && apiPosts.length) return mergePosts(indexPosts, apiPosts);
+    if(apiPosts.length) return apiPosts;
+    if(indexPosts.length) return indexPosts;
+    return [];
+  }
+
   function createCard(post){
     const article = document.createElement('article');
     article.className = 'article-card';
@@ -57,14 +116,7 @@
     const grid = document.getElementById('articles-grid');
     if(!grid) return;
     try{
-      const res = await fetch('blog/posts.json', { cache: 'no-cache' });
-      if(!res.ok) throw new Error('Falha a carregar posts.json');
-      let posts = await res.json();
-      if(!Array.isArray(posts)){
-        if(Array.isArray(posts.posts)) posts = posts.posts;
-        else if(Array.isArray(posts.items)) posts = posts.items;
-        else posts = [];
-      }
+      const posts = await fetchPosts();
 
       // sort by date desc
       posts.sort((a,b)=> (a.date>b.date?-1: a.date<b.date?1:0));
@@ -77,7 +129,7 @@
         h3.textContent = 'Ainda sem artigos';
         const p = document.createElement('p');
         p.className='article-excerpt';
-        p.textContent = 'Adiciona um novo post para aparecer aqui.';
+        p.textContent = 'Publica um novo post no Admin para aparecer aqui.';
         empty.appendChild(h3);
         empty.appendChild(p);
         grid.appendChild(empty);
@@ -97,7 +149,7 @@
       h3.textContent = 'Erro a carregar artigos';
       const p = document.createElement('p');
       p.className='article-excerpt';
-      p.textContent = 'Verifica o ficheiro blog/posts.json.';
+      p.textContent = 'Tenta recarregar a página ou confirma que existe conteúdo em blog/posts.';
       error.appendChild(h3);
       error.appendChild(p);
       document.getElementById('articles-grid')?.appendChild(error);

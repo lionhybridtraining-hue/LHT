@@ -1,6 +1,26 @@
 [build]
   publish = "."
 
+[functions]
+  directory = "netlify/functions"
+  included_files = ["blog/posts/**"]
+
+# Friendly URLs
+[[redirects]]
+  from = "/blog"
+  to = "/blog.html"
+  status = 301
+
+[[redirects]]
+  from = "/artigo"
+  to = "/artigo.html"
+  status = 301
+
+[[redirects]]
+  from = "/admin"
+  to = "/admin/"
+  status = 301
+
 # Redirect old blog route to dynamic article page
 [[redirects]]
   from = "/blog/:slug"

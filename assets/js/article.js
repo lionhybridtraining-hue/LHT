@@ -14,6 +14,27 @@
     }
   }
 
+  async function fetchPostsMeta(){
+    const candidates = [
+      '/api/posts',
+      'blog/posts.json'
+    ];
+
+    for(const url of candidates){
+      try{
+        const res = await fetch(url, { cache: 'no-cache' });
+        if(!res.ok) continue;
+        let data = await res.json();
+        if(Array.isArray(data)) return data;
+        if(data && Array.isArray(data.items)) return data.items;
+        if(data && Array.isArray(data.posts)) return data.posts;
+      }catch(e){
+        // try next
+      }
+    }
+    return [];
+  }
+
   async function load(){
     const slug = qs('post');
     const titleEl = document.getElementById('post-title');
@@ -29,8 +50,7 @@
 
     try{
       // Load metadata
-      const metaRes = await fetch('blog/posts.json', { cache: 'no-cache' });
-      const posts = metaRes.ok ? await metaRes.json() : [];
+      const posts = await fetchPostsMeta();
       const meta = posts.find(p=> p.slug === slug);
       if(meta){
         titleEl.textContent = meta.title;
@@ -44,11 +64,14 @@
       const mdRes = await fetch(`blog/posts/${slug}.md`, { cache: 'no-cache' });
       if(!mdRes.ok) throw new Error('Conteúdo não encontrado');
       const md = await mdRes.text();
+      let mdBody = md;
 
       // Try front matter for meta
-      const fmMatch = md.match(/^---[\s\S]*?---/);
+      const fmMatch = md.match(/^---\s*[\s\S]*?\n---\s*\n?/);
       if(fmMatch){
-        const fm = fmMatch[0]
+        const fmBlock = fmMatch[0];
+        mdBody = md.slice(fmBlock.length);
+        const fm = fmBlock
           .replace(/^---\s*/, '')
           .replace(/\s*---\s*$/, '');
         fm.split(/\n+/).forEach(line=>{
@@ -68,10 +91,10 @@
         strikethrough: true,
         tasklists: true
       });
-      contentEl.innerHTML = conv.makeHtml(md);
+      contentEl.innerHTML = conv.makeHtml(mdBody);
     }catch(err){
       console.error(err);
-      titleEl.textContent = (typeof meta !== 'undefined' && meta?.title) ? meta.title : 'Artigo';
+      titleEl.textContent = 'Artigo';
       contentEl.innerHTML = '<p>Não foi possível carregar este artigo. Verifica se o ficheiro existe em <strong>blog/posts/SLUG.md</strong>.</p>';
     }
   }

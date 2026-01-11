@@ -6,15 +6,19 @@ Este site está preparado para gerir artigos sem mexer em código, usando Decap 
 - Depois de publicado (GitHub Pages/Netlify), acede a `/admin/` no teu site.
 - Faz login (Netlify Identity ou GitHub, conforme configuração).
 
+## Testar login (Netlify)
+- Localmente: usa o Netlify CLI para emular o site e abrir o Admin em `http://localhost:8888/admin/`.
+- Em produção: garante que **Identity** e **Git Gateway** estão ativos no painel do Netlify (ver `README-DEPLOY.md`).
+
 ## Fluxo recomendado
 1. Cria o artigo em **Artigos** (collection `posts`):
    - Título, Data, Categoria, Resumo, Conteúdo (Markdown)
    - Guarda e publica.
-2. Adiciona o artigo à **Lista de Artigos** (collection `posts_index`):
-   - Em `Posts`, adiciona um item com `slug` (igual ao nome do ficheiro .md), título, data, categoria e resumo.
-   - Guarda e publica.
 
-A lista do blog lê de `blog/posts.json`; a página do artigo lê o ficheiro `.md` e usa o front matter para meta.
+A lista do blog é gerada automaticamente a partir dos ficheiros em `blog/posts/*.md` via `/api/posts` (Netlify Function). Opcionalmente, a coleção **Lista de Artigos** (collection `posts_index`, ficheiro `blog/posts.json`) serve para:
+- definir ordem/curadoria,
+- ajustar título/data/categoria/resumo para a listagem,
+- e ainda assim mostrar posts novos mesmo que não estejam no JSON.
 
 ## Imagens
 - Faz upload em `assets/img/uploads` pelo Admin.
@@ -29,6 +33,9 @@ A lista do blog lê de `blog/posts.json`; a página do artigo lê o ficheiro `.m
 Alguns browsers bloqueiam `fetch` em ficheiros locais. Usa um servidor:
 
 ```bash
+# Netlify (recomendado, inclui emulação)
+/opt/buildhome/node-deps/node_modules/.bin/netlify dev
+
 # Node
 npx serve .
 

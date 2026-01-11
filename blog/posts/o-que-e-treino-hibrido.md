@@ -1,4 +1,9 @@
-# O que é Treino Híbrido?
+---
+title: "O que é Treino Híbrido?"
+date: "2026-01-11"
+category: "Treino Híbrido"
+excerpt: "Fundamentos do treino híbrido: como desenvolver força e resistência em simultâneo sem comprometer o desempenho."
+---
 
 O **treino híbrido** combina desenvolvimento de força e capacidades cardiorrespiratórias numa mesma fase de treino. O objetivo é melhorar **performance geral** sem sacrificar um dos domínios.
 
