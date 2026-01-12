@@ -1,6 +1,7 @@
 {
   "items": [
     {
+<<<<<<< HEAD
       "slug": "blog-de-teste",
       "title": "Blog de Teste",
       "date": "2026-01-11",
@@ -8,6 +9,8 @@
       "excerpt": "Como usar IA para o melhor Mindset possível."
     },
     {
+=======
+>>>>>>> 81e748cc50f5408bbd5c4c03b1c356f0be463f6a
       "slug": "guia-inicial-treino-hibrido",
       "title": "Guia Inicial de Treino Híbrido (sem complicar)",
       "date": "2026-01-11",

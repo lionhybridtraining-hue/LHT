@@ -25,7 +25,7 @@ Este guia simplifica o deploy e o uso do Admin (Decap CMS) sem mexer em código.
  - Rotas: `netlify.toml` faz rewrite 200 de `/blog/:slug` → `/artigo.html?post=:slug`.
 
 ## Dicas
-- `blog/posts.json` é gerado automaticamente no build a partir dos `.md` em `blog/posts`. Podes continuar a editá-lo via Admin para curadoria, mas o gerador já cria o índice.
+- `blog/posts.json` é gerado automaticamente no build a partir dos `.md` em `blog/posts`. Os artigos são ordenados por data (mais recentes primeiro).
 - Imagens: upload em `assets/img/uploads` pelo Admin; usa caminho `/assets/img/uploads/ficheiro.jpg` no Markdown.
 
 ## Troubleshooting no Netlify (passo a passo)

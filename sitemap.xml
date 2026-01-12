@@ -35,12 +35,15 @@
     <lastmod>2026-01-12</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.4</priority>
+<<<<<<< HEAD
   </url>
   <url>
     <loc>https://lionhybridtraining.com/blog/blog-de-teste</loc>
     <lastmod>2026-01-11</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
+=======
+>>>>>>> 81e748cc50f5408bbd5c4c03b1c356f0be463f6a
   </url>
   <url>
     <loc>https://lionhybridtraining.com/blog/guia-inicial-treino-hibrido</loc>
