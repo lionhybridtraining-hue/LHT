@@ -34,7 +34,6 @@ body{
 
 /* ===== Content wrapper ===== */
 .content-card{
-footer .legal{display:flex; flex-wrap:wrap; gap:10px; row-gap:6px; justify-content:center; margin-top:8px}
   margin: 40px auto;
   padding: 0 24px 40px;
 }
@@ -179,7 +178,7 @@ footer{
     url('../img/tua-imagem.png'); /* fallback reuse hero concept if exists */
   background-size: cover;
   background-position: center;
-  padding:34px 0 46px;
+  padding:24px 0 34px; /* reduced height */
   text-align:center;
   color:#ffffff;
   box-shadow: 0 0 70px rgba(0,0,0,.35) inset, 0 -10px 30px rgba(212,165,79,.15), 0 0 100px rgba(212,165,79,.08);
@@ -225,7 +224,7 @@ footer a, footer strong, footer b{ color:#ffffff; }
 footer a{ opacity:.92; transition: opacity .2s ease, text-decoration-color .2s ease; }
 footer a:hover{ opacity:1; text-decoration: underline; text-underline-offset:3px; }
 footer a:focus-visible{ outline:2px solid var(--gold-light); outline-offset:2px; border-radius:4px; }
-footer .legal{ display:flex; gap:12px; justify-content:center; margin:10px 0 0; align-items:center; }
+footer .legal{ display:flex; flex-wrap:wrap; gap:10px; row-gap:6px; justify-content:center; margin-top:8px; }
 footer .legal span{ opacity:.6; }
 footer .socials{
   display:flex; flex-wrap:wrap; gap:14px; justify-content:center; align-items:center;
