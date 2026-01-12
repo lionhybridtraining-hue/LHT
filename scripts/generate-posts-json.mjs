@@ -32,7 +32,6 @@ function normalizePost({ slug, title, date, category, excerpt }) {
 
 const postsDir = path.join(process.cwd(), "blog", "posts");
 const outDir = path.join(process.cwd(), "blog");
-one: try { await readdir(postsDir); } catch {}
 const outFile = path.join(outDir, "posts.json");
 
 const entries = await readdir(postsDir, { withFileTypes: true });
@@ -61,3 +60,33 @@ await mkdir(outDir, { recursive: true });
 await writeFile(outFile, JSON.stringify({ items }, null, 2), "utf8");
 
 console.log(`✅ Gerado: ${outFile} (${items.length} posts)`);
+
+// ==== Sitemap generation ====
+const siteUrl = process.env.URL || "https://lionhybridtraining.com";
+const today = new Date().toISOString().slice(0, 10);
+
+function urlEntry(loc, lastmod, changefreq, priority){
+  return `  <url>\n    <loc>${loc}</loc>\n    <lastmod>${lastmod}</lastmod>\n    <changefreq>${changefreq}</changefreq>\n    <priority>${priority}</priority>\n  </url>`;
+}
+
+const staticPages = [
+  { path: "/", changefreq: "weekly", priority: "1.0" },
+  { path: "/onboarding", changefreq: "monthly", priority: "0.7" },
+  { path: "/sobre", changefreq: "monthly", priority: "0.7" },
+  { path: "/blog", changefreq: "weekly", priority: "0.8" },
+  { path: "/termos", changefreq: "yearly", priority: "0.4" },
+  { path: "/politica-privacidade", changefreq: "yearly", priority: "0.4" },
+];
+
+const staticXml = staticPages
+  .map(p => urlEntry(`${siteUrl}${p.path}`, today, p.changefreq, p.priority))
+  .join("\n");
+
+const postsXml = items
+  .map(p => urlEntry(`${siteUrl}/blog/${p.slug}`, p.date || today, "monthly", "0.6"))
+  .join("\n");
+
+const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${staticXml}\n${postsXml}\n</urlset>\n`;
+
+await writeFile(path.join(process.cwd(), "sitemap.xml"), sitemapXml, "utf8");
+console.log(`✅ Atualizado: sitemap.xml (${items.length} URLs de posts)`);

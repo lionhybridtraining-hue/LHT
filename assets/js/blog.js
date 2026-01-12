@@ -54,23 +54,10 @@
   }
 
   async function fetchPosts(){
-    let apiPosts = [];
-    let indexPosts = [];
-
     try{
-      apiPosts = normalizeList(await fetchJson('/api/posts'));
-      // Prefer static JSON generated at build time
-      indexPosts = normalizeList(await fetchJson('/blog/posts.json'));
-
-    try{
-      // Use absolute path so clean URL "/blog" doesn't resolve to "/blog/blog/posts.json"
-      // Fallback to function endpoint when available
-      apiPosts = normalizeList(await fetchJson('/api/posts'));
+      const indexPosts = normalizeList(await fetchJson('/blog/posts.json'));
+      if(indexPosts.length) return indexPosts;
     }catch(e){}
-
-    if(indexPosts.length && apiPosts.length) return mergePosts(indexPosts, apiPosts);
-    if(apiPosts.length) return apiPosts;
-    if(indexPosts.length) return indexPosts;
     return [];
   }
 
@@ -80,7 +67,7 @@
 
     const a = document.createElement('a');
     a.className = 'card-link';
-    a.href = `artigo.html?post=${encodeURIComponent(post.slug)}`;
+    a.href = `/blog/${encodeURIComponent(post.slug)}`;
     a.setAttribute('aria-label', `Ler artigo: ${post.title}`);
     article.appendChild(a);
 
@@ -154,7 +141,7 @@
       h3.textContent = 'Erro a carregar artigos';
       const p = document.createElement('p');
       p.className='article-excerpt';
-      p.textContent = 'Verifica o ficheiro /blog/posts.json ou o endpoint /api/posts.';
+      p.textContent = 'Verifica se /blog/posts.json existe e devolve JSON.';
       error.appendChild(h3);
       error.appendChild(p);
       document.getElementById('articles-grid')?.appendChild(error);

@@ -1,6 +1,7 @@
 # Gestão de Posts — LHT
 
 Este site está preparado para gerir artigos sem mexer em código, usando Decap CMS (Netlify CMS).
+Além disso, durante o build é gerado automaticamente `blog/posts.json` e atualizado o `sitemap.xml` com todos os slugs.
 
 ## Abrir painel Admin
 - Depois de publicado (GitHub Pages/Netlify), acede a `/admin/` no teu site.
@@ -15,10 +16,9 @@ Este site está preparado para gerir artigos sem mexer em código, usando Decap 
    - Título, Data, Categoria, Resumo, Conteúdo (Markdown)
    - Guarda e publica.
 
-A lista do blog é gerada automaticamente a partir dos ficheiros em `blog/posts/*.md` via `/api/posts` (Netlify Function). Opcionalmente, a coleção **Lista de Artigos** (collection `posts_index`, ficheiro `blog/posts.json`) serve para:
-- definir ordem/curadoria,
-- ajustar título/data/categoria/resumo para a listagem,
-- e ainda assim mostrar posts novos mesmo que não estejam no JSON.
+Durante o build, o script `scripts/generate-posts-json.mjs` percorre `blog/posts/*.md`, extrai o front‑matter e gera `blog/posts.json`. O blog consome este ficheiro estático.
+
+Opcionalmente, a coleção **Lista de Artigos** (`posts_index`) permite curar/ajustar o `blog/posts.json` diretamente no Admin.
 
 ## Imagens
 - Faz upload em `assets/img/uploads` pelo Admin.
@@ -43,9 +43,22 @@ npx serve .
 python -m http.server 5500
 ```
 
-Abre `http://localhost:5500/blog.html`.
+Abre `http://localhost:5500/blog`.
+
+Ou usa o Netlify CLI para replicar rewrites e o build:
+
+```bash
+npm i -g netlify-cli
+netlify dev
+node scripts/generate-posts-json.mjs
+```
 
 ## Dicas
 - `slug` = nome do ficheiro sem `.md`.
 - `date` no formato `YYYY-MM-DD`.
-- Mantém `posts.json` alinhado com os `.md` para aparecer na lista.
+- O build já gera `posts.json`; se precisares de ordem/curadoria específica, edita-o no Admin.
+
+## Troubleshooting rápido
+- `blog` sem artigos: verifica o Deploy log por `Gerado: blog/posts.json` e confirma que `/blog/posts.json` devolve JSON (não HTML).
+- Ao abrir `/blog/SLUG` aparece 404: confirma que o ficheiro existe em `blog/posts/SLUG.md` e que o rewrite 200 está ativo em `netlify.toml`.
+- Scripts desatualizados: hard refresh ou usa "Clear cache and deploy site" em Netlify.

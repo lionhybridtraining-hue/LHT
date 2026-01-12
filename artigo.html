@@ -30,6 +30,21 @@
   <meta name="twitter:description" content="Artigo do Blog da Lion Hybrid Training." />
   <meta name="twitter:image" content="https://lionhybridtraining.com/assets/img/logo-lht.png" />
   <meta name="twitter:image:alt" content="Lion Hybrid Training — Blog" />
+  <script>
+    // Dynamically set canonical and Open Graph URL to /blog/:slug
+    (function(){
+      const params = new URLSearchParams(location.search);
+      const slug = params.get('post') || '';
+      if(!slug) return;
+      const canonicalUrl = `${location.origin}/blog/${slug}`;
+      let link = document.querySelector('link[rel="canonical"]');
+      if(!link){ link = document.createElement('link'); link.rel = 'canonical'; document.head.appendChild(link); }
+      link.href = canonicalUrl;
+      let og = document.querySelector('meta[property="og:url"]');
+      if(!og){ og = document.createElement('meta'); og.setAttribute('property','og:url'); document.head.appendChild(og); }
+      og.setAttribute('content', canonicalUrl);
+    })();
+  </script>
 </head>
 <body>
   <!-- Toolbar -->

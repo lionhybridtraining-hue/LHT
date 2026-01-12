@@ -2,9 +2,6 @@
   publish = "."
   command = "node scripts/generate-posts-json.mjs"
 
-[functions]
-  directory = "netlify/functions"
-  included_files = ["blog/posts/**"]
 
 # Friendly URLs
 [[redirects]]
@@ -26,9 +23,14 @@
 [[redirects]]
   from = "/blog/:slug"
   to = "/artigo.html?post=:slug"
-  status = 301
+  status = 200
   force = true
 
+[[redirects]]
+  from = "/blog/:slug/"
+  to = "/artigo.html?post=:slug"
+  status = 200
+  force = true
 # Security headers
 [[headers]]
   for = "/*"

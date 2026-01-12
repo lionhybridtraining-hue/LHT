@@ -16,8 +16,7 @@
 
   async function fetchPostsMeta(){
     const candidates = [
-      '/blog/posts.json',
-      '/api/posts'
+      '/blog/posts.json'
     ];
 
     for(const url of candidates){
