@@ -51,6 +51,20 @@
   </script>
 </head>
 <body>
+  <!-- ===== FIXED TOOLBAR ===== -->
+  <div class="blog-toolbar" role="navigation" aria-label="Atalhos do Blog">
+    <div class="container">
+      <div class="toolbar-left toolbar-links">
+        <a href="index.html">Início</a>
+        <a href="sobre.html">Sobre</a>
+        <a href="blog.html" class="active" aria-current="page">Blog</a>
+      </div>
+      <div class="toolbar-right toolbar-ctas">
+        <a class="btn gold sm" href="https://docs.google.com/forms/d/e/1FAIpQLSfLhPlXojO2-fEvi32VLitq6P7-WcAgD4Ro04lvGtlIlscUGA/viewform?usp=dialog" target="_blank" rel="noopener">Plano Gratuito</a>
+        <a class="btn ghost sm" href="https://chat.whatsapp.com/JVsqO05fm4kLhbSaSiKL8n" target="_blank" rel="noopener">Comunidade</a>
+      </div>
+    </div>
+  </div>
 
   <!-- ===== HEADER ===== -->
   <header class="blog-header">
@@ -76,40 +90,7 @@
   <section class="articles-section">
     <div class="container">
       <h2 class="sr-only">Artigos Recentes</h2>
-      <div class="articles-grid">
-        
-        <!-- Artigo 1 -->
-        <article class="article-card">
-          <div class="article-meta">
-            <time datetime="2026-01-11">11 de Janeiro, 2026</time>
-            <span class="category">Treino Híbrido</span>
-          </div>
-          <h3 class="article-title">
-            <a href="blog/o-que-e-treino-hibrido.html">O que é Treino Híbrido?</a>
-          </h3>
-          <p class="article-excerpt">
-            Descobre os fundamentos do treino híbrido e como podes desenvolver força e resistência em simultâneo, sem comprometer o desempenho.
-          </p>
-          <a href="blog/o-que-e-treino-hibrido.html" class="read-more" aria-label="Ler artigo: O que é Treino Híbrido?">
-            Ler artigo →
-          </a>
-        </article>
-
-        <!-- Placeholder para mais artigos -->
-        <article class="article-card coming-soon">
-          <div class="article-meta">
-            <span class="category">Em breve</span>
-          </div>
-          <h3 class="article-title">Mais conteúdo a caminho</h3>
-          <p class="article-excerpt">
-            Estamos a preparar mais artigos sobre mindset, nutrição, recuperação e estratégias de treino. Subscreve a nossa newsletter para não perderes nada.
-          </p>
-          <a href="https://chat.whatsapp.com/JVsqO05fm4kLhbSaSiKL8n" class="read-more" target="_blank" rel="noopener" aria-label="Subscrever newsletter no WhatsApp">
-            Subscrever →
-          </a>
-        </article>
-
-      </div>
+      <div id="articles-grid" class="articles-grid" aria-live="polite"></div>
     </div>
   </section>
 
@@ -143,7 +124,7 @@
       </nav>
       
       <nav class="socials" aria-label="Redes sociais">
-        <a href="https://www.instagram.com/coach.rodrigolibanio" aria-label="Instagram" rel="noopener" target="_blank">
+        <a href="https://www.instagram.com/lionhybridtraining/" aria-label="Instagram" rel="noopener" target="_blank">
          <img src="assets/icons/instagram.png" alt="Instagram" width="20" height="20" loading="lazy" />
         </a>
         <a href="#" aria-label="YouTube" rel="noopener" target="_blank">
@@ -155,7 +136,40 @@
       </nav>
     </div>
   </footer>
-
-  <script src="assets/js/script.js"></script>
+    <!-- Consent banner (GDPR) -->
+    <div id="consent-banner" class="consent-banner" hidden>
+      <div class="consent-content">
+        <div>
+          <div class="consent-title">Usamos cookies</div>
+          <div class="consent-text">Usamos cookies e outras tecnologias para melhorar a tua experiência, analisar tráfego e compreender a origem dos visitantes. Podes alterar as tuas preferências a qualquer momento.</div>
+        </div>
+        <div class="consent-actions">
+          <button class="btn gold" id="consent-accept" data-track="consent_accept">Aceito</button>
+          <button class="btn ghost" id="consent-preferences" data-track="consent_preferences">Alterar preferências</button>
+        </div>
+      </div>
+    </div>
+    <!-- Consent preferences modal -->
+    <div id="consent-modal" class="consent-modal" hidden aria-hidden="true" role="dialog" aria-label="Preferências de cookies">
+      <div class="consent-modal-panel" role="document">
+        <h3 class="consent-modal-title">Preferências de cookies</h3>
+        <p class="consent-modal-desc">Escolhe que tipos de cookies permites. Os estritamente necessários estão sempre ativos.</p>
+        <ul class="consent-list">
+          <li>
+            <label class="consent-item"><input type="checkbox" checked disabled><span>Estritamente necessários<small>Necessários para funcionalidades básicas do site.</small></span></label>
+          </li>
+          <li>
+            <label class="consent-item"><input type="checkbox" id="toggle-analytics" checked><span>Analytics (anónimos)<small>Métricas anónimas para melhorar a experiência.</small></span></label>
+          </li>
+        </ul>
+        <div class="consent-modal-actions">
+          <button class="btn gold" id="consent-save" data-track="consent_save">Guardar preferências</button>
+          <button class="btn ghost" id="consent-cancel">Cancelar</button>
+        </div>
+        <a class="consent-privacy" href="politica-privacidade.html" target="_blank" rel="noopener">Saber mais sobre privacidade</a>
+      </div>
+    </div>
+  <script src="assets/js/script.js?v=20260112"></script>
+  <script src="assets/js/blog.js?v=20260112"></script>
 </body>
 </html>

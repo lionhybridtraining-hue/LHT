@@ -338,7 +338,7 @@
       
       <!-- Move socials to the very bottom -->
       <nav class="socials" aria-label="Redes sociais (base)">
-        <a href="https://www.instagram.com/coach.rodrigolibanio" aria-label="Instagram" rel="noopener" target="_blank">
+        <a href="https://www.instagram.com/lionhybridtraining/" aria-label="Instagram" rel="noopener" target="_blank">
          <img src="assets/icons/instagram.png" alt="Instagram" width="20" height="20" loading="lazy" />
         </a>
         <a href="#" aria-label="YouTube" rel="noopener" target="_blank">
@@ -365,11 +365,47 @@
   <!-- Consent banner (GDPR) -->
   <div id="consent-banner" class="consent-banner" hidden>
     <div class="consent-content">
-      <div class="consent-text">Usamos métricas anónimas para melhorar a qualidade do site. Permitir a recolha?</div>
-      <div class="consent-actions">
-        <button class="btn gold" id="consent-accept" data-track="consent_accept">Aceitar</button>
-        <button class="btn ghost" id="consent-decline" data-track="consent_decline">Recusar</button>
+      <div>
+        <div class="consent-title">Usamos cookies</div>
+        <div class="consent-text">Usamos cookies e outras tecnologias de rastreio para melhorar a tua experiência no nosso site, mostrar conteúdo relevante, analisar tráfego e compreender a origem dos visitantes. Podes alterar as tuas preferências a qualquer momento.</div>
       </div>
+      <div class="consent-actions">
+        <button class="btn gold" id="consent-accept" data-track="consent_accept">Aceito</button>
+        <button class="btn ghost" id="consent-preferences" data-track="consent_preferences">Alterar preferências</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Consent preferences modal -->
+  <div id="consent-modal" class="consent-modal" hidden aria-hidden="true" role="dialog" aria-label="Preferências de cookies">
+    <div class="consent-modal-panel" role="document">
+      <h3 class="consent-modal-title">Preferências de cookies</h3>
+      <p class="consent-modal-desc">Escolhe que tipos de cookies permites. Os cookies estritamente necessários são sempre ativados para garantir o funcionamento do site.</p>
+      <ul class="consent-list">
+        <li>
+          <label class="consent-item">
+            <input type="checkbox" checked disabled>
+            <span>
+              Estritamente necessários
+              <small>Necessários para funcionalidades básicas do site.</small>
+            </span>
+          </label>
+        </li>
+        <li>
+          <label class="consent-item">
+            <input type="checkbox" id="toggle-analytics" checked>
+            <span>
+              Analytics (anónimos)
+              <small>Métricas anónimas para melhorar a experiência.</small>
+            </span>
+          </label>
+        </li>
+      </ul>
+      <div class="consent-modal-actions">
+        <button class="btn gold" id="consent-save" data-track="consent_save">Guardar preferências</button>
+        <button class="btn ghost" id="consent-cancel">Cancelar</button>
+      </div>
+      <a class="consent-privacy" href="politica-privacidade.html" target="_blank" rel="noopener">Saber mais sobre privacidade</a>
     </div>
   </div>
   <!-- Organization JSON-LD -->
@@ -381,7 +417,7 @@
     "url": "https://lionhybridtraining.com/",
     "logo": "https://lionhybridtraining.com/assets/img/logo-lht.png",
     "sameAs": [
-      "https://www.instagram.com/coach.rodrigolibanio",
+      "https://www.instagram.com/lionhybridtraining/",
       "https://chat.whatsapp.com/JVsqO05fm4kLhbSaSiKL8n"
     ]
   }

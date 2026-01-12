@@ -88,5 +88,57 @@
 
     <p class="mut">Dúvidas? Fala connosco na comunidade — estamos lá todos os dias.</p>
   </div>
+
+  <!-- Consent banner (GDPR) -->
+  <div id="consent-banner" class="consent-banner" hidden>
+    <div class="consent-content">
+      <div>
+        <div class="consent-title">Usamos cookies</div>
+        <div class="consent-text">Usamos cookies e outras tecnologias para melhorar a tua experiência, analisar tráfego e compreender a origem dos visitantes. Podes alterar as tuas preferências a qualquer momento.</div>
+      </div>
+      <div class="consent-actions">
+        <button class="btn" id="consent-accept" data-track="consent_accept">Aceito</button>
+        <button class="btn" id="consent-preferences" data-track="consent_preferences" style="background:transparent;color:#f5f5f5;border:1px solid rgba(255,255,255,.2)">Alterar preferências</button>
+      </div>
+    </div>
+  </div>
+  <!-- Consent preferences modal -->
+  <div id="consent-modal" class="consent-modal" hidden aria-hidden="true" role="dialog" aria-label="Preferências de cookies">
+    <div class="consent-modal-panel" role="document">
+      <h3 class="consent-modal-title">Preferências de cookies</h3>
+      <p class="consent-modal-desc">Escolhe que tipos de cookies permites. Os estritamente necessários estão sempre ativos.</p>
+      <ul class="consent-list">
+        <li>
+          <label class="consent-item"><input type="checkbox" checked disabled><span>Estritamente necessários<small>Necessários para funcionalidades básicas do site.</small></span></label>
+        </li>
+        <li>
+          <label class="consent-item"><input type="checkbox" id="toggle-analytics" checked><span>Analytics (anónimos)<small>Métricas anónimas para melhorar a experiência.</small></span></label>
+        </li>
+      </ul>
+      <div class="consent-modal-actions">
+        <button class="btn" id="consent-save" data-track="consent_save">Guardar preferências</button>
+        <button class="btn" id="consent-cancel" style="background:transparent;color:#f5f5f5;border:1px solid rgba(255,255,255,.2)">Cancelar</button>
+      </div>
+      <a class="consent-privacy" href="politica-privacidade.html" target="_blank" rel="noopener">Saber mais sobre privacidade</a>
+    </div>
+  </div>
+  <style>
+    /* Inline minimal consent styles for onboarding */
+    .consent-banner{position:fixed;left:0;right:0;bottom:0;background:rgba(20,20,20,.86);backdrop-filter:blur(6px);border-top:1px solid rgba(255,255,255,.08);padding:16px 22px;z-index:5000;box-shadow:0 -6px 24px rgba(0,0,0,.45)}
+    .consent-content{display:flex;gap:18px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;max-width:860px;margin:0 auto}
+    .consent-title{font-weight:700;color:#d3a943;margin-bottom:6px}
+    .consent-text{color:#ddd;font-size:14px;max-width:720px}
+    .consent-modal[hidden]{display:none}
+    .consent-modal{position:fixed;inset:0;z-index:6000;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.65)}
+    .consent-modal-panel{width:min(680px,92vw);background:#161616;color:#f5f5f5;border-radius:12px;padding:18px;border:1px solid rgba(255,255,255,.08);box-shadow:0 14px 34px rgba(0,0,0,.45)}
+    .consent-modal-title{margin:4px 0 8px;color:#d3a943}
+    .consent-modal-desc{font-size:14px;color:#ddd}
+    .consent-list{list-style:none;padding:0;margin:12px 0 14px}
+    .consent-item{display:flex;gap:10px;align-items:flex-start}
+    .consent-item small{color:#aaa;font-size:12px}
+    .consent-modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:8px}
+    .consent-privacy{display:inline-block;margin-top:10px;color:#d3a943;text-decoration:underline}
+  </style>
+  <script src="assets/js/script.js"></script>
 </body>
 </html>
