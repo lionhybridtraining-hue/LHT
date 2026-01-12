@@ -16,9 +16,7 @@ Além disso, durante o build é gerado automaticamente `blog/posts.json` e atual
    - Título, Data, Categoria, Resumo, Conteúdo (Markdown)
    - Guarda e publica.
 
-Durante o build, o script `scripts/generate-posts-json.mjs` percorre `blog/posts/*.md`, extrai o front‑matter e gera `blog/posts.json`. O blog consome este ficheiro estático.
-
-Opcionalmente, a coleção **Lista de Artigos** (`posts_index`) permite curar/ajustar o `blog/posts.json` diretamente no Admin.
+Durante o build, o script `scripts/generate-posts-json.mjs` percorre `blog/posts/*.md`, extrai o front‑matter e gera automaticamente `blog/posts.json`. O blog consome este ficheiro estático.
 
 ## Imagens
 - Faz upload em `assets/img/uploads` pelo Admin.
@@ -56,7 +54,8 @@ node scripts/generate-posts-json.mjs
 ## Dicas
 - `slug` = nome do ficheiro sem `.md`.
 - `date` no formato `YYYY-MM-DD`.
-- O build já gera `posts.json`; se precisares de ordem/curadoria específica, edita-o no Admin.
+- O build gera automaticamente `posts.json` a partir dos ficheiros markdown em `blog/posts/`.
+- Os artigos são ordenados por data (mais recentes primeiro).
 
 ## Troubleshooting rápido
 - `blog` sem artigos: verifica o Deploy log por `Gerado: blog/posts.json` e confirma que `/blog/posts.json` devolve JSON (não HTML).
