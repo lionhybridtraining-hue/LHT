@@ -1,5 +1,6 @@
 [build]
   publish = "."
+  command = "node scripts/generate-posts-json.mjs"
 
 [functions]
   directory = "netlify/functions"
@@ -42,6 +43,12 @@
   for = "/assets/*"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
+
+# Override JS caching to ensure latest code loads
+[[headers]]
+  for = "/assets/js/*"
+  [headers.values]
+    Cache-Control = "no-cache"
 
 # Ensure posts index JSON is fresh (CMS updates)
 [[headers]]

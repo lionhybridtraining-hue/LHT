@@ -12,7 +12,9 @@
 
   async function fetchJson(url){
     const res = await fetch(url, { cache: 'no-cache' });
-    if(!res.ok) return null;
+    if(!res.ok) throw new Error(`HTTP ${res.status} on ${url}`);
+    const ct = res.headers.get('content-type') || '';
+    if(!ct.includes('application/json')) throw new Error(`Unexpected content-type for ${url}: ${ct}`);
     return res.json();
   }
 
@@ -57,11 +59,13 @@
 
     try{
       apiPosts = normalizeList(await fetchJson('/api/posts'));
-    }catch(e){}
+      // Prefer static JSON generated at build time
+      indexPosts = normalizeList(await fetchJson('/blog/posts.json'));
 
     try{
       // Use absolute path so clean URL "/blog" doesn't resolve to "/blog/blog/posts.json"
-      indexPosts = normalizeList(await fetchJson('/blog/posts.json'));
+      // Fallback to function endpoint when available
+      apiPosts = normalizeList(await fetchJson('/api/posts'));
     }catch(e){}
 
     if(indexPosts.length && apiPosts.length) return mergePosts(indexPosts, apiPosts);
@@ -142,7 +146,7 @@
       grid.innerHTML = '';
       grid.appendChild(frag);
     }catch(err){
-      console.error(err);
+      console.error('[blog] failed to load posts:', err);
       const error = document.createElement('div');
       error.className = 'article-card coming-soon';
       const h3 = document.createElement('h3');
@@ -150,7 +154,7 @@
       h3.textContent = 'Erro a carregar artigos';
       const p = document.createElement('p');
       p.className='article-excerpt';
-      p.textContent = 'Tenta recarregar a página ou confirma que existe conteúdo em blog/posts.';
+      p.textContent = 'Verifica o ficheiro /blog/posts.json ou o endpoint /api/posts.';
       error.appendChild(h3);
       error.appendChild(p);
       document.getElementById('articles-grid')?.appendChild(error);
