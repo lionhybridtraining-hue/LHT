@@ -60,7 +60,8 @@
     }catch(e){}
 
     try{
-      indexPosts = normalizeList(await fetchJson('blog/posts.json'));
+      // Use absolute path so clean URL "/blog" doesn't resolve to "/blog/blog/posts.json"
+      indexPosts = normalizeList(await fetchJson('/blog/posts.json'));
     }catch(e){}
 
     if(indexPosts.length && apiPosts.length) return mergePosts(indexPosts, apiPosts);

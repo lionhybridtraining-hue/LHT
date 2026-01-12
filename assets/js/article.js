@@ -17,7 +17,7 @@
   async function fetchPostsMeta(){
     const candidates = [
       '/api/posts',
-      'blog/posts.json'
+      '/blog/posts.json'
     ];
 
     for(const url of candidates){
@@ -61,7 +61,7 @@
       }
 
       // Load markdown
-      const mdRes = await fetch(`blog/posts/${slug}.md`, { cache: 'no-cache' });
+      const mdRes = await fetch(`/blog/posts/${slug}.md`, { cache: 'no-cache' });
       if(!mdRes.ok) throw new Error('Conteúdo não encontrado');
       const md = await mdRes.text();
       let mdBody = md;
