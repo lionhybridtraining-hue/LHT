@@ -19,6 +19,12 @@
   to = "/admin/"
   status = 301
 
+# Ensure posts index is not captured by the slug rewrite
+[[redirects]]
+  from = "/blog/posts.json"
+  to = "/blog/posts.json"
+  status = 200
+
 # Redirect old blog route to dynamic article page
 [[redirects]]
   from = "/blog/:slug"

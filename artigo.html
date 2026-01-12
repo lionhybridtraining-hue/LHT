@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- Base must appear before any relative URLs -->
+  <base href="/" />
   <title>Artigo — Lion Hybrid Training</title>
   <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/style-blog.css" />
@@ -33,8 +35,14 @@
   <script>
     // Dynamically set canonical and Open Graph URL to /blog/:slug
     (function(){
-      const params = new URLSearchParams(location.search);
-      const slug = params.get('post') || '';
+      function resolveSlug(){
+        const params = new URLSearchParams(location.search);
+        const q = params.get('post');
+        if(q) return decodeURIComponent(q);
+        const m = location.pathname.match(/^\/blog\/([^\/?#]+)\/?$/);
+        return m && m[1] ? decodeURIComponent(m[1]) : '';
+      }
+      const slug = resolveSlug();
       if(!slug) return;
       const canonicalUrl = `${location.origin}/blog/${slug}`;
       let link = document.querySelector('link[rel="canonical"]');
@@ -46,17 +54,20 @@
     })();
   </script>
 </head>
-<body>
-  <!-- Toolbar -->
-  <div class="blog-toolbar" role="navigation" aria-label="Atalhos do Blog">
+<body class="article-page">
+  <!-- Toolbar (centered com logo e CTA Comunidade) -->
+  <div class="blog-toolbar centered" role="navigation" aria-label="Atalhos do Blog">
     <div class="container">
       <div class="toolbar-left toolbar-links">
         <a href="index.html">Início</a>
-        <a href="sobre.html">Sobre</a>
         <a href="blog.html">Blog</a>
       </div>
+      <div class="toolbar-logo" aria-hidden="false">
+        <a href="index.html" aria-label="Lion Hybrid Training — Início">
+          <img src="assets/img/logo-lht.png" alt="Lion Hybrid Training Logo">
+        </a>
+      </div>
       <div class="toolbar-right toolbar-ctas">
-        <a class="btn gold sm" href="https://docs.google.com/forms/d/e/1FAIpQLSfLhPlXojO2-fEvi32VLitq6P7-WcAgD4Ro04lvGtlIlscUGA/viewform?usp=dialog" target="_blank" rel="noopener">Plano Gratuito</a>
         <a class="btn ghost sm" href="https://chat.whatsapp.com/JVsqO05fm4kLhbSaSiKL8n" target="_blank" rel="noopener">Comunidade</a>
       </div>
     </div>
@@ -66,7 +77,7 @@
   <header class="blog-header">
     <div class="container">
       <a href="index.html" class="logo-link" aria-label="Voltar à página principal">
-        <img src="assets/img/logo-lht.png" alt="Lion Hybrid Training Logo" class="header-logo" width="80" height="63" loading="eager" decoding="async">
+        <img src="assets/img/logo-lht.png" alt="Lion Hybrid Training Logo" class="header-logo" loading="eager" decoding="async">
       </a>
       <h1 id="post-title">Artigo</h1>
       <p class="header-subtitle" id="post-subtitle">Treino, Ciência e Propósito</p>
@@ -76,9 +87,12 @@
   <!-- Artigo -->
   <section class="article-section">
     <div class="container">
-      <div class="article-meta">
-        <time id="post-date" datetime=""></time>
-        <span class="category" id="post-category"></span>
+      <div class="post-header">
+        <div class="post-meta">
+          <time id="post-date" datetime=""></time>
+          <span class="separator">•</span>
+          <span class="category" id="post-category"></span>
+        </div>
       </div>
       <article id="post-content" class="post-content"></article>
     </div>

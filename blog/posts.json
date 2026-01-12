@@ -1,11 +1,11 @@
 {
   "items": [
     {
-      "slug": "o-que-e-treino-hibrido",
-      "title": "O que é Treino Híbrido?",
+      "slug": "blog-de-teste",
+      "title": "Blog de Teste",
       "date": "2026-01-11",
-      "category": "Treino Híbrido",
-      "excerpt": "Fundamentos do treino híbrido: como desenvolver força e resistência em simultâneo sem comprometer o desempenho."
+      "category": "Mindset",
+      "excerpt": "Como usar IA para o melhor Mindset possível."
     },
     {
       "slug": "guia-inicial-treino-hibrido",
@@ -13,6 +13,13 @@
       "date": "2026-01-11",
       "category": "Treino Híbrido",
       "excerpt": "Um passo-a-passo simples para começares a combinar força e corrida com consistência, sem entrares em overthinking."
+    },
+    {
+      "slug": "o-que-e-treino-hibrido",
+      "title": "O que é Treino Híbrido?",
+      "date": "2026-01-11",
+      "category": "Treino Híbrido",
+      "excerpt": "Fundamentos do treino híbrido: como desenvolver força e resistência em simultâneo sem comprometer o desempenho."
     }
   ]
 }

@@ -2,15 +2,18 @@ import { readdir, readFile, mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 function parseFrontMatter(markdown) {
-  const fmMatch = markdown.match(/^---\s*[\s\S]*?\n---\s*\n?/);
+  // Strip potential UTF-8 BOM and support both LF/CRLF newlines
+  const src = markdown.replace(/^\uFEFF/, "");
+  const fmMatch = src.match(/^---\s*[\s\S]*?\r?\n---\s*\r?\n?/);
   if (!fmMatch) return { meta: {}, body: markdown };
 
   const fmBlock = fmMatch[0];
-  const body = markdown.slice(fmBlock.length);
+  const body = src.slice(fmBlock.length);
   const fm = fmBlock.replace(/^---\s*/, "").replace(/\s*---\s*$/, "");
 
   const meta = {};
-  for (const line of fm.split(/\n+/)) {
+  const cleanFm = fm.replace(/\r\n/g, "\n");
+  for (const line of cleanFm.split(/\n+/)) {
     const match = line.match(/^([A-Za-z_][A-Za-z0-9_-]*):\s*(.*)$/);
     if (!match) continue;
     const key = match[1].trim();

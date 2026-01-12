@@ -518,7 +518,7 @@ footer{
   background-size: cover;
   background-position: center;
   background-attachment: scroll;
-  padding:36px 0 48px; text-align:center; color:#ffffff;
+  padding:24px 0 34px; text-align:center; color:#ffffff; /* reduced height */
   box-shadow: 0 0 80px rgba(0,0,0,.35) inset, 0 -14px 34px rgba(212,165,79,.15), 0 0 120px rgba(212,165,79,.08);
   overflow: hidden;
 }
@@ -553,7 +553,7 @@ footer .socials img{
 footer .socials a:hover img{
   filter: brightness(0) invert(1) drop-shadow(0 0 2px rgba(255,255,255,.25));
 }
-footer .legal{display:flex; gap:12px; justify-content:center; margin-top:8px}
+footer .legal{display:flex; flex-wrap:wrap; gap:10px; row-gap:6px; justify-content:center; margin-top:8px}
 footer .legal span{opacity:.6}
 
 /* ===== Metrics & FAQ ===== */

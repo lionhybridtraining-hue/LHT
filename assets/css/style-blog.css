@@ -62,6 +62,19 @@ body{ padding-top: 64px; }
   justify-content: space-between;
   height: 64px;
 }
+.blog-toolbar.centered .container{
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+}
+.blog-toolbar.centered .toolbar-left{ justify-self: center; }
+.blog-toolbar.centered .toolbar-logo{ justify-self: center; }
+.blog-toolbar.centered .toolbar-right{ justify-self: end; }
+.toolbar-logo img{
+  height: 40px;
+  width: auto;
+  filter: drop-shadow(0 0 8px rgba(212,165,79,.25));
+}
 .toolbar-left, .toolbar-right{
   display: flex;
   align-items: center;
@@ -111,6 +124,8 @@ strong, b {
 .blog-header .header-logo{
   display: block;
   filter: drop-shadow(0 0 12px rgba(212,165,79,.3));
+  width: 120px;
+  height: 120px;
 }
 .blog-header h1{
   margin: 0;
@@ -125,6 +140,15 @@ strong, b {
   color: var(--muted);
   font-weight: 400;
 }
+
+/* Center title + subtitle on article pages */
+.article-page .blog-header .container{
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+.article-page .blog-header h1{ text-align: center; }
+.article-page .blog-header .header-subtitle{ text-align: center; }
 
 /* Breadcrumb navigation */
 .breadcrumb{
@@ -274,7 +298,7 @@ strong, b {
 }
 .post-header{
   max-width: var(--content-maxw);
-  margin: 0 auto 48px;
+  margin: 28px auto 48px;
   text-align: center;
 }
 .post-meta{
@@ -480,47 +504,34 @@ strong, b {
 
 /* ===== FOOTER ===== */
 footer{
-  background: var(--ink);
-  border-top: 1px solid var(--gold-faint);
-  padding: 32px 0;
-  margin-top: 64px;
-  font-size: 14px;
-  color: var(--muted);
+  position: relative;
+  background:
+    linear-gradient(180deg, rgba(15,15,15,.70), rgba(10,10,10,.85)),
+    url('../img/tua-imagem.png');
+  background-size: cover;
+  background-position: center;
+  background-attachment: scroll;
+  padding:24px 0 34px; text-align:center; color:#ffffff; /* reduced height */
+  box-shadow: 0 0 80px rgba(0,0,0,.35) inset, 0 -14px 34px rgba(212,165,79,.15), 0 0 120px rgba(212,165,79,.08);
+  overflow: hidden;
 }
-footer .container{
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  align-items: center;
-  text-align: center;
-}
+footer a, footer strong, footer b{ color:#ffffff; }
 footer a{
-  color: var(--text-soft);
-  transition: color 0.3s ease;
+  opacity: 0.92;
+  transition: opacity .2s ease, text-decoration-color .2s ease;
 }
-footer a:hover{
-  color: var(--gold);
-}
-.legal{
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  justify-content: center;
-}
-.socials{
-  display: flex;
-  gap: 16px;
-  align-items: center;
-}
-.socials img{
-  opacity: 0.8;
-  transition: opacity 0.3s ease, transform 0.3s ease;
-}
-.socials a:hover img{
-  opacity: 1;
-  transform: scale(1.1);
-}
+footer a:hover{ opacity: 1; text-decoration: underline; text-underline-offset: 3px; }
+footer a:focus-visible{ outline: 2px solid var(--gold-soft); outline-offset: 2px; border-radius: 4px; }
+footer .container{ display:flex; flex-direction:column; gap:16px; align-items:center; text-align:center; }
+footer .legal{display:flex; flex-wrap:wrap; gap:10px; row-gap:6px; justify-content:center; margin-top:8px}
+footer .legal span{opacity:.6}
+footer .socials{ display:flex; flex-wrap:wrap; gap:14px; justify-content:center; align-items:center; margin: 18px 0 0; }
+footer .socials a{ width:40px; height:40px; display:inline-flex; align-items:center; justify-content:center; border-radius:9999px; background: rgba(0,0,0,0.38); border: 1px solid rgba(255,255,255,0.12); color:#ffffff; opacity: 1; transition: background .2s ease, transform .2s ease, opacity .2s ease; }
+footer .socials a:hover{ background: rgba(0,0,0,0.55); transform: translateY(-1px); }
+footer .socials a:focus-visible{ outline: 2px solid var(--gold-soft); outline-offset: 2px; }
+footer .socials svg, footer .socials img{ width:20px; height:20px; display:block; }
+footer .socials img{ filter: brightness(0) invert(1); }
+footer .socials a:hover img{ filter: brightness(0) invert(1) drop-shadow(0 0 2px rgba(255,255,255,.25)); }
 
 /* ===== RESPONSIVE ===== */
 @media (max-width: 768px){

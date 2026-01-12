@@ -27,14 +27,14 @@ body{
   background: linear-gradient(90deg, var(--black) 0%, #3a2c1a 55%, #4a3a20 100%);
   background-attachment: fixed;
   line-height:1.7;
-  -webkit-font-smoothing:antialiased;
+  padding:24px 0 34px; /* reduced height */
   -moz-osx-font-smoothing:grayscale;
   overflow-x:hidden;
 }
 
 /* ===== Content wrapper ===== */
 .content-card{
-  max-width: 860px;
+footer .legal{display:flex; flex-wrap:wrap; gap:10px; row-gap:6px; justify-content:center; margin-top:8px}
   margin: 40px auto;
   padding: 0 24px 40px;
 }

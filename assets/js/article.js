@@ -1,7 +1,11 @@
 (function(){
-  function qs(name){
+  function getSlug(){
     const params = new URLSearchParams(window.location.search);
-    return params.get(name);
+    const fromQuery = params.get('post');
+    if(fromQuery) return decodeURIComponent(fromQuery);
+    const m = window.location.pathname.match(/^\/blog\/([^\/?#]+)\/?$/);
+    if(m && m[1]) return decodeURIComponent(m[1]);
+    return null;
   }
   function formatDate(iso){
     try{
@@ -35,7 +39,7 @@
   }
 
   async function load(){
-    const slug = qs('post');
+    const slug = getSlug();
     const titleEl = document.getElementById('post-title');
     const dateEl = document.getElementById('post-date');
     const catEl = document.getElementById('post-category');
@@ -60,7 +64,7 @@
       }
 
       // Load markdown
-      const mdRes = await fetch(`/blog/posts/${slug}.md`, { cache: 'no-cache' });
+      const mdRes = await fetch(`/blog/posts/${encodeURIComponent(slug)}.md`, { cache: 'no-cache' });
       if(!mdRes.ok) throw new Error('Conteúdo não encontrado');
       const md = await mdRes.text();
       let mdBody = md;

@@ -1,4 +1,12 @@
 (function(){
+  function humanizeSlug(slug){
+    if(!slug) return '';
+    return slug
+      .replace(/[-_]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .replace(/\b\w/g, c => c.toUpperCase());
+  }
   function formatDate(iso){
     try{
       const d = new Date(iso);
@@ -85,7 +93,7 @@
 
     const h3 = document.createElement('h3');
     h3.className = 'article-title';
-    h3.textContent = post.title;
+    h3.textContent = post.title || humanizeSlug(post.slug);
     article.appendChild(h3);
 
     if(post.excerpt){
