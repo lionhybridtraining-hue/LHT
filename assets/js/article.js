@@ -95,6 +95,26 @@
         tasklists: true
       });
       contentEl.innerHTML = conv.makeHtml(mdBody);
+
+      // Track article view with consent-aware Meta Pixel / GA4
+      try{
+        const consent = localStorage.getItem('lht_consent');
+        const title = (titleEl.textContent||'').trim();
+        const params = {
+          content_name: title || slug || 'Artigo',
+          content_category: 'Blog',
+          content_ids: slug ? [slug] : undefined,
+          content_type: 'article'
+        };
+        if(consent === 'accepted'){
+          if(typeof window.fbq === 'function'){
+            window.fbq('track','ViewContent', params);
+          }
+          if(typeof window.gtag === 'function'){
+            window.gtag('event','ViewContent', params);
+          }
+        }
+      }catch(_e){}
     }catch(err){
       console.error(err);
       titleEl.textContent = 'Artigo';

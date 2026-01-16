@@ -103,6 +103,20 @@ if(document.readyState === 'loading'){
   const SESSION_FLAG = 'lht_session_prompted';
   const REMIND_INTERVAL_MS = 24 * 60 * 60 * 1000; // re-perguntar após 24h
   const GA_ID = 'G-K3EJSN5M4Y';
+  const FB_PIXEL_ID = '1575754910283247';
+  const FB_STANDARD_EVENT_MAP = {
+    // Leads para plano gratuito (Google Forms)
+    cta_plano_gratuito: { event: 'Lead', params: { content_name: 'Plano de Corrida Gratuito', content_category: 'Planos' } },
+    cta_plano_gratuito_card: { event: 'Lead', params: { content_name: 'Plano de Corrida Gratuito', content_category: 'Planos' } },
+    cta_final_plano_gratuito: { event: 'Lead', params: { content_name: 'Plano de Corrida Gratuito', content_category: 'Planos' } },
+    // Subscrição / notificações via WhatsApp
+    cta_whatsapp_newsletter: { event: 'Subscribe', params: { content_name: 'Newsletter WhatsApp', content_category: 'Comunidade' } },
+    cta_ser_notificado: { event: 'Subscribe', params: { content_name: 'Alertas AER WhatsApp', content_category: 'Comunidade' } },
+    // Reserva do AER (Stripe) — sem valor definido, manter 0
+    cta_reserva_aer: { event: 'InitiateCheckout', params: { content_name: 'Reserva AER', content_category: 'AER', value: 97, currency: 'EUR' } },
+    // Passo final para começar AER (ancora interna)
+    cta_final_comecar_aer: { event: 'ViewContent', params: { content_name: 'Começar AER', content_category: 'AER' } }
+  };
   const consentBanner = document.getElementById('consent-banner');
   const btnAccept = document.getElementById('consent-accept');
   const btnPrefs = document.getElementById('consent-preferences');
@@ -127,11 +141,26 @@ if(document.readyState === 'loading'){
     document.head.appendChild(s);
   }
 
+  // Load Meta Pixel (fbq) only after consent
+  function loadFbq(id){
+    if(window.fbq) return; // already loaded/initialized
+    !function(f,b,e,v,n,t,s){
+      if(f.fbq) return; n = f.fbq = function(){
+        n.callMethod ? n.callMethod.apply(n, arguments) : n.queue.push(arguments);
+      }; if(!f._fbq) f._fbq = n; n.push = n; n.loaded = true; n.version = '2.0';
+      n.queue = []; t = b.createElement(e); t.async = true; t.src = v;
+      s = b.getElementsByTagName(e)[0]; s.parentNode.insertBefore(t, s);
+    }(window, document, 'script', 'https://connect.facebook.net/en_US/fbevents.js');
+    window.fbq('init', id);
+  }
+
   const Analytics = {
     enabled: false,
     init(){
       // Gate GA behind consent
       loadGtag(GA_ID);
+      // Gate Meta Pixel behind consent
+      loadFbq(FB_PIXEL_ID);
       this.enabled = true;
       this.pageview();
     },
@@ -144,6 +173,10 @@ if(document.readyState === 'loading'){
           page_location: window.location.href,
           page_path: window.location.pathname
         });
+      }
+      // Meta Pixel (fbq)
+      if(typeof window.fbq === 'function'){
+        window.fbq('track','PageView');
       }
       // Plausible
       else if(typeof window.plausible === 'function'){
@@ -158,6 +191,15 @@ if(document.readyState === 'loading'){
       if(!this.enabled) return;
       if(typeof window.gtag === 'function'){
         window.gtag('event', name, meta);
+      }
+      // Meta Pixel custom events
+      if(typeof window.fbq === 'function'){
+        const mapped = FB_STANDARD_EVENT_MAP[name];
+        if(mapped){
+          window.fbq('track', mapped.event, Object.assign({}, meta, mapped.params));
+        } else {
+          window.fbq('trackCustom', name, meta);
+        }
       } else if(typeof window.plausible === 'function'){
         window.plausible(name, { props: meta });
       } else {
@@ -184,8 +226,20 @@ if(document.readyState === 'loading'){
   function closeModal(){ if(!modal) return; modal.hidden = true; modal.setAttribute('aria-hidden','true'); }
 
   function maybeShowBanner(){
-    if(!consentBanner) return;
     const c = getConsent();
+    // If banner is absent on this page, still respect stored consent
+    if(!consentBanner){
+      if(typeof window.gtag === 'function'){
+        window.gtag('consent', 'update', { analytics_storage: c === 'accepted' ? 'granted' : 'denied' });
+      }
+      if(c === 'accepted'){
+        Analytics.init();
+      } else {
+        Analytics.enabled = false;
+      }
+      return;
+    }
+
     if(c === 'accepted'){
       consentBanner.hidden = true;
       if(typeof window.gtag === 'function'){

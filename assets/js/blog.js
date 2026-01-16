@@ -140,6 +140,44 @@
       posts.forEach(post=> frag.appendChild(createCard(post)));
       grid.innerHTML = '';
       grid.appendChild(frag);
+
+      // Page-level view tracking for Blog home
+      try{
+        const consent = localStorage.getItem('lht_consent');
+        const params = { content_name: 'Blog', content_category: 'Blog' };
+        if(consent === 'accepted'){
+          if(typeof window.fbq === 'function'){
+            window.fbq('track','ViewContent', params);
+          }
+          if(typeof window.gtag === 'function'){
+            window.gtag('event','ViewContent', params);
+          }
+        }
+      }catch(_e){}
+
+      // Track clicks to individual articles
+      grid.addEventListener('click', (e)=>{
+        const a = e.target.closest('a.card-link');
+        if(!a) return;
+        const titleEl = a.parentElement?.querySelector('.article-title');
+        const title = (titleEl?.textContent||'').trim();
+        const slug = (a.getAttribute('href')||'').split('/').pop();
+        const consent = localStorage.getItem('lht_consent');
+        const params = {
+          content_name: title || slug || 'Artigo',
+          content_category: 'Blog',
+          content_ids: slug ? [slug] : undefined,
+          content_type: 'article'
+        };
+        if(consent === 'accepted'){
+          if(typeof window.fbq === 'function'){
+            window.fbq('track','ViewContent', params);
+          }
+          if(typeof window.gtag === 'function'){
+            window.gtag('event','ViewContent', params);
+          }
+        }
+      }, { capture: true });
     }catch(err){
       console.error('[blog] failed to load posts:', err);
       const error = document.createElement('div');

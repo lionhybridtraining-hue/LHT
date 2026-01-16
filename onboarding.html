@@ -48,41 +48,47 @@
     .mut{color:var(--mut)} h1{margin:0 0 8px}
     ol li{margin:10px 0}
     code{background:#1a1a1a;padding:2px 6px;border-radius:6px}
+    /* Onboarding stepper */
+    .stepper{display:flex;align-items:center;gap:8px;margin:14px 0 18px}
+    .step{flex:1;height:6px;border-radius:6px;background:#222;position:relative;overflow:hidden}
+    .step > span{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--acc)}
+    .step-labels{display:flex;justify-content:space-between;margin-top:6px;color:#bbb;font-size:12px}
+    .flow{display:grid;gap:12px}
+    .flow .card h3{margin-top:0}
+    .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    .btn.secondary{background:transparent;color:#f5f5f5;border:1px solid rgba(255,255,255,.2)}
+    .list{list-style:disc;margin:8px 0 0 20px;color:#ddd}
+    .tips{font-size:14px;color:#ddd;display:grid;gap:6px;margin-top:10px}
+    .summary{display:grid;gap:6px}
+    .badge-ok{display:inline-block;background:#16351f;color:#a7f3d0;border:1px solid #256a3f;padding:4px 8px;border-radius:999px;font-size:12px}
+    .badge-pending{display:inline-block;background:#33260f;color:#f8e3b1;border:1px solid #7f5b16;padding:4px 8px;border-radius:999px;font-size:12px}
+    .grid-2{display:grid;grid-template-columns:1fr;gap:10px}
+    @media (min-width:720px){.grid-2{grid-template-columns:1fr 1fr}}
   </style>
 </head>
 <body>
   <div class="wrap">
     <h1>Bem-vindo ao LHT 🦁</h1>
-    <p class="mut">Segue estes passos (2–3 minutos) e ficas pronto a treinar.</p>
+    <p class="mut">Conecta tudo em poucos minutos e começa o teu plano.</p>
 
-    <div class="card">
-      <h3>1) Entra na Comunidade WhatsApp</h3>
-      <p>É aqui que estão os anúncios, conteúdos e suporte inicial.</p>
-      <a class="btn" href="https://chat.whatsapp.com/JVsqO05fm4kLhbSaSiKL8n?mode=ems_copy_t" target="_blank" rel="noopener">Entrar no WhatsApp</a>
+    <div class="stepper" aria-label="Progresso do onboarding" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="onb-progress">
+      <div class="step"><span style="width:0%"></span></div>
+      <div class="step"><span style="width:0%"></span></div>
+      <div class="step"><span style="width:0%"></span></div>
+      <div class="step"><span style="width:0%"></span></div>
+      <div class="step"><span style="width:0%"></span></div>
+      <div class="step"><span style="width:0%"></span></div>
+    </div>
+    <div class="step-labels">
+      <span>Boas‑vindas</span><span>Comunidade</span><span>TP</span><span>Dispositivo</span><span>Zonas</span><span>Final</span>
     </div>
 
-    <div class="card">
-      <h3>2) Liga-te ao TrainingPeaks</h3>
-      <ol>
-        <li>Clica no botão abaixo para criar conta no TP e ficares ligado ao coach.</li>
-        <li>No TP, vai a <code>Library → Plans</code> e <b>inicia o teu programa</b> para aparecer no calendário.</li>
-        <li>Conecta o relógio (Garmin/Polar/Coros) em <code>Settings → Connections</code>.</li>
-      </ol>
-      <a class="btn" href="https://home.trainingpeaks.com/attachtocoach?sharedKey=MV4HA6K2QLXYI" target="_blank" rel="noopener">Criar conta / Ligar ao Coach</a>
-      <p class="mut" style="margin-top:10px">Depois de iniciares o plano, os treinos surgem automaticamente no teu calendário e relógio.</p>
-    </div>
-
-    <div class="card">
-      <h3>3) Define as tuas zonas com o AER</h3>
-      <p>Faz o teste para descobrir o teu limiar e actualizar as zonas. O programa AER está preparado para isso.</p>
-      <a class="btn" href="https://docs.google.com/forms/d/1bNLLOiE4W3bXSuhx07NcGhgisFNYe9_AGm11UbcSQUA/viewform" target="_blank" rel="noopener">Abrir Questionário AER</a>
-      <p class="mut" style="margin-top:10px">Se o link pedir login/edição, abre em modo anónimo ou garante que o formulário está como “Anyone with the link can respond”.</p>
-    </div>
+    <div id="onboarding-app" class="flow" aria-live="polite"></div>
 
     <div class="card">
       <h3>FAQ rápido</h3>
       <p><b>Onde vejo os treinos?</b> No TrainingPeaks → Calendário (depois de começares o plano).</p>
-      <p><b>Quando recebo ajuda?</b> Dentro do WhatsApp — fixa as mensagens e segue os tutoriais curtinhos.</p>
+      <p><b>Quando recebo ajuda?</b> Na Comunidade — fixa as mensagens e segue os tutoriais curtinhos.</p>
       <p><b>Métricas chave:</b> Zonas (FC/Pace/Power), TSS, IF, consistência semanal.</p>
     </div>
 
@@ -140,5 +146,6 @@
     .consent-privacy{display:inline-block;margin-top:10px;color:#d3a943;text-decoration:underline}
   </style>
   <script src="assets/js/script.js"></script>
+  <script src="assets/js/onboarding.js"></script>
 </body>
 </html>
