@@ -2,6 +2,9 @@
   publish = "."
   command = "node scripts/generate-posts-json.mjs"
 
+[functions]
+  directory = "netlify/functions"
+
 
 # Friendly URLs
 [[redirects]]
