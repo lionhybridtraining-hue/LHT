@@ -27,7 +27,7 @@ Essas mudanças podem acontecer a vários níveis:
 - cardiovascular,
 - respiratório.
 
-No treino de endurance, os mais relevantes são:
+Hoje vamos abordar os limiares ventilatórios:
 - **Limiar ventilatório 1 (VT1)**
 - **Limiar ventilatório 2 (VT2)**
 
