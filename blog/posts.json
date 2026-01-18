@@ -1,16 +1,13 @@
 {
   "items": [
     {
-<<<<<<< HEAD
-      "slug": "blog-de-teste",
-      "title": "Blog de Teste",
-      "date": "2026-01-11",
-      "category": "Mindset",
-      "excerpt": "Como usar IA para o melhor Mindset possível."
+      "slug": "filosofia-lht-treino-hibrido",
+      "title": "TREINO HÍBRIDO - Filosofia LHT",
+      "date": "2026-01-18",
+      "category": "Treino Híbrido",
+      "excerpt": "O conceito de Treino Híbrido: desenvolver força e resistência em simultâneo. Descobre a filosofia LHT e como o treino híbrido pode transformar a tua vida."
     },
     {
-=======
->>>>>>> 81e748cc50f5408bbd5c4c03b1c356f0be463f6a
       "slug": "guia-inicial-treino-hibrido",
       "title": "Guia Inicial de Treino Híbrido (sem complicar)",
       "date": "2026-01-11",
