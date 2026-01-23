@@ -2,11 +2,11 @@
 title: Motivação vs Disciplina
 date: 2026-01-23
 category: Mindset
-excerpt: |
+excerpt: |-
   Cada vez mais nos levam a acreditar numa ideia perigosa:  
   “Não precisas de motivação, precisas de disciplina."
 ---
-# A disciplina não chega (e a fisiologia explica porquê)
+# A disciplina não chega
 
 A ideia de que só a disciplina interessa soa bem.  
 É dura. É simples. Parece madura.
