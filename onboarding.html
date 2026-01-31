@@ -49,10 +49,11 @@
     ol li{margin:10px 0}
     code{background:#1a1a1a;padding:2px 6px;border-radius:6px}
     /* Onboarding stepper */
-    .stepper{display:flex;align-items:center;gap:8px;margin:14px 0 18px}
+    .stepper{display:flex;align-items:center;gap:8px;margin:14px 0 6px}
     .step{flex:1;height:6px;border-radius:6px;background:#222;position:relative;overflow:hidden}
     .step > span{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--acc)}
-    .step-labels{display:flex;justify-content:space-between;margin-top:6px;color:#bbb;font-size:12px}
+    .step-labels{display:flex;gap:8px;margin-top:0;margin-bottom:12px;color:#bbb;font-size:12px}
+    .step-labels span{flex:1;text-align:center}
     .flow{display:grid;gap:12px}
     .flow .card h3{margin-top:0}
     .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
@@ -64,12 +65,13 @@
     .badge-pending{display:inline-block;background:#33260f;color:#f8e3b1;border:1px solid #7f5b16;padding:4px 8px;border-radius:999px;font-size:12px}
     .grid-2{display:grid;grid-template-columns:1fr;gap:10px}
     @media (min-width:720px){.grid-2{grid-template-columns:1fr 1fr}}
+    @media (max-width:719px){.step-labels{display:none}}
   </style>
 </head>
 <body>
   <div class="wrap">
-    <h1>Bem-vindo ao LHT 🦁</h1>
-    <p class="mut">Conecta tudo em poucos minutos e começa o teu plano.</p>
+    <h1>Bem-vindo à Lion Hybrid Training 🦁</h1>
+    <p class="mut">Estás a 5 passos de começar a treinar com estrutura.</p>
 
     <div class="stepper" aria-label="Progresso do onboarding" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="onb-progress">
       <div class="step"><span style="width:0%"></span></div>
@@ -80,19 +82,17 @@
       <div class="step"><span style="width:0%"></span></div>
     </div>
     <div class="step-labels">
-      <span>Boas‑vindas</span><span>Comunidade</span><span>TP</span><span>Dispositivo</span><span>Zonas</span><span>Final</span>
+      <span>Boas‑vindas</span><span>Comunidade</span><span>TrainingPeaks</span><span>Sincronizar</span><span>Formulário</span><span>Final</span>
     </div>
 
     <div id="onboarding-app" class="flow" aria-live="polite"></div>
 
     <div class="card">
       <h3>FAQ rápido</h3>
-      <p><b>Onde vejo os treinos?</b> No TrainingPeaks → Calendário (depois de começares o plano).</p>
-      <p><b>Quando recebo ajuda?</b> Na Comunidade — fixa as mensagens e segue os tutoriais curtinhos.</p>
-      <p><b>Métricas chave:</b> Zonas (FC/Pace/Power), TSS, IF, consistência semanal.</p>
+      <p><b>O que é o TrainingPeaks?</b> É uma plataforma de planeamento e análise de treino estruturado.</p>
+      <p><b>O programa vai ficar já disponível?</b> Vais ter acesso imediato ao TrainingPeaks mas o programa irá ser atribuido manualmente pelo treinador.</p>
+      <p><b>Onde posso colocar dúvidas?</b> Durante o onboarding irás ser adicionado/a ao grupo exclusivo da Comunidade LHT.</p>
     </div>
-
-    <p class="mut">Dúvidas? Fala connosco na comunidade — estamos lá todos os dias.</p>
   </div>
 
   <!-- Consent banner (GDPR) -->
