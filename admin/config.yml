@@ -7,6 +7,9 @@ public_folder: "/assets/img/uploads"
 
 publish_mode: editorial_workflow
 
+# Show file path in CMS for better mobile navigation
+show_preview_links: true
+
 collections:
   - name: posts
     label: Artigos
@@ -15,6 +18,8 @@ collections:
     create: true
     extension: "md"
     slug: "{{slug}}"
+    # Enable preview for better mobile editing experience
+    preview_path: "blog/{{slug}}"
     fields:
       - { label: Título, name: title, widget: string }
       - { label: Data, name: date, widget: datetime, format: "YYYY-MM-DD" }
