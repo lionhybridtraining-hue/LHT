@@ -1,0 +1,33 @@
+/* Admin preview mobile tweaks */
+/* Ensure CMS preview and images scale to container on small screens */
+.nc-root, .nc-app, .nc-main, .nc-entry-preview, .nc-previewPane {
+  max-width: 100% !important;
+  box-sizing: border-box;
+}
+
+.nc-entry-preview img, .nc-previewPane img, img.preview-image {
+  max-width: 100% !important;
+  height: auto !important;
+}
+
+/* Force iframe-based previews to use full width */
+iframe {
+  width: 100% !important;
+  min-height: 420px;
+}
+
+/* Make text readable on small viewports */
+body, .nc-entry-preview {
+  font-size: 16px;
+  line-height: 1.45;
+}
+
+/* Reduce UI chrome on mobile */
+.nc-toolbar, .nc-sidebar {
+  font-size: 14px;
+}
+
+/* Small padding so content doesn't touch edges on narrow screens */
+.nc-entry-preview, .nc-previewPane {
+  padding: 12px !important;
+}
