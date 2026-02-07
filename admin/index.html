@@ -16,11 +16,17 @@
       }
       
       /* Optimize touch targets for better mobile usability */
-      button, a, [type="button"], [type="submit"], select {
+      button, [type="button"], [type="submit"], select {
         min-height: 44px;
       }
       
-      button, a, [type="button"], [type="submit"] {
+      button, [type="button"], [type="submit"] {
+        min-width: 44px;
+      }
+      
+      /* Button-style links (not inline text links) */
+      a[role="button"], a.btn, a[class*="button"] {
+        min-height: 44px;
         min-width: 44px;
       }
       

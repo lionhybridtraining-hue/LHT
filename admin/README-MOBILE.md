@@ -22,8 +22,10 @@ The admin panel at `/admin/` has been optimized for mobile devices to ensure a b
 Added custom styles for improved mobile usability:
 
 #### Touch Target Optimization (768px and below)
-- **Minimum touch target size**: Interactive controls (buttons, links, button-type inputs) have a minimum height of 44px
-- Button-type elements also have a minimum width of 44px
+- **Minimum touch target size**: Interactive controls (buttons, button-type inputs, select elements) have a minimum height of 44px
+- Button-type elements have a minimum width of 44px
+- Button-style links (with `role="button"`, `.btn` class, or similar) also get proper touch targets
+- Regular inline text links are not affected to maintain natural text flow
 - Text inputs and textareas flow naturally with their content for better layout
 - Follows Apple's Human Interface Guidelines and WCAG 2.1 accessibility standards
 - Improves usability for users with limited dexterity
