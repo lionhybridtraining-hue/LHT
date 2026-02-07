@@ -2,7 +2,7 @@
 <html lang="pt">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Admin — LHT</title>
   <!-- Mobile-responsive CSS for Decap CMS -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/hithismani/responsive-decap@main/dist/responsive.min.css">
@@ -16,8 +16,11 @@
       }
       
       /* Optimize touch targets for better mobile usability */
-      button, a, input, select, textarea {
+      button, a, [type="button"], [type="submit"], select {
         min-height: 44px;
+      }
+      
+      button, a, [type="button"], [type="submit"] {
         min-width: 44px;
       }
       
@@ -29,7 +32,10 @@
     
     /* Ensure modals and overlays work properly on mobile */
     @media (max-width: 480px) {
-      [class*="modal"], [class*="dialog"] {
+      /* Target common Decap CMS modal classes more specifically */
+      [data-testid*="modal"],
+      .css-modal,
+      [role="dialog"] {
         max-width: 100% !important;
         margin: 0 !important;
         border-radius: 0 !important;

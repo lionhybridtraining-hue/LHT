@@ -6,8 +6,9 @@ The admin panel at `/admin/` has been optimized for mobile devices to ensure a b
 ## Changes Implemented
 
 ### 1. Viewport Optimization
-- Enhanced viewport meta tag with `maximum-scale=1, user-scalable=no` to prevent zoom issues on mobile
-- This ensures a consistent mobile experience and prevents unwanted zooming when interacting with form fields
+- Standard viewport meta tag with `width=device-width, initial-scale=1`
+- Maintains user ability to zoom for accessibility (WCAG 2.1 compliant)
+- iOS auto-zoom on input focus is prevented by setting font-size to 16px (rather than disabling zoom)
 
 ### 2. Responsive CSS Integration
 - Added [responsive-decap](https://github.com/hithismani/responsive-decap) CSS library
@@ -21,18 +22,31 @@ The admin panel at `/admin/` has been optimized for mobile devices to ensure a b
 Added custom styles for improved mobile usability:
 
 #### Touch Target Optimization (768px and below)
-- **Minimum touch target size**: All interactive elements (buttons, links, inputs) have a minimum height and width of 44px
-- This follows Apple's Human Interface Guidelines and ensures easy tapping on mobile devices
-- Improves accessibility for users with limited dexterity
+- **Minimum touch target size**: Interactive controls (buttons, links, button-type inputs) have a minimum height of 44px
+- Button-type elements also have a minimum width of 44px
+- Text inputs and textareas flow naturally with their content for better layout
+- Follows Apple's Human Interface Guidelines and WCAG 2.1 accessibility standards
+- Improves usability for users with limited dexterity
 
 #### Font and Text Optimization
 - Base font size set to 16px to prevent iOS zoom on input focus
 - WebKit text size adjustment enabled for better readability
 
 #### Modal and Dialog Improvements (480px and below)
-- Modals take full width on small screens
+- Modals take full width on small screens using semantic selectors
+- Targets elements by data attributes and ARIA roles for better specificity
 - Removed margins and border-radius for edge-to-edge display
 - Ensures maximum usable space on mobile devices
+
+## Accessibility Considerations
+
+This implementation follows **WCAG 2.1 Level AA** accessibility guidelines:
+
+- ✅ **Zoom enabled**: Users can zoom the page for better readability (Success Criterion 1.4.4)
+- ✅ **16px font size**: Prevents unwanted iOS auto-zoom while maintaining accessibility
+- ✅ **44px touch targets**: Meets minimum touch target size recommendations (Success Criterion 2.5.5)
+- ✅ **Semantic selectors**: Uses ARIA roles and data attributes for robust styling
+- ✅ **No layout breaking**: Text inputs flow naturally without fixed widths
 
 ### 4. CMS Configuration Updates
 Enhanced `config.yml` with mobile-friendly settings:
