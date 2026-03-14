@@ -579,10 +579,42 @@ section .intro{color:var(--muted); max-width:860px; margin:0 auto 18px; text-ali
 
 /* -------- Avaliações -------- */
 #avaliacoes .reviews-grid{
-  display:grid; gap:18px; grid-template-columns: repeat(auto-fit, minmax(260px,1fr));
-  margin-top:16px;
+  --reviews-gap: 18px;
+  --reviews-loop-distance: 0px;
+  position: relative;
+  width: 100vw;
+  overflow: hidden;
+  margin: 16px calc(50% - 50vw) 0;
+  padding: 6px 0;
+}
+#avaliacoes .reviews-grid::before,
+#avaliacoes .reviews-grid::after{
+  content:"";
+  position:absolute;
+  top:0;
+  bottom:0;
+  width:72px;
+  z-index:2;
+  pointer-events:none;
+}
+#avaliacoes .reviews-grid::before{
+  left:0;
+  background: linear-gradient(90deg, rgba(13,13,13,1) 0%, rgba(13,13,13,.76) 50%, rgba(13,13,13,0) 100%);
+}
+#avaliacoes .reviews-grid::after{
+  right:0;
+  background: linear-gradient(90deg, rgba(13,13,13,0) 0%, rgba(13,13,13,.76) 50%, rgba(13,13,13,1) 100%);
+}
+.reviews-track{
+  display:flex;
+  gap:var(--reviews-gap);
+  width:max-content;
+  min-width: 100%;
+  animation: reviewsLoop 38s linear infinite;
+  will-change: transform;
 }
 .review-card{
+  flex: 0 0 clamp(260px, 32vw, 360px);
   position:relative; background: transparent;
   border:1px solid rgba(212,165,79,.12);
   border-radius:14px; padding:16px 14px;
@@ -607,6 +639,15 @@ section .intro{color:var(--muted); max-width:860px; margin:0 auto 18px; text-ali
 .reviewer{ font-family:'Oswald',sans-serif; color:var(--gold-soft); text-transform:uppercase; font-size:13px; letter-spacing:.5px; margin-top:8px; }
 .review-text{ color:#cfd3db; font-size:14px; margin-top:8px; }
 .review-meta{ color:#9ca3af; font-size:12px; margin-top:6px; }
+
+@keyframes reviewsLoop {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(calc(-1 * var(--reviews-loop-distance)));
+  }
+}
 
 
 /* -------- Footer -------- */
@@ -798,6 +839,13 @@ footer .legal span{opacity:.6}
   .card, .step, .review-card {
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
+  #avaliacoes .reviews-grid::before,
+  #avaliacoes .reviews-grid::after {
+    width: 36px;
+  }
+  .review-card{
+    flex-basis: min(86vw, 320px);
+  }
   .card:active, .step:active {
     transform: scale(0.98);
   }
@@ -876,3 +924,88 @@ footer .legal span{opacity:.6}
 
 /* Botão extra row espaçamento */
 .mindset-row{margin-top:28px}
+
+/* ===== CALENDÁRIO DE PROVAS ===== */
+#calendario-provas {
+  background: radial-gradient(circle at 50% 0, #1a1a1a 0%, #0d0d0d 80%);
+}
+
+.carousel-container {
+  position: relative;
+  overflow: hidden;
+  width: 100vw;
+  margin: var(--py) calc(50% - 50vw);
+  background: linear-gradient(180deg, #000 0%, #0a0a0a 50%, #000 100%);
+  padding: 48px 0;
+  border-top: 1px solid rgba(212,165,79,.15);
+  border-bottom: 1px solid rgba(212,165,79,.15);
+  box-shadow: 0 0 60px rgba(212,165,79,.08) inset, 0 8px 32px rgba(0,0,0,.4);
+}
+
+.carousel-container::before,
+.carousel-container::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  height: 100%;
+  width: 120px;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.carousel-container::before {
+  left: 0;
+  background: linear-gradient(90deg, rgba(0,0,0,.9) 0%, rgba(0,0,0,.6) 50%, transparent 100%);
+}
+
+.carousel-container::after {
+  right: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(0,0,0,.6) 50%, rgba(0,0,0,.9) 100%);
+}
+
+.carousel-wrapper {
+  display: flex;
+  gap: 48px;
+  animation: scrollCarousel 50s linear infinite;
+  will-change: transform;
+  padding: 0 48px;
+}
+
+.carousel-wrapper:hover {
+  animation-play-state: paused;
+}
+
+.carousel-item {
+  flex: 0 0 auto;
+  width: clamp(100px, 12vw, 180px);
+  height: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: filter .3s ease, transform .3s ease;
+}
+
+.carousel-item img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  filter: drop-shadow(0 0 12px rgba(212,165,79,.2)) brightness(0.95);
+  transition: filter .3s ease, transform .3s ease, brightness .3s ease;
+  opacity: 0.9;
+}
+
+.carousel-item:hover img {
+  filter: drop-shadow(0 0 24px rgba(212,165,79,.5)) drop-shadow(0 0 12px rgba(212,165,79,.3)) brightness(1.15);
+  transform: scale(1.08);
+  opacity: 1;
+}
+
+@keyframes scrollCarousel {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(calc(-50% - 18px));
+  }
+}

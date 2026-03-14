@@ -38,6 +38,240 @@ function handleScrollIndicator(){
 window.addEventListener('scroll', handleScrollIndicator, { passive: true });
 window.addEventListener('load', handleScrollIndicator);
 
+// ===== Dynamic content via Google Apps Script / Google Sheets =====
+(function(){
+  const CACHE_KEY = 'lht_dynamic_cache_v1';
+
+  function withTimeout(ms){
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), ms);
+    return { controller, timeoutId };
+  }
+
+  function getConfig(){
+    const cfg = window.LHT_DYNAMIC || {};
+    return {
+      endpoint: (cfg.endpoint || '').trim(),
+      cacheMinutes: Number(cfg.cacheMinutes || 10),
+      timeoutMs: Number(cfg.timeoutMs || 8000)
+    };
+  }
+
+  function readCache(maxAgeMs){
+    try {
+      const raw = localStorage.getItem(CACHE_KEY);
+      if(!raw) return null;
+      const parsed = JSON.parse(raw);
+      if(!parsed || !parsed.ts || !parsed.data) return null;
+      if(Date.now() - parsed.ts > maxAgeMs) return null;
+      return parsed.data;
+    } catch(e){
+      return null;
+    }
+  }
+
+  function writeCache(data){
+    try {
+      localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data }));
+    } catch(e){
+      // no-op
+    }
+  }
+
+  function text(node, value){
+    if(!node) return;
+    node.textContent = String(value == null ? '' : value);
+  }
+
+  function bindAerDate(data){
+    const node = document.getElementById('aer-next-date');
+    if(!node || !data || !data.metadata) return;
+    if(data.metadata.aer_next_date){
+      text(node, data.metadata.aer_next_date);
+    }
+  }
+
+  function bindMetrics(data){
+    const wrap = document.getElementById('metrics-grid');
+    if(!wrap || !data || !Array.isArray(data.metrics) || data.metrics.length === 0) return;
+
+    wrap.innerHTML = '';
+    data.metrics.forEach((item) => {
+      const metric = document.createElement('div');
+      metric.className = 'metric';
+
+      const num = document.createElement('span');
+      num.className = 'm-num';
+      text(num, item && item.value ? item.value : '');
+
+      const label = document.createElement('span');
+      label.className = 'm-label';
+      text(label, item && item.label ? item.label : '');
+
+      metric.appendChild(num);
+      metric.appendChild(label);
+      wrap.appendChild(metric);
+    });
+  }
+
+  function bindReviews(data){
+    const wrap = document.getElementById('reviews-grid');
+    if(!wrap || !data || !Array.isArray(data.reviews) || data.reviews.length === 0) return;
+
+    wrap.innerHTML = '';
+
+    data.reviews.forEach((item) => {
+      const card = document.createElement('article');
+      card.className = 'review-card';
+
+      const stars = document.createElement('div');
+      stars.className = 'stars';
+      const starCount = Math.max(1, Math.min(5, Number(item && item.stars ? item.stars : 5)));
+      const starText = '★★★★★'.slice(0, starCount);
+      stars.setAttribute('aria-label', `${starCount} em 5`);
+      text(stars, starText);
+
+      const reviewText = document.createElement('p');
+      reviewText.className = 'review-text';
+      text(reviewText, `“${item && item.text ? item.text : ''}”`);
+
+      const reviewer = document.createElement('div');
+      reviewer.className = 'reviewer';
+      text(reviewer, item && item.name ? item.name : '');
+
+      const reviewMeta = document.createElement('div');
+      reviewMeta.className = 'review-meta';
+      text(reviewMeta, item && item.meta ? item.meta : 'ATHLETIC ENDURANCE RUNNER');
+
+      card.appendChild(stars);
+      card.appendChild(reviewText);
+      card.appendChild(reviewer);
+      card.appendChild(reviewMeta);
+      wrap.appendChild(card);
+    });
+
+    setupReviewsLoop();
+
+    const jsonLdScript = document.getElementById('reviews-jsonld');
+    if(jsonLdScript){
+      const ratingValue = Number(data.aggregateRating && data.aggregateRating.ratingValue ? data.aggregateRating.ratingValue : 4.9);
+      const reviewCount = Number(data.aggregateRating && data.aggregateRating.reviewCount ? data.aggregateRating.reviewCount : data.reviews.length);
+
+      const reviewJson = data.reviews.map((item) => ({
+        '@type': 'Review',
+        author: { '@type': 'Person', name: item && item.name ? item.name : 'Atleta LHT' },
+        datePublished: item && item.date ? item.date : new Date().toISOString().slice(0, 10),
+        reviewBody: item && item.text ? item.text : '',
+        reviewRating: { '@type': 'Rating', ratingValue: String(Math.max(1, Math.min(5, Number(item && item.stars ? item.stars : 5)))) }
+      }));
+
+      const payload = {
+        '@context': 'https://schema.org',
+        '@type': 'Product',
+        name: 'AER — Athletic Endurance Runner',
+        brand: 'Lion Hybrid Training',
+        aggregateRating: { '@type': 'AggregateRating', ratingValue: String(ratingValue), reviewCount: String(reviewCount) },
+        review: reviewJson
+      };
+
+      jsonLdScript.textContent = JSON.stringify(payload);
+    }
+  }
+
+  function bindLinks(data){
+    if(!data || !data.links || typeof data.links !== 'object') return;
+    Object.keys(data.links).forEach((key) => {
+      const href = data.links[key];
+      if(!href) return;
+      const node = document.querySelector(`[data-track="${key}"]`);
+      if(node && node.tagName === 'A'){
+        node.setAttribute('href', href);
+      }
+    });
+  }
+
+  function applyDynamicData(data){
+    if(!data || typeof data !== 'object') return;
+    bindAerDate(data);
+    bindMetrics(data);
+    bindReviews(data);
+    bindLinks(data);
+  }
+
+  async function fetchDynamicData(){
+    const cfg = getConfig();
+    if(!cfg.endpoint) return;
+
+    const cacheMaxAgeMs = Math.max(1, cfg.cacheMinutes) * 60 * 1000;
+    const cached = readCache(cacheMaxAgeMs);
+    if(cached){
+      applyDynamicData(cached);
+    }
+
+    const { controller, timeoutId } = withTimeout(Math.max(1000, cfg.timeoutMs));
+    try {
+      const res = await fetch(cfg.endpoint, {
+        method: 'GET',
+        mode: 'cors',
+        cache: 'no-store',
+        signal: controller.signal
+      });
+      if(!res.ok) return;
+      const data = await res.json();
+      applyDynamicData(data);
+      writeCache(data);
+    } catch(e){
+      // fallback to cached data already applied
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', fetchDynamicData);
+  } else {
+    fetchDynamicData();
+  }
+})();
+
+function setupReviewsLoop(){
+  const wrap = document.getElementById('reviews-grid');
+  if(!wrap) return;
+
+  const cards = Array.from(wrap.querySelectorAll('.review-card')).filter((card) => card.parentElement === wrap);
+  if(cards.length === 0) return;
+
+  const track = document.createElement('div');
+  track.className = 'reviews-track';
+
+  cards.forEach((card) => {
+    track.appendChild(card);
+  });
+
+  cards.forEach((card) => {
+    const clone = card.cloneNode(true);
+    clone.setAttribute('aria-hidden', 'true');
+    track.appendChild(clone);
+  });
+
+  wrap.innerHTML = '';
+  wrap.appendChild(track);
+
+  requestAnimationFrame(() => {
+    const gapValue = getComputedStyle(track).gap;
+    const gap = Number.parseFloat(gapValue) || 0;
+    const originalWidth = cards.reduce((total, card) => total + card.getBoundingClientRect().width, 0);
+    const segmentWidth = originalWidth + (gap * cards.length);
+    wrap.style.setProperty('--reviews-loop-distance', `${segmentWidth}px`);
+  });
+}
+
+if(document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', setupReviewsLoop);
+} else {
+  setupReviewsLoop();
+}
+
 // ===== Modal Vídeo Mindset =====
 function setupMindsetModal(){
   const mindsetTrigger = document.querySelector('.mindset-trigger');
@@ -121,6 +355,7 @@ if(document.readyState === 'loading'){
   const CONSENT_KEY = 'lht_consent';
   const LAST_PROMPT_KEY = 'lht_last_prompt';
   const SESSION_FLAG = 'lht_session_prompted';
+  const DENIED_SESSION_FLAG = 'lht_denied_prompted_session';
   const REMIND_INTERVAL_MS = 24 * 60 * 60 * 1000; // re-perguntar após 24h
   const GA_ID = 'G-K3EJSN5M4Y';
   const FB_PIXEL_ID = '1575754910283247';
@@ -326,6 +561,21 @@ if(document.readyState === 'loading'){
       }
       Analytics.init();
     } else {
+      if(c === 'denied'){
+        // Se recusou, mostramos no máximo uma vez por sessão e sem delay.
+        const deniedPromptedThisSession = sessionStorage.getItem(DENIED_SESSION_FLAG) === '1';
+        consentBanner.hidden = deniedPromptedThisSession;
+        if(!deniedPromptedThisSession){
+          sessionStorage.setItem(DENIED_SESSION_FLAG, '1');
+        }
+
+        if(typeof window.gtag === 'function'){
+          window.gtag('consent', 'update', { analytics_storage: 'denied' });
+        }
+        Analytics.enabled = false;
+        return;
+      }
+
       // Prompt next session or after X time
       const now = Date.now();
       const lastPrompt = Number(localStorage.getItem(LAST_PROMPT_KEY) || 0);
@@ -352,6 +602,7 @@ if(document.readyState === 'loading'){
     btnAccept.addEventListener('click', ()=>{
       setConsent('accepted');
       consentBanner.hidden = true;
+      sessionStorage.removeItem(DENIED_SESSION_FLAG);
       if(typeof window.gtag === 'function'){
         window.gtag('consent', 'update', {
           analytics_storage: 'granted',
@@ -378,6 +629,11 @@ if(document.readyState === 'loading'){
       setConsent(allowAnalytics ? 'accepted' : 'denied');
       // If not accepted, keep banner hidden for this page but re-prompt next session or after interval
       consentBanner.hidden = true;
+      if(allowAnalytics){
+        sessionStorage.removeItem(DENIED_SESSION_FLAG);
+      } else {
+        sessionStorage.setItem(DENIED_SESSION_FLAG, '1');
+      }
       if(typeof window.gtag === 'function'){
         window.gtag('consent', 'update', {
           analytics_storage: allowAnalytics ? 'granted' : 'denied',

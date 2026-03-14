@@ -105,7 +105,7 @@
         <div class="aer-logo-wrap">
           <img src="assets/img/logo-aer.png" alt="AER — Athletic Endurance Runner" class="aer-logo" decoding="async">
         </div>
-        <div class="launch-info"><span class="badge">Próxima data: 16 de Fevereiro</span></div>
+        <div class="launch-info"><span class="badge">Próxima data: <span id="aer-next-date">16 de Fevereiro</span></span></div>
       <h4>Mais <strong>resistente,</strong> mais <strong>forte,</strong> mais <strong>atlético!</strong></h4>
   <ul class="list left">
         <li><strong>Programa completo no TrainingPeaks</strong>, ajustado ao teu nível e objetivo;</li>
@@ -180,28 +180,12 @@
     </div>
   </section>
 
-  <!-- ===== FILOSOFIA LHT - CTA PARA BLOG ===== -->
-  <section id="filosofia">
-    <div class="container center">
-      <h2>O que é o Treino Híbrido?</h2>
-      <p class="intro">
-        Força e resistência. Velocidade e endurance. Muitas pessoas acham que é preciso escolher. <strong>Não é</strong>. 
-        Descobre a filosofia por trás da Lion Hybrid Training e como o <strong>treino híbrido pode transformar o teu corpo e a tua mente</strong>.
-      </p>
-      <p class="center mini">"Why train for one thing, when you can train for all things?"</p>
-      <div class="cta-row">
-        <a class="btn gold" data-track="cta_blog_filosofia" href="artigo.html?post=filosofia-lht-treino-hibrido" aria-label="Ler artigo sobre a Filosofia LHT">Descobre a Filosofia LHT →</a>
-        <button type="button" class="btn ghost mindset-trigger" data-track="mindset_open_click" aria-label="Ver vídeo Mindset (abre modal)">Ver vídeo Mindset</button>
-      </div>
-    </div>
-  </section>
-
   
   <!-- ===== AVALIAÇÕES ===== -->
   <section id="avaliacoes">
     <div class="container center">
       <h2>Avaliações dos atletas</h2>
-      <div class="reviews-grid">
+      <div class="reviews-grid" id="reviews-grid">
         <article class="review-card">
           <div class="stars" aria-label="5 em 5">★★★★★</div>
           <p class="review-text">“O AER ajudou-me a ganhar consistência sem sacrificar a força. Plano claro, progressão real.”</p>
@@ -238,19 +222,11 @@
     </div>
   </section>
 
-  <!-- ===== FUTURO ===== -->
-  <section id="futuro">
-    <div class="container center">
-      <h2>A força não tem uma só forma.</h2>
-      <p class="intro">O AER é apenas o início. A Lion Hybrid Training vai expandir-se com programas de treino em várias modalidades — <strong>corrida, ciclismo, triatlo, calistenia, levantamento olímpico e muito mais</strong> — sempre com a mesma base: <strong>ciência, consistência e propósito</strong>. Porque o treino híbrido não é sobre fazer tudo. É sobre <strong>dominar o que te faz evoluir</strong>.</p>
-    </div>
-  </section>
-
   <!-- ===== MÉTRICAS & FAQ ===== -->
   <section id="metrics-faq">
     <div class="container center">
       <h2>Resultados & FAQ's</h2>
-      <div class="metrics">
+      <div class="metrics" id="metrics-grid">
         <div class="metric"><span class="m-num">120+</span><span class="m-label">Experimentaram o AER</span></div>
         <div class="metric"><span class="m-num">89%</span><span class="m-label">8+ semanas consistência</span></div>
         <div class="metric"><span class="m-num">40+</span><span class="m-label">Subscreveram a Newsletter</span></div>
@@ -275,7 +251,7 @@
         </details>
       </div>
     </div>
-    <script type="application/ld+json">
+    <script id="reviews-jsonld" type="application/ld+json">
     {
       "@context": "https://schema.org",
       "@type": "FAQPage",
@@ -289,30 +265,76 @@
     </script>
   </section>
 
-  <!-- ===== FUNDADOR ===== -->
-  <section id="fundador">
+  <!-- ===== CALENDÁRIO DE PROVAS ===== -->
+  <section id="calendario-provas">
     <div class="container center">
-      <h2>Trabalho com propósito.<br>Vivo com intenção.<br>Lidero pelo exemplo.</h2>
-      <!-- Foto do fundador -->
-      <div class="founder-image">
-        <img src="assets/img/founder-img.png" alt="Rodrigo Libânio - Fundador LHT" class="founder-img">
-      </div>
+      <h2>Provas da Comunidade</h2>
+      <p class="intro">Descobre os eventos onde a comunidade LHT participa. <strong>Treina com propósito, corre com paixão, celebra com força.</strong></p>
       
-      <p class="intro">Sou o <strong>Rodrigo Libânio</strong>, treinador, atleta híbrido e fundador da Lion Hybrid Training. Acredito que o treino é uma <strong>ferramenta de transformação pessoal</strong> — física, mental e emocional. Criei a LHT para ajudar <strong>pessoas reais, com vidas exigentes</strong>, a tornarem-se mais fortes e equilibradas, <strong>liderando pelo exemplo</strong>. Não é sobre ser o melhor. É sobre <strong>ser melhor do que ontem</strong>.</p>
-      <div class="cta-row">
-        <a class="btn ghost" data-track="cta_conhecer_historia" href="sobre.html" aria-label="Ler mais sobre a minha história e contexto na página Sobre">Conhece a minha história →</a>
+      <!-- Carrossel infinito de logos -->
+      <div class="carousel-container">
+        <div class="carousel-wrapper" id="carousel-wrapper">
+          <!-- Prova 1 -->
+          <div class="carousel-item">
+            <img src="assets/img/uploads/logo-maratona-porto.png" alt="Maratona do Porto" loading="lazy" decoding="async">
+          </div>
+          
+          <!-- Prova 2 -->
+          <div class="carousel-item">
+            <img src="assets/img/uploads/logobackyardultra.png" alt="Backyard Ultra" loading="lazy" decoding="async">
+          </div>
+          
+          <!-- Prova 3 -->
+          <div class="carousel-item">
+            <img src="assets/img/uploads/Logo_MMLX_SuperHalfs.png" alt="MMLX Super Halfs" loading="lazy" decoding="async">
+          </div>
+          
+          <!-- Prova 4 -->
+          <div class="carousel-item">
+            <img src="assets/img/uploads/logo_OWR_pos.png" alt="OWR" loading="lazy" decoding="async">
+          </div>
+
+          <!-- Prova 5 -->
+          <div class="carousel-item">
+            <img src="assets/img/uploads/atrp_logo.png" alt="ATRP" loading="lazy" decoding="async">
+          </div>
+
+          <!-- Prova 6 -->
+          <div class="carousel-item">
+            <img src="assets/img/uploads/hyrox_logo.png" alt="Hyrox" loading="lazy" decoding="async">
+          </div>
+
+          <!-- Prova 7 -->
+          <div class="carousel-item">
+            <img src="assets/img/uploads/ironman_logo.png" alt="Ironman" loading="lazy" decoding="async">
+          </div>
+
+          <!-- Prova 8 -->
+          <div class="carousel-item">
+            <img src="assets/img/uploads/logo_fpa.png" alt="FPA" loading="lazy" decoding="async">
+          </div>
+
+          <!-- Prova 9 -->
+          <div class="carousel-item">
+            <img src="assets/img/uploads/spartan_logo.png" alt="Spartan Race" loading="lazy" decoding="async">
+          </div>
+        </div>
+      </div>
+
+      <p class="mini" style="margin-top: var(--py);">Participas nalguma destas provas? <strong>Junta-te à comunidade LHT no WhatsApp — conhece atletas, partilha experiências e treina juntos.</strong></p>
+      <div class="cta-row" style="margin-top: 28px;">
+        <a class="btn gold" data-track="cta_calendario_whatsapp" href="https://chat.whatsapp.com/JVsqO05fm4kLhbSaSiKL8n" target="_blank" rel="noopener" aria-label="Junte-se à comunidade LHT no WhatsApp">Comunidade LHT →</a>
       </div>
     </div>
   </section>
 
-  <!-- ===== BLOCO FINAL ===== -->
+  <!-- ===== CTA BLOG ===== -->
   <section id="final" class="center">
     <div class="container">
-      <h2>Estás pronto para elevar o teu padrão?</h2>
-      <p class="intro">Começa com o <strong>plano gratuito</strong>, aprende os fundamentos e depois <strong>compromete-te com o processo</strong> através do AER. <strong>O teu corpo é a ferramenta. A tua mente, o motor.</strong> O primeiro passo é teu.</p>
+      <h2>Queres aprofundar o treino híbrido?</h2>
+      <p class="intro">No blog encontras artigos sobre <strong>endurance</strong>, <strong>força</strong>, planeamento e a lógica por trás da metodologia LHT. Lê, aprende e aplica com mais clareza ao teu processo.</p>
       <div class="cta-row">
-        <a class="btn ghost" data-track="cta_final_plano_gratuito" href="https://docs.google.com/forms/d/e/1FAIpQLSfLhPlXojO2-fEvi32VLitq6P7-WcAgD4Ro04lvGtlIlscUGA/viewform?usp=dialog" target="_blank" rel="noopener">Receber o meu plano gratuito</a>
-        <a class="btn gold" data-track="cta_final_comecar_aer" href="#aer" target="_blank" rel="noopener">Próximo passo: Começar o AER</a>
+        <a class="btn gold" data-track="cta_final_blog" href="blog.html">Explorar o Blog</a>
       </div>
     </div>
   </section>
@@ -323,8 +345,6 @@
       <div>© 2025 Lion Hybrid Training · <a href="mailto:info@lionhybridtraining.com">info@lionhybridtraining.com</a></div>
       
       <nav class="legal">
-        <a href="sobre.html" data-track="footer_nav_sobre">Sobre</a>
-        <span>·</span>
         <a href="blog.html" data-track="footer_nav_blog">Blog</a>
         <span>·</span>
         <a href="politica-privacidade.html" data-track="footer_nav_privacidade" rel="noopener">Política de Privacidade</a>
@@ -434,6 +454,29 @@
   }
   </script>
   <!-- Main JS should load after consent banner exists -->
+  <script>
+    // Dynamic content config (Google Apps Script Web App endpoint)
+    // Exemplo: https://script.google.com/macros/s/AKfycb.../exec
+    window.LHT_DYNAMIC = {
+      endpoint: 'https://script.google.com/macros/s/AKfycbxD5gzUB5PCCKgdF8QZ-1uN_2zGwot4n1Qg3vdUUZHKqlsRw5bVwwDObFi2rqVQEwtmdA/exec',
+      cacheMinutes: 10,
+      timeoutMs: 8000
+    };
+
+    // Carousel infinito setup
+    document.addEventListener('DOMContentLoaded', () => {
+      const wrapper = document.getElementById('carousel-wrapper');
+      if (wrapper) {
+        const items = wrapper.querySelectorAll('.carousel-item');
+        if (items.length > 0) {
+          // Clona os items para efeito infinito
+          items.forEach(item => {
+            wrapper.appendChild(item.cloneNode(true));
+          });
+        }
+      }
+    });
+  </script>
   <script src="assets/js/script.js"></script>
 </body>
 </html>
