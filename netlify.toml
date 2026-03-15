@@ -27,6 +27,16 @@
   to = "/calendario.html"
   status = 301
 
+[[redirects]]
+  from = "/coach"
+  to = "/coach/"
+  status = 301
+
+[[redirects]]
+  from = "/check-in"
+  to = "/check-in/"
+  status = 301
+
 # Ensure posts index is not captured by the slug rewrite
 [[redirects]]
   from = "/blog/posts.json"

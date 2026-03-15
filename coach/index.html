@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>LHT Coach - Upload CSV</title>
+  <style>
+    :root {
+      --bg: #f5efe6;
+      --card: #ffffff;
+      --ink: #1f2a2e;
+      --accent: #0b6e4f;
+      --accent-2: #f2a541;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Segoe UI", Tahoma, sans-serif;
+      background: radial-gradient(circle at 20% 20%, #fff7e9, var(--bg));
+      color: var(--ink);
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+    .card {
+      width: min(760px, 100%);
+      background: var(--card);
+      border: 1px solid #eadfcd;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 10px 40px rgba(31, 42, 46, 0.08);
+    }
+    h1 { margin-top: 0; }
+    .grid {
+      display: grid;
+      gap: 14px;
+      grid-template-columns: 1fr;
+    }
+    label { font-weight: 600; }
+    input, button {
+      width: 100%;
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid #d6c8b2;
+      font-size: 1rem;
+    }
+    button {
+      background: linear-gradient(120deg, var(--accent), #0e8f66);
+      color: #fff;
+      border: none;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    button:hover { filter: brightness(1.05); }
+    .result {
+      margin-top: 12px;
+      white-space: pre-wrap;
+      background: #f8fbfa;
+      border: 1px dashed #c6d8d2;
+      padding: 12px;
+      border-radius: 10px;
+    }
+    .hint { color: #4a5d62; font-size: 0.95rem; }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <h1>Upload semanal de CSV (TrainingPeaks)</h1>
+    <p class="hint">MVP: seleciona o CSV exportado do TrainingPeaks para gerar check-in com perguntas estratégicas.</p>
+    <form id="uploadForm" class="grid">
+      <div>
+        <label for="athleteId">Athlete ID (UUID no Supabase)</label>
+        <input id="athleteId" name="athleteId" required />
+      </div>
+      <div>
+        <label for="csvFile">Ficheiro CSV</label>
+        <input id="csvFile" name="csvFile" type="file" accept=".csv,.gz" required />
+      </div>
+      <button type="submit">Importar e gerar check-in</button>
+    </form>
+    <div id="result" class="result" hidden></div>
+  </main>
+
+  <script>
+    const form = document.getElementById("uploadForm");
+    const result = document.getElementById("result");
+
+    function show(text) {
+      result.hidden = false;
+      result.textContent = text;
+    }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const athleteId = document.getElementById("athleteId").value.trim();
+      const file = document.getElementById("csvFile").files[0];
+      if (!athleteId || !file) return;
+
+      show("A processar...");
+
+      const isGz = file.name.toLowerCase().endsWith(".gz");
+      let payload;
+
+      if (isGz) {
+        const buffer = await file.arrayBuffer();
+        const bytes = new Uint8Array(buffer);
+        let binary = "";
+        for (let i = 0; i < bytes.length; i += 1) binary += String.fromCharCode(bytes[i]);
+        payload = { athleteId, gzBase64: btoa(binary) };
+      } else {
+        const csvText = await file.text();
+        payload = { athleteId, csvText };
+      }
+
+      const response = await fetch("/.netlify/functions/upload-csv", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        show(`Erro: ${data.error || "falha no upload"}`);
+        return;
+      }
+
+      show(`Importado: ${data.imported} sessões\nSemana: ${data.weekStart} a ${data.weekEnd}\nLink check-in: ${data.checkinUrl}`);
+    });
+  </script>
+</body>
+</html>
