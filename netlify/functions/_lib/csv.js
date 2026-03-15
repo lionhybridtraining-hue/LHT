@@ -98,6 +98,8 @@ function csvTextFromPayload({ csvText, gzBase64 }) {
 function firstValidDate(record) {
   const candidates = [
     record["workout date"],
+    record["workoutday"],
+    record["workout day"],
     record["date"],
     record["activity date"],
     record["day"]
@@ -120,6 +122,13 @@ function toNumber(value) {
 
 function toMinutes(durationText) {
   if (!durationText) return null;
+
+  // TrainingPeaks exports can provide decimal hours (e.g. 0.7235)
+  const direct = Number(String(durationText).replace(",", "."));
+  if (Number.isFinite(direct)) {
+    return Math.round(direct * 60);
+  }
+
   const parts = String(durationText).split(":").map((n) => Number(n));
   if (parts.some((n) => Number.isNaN(n))) return null;
 
@@ -138,12 +147,20 @@ function mapTrainingPeaksRecord(record, athleteId) {
   const date = firstValidDate(record);
   if (!date) return null;
 
+  const workoutType = record["workouttype"] || record["workout type"];
+  const rawDuration =
+    record["time total in hours"] ||
+    record["timetotalinhours"] ||
+    record["duration"] ||
+    record["elapsed time"] ||
+    record["plannedduration"];
+
   return {
     athlete_id: athleteId,
     session_date: date,
     title: record["title"] || record["workout name"] || record["workout"] || "Sessao",
-    sport_type: record["type"] || record["sport"] || null,
-    duration_minutes: toMinutes(record["duration"] || record["elapsed time"]),
+    sport_type: record["type"] || record["sport"] || workoutType || null,
+    duration_minutes: toMinutes(rawDuration),
     tss: toNumber(record["tss"]),
     intensity_factor: toNumber(record["if"] || record["intensity factor"]),
     ctl: toNumber(record["ctl"]),

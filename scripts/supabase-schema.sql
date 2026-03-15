@@ -32,8 +32,17 @@ create table if not exists training_sessions (
   created_at timestamptz not null default now()
 );
 
+update training_sessions set title = coalesce(title, '') where title is null;
+update training_sessions set sport_type = coalesce(sport_type, '') where sport_type is null;
+
+alter table training_sessions alter column title set default '';
+alter table training_sessions alter column sport_type set default '';
+alter table training_sessions alter column title set not null;
+alter table training_sessions alter column sport_type set not null;
+
+drop index if exists training_sessions_unique_session;
 create unique index if not exists training_sessions_unique_session
-on training_sessions (athlete_id, session_date, coalesce(title, ''), coalesce(sport_type, ''));
+on training_sessions (athlete_id, session_date, title, sport_type);
 
 create table if not exists weekly_checkins (
   id uuid primary key default gen_random_uuid(),
