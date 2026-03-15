@@ -47,6 +47,14 @@ async function getAthleteById(config, athleteId) {
   return Array.isArray(result) ? result[0] || null : null;
 }
 
+async function listAthletes(config) {
+  return supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: "athletes?select=id,name,email&limit=200"
+  });
+}
+
 async function getWeekSessions(config, athleteId, weekStart, weekEnd) {
   return supabaseRequest({
     url: config.supabaseUrl,
@@ -89,6 +97,7 @@ async function updateWeeklyCheckin(config, id, patch) {
 module.exports = {
   insertTrainingSessions,
   getAthleteById,
+  listAthletes,
   getWeekSessions,
   createWeeklyCheckin,
   getWeeklyCheckinByToken,

@@ -4,122 +4,654 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>LHT Check-in Semanal</title>
+  <meta name="description" content="Check-in semanal Lion Hybrid Training com análise da semana e reflexão estratégica do atleta." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <style>
     :root {
-      --bg: #f3f8ff;
-      --ink: #14213d;
-      --accent: #0d6efd;
-      --card: #ffffff;
-      --line: #d9e4f5;
+      --gold: #d4a54f;
+      --gold-strong: #b88a3c;
+      --gold-faint: rgba(212, 165, 79, 0.16);
+      --gold-glow: rgba(212, 165, 79, 0.28);
+      --bg: #0d0d0d;
+      --bg-soft: #171717;
+      --panel: rgba(31, 31, 31, 0.9);
+      --panel-strong: rgba(22, 22, 22, 0.94);
+      --line: rgba(255, 255, 255, 0.1);
+      --line-strong: rgba(212, 165, 79, 0.26);
+      --text: #ece7dc;
+      --text-soft: #c9c3b5;
+      --muted: #9c978d;
+      --success: #7cc78d;
+      --error: #ff8f7d;
+      --shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+      --radius-xl: 28px;
+      --radius-lg: 20px;
+      --radius-md: 14px;
     }
-    * { box-sizing: border-box; }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
     body {
       margin: 0;
-      padding: 24px;
-      background: linear-gradient(180deg, #eef5ff 0%, #f8fbff 100%);
-      color: var(--ink);
-      font-family: "Segoe UI", Tahoma, sans-serif;
+      min-height: 100vh;
+      color: var(--text);
+      font-family: "Poppins", system-ui, sans-serif;
+      background:
+        radial-gradient(circle at top, rgba(212, 165, 79, 0.18), transparent 30%),
+        radial-gradient(circle at bottom right, rgba(212, 165, 79, 0.12), transparent 24%),
+        linear-gradient(180deg, #171717 0%, #090909 100%);
     }
-    .wrap {
-      width: min(780px, 100%);
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .page-shell {
+      width: min(1180px, calc(100% - 32px));
       margin: 0 auto;
-      background: var(--card);
+      padding: 28px 0 56px;
+    }
+
+    .brandbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 26px;
+      padding: 14px 18px;
       border: 1px solid var(--line);
-      border-radius: 16px;
-      padding: 24px;
-      box-shadow: 0 10px 30px rgba(20, 33, 61, 0.08);
+      border-radius: 999px;
+      background: rgba(20, 20, 20, 0.72);
+      backdrop-filter: blur(16px);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.22);
     }
-    h1 { margin-top: 0; }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-width: 0;
+    }
+
+    .brand img {
+      width: 52px;
+      height: 52px;
+      object-fit: contain;
+      filter: drop-shadow(0 0 18px rgba(212, 165, 79, 0.22));
+    }
+
+    .brand-copy {
+      min-width: 0;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--gold);
+    }
+
+    .eyebrow::before {
+      content: "";
+      width: 28px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--gold));
+    }
+
+    .brand-title {
+      margin: 4px 0 0;
+      font-family: "Oswald", sans-serif;
+      font-size: 24px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .brand-status {
+      padding: 9px 14px;
+      border: 1px solid var(--line-strong);
+      border-radius: 999px;
+      background: var(--gold-faint);
+      color: var(--gold);
+      font-size: 13px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+      gap: 24px;
+      align-items: start;
+    }
+
+    .hero-panel,
+    .form-panel {
+      border: 1px solid var(--line);
+      border-radius: var(--radius-xl);
+      background: linear-gradient(180deg, rgba(31, 31, 31, 0.94), rgba(16, 16, 16, 0.96));
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .hero-panel::before,
+    .form-panel::before {
+      content: "";
+      position: absolute;
+      inset: 0 0 auto 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(212, 165, 79, 0.55), transparent);
+      pointer-events: none;
+    }
+
+    .hero-panel {
+      padding: 28px;
+      background:
+        linear-gradient(180deg, rgba(18, 18, 18, 0.92), rgba(10, 10, 10, 0.98)),
+        radial-gradient(circle at top right, rgba(212, 165, 79, 0.18), transparent 35%),
+        #111111;
+    }
+
+    .hero-panel h1 {
+      margin: 18px 0 10px;
+      font-family: "Oswald", sans-serif;
+      font-size: clamp(34px, 4vw, 56px);
+      line-height: 0.96;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      color: var(--gold);
+      text-shadow: 0 0 24px rgba(212, 165, 79, 0.16);
+    }
+
+    .hero-panel p {
+      margin: 0;
+      color: var(--text-soft);
+      line-height: 1.7;
+    }
+
+    .hero-card {
+      margin-top: 26px;
+      padding: 18px;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .hero-card h2 {
+      margin: 0 0 12px;
+      font-size: 14px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--gold);
+    }
+
+    .hero-list {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 12px;
+    }
+
+    .hero-list li {
+      position: relative;
+      padding-left: 18px;
+      color: var(--text-soft);
+      font-size: 14px;
+    }
+
+    .hero-list li::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 10px;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--gold);
+      box-shadow: 0 0 12px rgba(212, 165, 79, 0.35);
+    }
+
+    .form-panel {
+      padding: 28px;
+    }
+
+    .panel-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+
+    .panel-top h2 {
+      margin: 8px 0 6px;
+      font-family: "Oswald", sans-serif;
+      font-size: clamp(28px, 3vw, 42px);
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+
+    .panel-top p {
+      margin: 0;
+      color: var(--muted);
+      max-width: 620px;
+    }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      margin-bottom: 22px;
+    }
+
+    .meta-card,
+    .summary,
+    .question-card,
+    .extra-card,
+    .state-card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      background: rgba(255, 255, 255, 0.025);
+    }
+
+    .meta-card {
+      padding: 16px 18px;
+    }
+
+    .meta-label {
+      display: block;
+      font-size: 11px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .meta-value {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
     .summary {
-      background: #f4f8ff;
-      border: 1px solid #d3e2ff;
-      border-radius: 12px;
-      padding: 12px;
-      margin-bottom: 16px;
+      padding: 22px;
+      margin-bottom: 18px;
+      background:
+        linear-gradient(180deg, rgba(212, 165, 79, 0.09), rgba(212, 165, 79, 0.02)),
+        rgba(255, 255, 255, 0.02);
+      border-color: var(--line-strong);
     }
-    .q {
-      margin-bottom: 16px;
-      padding-bottom: 10px;
-      border-bottom: 1px dashed var(--line);
+
+    .summary h3,
+    .section-title {
+      margin: 0 0 10px;
+      font-family: "Oswald", sans-serif;
+      font-size: 20px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--gold);
     }
-    label { display: block; margin-bottom: 8px; font-weight: 600; }
+
+    .summary p {
+      margin: 0;
+      color: var(--text-soft);
+    }
+
+    .questions {
+      display: grid;
+      gap: 14px;
+    }
+
+    .question-card,
+    .extra-card {
+      padding: 18px;
+    }
+
+    .question-index {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      margin-bottom: 14px;
+      border: 1px solid var(--line-strong);
+      background: var(--gold-faint);
+      color: var(--gold);
+      font-weight: 700;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1.5;
+    }
+
     textarea {
       width: 100%;
-      min-height: 90px;
-      border: 1px solid #c6d7f3;
-      border-radius: 10px;
-      padding: 10px;
+      min-height: 128px;
+      resize: vertical;
+      padding: 14px 16px;
+      border-radius: var(--radius-md);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(7, 7, 7, 0.62);
+      color: var(--text);
       font: inherit;
+      line-height: 1.7;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
     }
+
+    textarea::placeholder {
+      color: #7d786e;
+    }
+
+    textarea:focus {
+      outline: none;
+      border-color: rgba(212, 165, 79, 0.65);
+      box-shadow: 0 0 0 4px rgba(212, 165, 79, 0.12);
+      transform: translateY(-1px);
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 14px;
+      margin-top: 22px;
+    }
+
     button {
-      margin-top: 10px;
-      background: var(--accent);
-      color: #fff;
+      appearance: none;
       border: none;
-      padding: 12px 16px;
-      border-radius: 10px;
-      font-weight: 700;
       cursor: pointer;
+      min-width: 220px;
+      padding: 15px 24px;
+      border-radius: 999px;
+      font: inherit;
+      font-weight: 700;
+      color: #101010;
+      background: linear-gradient(180deg, var(--gold), var(--gold-strong));
+      box-shadow: 0 12px 28px rgba(212, 165, 79, 0.22);
+      transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
     }
-    #status { margin-top: 12px; white-space: pre-wrap; }
+
+    button:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 16px 34px rgba(212, 165, 79, 0.28);
+      filter: brightness(1.02);
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.7;
+      transform: none;
+    }
+
+    .submit-note {
+      color: var(--muted);
+      font-size: 14px;
+      max-width: 360px;
+    }
+
+    .state-card {
+      padding: 18px;
+      text-align: center;
+      color: var(--text-soft);
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .state-card strong {
+      color: var(--gold);
+    }
+
+    #status {
+      min-height: 26px;
+      color: var(--text-soft);
+      font-size: 14px;
+      white-space: pre-wrap;
+    }
+
+    #status.is-loading {
+      color: var(--gold);
+    }
+
+    #status.is-success {
+      color: var(--success);
+    }
+
+    #status.is-error {
+      color: var(--error);
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    @media (max-width: 960px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-panel,
+      .form-panel {
+        padding: 24px;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .page-shell {
+        width: min(100% - 20px, 1180px);
+        padding-top: 18px;
+        padding-bottom: 30px;
+      }
+
+      .brandbar,
+      .panel-top,
+      .actions {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .brand-status,
+      button {
+        width: 100%;
+      }
+
+      .meta-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-panel h1 {
+        font-size: 38px;
+      }
+    }
   </style>
 </head>
 <body>
-  <main class="wrap">
-    <h1>Check-in semanal</h1>
-    <div id="loading">A carregar...</div>
-    <form id="form" hidden>
-      <p id="week"></p>
-      <div id="summary" class="summary"></div>
-      <div id="questions"></div>
-      <div class="q">
-        <label for="extra">Algo fora do contexto de treino que devamos considerar?</label>
-        <textarea id="extra" name="extra"></textarea>
+  <div class="page-shell">
+    <header class="brandbar">
+      <div class="brand">
+        <img src="../assets/img/logo-lht.png" alt="Lion Hybrid Training" />
+        <div class="brand-copy">
+          <span class="eyebrow">Lion Hybrid Training</span>
+          <p class="brand-title">Check-in Semanal</p>
+        </div>
       </div>
-      <button type="submit">Enviar respostas</button>
-      <div id="status"></div>
-    </form>
-  </main>
+      <div class="brand-status">Reflexão estratégica do atleta</div>
+    </header>
+
+    <main class="layout">
+      <aside class="hero-panel">
+        <span class="eyebrow">LHT Weekly Review</span>
+        <h1>Força. Resistência. Clareza.</h1>
+        <p>
+          Este check-in ajuda-nos a confrontar os dados da semana com a tua perceção real.
+          Quanto mais concreto fores, melhor conseguimos ajustar a próxima fase do treino.
+        </p>
+
+        <div class="hero-card">
+          <h2>Como responder</h2>
+          <ul class="hero-list">
+            <li>Foca-te em sensações, recuperação, execução e contexto fora do treino.</li>
+            <li>Evita respostas genéricas. Dá exemplos concretos quando fizer sentido.</li>
+            <li>Se algo não correu como previsto, isso também é dado útil.</li>
+          </ul>
+        </div>
+      </aside>
+
+      <section class="form-panel">
+        <div class="panel-top">
+          <div>
+            <span class="eyebrow">Athlete Check-in</span>
+            <h2>Análise da semana</h2>
+            <p>Revê o resumo gerado com base nos teus treinos e responde às questões abaixo.</p>
+          </div>
+        </div>
+
+        <div id="loading" class="state-card">
+          <strong>A carregar o teu check-in...</strong>
+        </div>
+
+        <div id="errorState" class="state-card hidden"></div>
+
+        <form id="form" class="hidden">
+          <div class="meta-grid">
+            <div class="meta-card">
+              <span class="meta-label">Semana</span>
+              <div id="week" class="meta-value">-</div>
+            </div>
+            <div class="meta-card">
+              <span class="meta-label">Perguntas</span>
+              <div id="questionCount" class="meta-value">-</div>
+            </div>
+          </div>
+
+          <div id="summary" class="summary">
+            <h3>Resumo da semana</h3>
+            <p id="summaryText">Sem resumo disponível.</p>
+          </div>
+
+          <div>
+            <h3 class="section-title">Reflexão do atleta</h3>
+            <div id="questions" class="questions"></div>
+          </div>
+
+          <div class="extra-card" style="margin-top: 14px;">
+            <label for="extra">Algo fora do contexto de treino que devamos considerar?</label>
+            <textarea id="extra" name="extra" placeholder="Sono, stress, trabalho, dores, motivação, rotina, alimentação ou qualquer outro fator relevante."></textarea>
+          </div>
+
+          <div class="actions">
+            <button id="submitButton" type="submit">Enviar respostas</button>
+            <div class="submit-note">Ao submeter, o coach recebe a tua reflexão juntamente com a análise assistida por IA.</div>
+          </div>
+
+          <div id="status" aria-live="polite"></div>
+        </form>
+      </section>
+    </main>
+  </div>
 
   <script>
     const loading = document.getElementById("loading");
+    const errorState = document.getElementById("errorState");
     const form = document.getElementById("form");
     const week = document.getElementById("week");
-    const summary = document.getElementById("summary");
+    const questionCount = document.getElementById("questionCount");
+    const summaryText = document.getElementById("summaryText");
     const questionsNode = document.getElementById("questions");
     const statusNode = document.getElementById("status");
+    const submitButton = document.getElementById("submitButton");
 
     const params = new URLSearchParams(window.location.search);
     const token = params.get("token");
     let questions = [];
 
+    function setStatus(message, type) {
+      statusNode.textContent = message || "";
+      statusNode.className = "";
+      if (type) {
+        statusNode.classList.add(`is-${type}`);
+      }
+    }
+
+    function showError(message) {
+      loading.classList.add("hidden");
+      form.classList.add("hidden");
+      errorState.textContent = message;
+      errorState.classList.remove("hidden");
+    }
+
+    function formatWeek(weekStart) {
+      const date = new Date(`${weekStart}T00:00:00`);
+      if (Number.isNaN(date.getTime())) {
+        return weekStart;
+      }
+
+      return new Intl.DateTimeFormat("pt-PT", {
+        day: "2-digit",
+        month: "long",
+        year: "numeric"
+      }).format(date);
+    }
+
+    function buildQuestionCard(question, index) {
+      const block = document.createElement("div");
+      block.className = "question-card";
+      block.innerHTML = `
+        <div class="question-index">${index + 1}</div>
+        <label for="q_${index}">${question}</label>
+        <textarea id="q_${index}" name="q_${index}" required placeholder="Responde com detalhe suficiente para percebermos o contexto, a sensação e o impacto no treino."></textarea>
+      `;
+      return block;
+    }
+
     async function loadCheckin() {
       if (!token) {
-        loading.textContent = "Token em falta.";
+        showError("Token em falta. Verifica se abriste o link completo do check-in.");
         return;
       }
 
-      const response = await fetch(`/.netlify/functions/checkin?token=${encodeURIComponent(token)}`);
-      const data = await response.json();
-      if (!response.ok) {
-        loading.textContent = data.error || "Erro ao carregar check-in.";
-        return;
+      try {
+        const response = await fetch(`/.netlify/functions/checkin?token=${encodeURIComponent(token)}`);
+        const data = await response.json();
+        if (!response.ok) {
+          showError(data.error || "Erro ao carregar check-in.");
+          return;
+        }
+
+        questions = data.questions || [];
+        week.textContent = formatWeek(data.weekStart);
+        questionCount.textContent = `${questions.length} perguntas`;
+        summaryText.textContent = data.summary || "Sem resumo disponível.";
+
+        questionsNode.innerHTML = "";
+        questions.forEach((question, index) => {
+          questionsNode.appendChild(buildQuestionCard(question, index));
+        });
+
+        loading.classList.add("hidden");
+        errorState.classList.add("hidden");
+        form.classList.remove("hidden");
+      } catch (error) {
+        showError("Não foi possível carregar o check-in. Tenta novamente dentro de momentos.");
       }
-
-      questions = data.questions || [];
-      week.textContent = `Semana com inicio em ${data.weekStart}`;
-      summary.textContent = data.summary || "Sem resumo disponivel.";
-
-      questionsNode.innerHTML = "";
-      questions.forEach((q, index) => {
-        const block = document.createElement("div");
-        block.className = "q";
-        block.innerHTML = `<label for="q_${index}">${q}</label><textarea id="q_${index}" name="q_${index}" required></textarea>`;
-        questionsNode.appendChild(block);
-      });
-
-      loading.hidden = true;
-      form.hidden = false;
     }
 
     form.addEventListener("submit", async (event) => {
@@ -131,21 +663,28 @@
       });
       answers.extra = document.getElementById("extra").value.trim();
 
-      statusNode.textContent = "A enviar...";
-      const response = await fetch("/.netlify/functions/submit-response", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, answers })
-      });
-      const data = await response.json();
+      setStatus("A enviar respostas...", "loading");
+      submitButton.disabled = true;
 
-      if (!response.ok) {
-        statusNode.textContent = data.error || "Erro ao enviar.";
-        return;
+      try {
+        const response = await fetch("/.netlify/functions/submit-response", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token, answers })
+        });
+        const data = await response.json();
+
+        if (!response.ok) {
+          setStatus(data.error || "Erro ao enviar.", "error");
+          submitButton.disabled = false;
+          return;
+        }
+
+        setStatus("Respostas enviadas com sucesso. Obrigado pelo teu compromisso com o processo.", "success");
+      } catch (error) {
+        setStatus("Erro de ligação ao enviar. Tenta novamente.", "error");
+        submitButton.disabled = false;
       }
-
-      statusNode.textContent = "Respostas enviadas com sucesso. Obrigado.";
-      form.querySelector("button").disabled = true;
     });
 
     loadCheckin();

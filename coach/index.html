@@ -4,129 +4,980 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>LHT Coach - Upload CSV</title>
+  <meta name="description" content="Painel de coach LHT para importação semanal de CSV do TrainingPeaks e geração de check-ins assistidos por IA." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <style>
     :root {
-      --bg: #f5efe6;
-      --card: #ffffff;
-      --ink: #1f2a2e;
-      --accent: #0b6e4f;
-      --accent-2: #f2a541;
+      --gold: #d4a54f;
+      --gold-strong: #b88a3c;
+      --gold-faint: rgba(212, 165, 79, 0.16);
+      --bg: #0c0c0c;
+      --panel: rgba(20, 20, 20, 0.94);
+      --panel-soft: rgba(255, 255, 255, 0.03);
+      --line: rgba(255, 255, 255, 0.1);
+      --line-strong: rgba(212, 165, 79, 0.24);
+      --text: #ece7dc;
+      --text-soft: #cfc7ba;
+      --muted: #9f988b;
+      --success: #7cc78d;
+      --error: #ff9384;
+      --radius-xl: 28px;
+      --radius-lg: 20px;
+      --radius-md: 14px;
+      --shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
     }
+
     * { box-sizing: border-box; }
+
     body {
       margin: 0;
       min-height: 100vh;
-      font-family: "Segoe UI", Tahoma, sans-serif;
-      background: radial-gradient(circle at 20% 20%, #fff7e9, var(--bg));
-      color: var(--ink);
-      display: grid;
-      place-items: center;
-      padding: 24px;
+      font-family: "Poppins", system-ui, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(212, 165, 79, 0.14), transparent 28%),
+        radial-gradient(circle at bottom right, rgba(212, 165, 79, 0.12), transparent 24%),
+        linear-gradient(180deg, #151515 0%, #080808 100%);
+      padding: 24px 16px 40px;
     }
-    .card {
-      width: min(760px, 100%);
-      background: var(--card);
-      border: 1px solid #eadfcd;
-      border-radius: 16px;
-      padding: 24px;
-      box-shadow: 0 10px 40px rgba(31, 42, 46, 0.08);
+
+    a { color: inherit; text-decoration: none; }
+
+    .page-shell {
+      width: min(1200px, 100%);
+      margin: 0 auto;
     }
-    h1 { margin-top: 0; }
-    .grid {
-      display: grid;
+
+    .brandbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 24px;
+      padding: 14px 18px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(17, 17, 17, 0.74);
+      backdrop-filter: blur(14px);
+    }
+
+    .brand-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
       gap: 14px;
-      grid-template-columns: 1fr;
+      min-width: 0;
     }
-    label { font-weight: 600; }
-    input, button {
-      width: 100%;
-      padding: 12px;
-      border-radius: 10px;
-      border: 1px solid #d6c8b2;
-      font-size: 1rem;
+
+    .brand img {
+      width: 50px;
+      height: 50px;
+      object-fit: contain;
+      filter: drop-shadow(0 0 14px rgba(212, 165, 79, 0.26));
     }
-    button {
-      background: linear-gradient(120deg, var(--accent), #0e8f66);
-      color: #fff;
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--gold);
+    }
+
+    .eyebrow::before {
+      content: "";
+      width: 26px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--gold));
+    }
+
+    .brand-title {
+      margin: 4px 0 0;
+      font-family: "Oswald", sans-serif;
+      font-size: 24px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .brand-badge {
+      padding: 9px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--line-strong);
+      background: var(--gold-faint);
+      color: var(--gold);
+      font-size: 13px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .brand-badge.is-muted {
+      border-color: var(--line);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text-soft);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(300px, 360px) minmax(0, 1fr);
+      gap: 24px;
+      align-items: start;
+    }
+
+    .panel {
+      position: relative;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-xl);
+      background: linear-gradient(180deg, rgba(29, 29, 29, 0.95), rgba(14, 14, 14, 0.98));
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .panel::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(212, 165, 79, 0.5), transparent);
+      pointer-events: none;
+    }
+
+    .side-panel {
+      padding: 28px;
+      background:
+        linear-gradient(180deg, rgba(20, 20, 20, 0.94), rgba(10, 10, 10, 0.98)),
+        radial-gradient(circle at top right, rgba(212, 165, 79, 0.18), transparent 36%);
+    }
+
+    .side-panel h1 {
+      margin: 18px 0 10px;
+      font-family: "Oswald", sans-serif;
+      font-size: clamp(34px, 4vw, 54px);
+      line-height: 0.96;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      color: var(--gold);
+    }
+
+    .side-panel p {
+      margin: 0;
+      color: var(--text-soft);
+      line-height: 1.75;
+    }
+
+    .tip-card {
+      margin-top: 24px;
+      padding: 18px;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .tip-card h2 {
+      margin: 0 0 12px;
+      font-family: "Oswald", sans-serif;
+      font-size: 18px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--gold);
+    }
+
+    .tip-list {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 12px;
+    }
+
+    .tip-list li {
+      position: relative;
+      padding-left: 18px;
+      color: var(--text-soft);
+      font-size: 14px;
+    }
+
+    .tip-list li::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 10px;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--gold);
+    }
+
+    .main-panel {
+      padding: 28px;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 20px;
+    }
+
+    .panel-header h2 {
+      margin: 8px 0 6px;
+      font-family: "Oswald", sans-serif;
+      font-size: clamp(28px, 3vw, 42px);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .panel-header p {
+      margin: 0;
+      color: var(--muted);
+      max-width: 640px;
+    }
+
+    .section-card {
+      padding: 18px;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--line);
+      background: var(--panel-soft);
+    }
+
+    .section-card + .section-card {
+      margin-top: 16px;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .section-title {
+      margin: 0 0 12px;
+      font-family: "Oswald", sans-serif;
+      font-size: 18px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--gold);
+    }
+
+    .shortcut-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .shortcut {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      max-width: 100%;
+      padding: 10px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--line-strong);
+      background: rgba(212, 165, 79, 0.08);
+      color: var(--text);
+    }
+
+    .shortcut button {
+      width: auto;
+      min-width: 0;
+      padding: 0;
       border: none;
-      font-weight: 700;
+      background: transparent;
+      color: inherit;
+      font: inherit;
       cursor: pointer;
     }
-    button:hover { filter: brightness(1.05); }
-    .result {
-      margin-top: 12px;
-      white-space: pre-wrap;
-      background: #f8fbfa;
-      border: 1px dashed #c6d8d2;
-      padding: 12px;
-      border-radius: 10px;
+
+    .shortcut .choose {
+      font-weight: 600;
     }
-    .hint { color: #4a5d62; font-size: 0.95rem; }
+
+    .shortcut .remove {
+      color: var(--muted);
+      font-size: 18px;
+      line-height: 1;
+    }
+
+    .shortcut small {
+      color: var(--muted);
+    }
+
+    .empty {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .form-grid {
+      display: grid;
+      gap: 14px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .field {
+      display: grid;
+      gap: 8px;
+    }
+
+    .field.full {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    input,
+    select {
+      width: 100%;
+      padding: 13px 14px;
+      border-radius: var(--radius-md);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(9, 9, 9, 0.68);
+      color: var(--text);
+      font: inherit;
+    }
+
+    input::placeholder {
+      color: #7b756b;
+    }
+
+    input:focus,
+    select:focus {
+      outline: none;
+      border-color: rgba(212, 165, 79, 0.62);
+      box-shadow: 0 0 0 4px rgba(212, 165, 79, 0.12);
+    }
+
+    input:disabled,
+    select:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+    }
+
+    .auth-card {
+      border-color: var(--line-strong);
+      background: linear-gradient(180deg, rgba(212, 165, 79, 0.08), rgba(255, 255, 255, 0.03));
+    }
+
+    .auth-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .auth-copy {
+      color: var(--text-soft);
+      line-height: 1.7;
+      max-width: 640px;
+    }
+
+    .auth-status {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .form-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 6px;
+    }
+
+    .btn {
+      appearance: none;
+      border: none;
+      cursor: pointer;
+      min-width: 220px;
+      padding: 14px 22px;
+      border-radius: 999px;
+      font: inherit;
+      font-weight: 700;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+    }
+
+    .btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      filter: brightness(1.02);
+    }
+
+    .btn:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-primary {
+      color: #101010;
+      background: linear-gradient(180deg, var(--gold), var(--gold-strong));
+      box-shadow: 0 14px 32px rgba(212, 165, 79, 0.22);
+    }
+
+    .btn-secondary {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--line);
+      min-width: 180px;
+    }
+
+    .result {
+      margin-top: 18px;
+      padding: 18px;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text-soft);
+      white-space: pre-wrap;
+    }
+
+    .result.success {
+      border-color: rgba(124, 199, 141, 0.32);
+    }
+
+    .result.error {
+      border-color: rgba(255, 147, 132, 0.3);
+    }
+
+    .result a {
+      color: var(--gold);
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    .microcopy {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    @media (max-width: 980px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 680px) {
+      .brandbar,
+      .brand-actions,
+      .panel-header,
+      .form-actions,
+      .auth-row {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .brand-badge,
+      .btn {
+        width: 100%;
+      }
+
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .main-panel,
+      .side-panel {
+        padding: 22px;
+      }
+    }
   </style>
 </head>
 <body>
-  <main class="card">
-    <h1>Upload semanal de CSV (TrainingPeaks)</h1>
-    <p class="hint">MVP: seleciona o CSV exportado do TrainingPeaks para gerar check-in com perguntas estratégicas.</p>
-    <form id="uploadForm" class="grid">
-      <div>
-        <label for="athleteId">Athlete ID (UUID no Supabase)</label>
-        <input id="athleteId" name="athleteId" required />
+  <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
+  <div class="page-shell">
+    <header class="brandbar">
+      <div class="brand">
+        <img src="../assets/img/logo-lht.png" alt="Lion Hybrid Training" />
+        <div>
+          <span class="eyebrow">Lion Hybrid Training</span>
+          <p class="brand-title">Coach Upload</p>
+        </div>
       </div>
-      <div>
-        <label for="csvFile">Ficheiro CSV</label>
-        <input id="csvFile" name="csvFile" type="file" accept=".csv,.gz" required />
+      <div class="brand-actions">
+        <div id="authBadge" class="brand-badge is-muted">Login necessário</div>
+        <button id="authButton" class="btn btn-secondary" type="button">Fazer login</button>
       </div>
-      <button type="submit">Importar e gerar check-in</button>
-    </form>
-    <div id="result" class="result" hidden></div>
-  </main>
+    </header>
+
+    <main class="layout">
+      <aside class="panel side-panel">
+        <span class="eyebrow">Coach Console</span>
+        <h1>Upload. Analisa. Envia.</h1>
+        <p>
+          Importa o CSV da semana, gera perguntas estratégicas e cria o link de check-in do atleta.
+          A partir de agora também podes guardar atalhos locais para não voltares a procurar UUIDs repetidamente.
+        </p>
+
+        <div class="tip-card">
+          <h2>Fluxo recomendado</h2>
+          <ul class="tip-list">
+            <li>Escolhe um atleta guardado ou cola o UUID uma única vez.</li>
+            <li>Guarda um nome curto para voltares a encontrá-lo em segundos.</li>
+            <li>Depois do upload, usa o link de check-in gerado para enviar ao atleta.</li>
+          </ul>
+        </div>
+      </aside>
+
+      <section class="panel main-panel">
+        <div class="panel-header">
+          <div>
+            <span class="eyebrow">Weekly Check-in Builder</span>
+            <h2>Importação semanal</h2>
+            <p>Seleciona o atleta, carrega o CSV exportado do TrainingPeaks e gera o check-in assistido por IA.</p>
+          </div>
+        </div>
+
+        <section class="section-card auth-card">
+          <div class="auth-row">
+            <div>
+              <h3 class="section-title">Acesso ao painel</h3>
+              <p id="authCopy" class="auth-copy">Faz login com Netlify Identity para carregar a lista de atletas do Supabase e desbloquear o upload do coach.</p>
+            </div>
+            <div id="authStatus" class="auth-status">Sessão não iniciada.</div>
+          </div>
+        </section>
+
+        <section class="section-card">
+          <h3 class="section-title">Atletas do sistema</h3>
+          <div class="form-grid">
+            <div class="field full">
+              <label for="athleteSearch">Pesquisar atleta</label>
+              <input id="athleteSearch" type="search" placeholder="Filtrar por nome, email ou UUID" disabled />
+            </div>
+            <div class="field full">
+              <label for="athleteSelect">Selecionar atleta</label>
+              <select id="athleteSelect" disabled>
+                <option value="">Faz login para carregar atletas</option>
+              </select>
+            </div>
+          </div>
+          <p id="athleteFilterMeta" class="microcopy">A lista é carregada do Supabase através de uma função protegida. Sem login, este dropdown não expõe dados.</p>
+        </section>
+
+        <section class="section-card">
+          <h3 class="section-title">Atalhos de atletas</h3>
+          <div id="shortcutList" class="shortcut-grid"></div>
+          <p id="shortcutEmpty" class="empty">Ainda não tens atletas guardados neste navegador.</p>
+        </section>
+
+        <section class="section-card">
+          <h3 class="section-title">Novo upload</h3>
+          <form id="uploadForm">
+            <div class="form-grid">
+              <div class="field">
+                <label for="athleteLabel">Nome curto do atleta</label>
+                <input id="athleteLabel" name="athleteLabel" placeholder="Ex.: João 10K, Marta AER" maxlength="60" list="athleteLabelList" disabled />
+                <datalist id="athleteLabelList"></datalist>
+              </div>
+              <div class="field">
+                <label for="athleteId">Athlete ID (UUID no Supabase)</label>
+                <input id="athleteId" name="athleteId" required placeholder="UUID do atleta" list="athleteIdList" disabled />
+                <datalist id="athleteIdList"></datalist>
+              </div>
+              <div class="field full">
+                <label for="csvFile">Ficheiro CSV</label>
+                <input id="csvFile" name="csvFile" type="file" accept=".csv,.gz" required disabled />
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <button id="submitButton" class="btn btn-primary" type="submit" disabled>Importar e gerar check-in</button>
+              <button id="saveShortcutButton" class="btn btn-secondary" type="button" disabled>Guardar atleta</button>
+            </div>
+            <p class="microcopy">Os atalhos continuam opcionais e ficam apenas neste navegador. A lista principal dos atletas vem do Supabase após login.</p>
+          </form>
+        </section>
+
+        <div id="result" class="result" hidden></div>
+      </section>
+    </main>
+  </div>
 
   <script>
-    const form = document.getElementById("uploadForm");
-    const result = document.getElementById("result");
+    const STORAGE_KEY = "lht-coach-athletes";
+    const MAX_SHORTCUTS = 8;
 
-    function show(text) {
-      result.hidden = false;
-      result.textContent = text;
+    const authButton = document.getElementById("authButton");
+    const authBadge = document.getElementById("authBadge");
+    const authCopy = document.getElementById("authCopy");
+    const authStatus = document.getElementById("authStatus");
+    const athleteSearchInput = document.getElementById("athleteSearch");
+    const athleteFilterMeta = document.getElementById("athleteFilterMeta");
+    const athleteSelect = document.getElementById("athleteSelect");
+    const form = document.getElementById("uploadForm");
+    const athleteLabelInput = document.getElementById("athleteLabel");
+    const athleteIdInput = document.getElementById("athleteId");
+    const csvFileInput = document.getElementById("csvFile");
+    const shortcutList = document.getElementById("shortcutList");
+    const shortcutEmpty = document.getElementById("shortcutEmpty");
+    const result = document.getElementById("result");
+    const saveShortcutButton = document.getElementById("saveShortcutButton");
+    const submitButton = document.getElementById("submitButton");
+    const athleteLabelList = document.getElementById("athleteLabelList");
+    const athleteIdList = document.getElementById("athleteIdList");
+    let athletes = [];
+
+    function getCurrentUser() {
+      return window.netlifyIdentity ? window.netlifyIdentity.currentUser() : null;
     }
 
-    form.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const athleteId = document.getElementById("athleteId").value.trim();
-      const file = document.getElementById("csvFile").files[0];
-      if (!athleteId || !file) return;
+    async function getAuthHeaders() {
+      const user = getCurrentUser();
+      if (!user) return null;
 
-      show("A processar...");
+      const token = await user.jwt();
+      return { Authorization: `Bearer ${token}` };
+    }
 
-      const isGz = file.name.toLowerCase().endsWith(".gz");
-      let payload;
+    function setCoachEnabled(enabled) {
+      athleteSearchInput.disabled = !enabled;
+      athleteSelect.disabled = !enabled;
+      athleteLabelInput.disabled = !enabled;
+      athleteIdInput.disabled = !enabled;
+      csvFileInput.disabled = !enabled;
+      saveShortcutButton.disabled = !enabled;
+      submitButton.disabled = !enabled;
+    }
 
-      if (isGz) {
-        const buffer = await file.arrayBuffer();
-        const bytes = new Uint8Array(buffer);
-        let binary = "";
-        for (let i = 0; i < bytes.length; i += 1) binary += String.fromCharCode(bytes[i]);
-        payload = { athleteId, gzBase64: btoa(binary) };
-      } else {
-        const csvText = await file.text();
-        payload = { athleteId, csvText };
-      }
-
-      const response = await fetch("/.netlify/functions/upload-csv", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-
-      const data = await response.json();
-      if (!response.ok) {
-        show(`Erro: ${data.error || "falha no upload"}`);
+    function setAuthUi(user) {
+      if (user) {
+        authBadge.textContent = "Sessão ativa";
+        authBadge.classList.remove("is-muted");
+        authButton.textContent = "Terminar sessão";
+        authCopy.textContent = "Sessão validada. A lista de atletas é carregada do Supabase e o upload do coach fica desbloqueado.";
+        authStatus.textContent = `Ligado como ${user.email || "utilizador autenticado"}.`;
+        setCoachEnabled(true);
         return;
       }
 
-      show(`Importado: ${data.imported} sessões\nSemana: ${data.weekStart} a ${data.weekEnd}\nLink check-in: ${data.checkinUrl}`);
+      authBadge.textContent = "Login necessário";
+      authBadge.classList.add("is-muted");
+      authButton.textContent = "Fazer login";
+      authCopy.textContent = "Faz login com Netlify Identity para carregar a lista de atletas do Supabase e desbloquear o upload do coach.";
+      authStatus.textContent = "Sessão não iniciada.";
+      athleteSearchInput.value = "";
+      athleteSelect.innerHTML = '<option value="">Faz login para carregar atletas</option>';
+      athleteFilterMeta.textContent = "A lista é carregada do Supabase através de uma função protegida. Sem login, este dropdown não expõe dados.";
+      athletes = [];
+      setCoachEnabled(false);
+    }
+
+    function normalizeForSearch(value) {
+      return (value || "")
+        .normalize("NFD")
+        .replace(/\p{Diacritic}/gu, "")
+        .toLowerCase();
+    }
+
+    function loadShortcuts() {
+      try {
+        const value = localStorage.getItem(STORAGE_KEY);
+        const parsed = value ? JSON.parse(value) : [];
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (error) {
+        return [];
+      }
+    }
+
+    function saveShortcuts(shortcuts) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(shortcuts.slice(0, MAX_SHORTCUTS)));
+    }
+
+    function normalizeLabel(label, athleteId) {
+      const clean = (label || "").trim();
+      return clean || `Atleta ${athleteId.slice(0, 8)}`;
+    }
+
+    function upsertShortcut(shortcut) {
+      const current = loadShortcuts().filter((item) => item.id !== shortcut.id);
+      const next = [{ ...shortcut, updatedAt: new Date().toISOString() }, ...current].slice(0, MAX_SHORTCUTS);
+      saveShortcuts(next);
+      renderShortcuts();
+    }
+
+    function removeShortcut(athleteId) {
+      const next = loadShortcuts().filter((item) => item.id !== athleteId);
+      saveShortcuts(next);
+      renderShortcuts();
+    }
+
+    function fillAthlete(shortcut) {
+      athleteIdInput.value = shortcut.id;
+      athleteLabelInput.value = shortcut.label || "";
+      athleteIdInput.focus();
+    }
+
+    function renderAthleteOptions(filteredAthletes) {
+      const list = Array.isArray(filteredAthletes) ? filteredAthletes : athletes;
+      athleteSelect.innerHTML = "";
+
+      const defaultOption = document.createElement("option");
+      defaultOption.value = "";
+      defaultOption.textContent = list.length
+        ? "Seleciona um atleta do sistema"
+        : "Nenhum atleta encontrado";
+      athleteSelect.appendChild(defaultOption);
+
+      list.forEach((athlete) => {
+        const option = document.createElement("option");
+        option.value = athlete.id;
+        option.textContent = athlete.name
+          ? `${athlete.name} (${athlete.email || athlete.id.slice(0, 8)})`
+          : (athlete.email || athlete.id);
+        athleteSelect.appendChild(option);
+      });
+    }
+
+    function applyAthleteFilter() {
+      const query = athleteSearchInput.value.trim();
+      if (!query) {
+        renderAthleteOptions(athletes);
+        athleteFilterMeta.textContent = `Total de atletas carregados: ${athletes.length}.`;
+        return;
+      }
+
+      const needle = normalizeForSearch(query);
+      const filtered = athletes.filter((athlete) => {
+        const haystack = normalizeForSearch(`${athlete.name || ""} ${athlete.email || ""} ${athlete.id || ""}`);
+        return haystack.includes(needle);
+      });
+
+      renderAthleteOptions(filtered);
+      athleteFilterMeta.textContent = `Filtro "${query}": ${filtered.length} atleta(s) encontrado(s).`;
+    }
+
+    function fillAthleteFromSystem(athleteId) {
+      const athlete = athletes.find((item) => item.id === athleteId);
+      if (!athlete) return;
+      athleteIdInput.value = athlete.id;
+      athleteLabelInput.value = athlete.name || athlete.email || `Atleta ${athlete.id.slice(0, 8)}`;
+    }
+
+    function renderDataLists(shortcuts) {
+      athleteLabelList.innerHTML = "";
+      athleteIdList.innerHTML = "";
+
+      shortcuts.forEach((shortcut) => {
+        const labelOption = document.createElement("option");
+        labelOption.value = shortcut.label || "";
+        athleteLabelList.appendChild(labelOption);
+
+        const idOption = document.createElement("option");
+        idOption.value = shortcut.id;
+        idOption.label = shortcut.label || shortcut.id;
+        athleteIdList.appendChild(idOption);
+      });
+    }
+
+    function renderShortcuts() {
+      const shortcuts = loadShortcuts();
+      shortcutList.innerHTML = "";
+      shortcutEmpty.hidden = shortcuts.length > 0;
+      renderDataLists(shortcuts);
+
+      shortcuts.forEach((shortcut) => {
+        const item = document.createElement("div");
+        item.className = "shortcut";
+        item.innerHTML = `
+          <button type="button" class="choose">${shortcut.label}</button>
+          <small>${shortcut.id.slice(0, 8)}...</small>
+          <button type="button" class="remove" aria-label="Remover atleta">×</button>
+        `;
+
+        item.querySelector(".choose").addEventListener("click", () => fillAthlete(shortcut));
+        item.querySelector(".remove").addEventListener("click", () => removeShortcut(shortcut.id));
+        shortcutList.appendChild(item);
+      });
+    }
+
+    function showResult(message, type) {
+      result.hidden = false;
+      result.className = `result ${type || ""}`.trim();
+      result.innerHTML = message;
+    }
+
+    async function loadAthletes() {
+      const headers = await getAuthHeaders();
+      if (!headers) {
+        setAuthUi(null);
+        return;
+      }
+
+      try {
+        athleteSelect.innerHTML = '<option value="">A carregar atletas...</option>';
+        const response = await fetch("/.netlify/functions/list-athletes", { headers });
+        const data = await response.json();
+
+        if (!response.ok) {
+          showResult(`Erro: ${data.error || "não foi possível carregar atletas"}`, "error");
+          athleteSelect.innerHTML = '<option value="">Erro ao carregar atletas</option>';
+          return;
+        }
+
+        athletes = Array.isArray(data.athletes) ? data.athletes : [];
+        applyAthleteFilter();
+      } catch (error) {
+        athleteSelect.innerHTML = '<option value="">Erro ao carregar atletas</option>';
+        showResult("Erro: não foi possível carregar a lista de atletas.", "error");
+      }
+    }
+
+    function isUuid(value) {
+      return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+    }
+
+    function saveCurrentAthlete() {
+      const athleteId = athleteIdInput.value.trim();
+      if (!isUuid(athleteId)) {
+        showResult("Erro: introduz primeiro um Athlete ID válido para o guardar.", "error");
+        return;
+      }
+
+      const label = normalizeLabel(athleteLabelInput.value, athleteId);
+      athleteLabelInput.value = label;
+      upsertShortcut({ id: athleteId, label });
+      showResult(`Atleta guardado: ${label}\nUUID: ${athleteId}`, "success");
+    }
+
+    saveShortcutButton.addEventListener("click", saveCurrentAthlete);
+
+    authButton.addEventListener("click", () => {
+      if (!window.netlifyIdentity) return;
+      const user = getCurrentUser();
+      if (user) {
+        user.logout();
+        return;
+      }
+      window.netlifyIdentity.open();
     });
+
+    athleteSelect.addEventListener("change", () => {
+      if (!athleteSelect.value) return;
+      fillAthleteFromSystem(athleteSelect.value);
+    });
+
+    athleteSearchInput.addEventListener("input", applyAthleteFilter);
+
+    athleteLabelInput.addEventListener("change", () => {
+      const match = loadShortcuts().find((shortcut) => shortcut.label === athleteLabelInput.value.trim());
+      if (match) {
+        fillAthlete(match);
+      }
+    });
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const athleteId = athleteIdInput.value.trim();
+      const athleteLabel = normalizeLabel(athleteLabelInput.value, athleteId);
+      const file = csvFileInput.files[0];
+      const headers = await getAuthHeaders();
+
+      if (!headers) {
+        showResult("Erro: inicia sessão antes de fazer upload.", "error");
+        return;
+      }
+
+      if (!isUuid(athleteId)) {
+        showResult("Erro: o Athlete ID tem de ser um UUID válido.", "error");
+        return;
+      }
+
+      if (!file) {
+        showResult("Erro: seleciona primeiro um ficheiro CSV.", "error");
+        return;
+      }
+
+      athleteLabelInput.value = athleteLabel;
+      submitButton.disabled = true;
+      saveShortcutButton.disabled = true;
+      showResult("A processar upload e a gerar check-in...", "");
+
+      try {
+        const isGz = file.name.toLowerCase().endsWith(".gz");
+        let payload;
+
+        if (isGz) {
+          const buffer = await file.arrayBuffer();
+          const bytes = new Uint8Array(buffer);
+          let binary = "";
+          for (let i = 0; i < bytes.length; i += 1) binary += String.fromCharCode(bytes[i]);
+          payload = { athleteId, gzBase64: btoa(binary) };
+        } else {
+          const csvText = await file.text();
+          payload = { athleteId, csvText };
+        }
+
+        const response = await fetch("/.netlify/functions/upload-csv", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...headers
+          },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+          showResult(`Erro: ${data.error || "falha no upload"}`, "error");
+          submitButton.disabled = false;
+          saveShortcutButton.disabled = false;
+          return;
+        }
+
+        upsertShortcut({ id: athleteId, label: athleteLabel });
+
+        showResult(
+          `Atleta: ${athleteLabel}\nImportado: ${data.imported} sessões\nSemana: ${data.weekStart} a ${data.weekEnd}\nLink check-in: <a href="${data.checkinUrl}" target="_blank" rel="noopener">${data.checkinUrl}</a>`,
+          "success"
+        );
+      } catch (error) {
+        showResult("Erro: não foi possível concluir o upload. Tenta novamente.", "error");
+        submitButton.disabled = false;
+        saveShortcutButton.disabled = false;
+        return;
+      }
+
+      submitButton.disabled = false;
+      saveShortcutButton.disabled = false;
+    });
+
+    if (window.netlifyIdentity) {
+      window.netlifyIdentity.on("init", (user) => {
+        setAuthUi(user);
+        if (user) loadAthletes();
+      });
+
+      window.netlifyIdentity.on("login", (user) => {
+        setAuthUi(user);
+        loadAthletes();
+        window.netlifyIdentity.close();
+      });
+
+      window.netlifyIdentity.on("logout", () => {
+        setAuthUi(null);
+      });
+
+      window.netlifyIdentity.init();
+    } else {
+      setAuthUi(null);
+      authStatus.textContent = "Netlify Identity não está disponível nesta página.";
+    }
+
+    renderShortcuts();
   </script>
 </body>
 </html>
