@@ -1,4 +1,8 @@
-const DEFAULT_MODEL = "gemini-1.5-flash";
+const DEFAULT_MODEL = "gemini-2.5-flash";
+
+function getModelName(modelName) {
+  return modelName || DEFAULT_MODEL;
+}
 
 function safeJsonParse(content) {
   try {
@@ -20,11 +24,11 @@ function fallbackQuestions(summary) {
   };
 }
 
-async function generateWeeklyQuestions({ apiKey, athlete, sessions, weekStart, weekEnd }) {
+async function generateWeeklyQuestions({ apiKey, modelName, athlete, sessions, weekStart, weekEnd }) {
   const basicSummary = `Semana ${weekStart} a ${weekEnd}: ${sessions.length} sessoes.`;
   if (!apiKey) return fallbackQuestions(basicSummary);
 
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${DEFAULT_MODEL}:generateContent`;
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${getModelName(modelName)}:generateContent`;
   const prompt = [
     "Tu es um treinador de endurance + forca.",
     "Responde em Portugues europeu.",
@@ -72,7 +76,7 @@ async function generateWeeklyQuestions({ apiKey, athlete, sessions, weekStart, w
   };
 }
 
-async function generateCoachDraft({ apiKey, athlete, checkin, answers }) {
+async function generateCoachDraft({ apiKey, modelName, athlete, checkin, answers }) {
   const fallback = {
     alignment: "Analise pendente - Gemini indisponivel.",
     adjustments: ["Rever volume da semana seguinte com base na resposta do atleta."],
@@ -81,7 +85,7 @@ async function generateCoachDraft({ apiKey, athlete, checkin, answers }) {
 
   if (!apiKey) return fallback;
 
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${DEFAULT_MODEL}:generateContent`;
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${getModelName(modelName)}:generateContent`;
   const prompt = [
     "Tu es um treinador de endurance + forca.",
     "Responde em Portugues europeu.",

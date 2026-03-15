@@ -26,6 +26,7 @@ exports.handler = async (event) => {
     const athlete = await getAthleteById(config, checkin.athlete_id);
     const coachDraft = await generateCoachDraft({
       apiKey: config.geminiApiKey,
+      modelName: config.geminiModel,
       athlete,
       checkin,
       answers
