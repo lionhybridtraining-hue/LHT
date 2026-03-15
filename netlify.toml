@@ -22,6 +22,11 @@
   to = "/admin/"
   status = 301
 
+[[redirects]]
+  from = "/calendario"
+  to = "/calendario.html"
+  status = 301
+
 # Ensure posts index is not captured by the slug rewrite
 [[redirects]]
   from = "/blog/posts.json"

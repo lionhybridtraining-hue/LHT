@@ -1,0 +1,356 @@
+.hero-calendar {
+  background:
+    linear-gradient(180deg, rgba(10, 10, 10, 0.5), rgba(6, 6, 6, 0.82)),
+    radial-gradient(circle at 50% 20%, rgba(212, 165, 79, 0.18), transparent 45%),
+    url('../img/TP_Coach.jpg');
+  background-size: cover;
+  background-position: center;
+  min-height: min(92vh, 980px);
+}
+
+.hero-calendar-content {
+  max-width: 840px;
+  padding-top: clamp(44px, 8vw, 84px);
+}
+
+.eyebrow {
+  font-family: 'Oswald', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: var(--gold-soft);
+  margin: 0 0 8px;
+}
+
+.section-heading {
+  margin-bottom: 28px;
+}
+
+.left-intro {
+  margin-left: 0;
+  text-align: left;
+}
+
+.challenge-focus,
+.calendar-access,
+.aer-prep,
+.aer-benefits {
+  position: relative;
+}
+
+.challenge-focus {
+  background:
+    radial-gradient(circle at 20% 0, rgba(212, 165, 79, 0.14), transparent 35%),
+    radial-gradient(circle at 80% 10%, rgba(22, 102, 216, 0.16), transparent 30%),
+    radial-gradient(circle at 50% 0, #262626 0%, #151515 80%);
+}
+
+.challenge-card,
+.benefits-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 22px;
+  padding: clamp(24px, 4vw, 36px);
+  background: linear-gradient(180deg, rgba(36, 36, 36, 0.86), rgba(20, 20, 20, 0.94));
+  border: 1px solid rgba(212, 165, 79, 0.16);
+  box-shadow: 0 22px 54px rgba(0, 0, 0, 0.36), inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+}
+
+.challenge-card::before,
+.benefits-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at top left, rgba(212, 165, 79, 0.12), transparent 38%),
+    radial-gradient(circle at bottom right, rgba(22, 102, 216, 0.14), transparent 34%);
+  pointer-events: none;
+}
+
+.challenge-card > *,
+.benefits-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+.challenge-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.badge-calendar {
+  background: linear-gradient(180deg, rgba(212, 165, 79, 0.95), rgba(184, 138, 60, 0.95));
+  color: #0f0f0f;
+  box-shadow: 0 0 12px rgba(212, 165, 79, 0.28);
+}
+
+.challenge-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-soft);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.challenge-grid {
+  display: grid;
+  gap: 24px;
+  grid-template-columns: minmax(0, 1.3fr) minmax(280px, 0.9fr);
+  align-items: start;
+}
+
+.challenge-card h3,
+.benefits-card h3 {
+  font-family: 'Oswald', sans-serif;
+  font-size: clamp(24px, 3.4vw, 38px);
+  line-height: 1.1;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  color: var(--gold);
+  margin: 0 0 12px;
+}
+
+.challenge-copy,
+.benefits-card p {
+  margin: 0;
+  color: #d0d4dc;
+}
+
+.challenge-details {
+  margin: 0;
+  display: grid;
+  gap: 14px;
+}
+
+.challenge-details div {
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.challenge-details dt {
+  font-family: 'Oswald', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--gold-soft);
+  margin-bottom: 4px;
+}
+
+.challenge-details dd {
+  margin: 0;
+  color: var(--text);
+}
+
+.challenge-actions {
+  justify-content: flex-start;
+  margin-top: 24px;
+}
+
+.calendar-access {
+  background:
+    radial-gradient(circle at 50% 0, rgba(212, 165, 79, 0.16), transparent 28%),
+    radial-gradient(circle at 50% 0, #303030 0%, #191919 82%);
+}
+
+.calendar-layout {
+  display: grid;
+  gap: 24px;
+  grid-template-columns: minmax(0, 1.5fr) minmax(280px, 0.8fr);
+  align-items: start;
+}
+
+.calendar-panel,
+.calendar-sidebar {
+  min-width: 0;
+}
+
+.calendar-frame {
+  position: relative;
+  min-height: 540px;
+  border-radius: 22px;
+  overflow: hidden;
+  border: 1px solid rgba(212, 165, 79, 0.12);
+  background: linear-gradient(180deg, rgba(32, 32, 32, 0.92), rgba(18, 18, 18, 0.98));
+  box-shadow: 0 20px 44px rgba(0, 0, 0, 0.32);
+}
+
+.calendar-frame iframe,
+.calendar-placeholder {
+  width: 100%;
+  min-height: 540px;
+  border: 0;
+}
+
+.calendar-frame iframe {
+  filter: invert(1) hue-rotate(180deg);
+}
+
+.calendar-placeholder {
+  display: grid;
+  place-content: center;
+  gap: 8px;
+  padding: 28px;
+  text-align: center;
+}
+
+.calendar-placeholder[hidden] {
+  display: none !important;
+}
+
+.calendar-placeholder h3 {
+  margin: 0;
+  font-family: 'Oswald', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  color: var(--gold);
+}
+
+.calendar-placeholder p {
+  max-width: 480px;
+  margin: 0 auto;
+  color: var(--muted);
+}
+
+.side-card {
+  min-height: 100%;
+}
+
+.side-card + .side-card {
+  margin-top: 18px;
+}
+
+.cta-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.btn[aria-disabled="true"] {
+  pointer-events: none;
+  opacity: 0.56;
+}
+
+.aer-prep {
+  background:
+    radial-gradient(circle at 10% 10%, rgba(22, 102, 216, 0.16), transparent 24%),
+    radial-gradient(circle at 90% 0, rgba(212, 165, 79, 0.14), transparent 28%),
+    radial-gradient(circle at 50% 0, #1a1a1a 0%, #090909 80%);
+}
+
+.prep-grid {
+  display: grid;
+  gap: 22px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.prep-card {
+  text-align: left;
+}
+
+.prep-step {
+  display: inline-flex;
+  width: 52px;
+  height: 52px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  margin-bottom: 16px;
+  background: rgba(212, 165, 79, 0.12);
+  border: 1px solid rgba(212, 165, 79, 0.28);
+  color: var(--gold);
+  font-family: 'Oswald', sans-serif;
+  font-size: 18px;
+  letter-spacing: 1px;
+}
+
+.prep-card p {
+  margin-bottom: 18px;
+}
+
+.prep-link {
+  color: var(--gold);
+  font-weight: 600;
+}
+
+.prep-link:hover,
+.prep-link:focus-visible {
+  color: #f1cd7c;
+}
+
+.aer-benefits {
+  background:
+    radial-gradient(circle at 20% 0, rgba(212, 165, 79, 0.15), transparent 22%),
+    radial-gradient(circle at 50% 0, #2d2d2d 0%, #151515 82%);
+}
+
+.benefits-layout {
+  display: grid;
+  gap: 24px;
+  grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+  align-items: start;
+}
+
+.benefits-copy h2 {
+  text-align: left;
+}
+
+.benefits-list {
+  max-width: none;
+}
+
+.benefits-card-wrap {
+  min-width: 0;
+}
+
+.final-calendar-cta .cta-row {
+  margin-top: 24px;
+}
+
+@media (max-width: 900px) {
+  .challenge-grid,
+  .calendar-layout,
+  .benefits-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .challenge-actions {
+    justify-content: center;
+  }
+
+  .benefits-copy h2,
+  .left-intro {
+    text-align: center;
+    margin-left: auto;
+  }
+
+  .benefits-list {
+    margin-left: auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .hero-calendar {
+    min-height: 100vh;
+  }
+
+  .challenge-card,
+  .benefits-card {
+    border-radius: 18px;
+  }
+
+  .calendar-frame,
+  .calendar-frame iframe,
+  .calendar-placeholder {
+    min-height: 420px;
+  }
+
+  .challenge-meta {
+    align-items: flex-start;
+  }
+}
