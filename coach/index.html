@@ -143,6 +143,34 @@
       overflow: hidden;
     }
 
+    .login-gate {
+      padding: 34px 28px;
+      text-align: center;
+      background:
+        linear-gradient(180deg, rgba(20, 20, 20, 0.96), rgba(12, 12, 12, 0.99)),
+        radial-gradient(circle at top, rgba(212, 165, 79, 0.14), transparent 38%);
+    }
+
+    .login-gate h1 {
+      margin: 18px 0 10px;
+      font-family: "Oswald", sans-serif;
+      font-size: clamp(34px, 4vw, 52px);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--gold);
+    }
+
+    .login-gate p {
+      max-width: 700px;
+      margin: 0 auto;
+      color: var(--text-soft);
+      line-height: 1.8;
+    }
+
+    .login-gate .btn {
+      margin-top: 24px;
+    }
+
     .panel::before {
       content: "";
       position: absolute;
@@ -513,7 +541,17 @@
       </div>
     </header>
 
-    <main class="layout">
+    <section id="loginGate" class="panel login-gate hidden">
+      <span class="eyebrow">Coach Access</span>
+      <h1>Login obrigatório</h1>
+      <p>
+        Este painel só deve ficar disponível depois de iniciares sessão. Faz login com Netlify Identity
+        para desbloquear a lista de atletas, o upload do CSV e a geração dos check-ins.
+      </p>
+      <button id="gateLoginButton" class="btn btn-primary" type="button">Entrar no painel</button>
+    </section>
+
+    <main id="appLayout" class="layout hidden">
       <aside class="panel side-panel">
         <span class="eyebrow">Coach Console</span>
         <h1>Upload. Analisa. Envia.</h1>
@@ -615,6 +653,9 @@
     const authBadge = document.getElementById("authBadge");
     const authCopy = document.getElementById("authCopy");
     const authStatus = document.getElementById("authStatus");
+    const loginGate = document.getElementById("loginGate");
+    const gateLoginButton = document.getElementById("gateLoginButton");
+    const appLayout = document.getElementById("appLayout");
     const athleteSearchInput = document.getElementById("athleteSearch");
     const athleteFilterMeta = document.getElementById("athleteFilterMeta");
     const athleteSelect = document.getElementById("athleteSelect");
@@ -639,7 +680,7 @@
       const user = getCurrentUser();
       if (!user) return null;
 
-      const token = await user.jwt();
+      const token = await user.jwt(true);
       return { Authorization: `Bearer ${token}` };
     }
 
@@ -655,6 +696,8 @@
 
     function setAuthUi(user) {
       if (user) {
+        loginGate.classList.add("hidden");
+        appLayout.classList.remove("hidden");
         authBadge.textContent = "Sessão ativa";
         authBadge.classList.remove("is-muted");
         authButton.textContent = "Terminar sessão";
@@ -664,6 +707,8 @@
         return;
       }
 
+      loginGate.classList.remove("hidden");
+      appLayout.classList.add("hidden");
       authBadge.textContent = "Login necessário";
       authBadge.classList.add("is-muted");
       authButton.textContent = "Fazer login";
@@ -673,6 +718,7 @@
       athleteSelect.innerHTML = '<option value="">Faz login para carregar atletas</option>';
       athleteFilterMeta.textContent = "A lista é carregada do Supabase através de uma função protegida. Sem login, este dropdown não expõe dados.";
       athletes = [];
+      result.hidden = true;
       setCoachEnabled(false);
     }
 
@@ -823,6 +869,11 @@
         const data = await response.json();
 
         if (!response.ok) {
+          if (response.status === 401) {
+            setAuthUi(null);
+            showResult("Sessão expirada ou não autorizada. Volta a iniciar sessão.", "error");
+            return;
+          }
           showResult(`Erro: ${data.error || "não foi possível carregar atletas"}`, "error");
           athleteSelect.innerHTML = '<option value="">Erro ao carregar atletas</option>';
           return;
@@ -862,6 +913,11 @@
         user.logout();
         return;
       }
+      window.netlifyIdentity.open();
+    });
+
+    gateLoginButton.addEventListener("click", () => {
+      if (!window.netlifyIdentity) return;
       window.netlifyIdentity.open();
     });
 
@@ -932,6 +988,13 @@
 
         const data = await response.json();
         if (!response.ok) {
+          if (response.status === 401) {
+            setAuthUi(null);
+            showResult("Sessão expirada ou não autorizada. Volta a iniciar sessão.", "error");
+            submitButton.disabled = false;
+            saveShortcutButton.disabled = false;
+            return;
+          }
           showResult(`Erro: ${data.error || "falha no upload"}`, "error");
           submitButton.disabled = false;
           saveShortcutButton.disabled = false;
