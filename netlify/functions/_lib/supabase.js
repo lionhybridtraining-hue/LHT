@@ -170,6 +170,23 @@ async function getWeeklyCheckinByToken(config, token) {
   return Array.isArray(rows) ? rows[0] || null : null;
 }
 
+async function getWeeklyCheckinByBatch(config, athleteId, uploadBatchId) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `weekly_checkins?athlete_id=eq.${encodeURIComponent(athleteId)}&upload_batch_id=eq.${encodeURIComponent(uploadBatchId)}&select=*&limit=1`
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function listWeeklyCheckinsByAthlete(config, athleteId) {
+  return supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `weekly_checkins?athlete_id=eq.${encodeURIComponent(athleteId)}&select=id,token,upload_batch_id,week_start,status,created_at,responded_at,approved_at,training_summary&order=week_start.desc&limit=50`
+  });
+}
+
 async function updateWeeklyCheckin(config, id, patch) {
   const rows = await supabaseRequest({
     url: config.supabaseUrl,
@@ -194,5 +211,7 @@ module.exports = {
   getWeekSessions,
   createWeeklyCheckin,
   getWeeklyCheckinByToken,
+  getWeeklyCheckinByBatch,
+  listWeeklyCheckinsByAthlete,
   updateWeeklyCheckin
 };

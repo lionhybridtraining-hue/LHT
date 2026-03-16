@@ -3,6 +3,7 @@ const { getConfig } = require("./_lib/config");
 const { deriveUploadBatchId } = require("./_lib/upload-batch");
 const {
   getLatestUploadBatchId,
+  getWeeklyCheckinByBatch,
   deleteTrainingSessionsByBatch,
   deleteWeeklyCheckinsByBatch
 } = require("./_lib/supabase");
@@ -31,6 +32,14 @@ exports.handler = async (event) => {
       if (!uploadBatchId) {
         return json(404, { error: "Nenhum upload batch encontrado para este atleta" });
       }
+    }
+
+    const checkin = await getWeeklyCheckinByBatch(config, athleteId, uploadBatchId);
+    if (checkin && (checkin.responded_at || checkin.approved_at)) {
+      return json(409, {
+        error: "Nao e possivel cancelar: o atleta ja respondeu ou o check-in ja foi aprovado",
+        uploadBatchId
+      });
     }
 
     const deletedSessions = await deleteTrainingSessionsByBatch(config, athleteId, uploadBatchId);

@@ -10,7 +10,8 @@ const {
   updateSessionResults,
   getAthleteById,
   getWeekSessions,
-  createWeeklyCheckin
+  createWeeklyCheckin,
+  getWeeklyCheckinByBatch
 } = require("./_lib/supabase");
 const { generateWeeklyQuestions } = require("./_lib/ai");
 
@@ -109,28 +110,32 @@ exports.handler = async (event) => {
     const weekStart = getWeekStartIso(latestDate);
     const weekEnd = endOfWeekIso(weekStart);
 
-    const athlete = await getAthleteById(config, athleteId);
-    const weekSessions = await getWeekSessions(config, athleteId, weekStart, weekEnd);
-    const aiResult = await generateWeeklyQuestions({
-      apiKey: config.geminiApiKey,
-      modelName: config.geminiModel,
-      athlete,
-      sessions: weekSessions,
-      weekStart,
-      weekEnd
-    });
+    let checkin = await getWeeklyCheckinByBatch(config, athleteId, uploadBatchId);
+    const reusedCheckin = Boolean(checkin);
 
-    const token = crypto.randomUUID();
-    const checkin = await createWeeklyCheckin(config, {
-      athlete_id: athleteId,
-      upload_batch_id: uploadBatchId,
-      week_start: weekStart,
-      status: "pending_athlete",
-      training_summary: aiResult.summary,
-      ai_questions: aiResult.questions,
-      token,
-      created_at: new Date().toISOString()
-    });
+    if (!checkin) {
+      const athlete = await getAthleteById(config, athleteId);
+      const weekSessions = await getWeekSessions(config, athleteId, weekStart, weekEnd);
+      const aiResult = await generateWeeklyQuestions({
+        apiKey: config.geminiApiKey,
+        modelName: config.geminiModel,
+        athlete,
+        sessions: weekSessions,
+        weekStart,
+        weekEnd
+      });
+
+      checkin = await createWeeklyCheckin(config, {
+        athlete_id: athleteId,
+        upload_batch_id: uploadBatchId,
+        week_start: weekStart,
+        status: "pending_athlete",
+        training_summary: aiResult.summary,
+        ai_questions: aiResult.questions,
+        token: crypto.randomUUID(),
+        created_at: new Date().toISOString()
+      });
+    }
 
     return json(200, {
       uploadBatchId,
@@ -139,9 +144,12 @@ exports.handler = async (event) => {
       total: inserted.length + updateCount,
       weekStart,
       weekEnd,
+      reusedCheckin,
       executionSummary,
       checkinId: checkin ? checkin.id : null,
-      checkinUrl: `${config.siteUrl.replace(/\/$/, "")}/check-in/?token=${token}`
+      checkinUrl: checkin && checkin.token
+        ? `${config.siteUrl.replace(/\/$/, "")}/check-in/?token=${checkin.token}`
+        : null
     });
   } catch (err) {
     return json(500, { error: err.message || "Upload falhou" });

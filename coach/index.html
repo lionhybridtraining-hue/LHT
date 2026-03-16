@@ -454,6 +454,23 @@
           </form>
         </section>
 
+        <section class="section-card">
+          <div style="display:flex; justify-content:space-between; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:10px;">
+            <h3 class="section-title" style="margin:0;">Historico de check-ins</h3>
+            <div class="field" style="min-width:220px; margin:0;">
+              <label for="checkinStatusFilter">Filtrar por estado</label>
+              <select id="checkinStatusFilter">
+                <option value="all">Todos</option>
+                <option value="pending_athlete">Pendente atleta</option>
+                <option value="pending_coach">Pendente coach</option>
+                <option value="approved">Aprovado</option>
+                <option value="responded">Respondido</option>
+              </select>
+            </div>
+          </div>
+          <div id="checkinsContainer" class="microcopy">Seleciona um atleta para ver os check-ins.</div>
+        </section>
+
         <div id="result" class="result" hidden></div>
       </section>
     </main>
@@ -489,6 +506,8 @@
     const selectedAthleteInput = document.getElementById("selectedAthlete");
     const form = document.getElementById("uploadForm");
     const csvFileInput = document.getElementById("csvFile");
+    const checkinStatusFilter = document.getElementById("checkinStatusFilter");
+    const checkinsContainer = document.getElementById("checkinsContainer");
     const result = document.getElementById("result");
     const submitButton = document.getElementById("submitButton");
 
@@ -502,6 +521,7 @@
 
     let athletes = [];
     let selectedAthleteId = "";
+    let allCheckins = [];
 
     function normalizeForSearch(value) {
       return (value || "")
@@ -514,6 +534,146 @@
       result.hidden = false;
       result.className = `result ${type || ""}`.trim();
       result.innerHTML = message;
+    }
+
+    function escapeHtml(value) {
+      return String(value || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/\"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function renderCheckins(checkins) {
+      if (!selectedAthleteId) {
+        checkinsContainer.innerHTML = "Seleciona um atleta para ver os check-ins.";
+        return;
+      }
+
+      if (!checkins.length) {
+        checkinsContainer.innerHTML = "Sem check-ins para este atleta.";
+        return;
+      }
+
+      const cards = checkins.map((checkin) => {
+        const summary = checkin.training_summary
+          ? `${checkin.training_summary}`.slice(0, 140)
+          : "Sem resumo.";
+        const createdAt = checkin.created_at
+          ? new Date(checkin.created_at).toLocaleString("pt-PT")
+          : "-";
+        const isLocked = Boolean(checkin.responded_at || checkin.approved_at);
+        const hasBatch = Boolean(checkin.upload_batch_id);
+        const canCancel = hasBatch && !isLocked;
+        const cancelLabel = !hasBatch
+          ? "Sem batch"
+          : isLocked
+            ? "Nao cancelavel"
+            : "Cancelar";
+
+        return `
+          <article style="border:1px solid rgba(255,255,255,0.1); border-radius:10px; padding:12px; margin-bottom:10px;">
+            <div style="display:flex; justify-content:space-between; gap:8px; flex-wrap:wrap;">
+              <strong>Semana: ${escapeHtml(checkin.week_start || "-")}</strong>
+              <span>Status: ${escapeHtml(checkin.status || "-")}</span>
+            </div>
+            <div style="margin-top:6px; font-size:12px; opacity:0.9;">Criado: ${escapeHtml(createdAt)}</div>
+            <div style="margin-top:6px;">${escapeHtml(summary)}</div>
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; margin-top:8px;">
+              <div>
+                ${checkin.checkinUrl
+                  ? `<a href="${escapeHtml(checkin.checkinUrl)}" target="_blank" rel="noopener">Abrir check-in</a>`
+                  : ""
+                }
+              </div>
+              <button
+                type="button"
+                class="btn btn-secondary checkin-cancel-btn"
+                data-batch-id="${escapeHtml(checkin.upload_batch_id || "")}"
+                data-week-start="${escapeHtml(checkin.week_start || "")}" 
+                ${canCancel ? "" : "disabled"}
+                style="padding:6px 10px; font-size:12px;"
+              >${cancelLabel}</button>
+            </div>
+          </article>
+        `;
+      }).join("");
+
+      checkinsContainer.innerHTML = cards;
+    }
+
+    function applyCheckinsFilter() {
+      const selectedStatus = checkinStatusFilter.value || "all";
+      if (selectedStatus === "all") {
+        renderCheckins(allCheckins);
+        return;
+      }
+
+      const filtered = allCheckins.filter((checkin) => (checkin.status || "") === selectedStatus);
+      renderCheckins(filtered);
+    }
+
+    async function loadCheckinsForAthlete(athleteId) {
+      if (!athleteId) {
+        allCheckins = [];
+        checkinsContainer.innerHTML = "Seleciona um atleta para ver os check-ins.";
+        return;
+      }
+
+      checkinsContainer.innerHTML = "A carregar check-ins...";
+
+      try {
+        const response = await fetch(`/.netlify/functions/list-checkins?athleteId=${encodeURIComponent(athleteId)}`);
+        const data = await response.json();
+
+        if (!response.ok) {
+          checkinsContainer.innerHTML = `Erro ao carregar check-ins: ${escapeHtml(data.error || "falha")}`;
+          return;
+        }
+
+        allCheckins = Array.isArray(data.checkins) ? data.checkins : [];
+        applyCheckinsFilter();
+      } catch (error) {
+        allCheckins = [];
+        checkinsContainer.innerHTML = "Erro ao carregar check-ins.";
+      }
+    }
+
+    async function cancelUploadBatch(uploadBatchId, weekStart) {
+      if (!selectedAthleteId || !uploadBatchId) {
+        showResult("Erro: batch invalido para cancelamento.", "error");
+        return;
+      }
+
+      const confirmed = window.confirm(`Cancelar upload da semana ${weekStart || "-"}? Esta acao remove sessoes e check-in deste batch.`);
+      if (!confirmed) {
+        return;
+      }
+
+      showResult("A cancelar upload...", "");
+
+      try {
+        const response = await fetch("/.netlify/functions/cancel-upload", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ athleteId: selectedAthleteId, uploadBatchId })
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+          showResult(`Erro ao cancelar: ${data.error || "falha"}`, "error");
+          return;
+        }
+
+        showResult(
+          `Upload cancelado com sucesso. Batch: ${data.uploadBatchId}\nSessoes removidas: ${data.deletedSessions}\nCheck-ins removidos: ${data.deletedCheckins}`,
+          "success"
+        );
+        await loadCheckinsForAthlete(selectedAthleteId);
+      } catch (error) {
+        showResult("Erro: nao foi possivel cancelar o upload.", "error");
+      }
     }
 
     function renderAthleteOptions(filteredAthletes) {
@@ -589,10 +749,14 @@
         if (preselectId) {
           athleteSelect.value = preselectId;
           syncSelectedAthlete(preselectId);
+          await loadCheckinsForAthlete(preselectId);
+        } else {
+          checkinsContainer.innerHTML = "Seleciona um atleta para ver os check-ins.";
         }
       } catch (error) {
         athleteSelect.innerHTML = '<option value="">Erro ao carregar atletas</option>';
         showResult("Erro: não foi possível carregar a lista de atletas.", "error");
+        checkinsContainer.innerHTML = "Erro ao carregar check-ins.";
       }
     }
 
@@ -653,9 +817,26 @@
 
     athleteSelect.addEventListener("change", () => {
       syncSelectedAthlete(athleteSelect.value);
+      loadCheckinsForAthlete(athleteSelect.value);
     });
 
     athleteSearchInput.addEventListener("input", applyAthleteFilter);
+    checkinStatusFilter.addEventListener("change", applyCheckinsFilter);
+
+    checkinsContainer.addEventListener("click", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) {
+        return;
+      }
+
+      if (!target.classList.contains("checkin-cancel-btn")) {
+        return;
+      }
+
+      const uploadBatchId = target.getAttribute("data-batch-id") || "";
+      const weekStart = target.getAttribute("data-week-start") || "";
+      cancelUploadBatch(uploadBatchId, weekStart);
+    });
 
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -710,10 +891,14 @@
         }
 
         const athleteName = selectedAthleteInput.value || selectedAthleteId;
+        const checkinMessage = data.reusedCheckin
+          ? "Check-in existente reutilizado"
+          : "Novo check-in criado";
         showResult(
-          `Atleta: ${athleteName}\nBatch: ${data.uploadBatchId}\nImportado: ${data.imported} sessões\nSemana: ${data.weekStart} a ${data.weekEnd}\nLink check-in: <a href="${data.checkinUrl}" target="_blank" rel="noopener">${data.checkinUrl}</a>`,
+          `Atleta: ${athleteName}\nBatch: ${data.uploadBatchId}\nImportado: ${data.imported} sessões\nAtualizado: ${data.updated}\nSemana: ${data.weekStart} a ${data.weekEnd}\n${checkinMessage}\nLink check-in: <a href="${data.checkinUrl}" target="_blank" rel="noopener">${data.checkinUrl}</a>`,
           "success"
         );
+        await loadCheckinsForAthlete(selectedAthleteId);
       } catch (error) {
         showResult("Erro: não foi possível concluir o upload. Tenta novamente.", "error");
       }
