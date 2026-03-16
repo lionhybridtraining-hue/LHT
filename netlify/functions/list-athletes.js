@@ -1,16 +1,10 @@
 const { json } = require("./_lib/http");
 const { getConfig } = require("./_lib/config");
 const { listAthletes } = require("./_lib/supabase");
-const { getIdentityUser, unauthorized } = require("./_lib/auth");
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "GET") {
     return json(405, { error: "Method not allowed" });
-  }
-
-  const user = getIdentityUser(event);
-  if (!user) {
-    return unauthorized("missing_identity_user");
   }
 
   try {

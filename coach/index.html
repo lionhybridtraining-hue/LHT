@@ -13,9 +13,6 @@
       --gold: #d4a54f;
       --gold-strong: #b88a3c;
       --gold-faint: rgba(212, 165, 79, 0.16);
-      --bg: #0c0c0c;
-      --panel: rgba(20, 20, 20, 0.94);
-      --panel-soft: rgba(255, 255, 255, 0.03);
       --line: rgba(255, 255, 255, 0.1);
       --line-strong: rgba(212, 165, 79, 0.24);
       --text: #ece7dc;
@@ -63,19 +60,10 @@
       backdrop-filter: blur(14px);
     }
 
-    .brand-actions {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      flex-wrap: wrap;
-      justify-content: flex-end;
-    }
-
     .brand {
       display: flex;
       align-items: center;
       gap: 14px;
-      min-width: 0;
     }
 
     .brand img {
@@ -121,12 +109,6 @@
       white-space: nowrap;
     }
 
-    .brand-badge.is-muted {
-      border-color: var(--line);
-      background: rgba(255, 255, 255, 0.04);
-      color: var(--text-soft);
-    }
-
     .layout {
       display: grid;
       grid-template-columns: minmax(300px, 360px) minmax(0, 1fr);
@@ -141,34 +123,6 @@
       background: linear-gradient(180deg, rgba(29, 29, 29, 0.95), rgba(14, 14, 14, 0.98));
       box-shadow: var(--shadow);
       overflow: hidden;
-    }
-
-    .login-gate {
-      padding: 34px 28px;
-      text-align: center;
-      background:
-        linear-gradient(180deg, rgba(20, 20, 20, 0.96), rgba(12, 12, 12, 0.99)),
-        radial-gradient(circle at top, rgba(212, 165, 79, 0.14), transparent 38%);
-    }
-
-    .login-gate h1 {
-      margin: 18px 0 10px;
-      font-family: "Oswald", sans-serif;
-      font-size: clamp(34px, 4vw, 52px);
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      color: var(--gold);
-    }
-
-    .login-gate p {
-      max-width: 700px;
-      margin: 0 auto;
-      color: var(--text-soft);
-      line-height: 1.8;
-    }
-
-    .login-gate .btn {
-      margin-top: 24px;
     }
 
     .panel::before {
@@ -248,9 +202,7 @@
       background: var(--gold);
     }
 
-    .main-panel {
-      padding: 28px;
-    }
+    .main-panel { padding: 28px; }
 
     .panel-header {
       display: flex;
@@ -278,16 +230,10 @@
       padding: 18px;
       border-radius: var(--radius-lg);
       border: 1px solid var(--line);
-      background: var(--panel-soft);
+      background: rgba(255, 255, 255, 0.03);
     }
 
-    .section-card + .section-card {
-      margin-top: 16px;
-    }
-
-    .hidden {
-      display: none !important;
-    }
+    .section-card + .section-card { margin-top: 16px; }
 
     .section-title {
       margin: 0 0 12px;
@@ -327,24 +273,10 @@
       cursor: pointer;
     }
 
-    .shortcut .choose {
-      font-weight: 600;
-    }
-
-    .shortcut .remove {
-      color: var(--muted);
-      font-size: 18px;
-      line-height: 1;
-    }
-
-    .shortcut small {
-      color: var(--muted);
-    }
-
-    .empty {
-      color: var(--muted);
-      font-size: 14px;
-    }
+    .shortcut .choose { font-weight: 600; }
+    .shortcut .remove { color: var(--muted); font-size: 18px; line-height: 1; }
+    .shortcut small { color: var(--muted); }
+    .empty { color: var(--muted); font-size: 14px; }
 
     .form-grid {
       display: grid;
@@ -352,20 +284,10 @@
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
-    .field {
-      display: grid;
-      gap: 8px;
-    }
+    .field { display: grid; gap: 8px; }
+    .field.full { grid-column: 1 / -1; }
 
-    .field.full {
-      grid-column: 1 / -1;
-    }
-
-    label {
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--text);
-    }
+    label { font-size: 14px; font-weight: 600; color: var(--text); }
 
     input,
     select {
@@ -378,45 +300,13 @@
       font: inherit;
     }
 
-    input::placeholder {
-      color: #7b756b;
-    }
+    input::placeholder { color: #7b756b; }
 
     input:focus,
     select:focus {
       outline: none;
       border-color: rgba(212, 165, 79, 0.62);
       box-shadow: 0 0 0 4px rgba(212, 165, 79, 0.12);
-    }
-
-    input:disabled,
-    select:disabled {
-      opacity: 0.65;
-      cursor: not-allowed;
-    }
-
-    .auth-card {
-      border-color: var(--line-strong);
-      background: linear-gradient(180deg, rgba(212, 165, 79, 0.08), rgba(255, 255, 255, 0.03));
-    }
-
-    .auth-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 14px;
-      flex-wrap: wrap;
-    }
-
-    .auth-copy {
-      color: var(--text-soft);
-      line-height: 1.7;
-      max-width: 640px;
-    }
-
-    .auth-status {
-      color: var(--muted);
-      font-size: 14px;
     }
 
     .form-actions {
@@ -472,13 +362,8 @@
       white-space: pre-wrap;
     }
 
-    .result.success {
-      border-color: rgba(124, 199, 141, 0.32);
-    }
-
-    .result.error {
-      border-color: rgba(255, 147, 132, 0.3);
-    }
+    .result.success { border-color: rgba(124, 199, 141, 0.32); }
+    .result.error { border-color: rgba(255, 147, 132, 0.3); }
 
     .result a {
       color: var(--gold);
@@ -493,39 +378,24 @@
     }
 
     @media (max-width: 980px) {
-      .layout {
-        grid-template-columns: 1fr;
-      }
+      .layout { grid-template-columns: 1fr; }
     }
 
     @media (max-width: 680px) {
       .brandbar,
-      .brand-actions,
       .panel-header,
-      .form-actions,
-      .auth-row {
-        flex-direction: column;
-        align-items: flex-start;
-      }
+      .form-actions { flex-direction: column; align-items: flex-start; }
 
       .brand-badge,
-      .btn {
-        width: 100%;
-      }
+      .btn { width: 100%; }
 
-      .form-grid {
-        grid-template-columns: 1fr;
-      }
-
+      .form-grid { grid-template-columns: 1fr; }
       .main-panel,
-      .side-panel {
-        padding: 22px;
-      }
+      .side-panel { padding: 22px; }
     }
   </style>
 </head>
 <body>
-  <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
   <div class="page-shell">
     <header class="brandbar">
       <div class="brand">
@@ -535,35 +405,22 @@
           <p class="brand-title">Coach Upload</p>
         </div>
       </div>
-      <div class="brand-actions">
-        <div id="authBadge" class="brand-badge is-muted">Login necessário</div>
-        <button id="authButton" class="btn btn-secondary" type="button">Fazer login</button>
-      </div>
+      <div class="brand-badge">TrainingPeaks weekly import</div>
     </header>
 
-    <section id="loginGate" class="panel login-gate hidden">
-      <span class="eyebrow">Coach Access</span>
-      <h1>Login obrigatório</h1>
-      <p>
-        Este painel só deve ficar disponível depois de iniciares sessão. Faz login com Netlify Identity
-        para desbloquear a lista de atletas, o upload do CSV e a geração dos check-ins.
-      </p>
-      <button id="gateLoginButton" class="btn btn-primary" type="button">Entrar no painel</button>
-    </section>
-
-    <main id="appLayout" class="layout hidden">
+    <main class="layout">
       <aside class="panel side-panel">
         <span class="eyebrow">Coach Console</span>
         <h1>Upload. Analisa. Envia.</h1>
         <p>
           Importa o CSV da semana, gera perguntas estratégicas e cria o link de check-in do atleta.
-          A partir de agora também podes guardar atalhos locais para não voltares a procurar UUIDs repetidamente.
+          Podes usar a lista de atletas do sistema e, opcionalmente, guardar atalhos locais.
         </p>
 
         <div class="tip-card">
           <h2>Fluxo recomendado</h2>
           <ul class="tip-list">
-            <li>Escolhe um atleta guardado ou cola o UUID uma única vez.</li>
+            <li>Escolhe um atleta do sistema no dropdown com pesquisa.</li>
             <li>Guarda um nome curto para voltares a encontrá-lo em segundos.</li>
             <li>Depois do upload, usa o link de check-in gerado para enviar ao atleta.</li>
           </ul>
@@ -579,34 +436,21 @@
           </div>
         </div>
 
-        <section class="section-card auth-card">
-          <div class="auth-row">
-            <div>
-              <h3 class="section-title">Acesso ao painel</h3>
-              <p id="authCopy" class="auth-copy">Faz login com Netlify Identity para carregar a lista de atletas do Supabase e desbloquear o upload do coach.</p>
-            </div>
-            <div>
-              <div id="authStatus" class="auth-status">Sessão não iniciada.</div>
-              <button id="authDebugButton" class="btn btn-secondary" type="button" style="margin-top:10px; min-width:170px;">Testar sessão</button>
-            </div>
-          </div>
-        </section>
-
         <section class="section-card">
           <h3 class="section-title">Atletas do sistema</h3>
           <div class="form-grid">
             <div class="field full">
               <label for="athleteSearch">Pesquisar atleta</label>
-              <input id="athleteSearch" type="search" placeholder="Filtrar por nome, email ou UUID" disabled />
+              <input id="athleteSearch" type="search" placeholder="Filtrar por nome, email ou UUID" />
             </div>
             <div class="field full">
               <label for="athleteSelect">Selecionar atleta</label>
-              <select id="athleteSelect" disabled>
-                <option value="">Faz login para carregar atletas</option>
+              <select id="athleteSelect">
+                <option value="">A carregar atletas...</option>
               </select>
             </div>
           </div>
-          <p id="athleteFilterMeta" class="microcopy">A lista é carregada do Supabase através de uma função protegida. Sem login, este dropdown não expõe dados.</p>
+          <p id="athleteFilterMeta" class="microcopy">A lista é carregada do Supabase.</p>
         </section>
 
         <section class="section-card">
@@ -621,25 +465,25 @@
             <div class="form-grid">
               <div class="field">
                 <label for="athleteLabel">Nome curto do atleta</label>
-                <input id="athleteLabel" name="athleteLabel" placeholder="Ex.: João 10K, Marta AER" maxlength="60" list="athleteLabelList" disabled />
+                <input id="athleteLabel" name="athleteLabel" placeholder="Ex.: Joao 10K, Marta AER" maxlength="60" list="athleteLabelList" />
                 <datalist id="athleteLabelList"></datalist>
               </div>
               <div class="field">
                 <label for="athleteId">Athlete ID (UUID no Supabase)</label>
-                <input id="athleteId" name="athleteId" required placeholder="UUID do atleta" list="athleteIdList" disabled />
+                <input id="athleteId" name="athleteId" required placeholder="UUID do atleta" list="athleteIdList" />
                 <datalist id="athleteIdList"></datalist>
               </div>
               <div class="field full">
                 <label for="csvFile">Ficheiro CSV</label>
-                <input id="csvFile" name="csvFile" type="file" accept=".csv,.gz" required disabled />
+                <input id="csvFile" name="csvFile" type="file" accept=".csv,.gz" required />
               </div>
             </div>
 
             <div class="form-actions">
-              <button id="submitButton" class="btn btn-primary" type="submit" disabled>Importar e gerar check-in</button>
-              <button id="saveShortcutButton" class="btn btn-secondary" type="button" disabled>Guardar atleta</button>
+              <button id="submitButton" class="btn btn-primary" type="submit">Importar e gerar check-in</button>
+              <button id="saveShortcutButton" class="btn btn-secondary" type="button">Guardar atleta</button>
             </div>
-            <p class="microcopy">Os atalhos continuam opcionais e ficam apenas neste navegador. A lista principal dos atletas vem do Supabase após login.</p>
+            <p class="microcopy">Os atalhos são opcionais e ficam apenas neste navegador.</p>
           </form>
         </section>
 
@@ -652,14 +496,6 @@
     const STORAGE_KEY = "lht-coach-athletes";
     const MAX_SHORTCUTS = 8;
 
-    const authButton = document.getElementById("authButton");
-    const authBadge = document.getElementById("authBadge");
-    const authCopy = document.getElementById("authCopy");
-    const authStatus = document.getElementById("authStatus");
-    const authDebugButton = document.getElementById("authDebugButton");
-    const loginGate = document.getElementById("loginGate");
-    const gateLoginButton = document.getElementById("gateLoginButton");
-    const appLayout = document.getElementById("appLayout");
     const athleteSearchInput = document.getElementById("athleteSearch");
     const athleteFilterMeta = document.getElementById("athleteFilterMeta");
     const athleteSelect = document.getElementById("athleteSelect");
@@ -675,57 +511,6 @@
     const athleteLabelList = document.getElementById("athleteLabelList");
     const athleteIdList = document.getElementById("athleteIdList");
     let athletes = [];
-    let authPollTimer = null;
-
-    function getCurrentUser() {
-      return window.netlifyIdentity ? window.netlifyIdentity.currentUser() : null;
-    }
-
-    async function getAuthHeaders() {
-      const user = getCurrentUser();
-      if (!user) return null;
-
-      const token = await user.jwt(true);
-      return { Authorization: `Bearer ${token}` };
-    }
-
-    function setCoachEnabled(enabled) {
-      athleteSearchInput.disabled = !enabled;
-      athleteSelect.disabled = !enabled;
-      athleteLabelInput.disabled = !enabled;
-      athleteIdInput.disabled = !enabled;
-      csvFileInput.disabled = !enabled;
-      saveShortcutButton.disabled = !enabled;
-      submitButton.disabled = !enabled;
-    }
-
-    function setAuthUi(user) {
-      if (user) {
-        loginGate.classList.add("hidden");
-        appLayout.classList.remove("hidden");
-        authBadge.textContent = "Sessão ativa";
-        authBadge.classList.remove("is-muted");
-        authButton.textContent = "Terminar sessão";
-        authCopy.textContent = "Sessão validada. A lista de atletas é carregada do Supabase e o upload do coach fica desbloqueado.";
-        authStatus.textContent = `Ligado como ${user.email || "utilizador autenticado"}.`;
-        setCoachEnabled(true);
-        return;
-      }
-
-      loginGate.classList.remove("hidden");
-      appLayout.classList.add("hidden");
-      authBadge.textContent = "Login necessário";
-      authBadge.classList.add("is-muted");
-      authButton.textContent = "Fazer login";
-      authCopy.textContent = "Faz login com Netlify Identity para carregar a lista de atletas do Supabase e desbloquear o upload do coach.";
-      authStatus.textContent = "Sessão não iniciada.";
-      athleteSearchInput.value = "";
-      athleteSelect.innerHTML = '<option value="">Faz login para carregar atletas</option>';
-      athleteFilterMeta.textContent = "A lista é carregada do Supabase através de uma função protegida. Sem login, este dropdown não expõe dados.";
-      athletes = [];
-      result.hidden = true;
-      setCoachEnabled(false);
-    }
 
     function normalizeForSearch(value) {
       return (value || "")
@@ -846,7 +631,7 @@
         item.innerHTML = `
           <button type="button" class="choose">${shortcut.label}</button>
           <small>${shortcut.id.slice(0, 8)}...</small>
-          <button type="button" class="remove" aria-label="Remover atleta">×</button>
+          <button type="button" class="remove" aria-label="Remover atleta">x</button>
         `;
 
         item.querySelector(".choose").addEventListener("click", () => fillAthlete(shortcut));
@@ -862,23 +647,12 @@
     }
 
     async function loadAthletes() {
-      const headers = await getAuthHeaders();
-      if (!headers) {
-        setAuthUi(null);
-        return;
-      }
-
       try {
         athleteSelect.innerHTML = '<option value="">A carregar atletas...</option>';
-        const response = await fetch("/.netlify/functions/list-athletes", { headers });
+        const response = await fetch("/.netlify/functions/list-athletes");
         const data = await response.json();
 
         if (!response.ok) {
-          if (response.status === 401) {
-            setAuthUi(null);
-            showResult(`Sessão expirada ou não autorizada (${data.reason || "missing_identity_user"}). Volta a iniciar sessão.`, "error");
-            return;
-          }
           showResult(`Erro: ${data.error || "não foi possível carregar atletas"}`, "error");
           athleteSelect.innerHTML = '<option value="">Erro ao carregar atletas</option>';
           return;
@@ -911,36 +685,6 @@
 
     saveShortcutButton.addEventListener("click", saveCurrentAthlete);
 
-    authDebugButton.addEventListener("click", async () => {
-      const headers = await getAuthHeaders();
-      try {
-        const response = await fetch("/.netlify/functions/auth-debug", {
-          headers: headers || {}
-        });
-        const data = await response.json();
-        showResult(`Diagnóstico de sessão:\n${JSON.stringify(data, null, 2)}`, "success");
-      } catch (error) {
-        showResult("Erro: não foi possível executar o diagnóstico de sessão.", "error");
-      }
-    });
-
-    authButton.addEventListener("click", () => {
-      if (!window.netlifyIdentity) return;
-      const user = getCurrentUser();
-      if (user) {
-        user.logout();
-        return;
-      }
-      window.netlifyIdentity.open();
-      startAuthPolling();
-    });
-
-    gateLoginButton.addEventListener("click", () => {
-      if (!window.netlifyIdentity) return;
-      window.netlifyIdentity.open();
-      startAuthPolling();
-    });
-
     athleteSelect.addEventListener("change", () => {
       if (!athleteSelect.value) return;
       fillAthleteFromSystem(athleteSelect.value);
@@ -960,12 +704,6 @@
       const athleteId = athleteIdInput.value.trim();
       const athleteLabel = normalizeLabel(athleteLabelInput.value, athleteId);
       const file = csvFileInput.files[0];
-      const headers = await getAuthHeaders();
-
-      if (!headers) {
-        showResult("Erro: inicia sessão antes de fazer upload.", "error");
-        return;
-      }
 
       if (!isUuid(athleteId)) {
         showResult("Erro: o Athlete ID tem de ser um UUID válido.", "error");
@@ -1000,21 +738,13 @@
         const response = await fetch("/.netlify/functions/upload-csv", {
           method: "POST",
           headers: {
-            "Content-Type": "application/json",
-            ...headers
+            "Content-Type": "application/json"
           },
           body: JSON.stringify(payload)
         });
 
         const data = await response.json();
         if (!response.ok) {
-          if (response.status === 401) {
-            setAuthUi(null);
-            showResult(`Sessão expirada ou não autorizada (${data.reason || "missing_identity_user"}). Volta a iniciar sessão.`, "error");
-            submitButton.disabled = false;
-            saveShortcutButton.disabled = false;
-            return;
-          }
           showResult(`Erro: ${data.error || "falha no upload"}`, "error");
           submitButton.disabled = false;
           saveShortcutButton.disabled = false;
@@ -1038,72 +768,7 @@
       saveShortcutButton.disabled = false;
     });
 
-    async function syncAuthFromWidget(loadData) {
-      const user = getCurrentUser();
-      setAuthUi(user);
-      if (user && loadData) {
-        await loadAthletes();
-      }
-    }
-
-    function startAuthPolling() {
-      if (authPollTimer) {
-        clearInterval(authPollTimer);
-        authPollTimer = null;
-      }
-
-      let attempts = 0;
-      authPollTimer = setInterval(async () => {
-        attempts += 1;
-        const user = getCurrentUser();
-        if (user) {
-          clearInterval(authPollTimer);
-          authPollTimer = null;
-          await syncAuthFromWidget(true);
-          return;
-        }
-
-        if (attempts >= 20) {
-          clearInterval(authPollTimer);
-          authPollTimer = null;
-          showResult("Login não foi confirmado pelo browser. Se estás em anónimo, permite cookies neste site e tenta novamente.", "error");
-        }
-      }, 1000);
-    }
-
-    if (window.netlifyIdentity) {
-      window.netlifyIdentity.on("init", async (user) => {
-        setAuthUi(user);
-        if (user) {
-          await loadAthletes();
-          return;
-        }
-        await syncAuthFromWidget(false);
-      });
-
-      window.netlifyIdentity.on("login", () => {
-        startAuthPolling();
-        window.netlifyIdentity.close();
-      });
-
-      window.netlifyIdentity.on("close", async () => {
-        startAuthPolling();
-        await syncAuthFromWidget(true);
-      });
-
-      window.netlifyIdentity.on("logout", () => {
-        setAuthUi(null);
-      });
-
-      window.netlifyIdentity.init();
-      setTimeout(() => {
-        syncAuthFromWidget(true);
-      }, 350);
-    } else {
-      setAuthUi(null);
-      authStatus.textContent = "Netlify Identity não está disponível nesta página.";
-    }
-
+    loadAthletes();
     renderShortcuts();
   </script>
 </body>

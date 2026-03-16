@@ -3,7 +3,6 @@ const { parseJsonBody, json } = require("./_lib/http");
 const { getConfig } = require("./_lib/config");
 const { getWeekStartIso } = require("./_lib/date");
 const { csvTextFromPayload, parseCsv, mapTrainingPeaksRecord } = require("./_lib/csv");
-const { getIdentityUser, unauthorized } = require("./_lib/auth");
 const {
   insertTrainingSessions,
   getAthleteById,
@@ -21,11 +20,6 @@ function endOfWeekIso(weekStartIso) {
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
     return json(405, { error: "Method not allowed" });
-  }
-
-  const user = getIdentityUser(event);
-  if (!user) {
-    return unauthorized("missing_identity_user");
   }
 
   try {
