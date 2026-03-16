@@ -585,7 +585,10 @@
               <h3 class="section-title">Acesso ao painel</h3>
               <p id="authCopy" class="auth-copy">Faz login com Netlify Identity para carregar a lista de atletas do Supabase e desbloquear o upload do coach.</p>
             </div>
-            <div id="authStatus" class="auth-status">Sessão não iniciada.</div>
+            <div>
+              <div id="authStatus" class="auth-status">Sessão não iniciada.</div>
+              <button id="authDebugButton" class="btn btn-secondary" type="button" style="margin-top:10px; min-width:170px;">Testar sessão</button>
+            </div>
           </div>
         </section>
 
@@ -653,6 +656,7 @@
     const authBadge = document.getElementById("authBadge");
     const authCopy = document.getElementById("authCopy");
     const authStatus = document.getElementById("authStatus");
+    const authDebugButton = document.getElementById("authDebugButton");
     const loginGate = document.getElementById("loginGate");
     const gateLoginButton = document.getElementById("gateLoginButton");
     const appLayout = document.getElementById("appLayout");
@@ -871,7 +875,7 @@
         if (!response.ok) {
           if (response.status === 401) {
             setAuthUi(null);
-            showResult("Sessão expirada ou não autorizada. Volta a iniciar sessão.", "error");
+            showResult(`Sessão expirada ou não autorizada (${data.reason || "missing_identity_user"}). Volta a iniciar sessão.`, "error");
             return;
           }
           showResult(`Erro: ${data.error || "não foi possível carregar atletas"}`, "error");
@@ -905,6 +909,19 @@
     }
 
     saveShortcutButton.addEventListener("click", saveCurrentAthlete);
+
+    authDebugButton.addEventListener("click", async () => {
+      const headers = await getAuthHeaders();
+      try {
+        const response = await fetch("/.netlify/functions/auth-debug", {
+          headers: headers || {}
+        });
+        const data = await response.json();
+        showResult(`Diagnóstico de sessão:\n${JSON.stringify(data, null, 2)}`, "success");
+      } catch (error) {
+        showResult("Erro: não foi possível executar o diagnóstico de sessão.", "error");
+      }
+    });
 
     authButton.addEventListener("click", () => {
       if (!window.netlifyIdentity) return;
@@ -990,7 +1007,7 @@
         if (!response.ok) {
           if (response.status === 401) {
             setAuthUi(null);
-            showResult("Sessão expirada ou não autorizada. Volta a iniciar sessão.", "error");
+            showResult(`Sessão expirada ou não autorizada (${data.reason || "missing_identity_user"}). Volta a iniciar sessão.`, "error");
             submitButton.disabled = false;
             saveShortcutButton.disabled = false;
             return;

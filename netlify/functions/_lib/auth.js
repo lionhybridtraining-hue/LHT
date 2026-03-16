@@ -6,8 +6,11 @@ function getIdentityUser(event) {
     : null;
 }
 
-function unauthorized() {
-  return json(401, { error: "Acesso nao autorizado" });
+function unauthorized(reason) {
+  return json(401, {
+    error: "Acesso nao autorizado",
+    reason: reason || "missing_identity_user"
+  });
 }
 
 module.exports = {

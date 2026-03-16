@@ -23,8 +23,9 @@ exports.handler = async (event) => {
     return json(405, { error: "Method not allowed" });
   }
 
-  if (!getIdentityUser(event)) {
-    return unauthorized();
+  const user = getIdentityUser(event);
+  if (!user) {
+    return unauthorized("missing_identity_user");
   }
 
   try {
