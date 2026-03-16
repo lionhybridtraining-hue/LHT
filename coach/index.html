@@ -1018,16 +1018,33 @@
       saveShortcutButton.disabled = false;
     });
 
+    async function syncAuthFromWidget(loadData) {
+      const user = getCurrentUser();
+      setAuthUi(user);
+      if (user && loadData) {
+        await loadAthletes();
+      }
+    }
+
     if (window.netlifyIdentity) {
-      window.netlifyIdentity.on("init", (user) => {
+      window.netlifyIdentity.on("init", async (user) => {
         setAuthUi(user);
-        if (user) loadAthletes();
+        if (user) {
+          await loadAthletes();
+          return;
+        }
+        await syncAuthFromWidget(false);
       });
 
-      window.netlifyIdentity.on("login", (user) => {
-        setAuthUi(user);
-        loadAthletes();
+      window.netlifyIdentity.on("login", () => {
+        // The widget can show "Logged in" before our app state catches up,
+        // so force a clean reload to sync auth and token usage.
         window.netlifyIdentity.close();
+        window.location.reload();
+      });
+
+      window.netlifyIdentity.on("close", async () => {
+        await syncAuthFromWidget(true);
       });
 
       window.netlifyIdentity.on("logout", () => {
@@ -1035,6 +1052,9 @@
       });
 
       window.netlifyIdentity.init();
+      setTimeout(() => {
+        syncAuthFromWidget(true);
+      }, 350);
     } else {
       setAuthUi(null);
       authStatus.textContent = "Netlify Identity não está disponível nesta página.";
