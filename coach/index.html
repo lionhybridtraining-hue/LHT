@@ -675,6 +675,7 @@
     const athleteLabelList = document.getElementById("athleteLabelList");
     const athleteIdList = document.getElementById("athleteIdList");
     let athletes = [];
+    let authPollTimer = null;
 
     function getCurrentUser() {
       return window.netlifyIdentity ? window.netlifyIdentity.currentUser() : null;
@@ -931,11 +932,13 @@
         return;
       }
       window.netlifyIdentity.open();
+      startAuthPolling();
     });
 
     gateLoginButton.addEventListener("click", () => {
       if (!window.netlifyIdentity) return;
       window.netlifyIdentity.open();
+      startAuthPolling();
     });
 
     athleteSelect.addEventListener("change", () => {
@@ -1043,6 +1046,31 @@
       }
     }
 
+    function startAuthPolling() {
+      if (authPollTimer) {
+        clearInterval(authPollTimer);
+        authPollTimer = null;
+      }
+
+      let attempts = 0;
+      authPollTimer = setInterval(async () => {
+        attempts += 1;
+        const user = getCurrentUser();
+        if (user) {
+          clearInterval(authPollTimer);
+          authPollTimer = null;
+          await syncAuthFromWidget(true);
+          return;
+        }
+
+        if (attempts >= 20) {
+          clearInterval(authPollTimer);
+          authPollTimer = null;
+          showResult("Login não foi confirmado pelo browser. Se estás em anónimo, permite cookies neste site e tenta novamente.", "error");
+        }
+      }, 1000);
+    }
+
     if (window.netlifyIdentity) {
       window.netlifyIdentity.on("init", async (user) => {
         setAuthUi(user);
@@ -1054,13 +1082,12 @@
       });
 
       window.netlifyIdentity.on("login", () => {
-        // The widget can show "Logged in" before our app state catches up,
-        // so force a clean reload to sync auth and token usage.
+        startAuthPolling();
         window.netlifyIdentity.close();
-        window.location.reload();
       });
 
       window.netlifyIdentity.on("close", async () => {
+        startAuthPolling();
         await syncAuthFromWidget(true);
       });
 
