@@ -1,6 +1,9 @@
 const zlib = require("zlib");
 const { toIsoDate } = require("./date");
 
+const CLASSIFICATION_VERSION = 1;
+const DONE_THRESHOLD_RATIO = 0.8;
+
 function normalizeHeader(header) {
   return String(header || "")
     .trim()
@@ -120,6 +123,16 @@ function toNumber(value) {
   return Number.isFinite(num) ? num : null;
 }
 
+function hasPositiveNumber(value) {
+  return typeof value === "number" && Number.isFinite(value) && value > 0;
+}
+
+function roundNumber(value, digits) {
+  if (!Number.isFinite(value)) return null;
+  const factor = 10 ** digits;
+  return Math.round(value * factor) / factor;
+}
+
 function toMinutes(durationText) {
   if (!durationText) return null;
 
@@ -143,39 +156,130 @@ function toMinutes(durationText) {
   return null;
 }
 
+function normalizeSessionTitle(title) {
+  return String(title || "Sessao")
+    .trim()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+}
+
+function normalizeSportType(sportType) {
+  return String(sportType || "")
+    .trim()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+}
+
+function toSessionContextKey(title, sportType) {
+  return `${normalizeSessionTitle(title)}::${normalizeSportType(sportType)}`;
+}
+
+function classifyExecutionStatus({
+  plannedDurationMinutes,
+  plannedDistanceMeters,
+  actualDurationMinutes,
+  actualDistanceMeters,
+  tss
+}) {
+  const hasPlanned = hasPositiveNumber(plannedDurationMinutes) || hasPositiveNumber(plannedDistanceMeters);
+  const hasActual = hasPositiveNumber(actualDurationMinutes) || hasPositiveNumber(actualDistanceMeters) || hasPositiveNumber(tss);
+
+  if (!hasPlanned && !hasActual) {
+    return { executionStatus: "ignored_empty_row", executionRatio: null };
+  }
+
+  if (!hasPlanned && hasActual) {
+    return { executionStatus: "done_not_planned", executionRatio: null };
+  }
+
+  if (hasPlanned && !hasActual) {
+    return { executionStatus: "planned_not_done", executionRatio: null };
+  }
+
+  let ratio = null;
+  if (hasPositiveNumber(plannedDurationMinutes) && typeof actualDurationMinutes === "number") {
+    ratio = actualDurationMinutes / plannedDurationMinutes;
+  } else if (hasPositiveNumber(plannedDistanceMeters) && typeof actualDistanceMeters === "number") {
+    ratio = actualDistanceMeters / plannedDistanceMeters;
+  }
+
+  const executionRatio = ratio === null ? null : roundNumber(ratio, 3);
+  if (executionRatio === null) {
+    return { executionStatus: "planned_done", executionRatio: null };
+  }
+
+  if (executionRatio >= DONE_THRESHOLD_RATIO) {
+    return { executionStatus: "planned_done", executionRatio };
+  }
+
+  if (executionRatio > 0) {
+    return { executionStatus: "planned_partially_done", executionRatio };
+  }
+
+  return { executionStatus: "planned_not_done", executionRatio };
+}
+
 function mapTrainingPeaksRecord(record, athleteId) {
   const date = firstValidDate(record);
   if (!date) return null;
 
-  const workoutType = record["workouttype"] || record["workout type"];
-  const rawDuration =
+  const title = record["title"] || record["workout name"] || record["workout"] || "Sessao";
+  const workoutType = record["workouttype"] || record["workout type"] || record["type"] || record["sport"] || "";
+  const plannedDurationMinutes = toMinutes(record["plannedduration"] || record["planned duration"]);
+  const actualDurationMinutes = toMinutes(
     record["time total in hours"] ||
     record["timetotalinhours"] ||
     record["duration"] ||
-    record["elapsed time"] ||
-    record["plannedduration"];
+    record["elapsed time"]
+  );
+  const plannedDistanceMeters = toNumber(record["planneddistanceinmeters"] || record["planned distance in meters"]);
+  const actualDistanceMeters = toNumber(record["distanceinmeters"] || record["distance in meters"]);
+  const tss = toNumber(record["tss"]);
+  const { executionStatus, executionRatio } = classifyExecutionStatus({
+    plannedDurationMinutes,
+    plannedDistanceMeters,
+    actualDurationMinutes,
+    actualDistanceMeters,
+    tss
+  });
+  const normalizedTitle = normalizeSessionTitle(title);
 
   return {
     athlete_id: athleteId,
     session_date: date,
-    title: record["title"] || record["workout name"] || record["workout"] || "Sessao",
-    sport_type: record["type"] || record["sport"] || workoutType || null,
-    duration_minutes: toMinutes(rawDuration),
-    tss: toNumber(record["tss"]),
+    title,
+    sport_type: workoutType || null,
+    duration_minutes: actualDurationMinutes,
+    planned_duration_minutes: plannedDurationMinutes,
+    planned_distance_meters: plannedDistanceMeters,
+    actual_duration_minutes: actualDurationMinutes,
+    actual_distance_meters: actualDistanceMeters,
+    tss,
     intensity_factor: toNumber(record["if"] || record["intensity factor"]),
     ctl: toNumber(record["ctl"]),
     atl: toNumber(record["atl"]),
     tsb: toNumber(record["tsb"]),
     avg_heart_rate: toNumber(record["average heart rate"] || record["avg heart rate"]),
     avg_power: toNumber(record["average power"] || record["avg power"]),
-    distance_km: toNumber(record["distance"]),
+    distance_km: hasPositiveNumber(actualDistanceMeters) ? roundNumber(actualDistanceMeters / 1000, 2) : toNumber(record["distance"]),
     avg_pace: record["average pace"] || record["pace"] || null,
+    execution_status: executionStatus,
+    execution_ratio: executionRatio,
+    context_class: "unknown",
+    normalized_title: normalizedTitle,
+    classification_version: CLASSIFICATION_VERSION,
     raw_row: record
   };
 }
 
 module.exports = {
+  CLASSIFICATION_VERSION,
   csvTextFromPayload,
   parseCsv,
-  mapTrainingPeaksRecord
+  mapTrainingPeaksRecord,
+  normalizeSessionTitle
 };
