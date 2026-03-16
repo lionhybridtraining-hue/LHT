@@ -55,6 +55,17 @@ async function listAthletes(config) {
   });
 }
 
+async function createAthlete(config, payload) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: "athletes",
+    method: "POST",
+    body: [payload]
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
 async function getWeekSessions(config, athleteId, weekStart, weekEnd) {
   return supabaseRequest({
     url: config.supabaseUrl,
@@ -98,6 +109,7 @@ module.exports = {
   insertTrainingSessions,
   getAthleteById,
   listAthletes,
+  createAthlete,
   getWeekSessions,
   createWeeklyCheckin,
   getWeeklyCheckinByToken,

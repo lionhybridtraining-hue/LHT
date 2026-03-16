@@ -40,12 +40,7 @@
       padding: 24px 16px 40px;
     }
 
-    a { color: inherit; text-decoration: none; }
-
-    .page-shell {
-      width: min(1200px, 100%);
-      margin: 0 auto;
-    }
+    .page-shell { width: min(1200px, 100%); margin: 0 auto; }
 
     .brandbar {
       display: flex;
@@ -60,11 +55,7 @@
       backdrop-filter: blur(14px);
     }
 
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-    }
+    .brand { display: flex; align-items: center; gap: 14px; }
 
     .brand img {
       width: 50px;
@@ -153,11 +144,7 @@
       color: var(--gold);
     }
 
-    .side-panel p {
-      margin: 0;
-      color: var(--text-soft);
-      line-height: 1.75;
-    }
+    .side-panel p { margin: 0; color: var(--text-soft); line-height: 1.75; }
 
     .tip-card {
       margin-top: 24px;
@@ -176,13 +163,7 @@
       color: var(--gold);
     }
 
-    .tip-list {
-      margin: 0;
-      padding: 0;
-      list-style: none;
-      display: grid;
-      gap: 12px;
-    }
+    .tip-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 12px; }
 
     .tip-list li {
       position: relative;
@@ -220,11 +201,7 @@
       letter-spacing: 0.03em;
     }
 
-    .panel-header p {
-      margin: 0;
-      color: var(--muted);
-      max-width: 640px;
-    }
+    .panel-header p { margin: 0; color: var(--muted); max-width: 640px; }
 
     .section-card {
       padding: 18px;
@@ -244,39 +221,7 @@
       color: var(--gold);
     }
 
-    .shortcut-grid {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-
-    .shortcut {
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
-      max-width: 100%;
-      padding: 10px 12px;
-      border-radius: 999px;
-      border: 1px solid var(--line-strong);
-      background: rgba(212, 165, 79, 0.08);
-      color: var(--text);
-    }
-
-    .shortcut button {
-      width: auto;
-      min-width: 0;
-      padding: 0;
-      border: none;
-      background: transparent;
-      color: inherit;
-      font: inherit;
-      cursor: pointer;
-    }
-
-    .shortcut .choose { font-weight: 600; }
-    .shortcut .remove { color: var(--muted); font-size: 18px; line-height: 1; }
-    .shortcut small { color: var(--muted); }
-    .empty { color: var(--muted); font-size: 14px; }
+    .header-actions { display: flex; gap: 10px; flex-wrap: wrap; }
 
     .form-grid {
       display: grid;
@@ -320,7 +265,7 @@
       appearance: none;
       border: none;
       cursor: pointer;
-      min-width: 220px;
+      min-width: 180px;
       padding: 14px 22px;
       border-radius: 999px;
       font: inherit;
@@ -328,16 +273,9 @@
       transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
     }
 
-    .btn:hover:not(:disabled) {
-      transform: translateY(-2px);
-      filter: brightness(1.02);
-    }
+    .btn:hover:not(:disabled) { transform: translateY(-2px); filter: brightness(1.02); }
 
-    .btn:disabled {
-      opacity: 0.7;
-      cursor: not-allowed;
-      transform: none;
-    }
+    .btn:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
 
     .btn-primary {
       color: #101010;
@@ -349,7 +287,6 @@
       color: var(--text);
       background: rgba(255, 255, 255, 0.04);
       border: 1px solid var(--line);
-      min-width: 180px;
     }
 
     .result {
@@ -371,11 +308,47 @@
       text-underline-offset: 3px;
     }
 
-    .microcopy {
-      color: var(--muted);
-      font-size: 13px;
-      line-height: 1.6;
+    .microcopy { color: var(--muted); font-size: 13px; line-height: 1.6; }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.65);
+      backdrop-filter: blur(3px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      z-index: 1000;
     }
+
+    .modal {
+      width: min(520px, 100%);
+      border: 1px solid var(--line-strong);
+      border-radius: var(--radius-lg);
+      background: linear-gradient(180deg, rgba(26, 26, 26, 0.98), rgba(12, 12, 12, 0.98));
+      box-shadow: var(--shadow);
+      padding: 20px;
+    }
+
+    .modal h3 {
+      margin: 0 0 8px;
+      font-family: "Oswald", sans-serif;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--gold);
+    }
+
+    .modal p { margin: 0 0 16px; color: var(--text-soft); }
+
+    .modal-actions {
+      margin-top: 12px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .hidden { display: none !important; }
 
     @media (max-width: 980px) {
       .layout { grid-template-columns: 1fr; }
@@ -384,10 +357,12 @@
     @media (max-width: 680px) {
       .brandbar,
       .panel-header,
-      .form-actions { flex-direction: column; align-items: flex-start; }
+      .form-actions,
+      .modal-actions { flex-direction: column; align-items: flex-start; }
 
       .brand-badge,
-      .btn { width: 100%; }
+      .btn,
+      .header-actions { width: 100%; }
 
       .form-grid { grid-template-columns: 1fr; }
       .main-panel,
@@ -414,15 +389,15 @@
         <h1>Upload. Analisa. Envia.</h1>
         <p>
           Importa o CSV da semana, gera perguntas estratégicas e cria o link de check-in do atleta.
-          Podes usar a lista de atletas do sistema e, opcionalmente, guardar atalhos locais.
+          Selecionas o atleta por nome/email no dropdown, sem usar UUID manual.
         </p>
 
         <div class="tip-card">
           <h2>Fluxo recomendado</h2>
           <ul class="tip-list">
-            <li>Escolhe um atleta do sistema no dropdown com pesquisa.</li>
-            <li>Guarda um nome curto para voltares a encontrá-lo em segundos.</li>
-            <li>Depois do upload, usa o link de check-in gerado para enviar ao atleta.</li>
+            <li>Seleciona atleta no dropdown com pesquisa.</li>
+            <li>Se faltar alguém, usa "Adicionar atleta".</li>
+            <li>Faz upload do CSV e envia o link gerado.</li>
           </ul>
         </div>
       </aside>
@@ -437,7 +412,12 @@
         </div>
 
         <section class="section-card">
-          <h3 class="section-title">Atletas do sistema</h3>
+          <div style="display:flex; justify-content:space-between; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:10px;">
+            <h3 class="section-title" style="margin:0;">Atletas do sistema</h3>
+            <div class="header-actions">
+              <button id="openAddAthleteModal" class="btn btn-secondary" type="button">Adicionar atleta</button>
+            </div>
+          </div>
           <div class="form-grid">
             <div class="field full">
               <label for="athleteSearch">Pesquisar atleta</label>
@@ -454,24 +434,12 @@
         </section>
 
         <section class="section-card">
-          <h3 class="section-title">Atalhos de atletas</h3>
-          <div id="shortcutList" class="shortcut-grid"></div>
-          <p id="shortcutEmpty" class="empty">Ainda não tens atletas guardados neste navegador.</p>
-        </section>
-
-        <section class="section-card">
           <h3 class="section-title">Novo upload</h3>
           <form id="uploadForm">
             <div class="form-grid">
-              <div class="field">
-                <label for="athleteLabel">Nome curto do atleta</label>
-                <input id="athleteLabel" name="athleteLabel" placeholder="Ex.: Joao 10K, Marta AER" maxlength="60" list="athleteLabelList" />
-                <datalist id="athleteLabelList"></datalist>
-              </div>
-              <div class="field">
-                <label for="athleteId">Athlete ID (UUID no Supabase)</label>
-                <input id="athleteId" name="athleteId" required placeholder="UUID do atleta" list="athleteIdList" />
-                <datalist id="athleteIdList"></datalist>
+              <div class="field full">
+                <label for="selectedAthlete">Atleta selecionado</label>
+                <input id="selectedAthlete" placeholder="Seleciona um atleta no dropdown acima" readonly />
               </div>
               <div class="field full">
                 <label for="csvFile">Ficheiro CSV</label>
@@ -481,9 +449,8 @@
 
             <div class="form-actions">
               <button id="submitButton" class="btn btn-primary" type="submit">Importar e gerar check-in</button>
-              <button id="saveShortcutButton" class="btn btn-secondary" type="button">Guardar atleta</button>
             </div>
-            <p class="microcopy">Os atalhos são opcionais e ficam apenas neste navegador.</p>
+            <p class="microcopy">O Athlete ID é gerido internamente pelo dropdown, sem preenchimento manual.</p>
           </form>
         </section>
 
@@ -492,25 +459,49 @@
     </main>
   </div>
 
-  <script>
-    const STORAGE_KEY = "lht-coach-athletes";
-    const MAX_SHORTCUTS = 8;
+  <div id="addAthleteModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="addAthleteTitle">
+    <div class="modal">
+      <h3 id="addAthleteTitle">Adicionar atleta</h3>
+      <p>Cria um novo atleta para aparecer imediatamente no dropdown.</p>
+      <form id="addAthleteForm">
+        <div class="form-grid">
+          <div class="field">
+            <label for="newAthleteName">Nome</label>
+            <input id="newAthleteName" placeholder="Ex.: Andre Mendes" />
+          </div>
+          <div class="field">
+            <label for="newAthleteEmail">Email</label>
+            <input id="newAthleteEmail" type="email" placeholder="atleta@email.com" required />
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button id="createAthleteButton" class="btn btn-primary" type="submit">Criar atleta</button>
+          <button id="cancelAddAthlete" class="btn btn-secondary" type="button">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
 
+  <script>
     const athleteSearchInput = document.getElementById("athleteSearch");
     const athleteFilterMeta = document.getElementById("athleteFilterMeta");
     const athleteSelect = document.getElementById("athleteSelect");
+    const selectedAthleteInput = document.getElementById("selectedAthlete");
     const form = document.getElementById("uploadForm");
-    const athleteLabelInput = document.getElementById("athleteLabel");
-    const athleteIdInput = document.getElementById("athleteId");
     const csvFileInput = document.getElementById("csvFile");
-    const shortcutList = document.getElementById("shortcutList");
-    const shortcutEmpty = document.getElementById("shortcutEmpty");
     const result = document.getElementById("result");
-    const saveShortcutButton = document.getElementById("saveShortcutButton");
     const submitButton = document.getElementById("submitButton");
-    const athleteLabelList = document.getElementById("athleteLabelList");
-    const athleteIdList = document.getElementById("athleteIdList");
+
+    const addAthleteModal = document.getElementById("addAthleteModal");
+    const openAddAthleteModalButton = document.getElementById("openAddAthleteModal");
+    const cancelAddAthleteButton = document.getElementById("cancelAddAthlete");
+    const addAthleteForm = document.getElementById("addAthleteForm");
+    const newAthleteNameInput = document.getElementById("newAthleteName");
+    const newAthleteEmailInput = document.getElementById("newAthleteEmail");
+    const createAthleteButton = document.getElementById("createAthleteButton");
+
     let athletes = [];
+    let selectedAthleteId = "";
 
     function normalizeForSearch(value) {
       return (value || "")
@@ -519,42 +510,10 @@
         .toLowerCase();
     }
 
-    function loadShortcuts() {
-      try {
-        const value = localStorage.getItem(STORAGE_KEY);
-        const parsed = value ? JSON.parse(value) : [];
-        return Array.isArray(parsed) ? parsed : [];
-      } catch (error) {
-        return [];
-      }
-    }
-
-    function saveShortcuts(shortcuts) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(shortcuts.slice(0, MAX_SHORTCUTS)));
-    }
-
-    function normalizeLabel(label, athleteId) {
-      const clean = (label || "").trim();
-      return clean || `Atleta ${athleteId.slice(0, 8)}`;
-    }
-
-    function upsertShortcut(shortcut) {
-      const current = loadShortcuts().filter((item) => item.id !== shortcut.id);
-      const next = [{ ...shortcut, updatedAt: new Date().toISOString() }, ...current].slice(0, MAX_SHORTCUTS);
-      saveShortcuts(next);
-      renderShortcuts();
-    }
-
-    function removeShortcut(athleteId) {
-      const next = loadShortcuts().filter((item) => item.id !== athleteId);
-      saveShortcuts(next);
-      renderShortcuts();
-    }
-
-    function fillAthlete(shortcut) {
-      athleteIdInput.value = shortcut.id;
-      athleteLabelInput.value = shortcut.label || "";
-      athleteIdInput.focus();
+    function showResult(message, type) {
+      result.hidden = false;
+      result.className = `result ${type || ""}`.trim();
+      result.innerHTML = message;
     }
 
     function renderAthleteOptions(filteredAthletes) {
@@ -596,57 +555,23 @@
       athleteFilterMeta.textContent = `Filtro "${query}": ${filtered.length} atleta(s) encontrado(s).`;
     }
 
-    function fillAthleteFromSystem(athleteId) {
-      const athlete = athletes.find((item) => item.id === athleteId);
-      if (!athlete) return;
-      athleteIdInput.value = athlete.id;
-      athleteLabelInput.value = athlete.name || athlete.email || `Atleta ${athlete.id.slice(0, 8)}`;
+    function syncSelectedAthlete(athleteId) {
+      selectedAthleteId = athleteId || "";
+      if (!selectedAthleteId) {
+        selectedAthleteInput.value = "";
+        return;
+      }
+      const athlete = athletes.find((item) => item.id === selectedAthleteId);
+      if (!athlete) {
+        selectedAthleteInput.value = "";
+        return;
+      }
+      selectedAthleteInput.value = athlete.name
+        ? `${athlete.name} (${athlete.email || athlete.id})`
+        : (athlete.email || athlete.id);
     }
 
-    function renderDataLists(shortcuts) {
-      athleteLabelList.innerHTML = "";
-      athleteIdList.innerHTML = "";
-
-      shortcuts.forEach((shortcut) => {
-        const labelOption = document.createElement("option");
-        labelOption.value = shortcut.label || "";
-        athleteLabelList.appendChild(labelOption);
-
-        const idOption = document.createElement("option");
-        idOption.value = shortcut.id;
-        idOption.label = shortcut.label || shortcut.id;
-        athleteIdList.appendChild(idOption);
-      });
-    }
-
-    function renderShortcuts() {
-      const shortcuts = loadShortcuts();
-      shortcutList.innerHTML = "";
-      shortcutEmpty.hidden = shortcuts.length > 0;
-      renderDataLists(shortcuts);
-
-      shortcuts.forEach((shortcut) => {
-        const item = document.createElement("div");
-        item.className = "shortcut";
-        item.innerHTML = `
-          <button type="button" class="choose">${shortcut.label}</button>
-          <small>${shortcut.id.slice(0, 8)}...</small>
-          <button type="button" class="remove" aria-label="Remover atleta">x</button>
-        `;
-
-        item.querySelector(".choose").addEventListener("click", () => fillAthlete(shortcut));
-        item.querySelector(".remove").addEventListener("click", () => removeShortcut(shortcut.id));
-        shortcutList.appendChild(item);
-      });
-    }
-
-    function showResult(message, type) {
-      result.hidden = false;
-      result.className = `result ${type || ""}`.trim();
-      result.innerHTML = message;
-    }
-
-    async function loadAthletes() {
+    async function loadAthletes(preselectId) {
       try {
         athleteSelect.innerHTML = '<option value="">A carregar atletas...</option>';
         const response = await fetch("/.netlify/functions/list-athletes");
@@ -660,53 +585,84 @@
 
         athletes = Array.isArray(data.athletes) ? data.athletes : [];
         applyAthleteFilter();
+
+        if (preselectId) {
+          athleteSelect.value = preselectId;
+          syncSelectedAthlete(preselectId);
+        }
       } catch (error) {
         athleteSelect.innerHTML = '<option value="">Erro ao carregar atletas</option>';
         showResult("Erro: não foi possível carregar a lista de atletas.", "error");
       }
     }
 
-    function isUuid(value) {
-      return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+    function openAddAthleteModal() {
+      addAthleteModal.classList.remove("hidden");
+      newAthleteNameInput.focus();
     }
 
-    function saveCurrentAthlete() {
-      const athleteId = athleteIdInput.value.trim();
-      if (!isUuid(athleteId)) {
-        showResult("Erro: introduz primeiro um Athlete ID válido para o guardar.", "error");
+    function closeAddAthleteModal() {
+      addAthleteModal.classList.add("hidden");
+      addAthleteForm.reset();
+    }
+
+    openAddAthleteModalButton.addEventListener("click", openAddAthleteModal);
+    cancelAddAthleteButton.addEventListener("click", closeAddAthleteModal);
+
+    addAthleteModal.addEventListener("click", (event) => {
+      if (event.target === addAthleteModal) {
+        closeAddAthleteModal();
+      }
+    });
+
+    addAthleteForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const name = newAthleteNameInput.value.trim();
+      const email = newAthleteEmailInput.value.trim().toLowerCase();
+
+      if (!email) {
+        showResult("Erro: email é obrigatório para criar atleta.", "error");
         return;
       }
 
-      const label = normalizeLabel(athleteLabelInput.value, athleteId);
-      athleteLabelInput.value = label;
-      upsertShortcut({ id: athleteId, label });
-      showResult(`Atleta guardado: ${label}\nUUID: ${athleteId}`, "success");
-    }
+      createAthleteButton.disabled = true;
 
-    saveShortcutButton.addEventListener("click", saveCurrentAthlete);
+      try {
+        const response = await fetch("/.netlify/functions/create-athlete", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, email })
+        });
+        const data = await response.json();
+
+        if (!response.ok) {
+          showResult(`Erro ao criar atleta: ${data.error || "falha"}`, "error");
+          createAthleteButton.disabled = false;
+          return;
+        }
+
+        closeAddAthleteModal();
+        await loadAthletes(data.athlete && data.athlete.id ? data.athlete.id : "");
+        showResult(`Atleta criado com sucesso: ${data.athlete.label}`, "success");
+      } catch (error) {
+        showResult("Erro: não foi possível criar o atleta.", "error");
+      }
+
+      createAthleteButton.disabled = false;
+    });
 
     athleteSelect.addEventListener("change", () => {
-      if (!athleteSelect.value) return;
-      fillAthleteFromSystem(athleteSelect.value);
+      syncSelectedAthlete(athleteSelect.value);
     });
 
     athleteSearchInput.addEventListener("input", applyAthleteFilter);
 
-    athleteLabelInput.addEventListener("change", () => {
-      const match = loadShortcuts().find((shortcut) => shortcut.label === athleteLabelInput.value.trim());
-      if (match) {
-        fillAthlete(match);
-      }
-    });
-
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
-      const athleteId = athleteIdInput.value.trim();
-      const athleteLabel = normalizeLabel(athleteLabelInput.value, athleteId);
       const file = csvFileInput.files[0];
 
-      if (!isUuid(athleteId)) {
-        showResult("Erro: o Athlete ID tem de ser um UUID válido.", "error");
+      if (!selectedAthleteId) {
+        showResult("Erro: seleciona primeiro um atleta no dropdown.", "error");
         return;
       }
 
@@ -715,9 +671,7 @@
         return;
       }
 
-      athleteLabelInput.value = athleteLabel;
       submitButton.disabled = true;
-      saveShortcutButton.disabled = true;
       showResult("A processar upload e a gerar check-in...", "");
 
       try {
@@ -729,17 +683,15 @@
           const bytes = new Uint8Array(buffer);
           let binary = "";
           for (let i = 0; i < bytes.length; i += 1) binary += String.fromCharCode(bytes[i]);
-          payload = { athleteId, gzBase64: btoa(binary) };
+          payload = { athleteId: selectedAthleteId, gzBase64: btoa(binary) };
         } else {
           const csvText = await file.text();
-          payload = { athleteId, csvText };
+          payload = { athleteId: selectedAthleteId, csvText };
         }
 
         const response = await fetch("/.netlify/functions/upload-csv", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload)
         });
 
@@ -747,29 +699,22 @@
         if (!response.ok) {
           showResult(`Erro: ${data.error || "falha no upload"}`, "error");
           submitButton.disabled = false;
-          saveShortcutButton.disabled = false;
           return;
         }
 
-        upsertShortcut({ id: athleteId, label: athleteLabel });
-
+        const athleteName = selectedAthleteInput.value || selectedAthleteId;
         showResult(
-          `Atleta: ${athleteLabel}\nImportado: ${data.imported} sessões\nSemana: ${data.weekStart} a ${data.weekEnd}\nLink check-in: <a href="${data.checkinUrl}" target="_blank" rel="noopener">${data.checkinUrl}</a>`,
+          `Atleta: ${athleteName}\nImportado: ${data.imported} sessões\nSemana: ${data.weekStart} a ${data.weekEnd}\nLink check-in: <a href="${data.checkinUrl}" target="_blank" rel="noopener">${data.checkinUrl}</a>`,
           "success"
         );
       } catch (error) {
         showResult("Erro: não foi possível concluir o upload. Tenta novamente.", "error");
-        submitButton.disabled = false;
-        saveShortcutButton.disabled = false;
-        return;
       }
 
       submitButton.disabled = false;
-      saveShortcutButton.disabled = false;
     });
 
     loadAthletes();
-    renderShortcuts();
   </script>
 </body>
 </html>
