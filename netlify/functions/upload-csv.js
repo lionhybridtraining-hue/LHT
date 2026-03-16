@@ -2,11 +2,13 @@ const crypto = require("crypto");
 const { parseJsonBody, json } = require("./_lib/http");
 const { getConfig } = require("./_lib/config");
 const { getWeekStartIso } = require("./_lib/date");
-const { csvTextFromPayload, parseCsv, mapTrainingPeaksRecord, toSessionContextKey } = require("./_lib/csv");
+const { csvTextFromPayload, parseCsv, mapTrainingPeaksRecord } = require("./_lib/csv");
+const { deriveUploadBatchId } = require("./_lib/upload-batch");
 const {
   insertTrainingSessions,
+  findExistingSessions,
+  updateSessionResults,
   getAthleteById,
-  getSessionContextCatalog,
   getWeekSessions,
   createWeeklyCheckin
 } = require("./_lib/supabase");
@@ -45,16 +47,59 @@ exports.handler = async (event) => {
     }
 
     const config = getConfig();
+    const uploadBatchId = deriveUploadBatchId({
+      athleteId,
+      sourceFileName: payload.sourceFileName,
+      uploadBatchId: payload.uploadBatchId
+    });
     const sessions = parsed.records
-      .map((record) => mapTrainingPeaksRecord(record, athleteId))
+      .map((record) => {
+        const session = mapTrainingPeaksRecord(record, athleteId);
+        return session ? { ...session, upload_batch_id: uploadBatchId } : null;
+      })
       .filter(Boolean);
 
     if (!sessions.length) {
       return json(400, { error: "Nenhuma linha com data valida foi encontrada no CSV" });
     }
 
-    const inserted = await insertTrainingSessions(config, sessions);
-    const executionSummary = summarizeExecutionStatuses(inserted);
+    // Find which sessions already exist
+    const sessionKeys = sessions.map(s => ({
+      session_date: s.session_date,
+      title: s.title,
+      sport_type: s.sport_type
+    }));
+    const existing = await findExistingSessions(config, athleteId, sessionKeys);
+    const existingMap = new Map(
+      existing.map((e) => [`${e.session_date}|${e.title}|${e.sport_type}`, e])
+    );
+
+    // Split into new and existing
+    const toInsert = [];
+    const toUpdate = [];
+    for (const session of sessions) {
+      const key = `${session.session_date}|${session.title}|${session.sport_type}`;
+      const existingSession = existingMap.get(key);
+      if (existingSession) {
+        toUpdate.push({
+          id: existingSession.id,
+          tss: session.tss,
+          intensity_factor: session.intensity_factor,
+          avg_heart_rate: session.avg_heart_rate,
+          avg_power: session.avg_power,
+          distance_km: session.distance_km,
+          avg_pace: session.avg_pace
+        });
+      } else {
+        toInsert.push(session);
+      }
+    }
+
+    // Insert new and update existing
+    const inserted = await insertTrainingSessions(config, toInsert);
+    const updateCount = await updateSessionResults(config, toUpdate);
+
+    const executionSummary = summarizeExecutionStatuses(sessions);
 
     const latestDate = sessions
       .map((s) => s.session_date)
@@ -78,6 +123,7 @@ exports.handler = async (event) => {
     const token = crypto.randomUUID();
     const checkin = await createWeeklyCheckin(config, {
       athlete_id: athleteId,
+      upload_batch_id: uploadBatchId,
       week_start: weekStart,
       status: "pending_athlete",
       training_summary: aiResult.summary,
@@ -87,7 +133,10 @@ exports.handler = async (event) => {
     });
 
     return json(200, {
+      uploadBatchId,
       imported: inserted.length,
+      updated: updateCount,
+      total: inserted.length + updateCount,
       weekStart,
       weekEnd,
       executionSummary,

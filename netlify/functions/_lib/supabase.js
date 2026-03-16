@@ -31,11 +31,87 @@ async function insertTrainingSessions(config, sessions) {
   return supabaseRequest({
     url: config.supabaseUrl,
     serviceRoleKey: config.supabaseServiceRoleKey,
-    path: "training_sessions?on_conflict=athlete_id,session_date,title,sport_type",
+    path: "training_sessions",
     method: "POST",
     body: sessions,
-    prefer: "resolution=merge-duplicates,return=representation"
+    prefer: "return=representation"
   });
+}
+
+async function findExistingSessions(config, athleteId, sessionKeys) {
+  if (!sessionKeys.length) return [];
+  
+  // Get min and max dates from keys to minimize data fetched
+  const dates = sessionKeys.map(k => k.session_date).sort();
+  const minDate = dates[0];
+  const maxDate = dates[dates.length - 1];
+  
+  const allSessions = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `training_sessions?athlete_id=eq.${encodeURIComponent(athleteId)}&session_date=gte.${minDate}&session_date=lte.${maxDate}&select=id,session_date,title,sport_type`
+  });
+  
+  // Build lookup map for quick matching
+  const keySet = new Set(sessionKeys.map(k => `${k.session_date}|${k.title}|${k.sport_type}`));
+  return (allSessions || []).filter(s => keySet.has(`${s.session_date}|${s.title}|${s.sport_type}`));
+}
+
+async function updateSessionResults(config, patchList) {
+  if (!patchList.length) return 0;
+  let updated = 0;
+  for (const { id, tss, intensity_factor, avg_heart_rate, avg_power, distance_km, avg_pace } of patchList) {
+    try {
+      await supabaseRequest({
+        url: config.supabaseUrl,
+        serviceRoleKey: config.supabaseServiceRoleKey,
+        path: `training_sessions?id=eq.${encodeURIComponent(id)}`,
+        method: "PATCH",
+        body: {
+          tss: tss ?? null,
+          intensity_factor: intensity_factor ?? null,
+          avg_heart_rate: avg_heart_rate ?? null,
+          avg_power: avg_power ?? null,
+          distance_km: distance_km ?? null,
+          avg_pace: avg_pace ?? null
+        }
+      });
+      updated++;
+    } catch (err) {
+      console.error(`Failed to update session ${id}:`, err.message);
+    }
+  }
+  return updated;
+}
+
+async function getLatestUploadBatchId(config, athleteId) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `training_sessions?athlete_id=eq.${encodeURIComponent(athleteId)}&upload_batch_id=not.is.null&select=upload_batch_id,created_at&order=created_at.desc&limit=1`
+  });
+  if (!Array.isArray(rows) || !rows.length) return null;
+  return rows[0].upload_batch_id || null;
+}
+
+async function deleteTrainingSessionsByBatch(config, athleteId, uploadBatchId) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `training_sessions?athlete_id=eq.${encodeURIComponent(athleteId)}&upload_batch_id=eq.${encodeURIComponent(uploadBatchId)}`,
+    method: "DELETE"
+  });
+  return Array.isArray(rows) ? rows.length : 0;
+}
+
+async function deleteWeeklyCheckinsByBatch(config, athleteId, uploadBatchId) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `weekly_checkins?athlete_id=eq.${encodeURIComponent(athleteId)}&upload_batch_id=eq.${encodeURIComponent(uploadBatchId)}`,
+    method: "DELETE"
+  });
+  return Array.isArray(rows) ? rows.length : 0;
 }
 
 async function getAthleteById(config, athleteId) {
@@ -107,6 +183,11 @@ async function updateWeeklyCheckin(config, id, patch) {
 
 module.exports = {
   insertTrainingSessions,
+  findExistingSessions,
+  updateSessionResults,
+  getLatestUploadBatchId,
+  deleteTrainingSessionsByBatch,
+  deleteWeeklyCheckinsByBatch,
   getAthleteById,
   listAthletes,
   createAthlete,

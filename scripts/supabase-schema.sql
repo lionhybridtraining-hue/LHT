@@ -15,6 +15,7 @@ create table if not exists athletes (
 create table if not exists training_sessions (
   id uuid primary key default gen_random_uuid(),
   athlete_id uuid not null references athletes(id) on delete cascade,
+  upload_batch_id uuid,
   session_date date not null,
   title text,
   sport_type text,
@@ -45,6 +46,7 @@ alter table training_sessions add column if not exists planned_duration_minutes 
 alter table training_sessions add column if not exists planned_distance_meters numeric(10,2);
 alter table training_sessions add column if not exists actual_duration_minutes integer;
 alter table training_sessions add column if not exists actual_distance_meters numeric(10,2);
+alter table training_sessions add column if not exists upload_batch_id uuid;
 alter table training_sessions add column if not exists execution_status text;
 alter table training_sessions add column if not exists execution_ratio numeric(6,3);
 alter table training_sessions add column if not exists context_class text;
@@ -75,9 +77,13 @@ drop index if exists training_sessions_unique_session;
 create unique index if not exists training_sessions_unique_session
 on training_sessions (athlete_id, session_date, title, sport_type);
 
+create index if not exists training_sessions_athlete_batch_idx
+on training_sessions (athlete_id, upload_batch_id);
+
 create table if not exists weekly_checkins (
   id uuid primary key default gen_random_uuid(),
   athlete_id uuid not null references athletes(id) on delete cascade,
+  upload_batch_id uuid,
   week_start date not null,
   status text not null default 'pending_athlete',
   training_summary text,
@@ -93,3 +99,6 @@ create table if not exists weekly_checkins (
 
 create index if not exists weekly_checkins_athlete_week_idx
 on weekly_checkins (athlete_id, week_start desc);
+
+create index if not exists weekly_checkins_athlete_batch_idx
+on weekly_checkins (athlete_id, upload_batch_id);

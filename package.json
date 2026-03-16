@@ -8,5 +8,8 @@
   },
   "devDependencies": {
     "netlify-cli": "^24.2.0"
+  },
+  "dependencies": {
+    "adm-zip": "^0.5.16"
   }
 }

@@ -1,4 +1,5 @@
 const zlib = require("zlib");
+const AdmZip = require("adm-zip");
 const { toIsoDate } = require("./date");
 
 const CLASSIFICATION_VERSION = 1;
@@ -87,7 +88,7 @@ function parseCsv(text, delimiter) {
   return { headers, records };
 }
 
-function csvTextFromPayload({ csvText, gzBase64 }) {
+function csvTextFromPayload({ csvText, gzBase64, zipBase64 }) {
   if (csvText && typeof csvText === "string") return csvText;
 
   if (gzBase64 && typeof gzBase64 === "string") {
@@ -95,7 +96,24 @@ function csvTextFromPayload({ csvText, gzBase64 }) {
     return zlib.gunzipSync(compressed).toString("utf8");
   }
 
-  throw new Error("Missing csvText or gzBase64 payload");
+  if (zipBase64 && typeof zipBase64 === "string") {
+    const zipBuffer = Buffer.from(zipBase64, "base64");
+    const zip = new AdmZip(zipBuffer);
+    const files = zip.getEntries().filter((entry) => !entry.isDirectory);
+
+    if (!files.length) {
+      throw new Error("ZIP sem ficheiros");
+    }
+
+    const csvEntry = files.find((entry) => /\.csv$/i.test(entry.entryName)) || files[0];
+    const csvTextFromZip = zip.readAsText(csvEntry, "utf8");
+    if (!csvTextFromZip || !csvTextFromZip.trim()) {
+      throw new Error("ZIP sem conteudo CSV valido");
+    }
+    return csvTextFromZip;
+  }
+
+  throw new Error("Missing csvText, gzBase64 or zipBase64 payload");
 }
 
 function firstValidDate(record) {

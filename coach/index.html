@@ -442,8 +442,8 @@
                 <input id="selectedAthlete" placeholder="Seleciona um atleta no dropdown acima" readonly />
               </div>
               <div class="field full">
-                <label for="csvFile">Ficheiro CSV</label>
-                <input id="csvFile" name="csvFile" type="file" accept=".csv,.gz" required />
+                <label for="csvFile">Ficheiro de export (CSV/GZ/ZIP)</label>
+                <input id="csvFile" name="csvFile" type="file" accept=".csv,.gz,.zip" required />
               </div>
             </div>
 
@@ -667,7 +667,7 @@
       }
 
       if (!file) {
-        showResult("Erro: seleciona primeiro um ficheiro CSV.", "error");
+        showResult("Erro: seleciona primeiro um ficheiro CSV/GZ/ZIP.", "error");
         return;
       }
 
@@ -675,18 +675,25 @@
       showResult("A processar upload e a gerar check-in...", "");
 
       try {
-        const isGz = file.name.toLowerCase().endsWith(".gz");
+        const fileName = file.name || "";
+        const lowerFileName = fileName.toLowerCase();
+        const isGz = lowerFileName.endsWith(".gz");
+        const isZip = lowerFileName.endsWith(".zip");
         let payload;
 
-        if (isGz) {
+        if (isGz || isZip) {
           const buffer = await file.arrayBuffer();
           const bytes = new Uint8Array(buffer);
           let binary = "";
           for (let i = 0; i < bytes.length; i += 1) binary += String.fromCharCode(bytes[i]);
-          payload = { athleteId: selectedAthleteId, gzBase64: btoa(binary) };
+          payload = {
+            athleteId: selectedAthleteId,
+            sourceFileName: fileName,
+            ...(isZip ? { zipBase64: btoa(binary) } : { gzBase64: btoa(binary) })
+          };
         } else {
           const csvText = await file.text();
-          payload = { athleteId: selectedAthleteId, csvText };
+          payload = { athleteId: selectedAthleteId, sourceFileName: fileName, csvText };
         }
 
         const response = await fetch("/.netlify/functions/upload-csv", {
@@ -704,7 +711,7 @@
 
         const athleteName = selectedAthleteInput.value || selectedAthleteId;
         showResult(
-          `Atleta: ${athleteName}\nImportado: ${data.imported} sessões\nSemana: ${data.weekStart} a ${data.weekEnd}\nLink check-in: <a href="${data.checkinUrl}" target="_blank" rel="noopener">${data.checkinUrl}</a>`,
+          `Atleta: ${athleteName}\nBatch: ${data.uploadBatchId}\nImportado: ${data.imported} sessões\nSemana: ${data.weekStart} a ${data.weekEnd}\nLink check-in: <a href="${data.checkinUrl}" target="_blank" rel="noopener">${data.checkinUrl}</a>`,
           "success"
         );
       } catch (error) {
