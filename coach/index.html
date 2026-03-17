@@ -734,7 +734,11 @@
       athleteSelect.disabled = !loggedIn;
       athleteSearchInput.disabled = !loggedIn;
       openAddAthleteModalButton.disabled = !loggedIn;
-      form.disabled = !loggedIn;
+      
+      // Desabilitar inputs individuais dentro do form (form.disabled não funciona em HTML)
+      const formInputs = form.querySelectorAll('input, select, textarea, button');
+      formInputs.forEach(input => input.disabled = !loggedIn);
+      
       submitButton.disabled = !loggedIn;
     }
 
@@ -1399,6 +1403,9 @@
         handleAuthChange(null).catch((err) => showResult(err.message, true));
       });
       window.netlifyIdentity.init();
+    } else {
+      // Se Netlify Identity não está disponível (dev local), apenas mostrar UI bloqueada
+      setAuthUI();
     }
 
     loginBtn.addEventListener("click", () => {
@@ -1409,7 +1416,6 @@
       window.netlifyIdentity.logout();
     });
 
-    setAuthUI();
     syncTrainingLoadWeekControls();
     syncCheckinMode();
   </script>

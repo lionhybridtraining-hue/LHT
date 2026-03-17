@@ -200,6 +200,10 @@
       els.saveBtn.disabled = !loggedIn;
       els.publishNowBtn.disabled = !loggedIn;
       els.deleteBtn.disabled = !loggedIn;
+      
+      // Desabilitar todos os inputs/textareas dentro do form
+      const formInputs = els.form.querySelectorAll('input, select, textarea');
+      formInputs.forEach(input => input.disabled = !loggedIn);
     }
 
     function resetForm() {
