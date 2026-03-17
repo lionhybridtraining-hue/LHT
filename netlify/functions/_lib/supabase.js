@@ -40,21 +40,17 @@ async function insertTrainingSessions(config, sessions) {
 
 async function findExistingSessions(config, athleteId, sessionKeys) {
   if (!sessionKeys.length) return [];
-  
+
   // Get min and max dates from keys to minimize data fetched
   const dates = sessionKeys.map(k => k.session_date).sort();
   const minDate = dates[0];
   const maxDate = dates[dates.length - 1];
-  
-  const allSessions = await supabaseRequest({
+
+  return supabaseRequest({
     url: config.supabaseUrl,
     serviceRoleKey: config.supabaseServiceRoleKey,
-    path: `training_sessions?athlete_id=eq.${encodeURIComponent(athleteId)}&session_date=gte.${minDate}&session_date=lte.${maxDate}&select=id,session_date,title,sport_type`
+    path: `training_sessions?athlete_id=eq.${encodeURIComponent(athleteId)}&session_date=gte.${minDate}&session_date=lte.${maxDate}&select=id,session_date,title,sport_type,normalized_title`
   });
-  
-  // Build lookup map for quick matching
-  const keySet = new Set(sessionKeys.map(k => `${k.session_date}|${k.title}|${k.sport_type}`));
-  return (allSessions || []).filter(s => keySet.has(`${s.session_date}|${s.title}|${s.sport_type}`));
 }
 
 async function updateSessionResults(config, patchList) {

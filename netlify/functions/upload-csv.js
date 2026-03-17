@@ -67,6 +67,38 @@ function isStrengthSession(session) {
   return /strength|forca|gym|muscul|weights/.test(`${sportType} ${title}`);
 }
 
+function normalizeSessionKeyPart(value) {
+  return String(value || "")
+    .trim()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+}
+
+function getSessionLookupKeys(session) {
+  const sessionDate = String(session.session_date || "").trim();
+  const normalizedTitle = normalizeSessionKeyPart(session.normalized_title || session.title);
+  const normalizedSportType = normalizeSessionKeyPart(session.sport_type);
+  const rawTitle = String(session.title || "").trim();
+  const rawSportType = String(session.sport_type || "").trim();
+
+  return {
+    normalizedKey: `${sessionDate}|${normalizedTitle}|${normalizedSportType}`,
+    rawKey: `${sessionDate}|${rawTitle}|${rawSportType}`,
+    normalizedDateTitleKey: `${sessionDate}|${normalizedTitle}`
+  };
+}
+
+function deduplicateSessions(sessions) {
+  const byNormalizedKey = new Map();
+  for (const session of sessions || []) {
+    const { normalizedKey } = getSessionLookupKeys(session);
+    byNormalizedKey.set(normalizedKey, session);
+  }
+  return Array.from(byNormalizedKey.values());
+}
+
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
     return json(405, { error: "Method not allowed" });
@@ -105,12 +137,12 @@ exports.handler = async (event) => {
       sourceFileName: payload.sourceFileName,
       uploadBatchId: payload.uploadBatchId
     });
-    const sessions = parsed.records
+    const sessions = deduplicateSessions(parsed.records
       .map((record) => {
         const session = mapTrainingPeaksRecord(record, athleteId);
         return session ? { ...session, upload_batch_id: uploadBatchId } : null;
       })
-      .filter(Boolean);
+      .filter(Boolean));
 
     if (!sessions.length) {
       return json(400, { error: "Nenhuma linha com data valida foi encontrada no CSV" });
@@ -120,19 +152,27 @@ exports.handler = async (event) => {
     const sessionKeys = sessions.map(s => ({
       session_date: s.session_date,
       title: s.title,
-      sport_type: s.sport_type
+      sport_type: s.sport_type,
+      normalized_title: s.normalized_title
     }));
     const existing = await findExistingSessions(config, athleteId, sessionKeys);
-    const existingMap = new Map(
-      existing.map((e) => [`${e.session_date}|${e.title}|${e.sport_type}`, e])
-    );
+    const existingMap = new Map();
+    for (const existingSession of existing || []) {
+      const { normalizedKey, rawKey, normalizedDateTitleKey } = getSessionLookupKeys(existingSession);
+      existingMap.set(normalizedKey, existingSession);
+      existingMap.set(rawKey, existingSession);
+      existingMap.set(normalizedDateTitleKey, existingSession);
+    }
 
     // Split into new and existing
     const toInsert = [];
     const toUpdate = [];
     for (const session of sessions) {
-      const key = `${session.session_date}|${session.title}|${session.sport_type}`;
-      const existingSession = existingMap.get(key);
+      const { normalizedKey, rawKey, normalizedDateTitleKey } = getSessionLookupKeys(session);
+      const existingSession =
+        existingMap.get(normalizedKey) ||
+        existingMap.get(rawKey) ||
+        existingMap.get(normalizedDateTitleKey);
       if (existingSession) {
         toUpdate.push({
           id: existingSession.id,
