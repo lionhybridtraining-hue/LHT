@@ -4,25 +4,46 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Admin — LHT</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="admin.css" />
 </head>
 <body>
   <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
   <div class="admin-shell">
     <header class="admin-header">
-      <div>
-        <h1>Gestao de Artigos</h1>
-        <p>Painel CRUD ligado a blog_articles</p>
+      <div class="header-brand">
+        <div class="brand-lockup">
+          <img class="brand-logo" src="../assets/img/logo-lht.png" alt="Lion Hybrid Training" />
+          <div class="brand-copy">
+            <p class="brand-eyebrow">Lion Hybrid Training</p>
+            <h1>Gestao Editorial</h1>
+            <p class="brand-subtitle">Painel interno para organizar, editar e publicar conteudo do blog com o mesmo rigor da marca.</p>
+          </div>
+        </div>
+        <div class="header-badges" aria-hidden="true">
+          <span class="surface-chip">Blog CMS</span>
+          <span class="surface-chip surface-chip-muted">Operacao editorial</span>
+        </div>
       </div>
-      <div class="auth-controls">
+      <div class="auth-panel">
+        <p class="auth-eyebrow">Acesso editorial</p>
         <span id="auth-status">Nao autenticado</span>
-        <button id="login-btn" type="button">Entrar</button>
-        <button id="logout-btn" type="button" disabled>Sair</button>
+        <div class="auth-controls">
+          <button id="login-btn" type="button">Entrar</button>
+          <button id="logout-btn" type="button" disabled>Sair</button>
+        </div>
       </div>
     </header>
 
     <main class="admin-main">
       <aside class="admin-sidebar">
+        <div class="sidebar-intro">
+          <p class="section-eyebrow">Fila de artigos</p>
+          <h2>Biblioteca editorial</h2>
+          <p>Seleciona um artigo para editar, revistar o estado atual ou iniciar um novo rascunho.</p>
+        </div>
         <div class="sidebar-actions">
           <button id="refresh-btn" type="button">Atualizar lista</button>
           <button id="new-btn" type="button">Novo</button>
@@ -31,30 +52,56 @@
       </aside>
 
       <section class="admin-editor">
+        <div class="editor-top">
+          <div>
+            <p class="section-eyebrow">Composer</p>
+            <h2>Editor de artigos</h2>
+            <p>CRUD autenticado para gerir artigos em Supabase com sessao editorial via Netlify Identity.</p>
+          </div>
+          <div class="editor-badges" aria-label="Servicos ligados ao painel">
+            <span class="service-badge">Supabase</span>
+            <span class="service-badge">Netlify Identity</span>
+          </div>
+        </div>
+
         <p id="message" class="message" role="status"></p>
         <form id="article-form">
           <input type="hidden" id="article-id" />
 
-          <label for="title">Titulo</label>
-          <input id="title" name="title" required />
+          <div class="form-grid">
+            <div class="field field-wide">
+              <label for="title">Titulo</label>
+              <input id="title" name="title" required />
+            </div>
 
-          <label for="slug">Slug</label>
-          <input id="slug" name="slug" placeholder="exemplo-de-slug" />
+            <div class="field">
+              <label for="slug">Slug</label>
+              <input id="slug" name="slug" placeholder="exemplo-de-slug" />
+            </div>
 
-          <label for="category">Categoria</label>
-          <input id="category" name="category" value="Artigo" />
+            <div class="field">
+              <label for="category">Categoria</label>
+              <input id="category" name="category" value="Artigo" />
+            </div>
 
-          <label for="excerpt">Resumo</label>
-          <textarea id="excerpt" name="excerpt" rows="3"></textarea>
+            <div class="field field-wide">
+              <label for="excerpt">Resumo</label>
+              <textarea id="excerpt" name="excerpt" rows="4"></textarea>
+            </div>
 
-          <label for="status">Estado</label>
-          <select id="status" name="status">
-            <option value="draft">draft</option>
-            <option value="published">published</option>
-          </select>
+            <div class="field field-compact">
+              <label for="status">Estado</label>
+              <select id="status" name="status">
+                <option value="draft">draft</option>
+                <option value="published">published</option>
+              </select>
+            </div>
 
-          <label for="content">Conteudo (Markdown)</label>
-          <textarea id="content" name="content" rows="16" required></textarea>
+            <div class="field field-wide">
+              <label for="content">Conteudo (Markdown)</label>
+              <textarea id="content" name="content" rows="18" required></textarea>
+            </div>
+          </div>
 
           <div class="form-actions">
             <button id="save-btn" type="submit">Guardar</button>
@@ -185,6 +232,15 @@
       els.articleList.innerHTML = '';
       const frag = document.createDocumentFragment();
 
+      if (!state.articles.length) {
+        const empty = document.createElement('li');
+        empty.className = 'article-list-empty';
+        empty.innerHTML = '<p>Nenhum artigo disponivel.</p><span>Faz refresh para carregar a biblioteca ou cria um novo rascunho.</span>';
+        frag.appendChild(empty);
+        els.articleList.appendChild(frag);
+        return;
+      }
+
       state.articles.forEach((article) => {
         const li = document.createElement('li');
         const btn = document.createElement('button');
@@ -193,7 +249,14 @@
         if (article.id === state.selectedId) {
           btn.classList.add('active');
         }
-        btn.innerHTML = `<strong>${article.title || '(sem titulo)'}</strong><small>${article.slug || ''} · ${article.status || 'draft'}</small>`;
+        const status = article.status || 'draft';
+        btn.innerHTML = `
+          <span class="article-item-head">
+            <strong>${article.title || '(sem titulo)'}</strong>
+            <span class="status-chip ${status === 'published' ? 'is-published' : 'is-draft'}">${status}</span>
+          </span>
+          <small>${article.slug || 'sem-slug'}</small>
+        `;
         btn.addEventListener('click', () => fillForm(article));
         li.appendChild(btn);
         frag.appendChild(li);

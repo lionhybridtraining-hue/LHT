@@ -11,8 +11,51 @@ const {
 
 class ValidationError extends Error {}
 
-function isAuthenticated(event) {
-  return Boolean(event && event.clientContext && event.clientContext.user);
+function extractBearerToken(event) {
+  const headers = event && event.headers ? event.headers : {};
+  const authHeader = headers.authorization || headers.Authorization || "";
+  if (!authHeader || !authHeader.startsWith("Bearer ")) return null;
+  const token = authHeader.slice(7).trim();
+  return token || null;
+}
+
+function resolveSiteOrigin(event, config) {
+  const headers = event && event.headers ? event.headers : {};
+  const host = headers["x-forwarded-host"] || headers.host;
+  const protocol = headers["x-forwarded-proto"] || "https";
+
+  if (host) {
+    return `${protocol}://${host}`;
+  }
+
+  return config.siteUrl || "https://lionhybridtraining.com";
+}
+
+async function getIdentityUserFromToken(event, config) {
+  const token = extractBearerToken(event);
+  if (!token) return null;
+
+  try {
+    const origin = resolveSiteOrigin(event, config);
+    const response = await fetch(`${origin}/.netlify/identity/user`, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+
+    if (!response.ok) return null;
+    return await response.json();
+  } catch (_) {
+    return null;
+  }
+}
+
+async function getAuthenticatedUser(event, config) {
+  if (event && event.clientContext && event.clientContext.user) {
+    return event.clientContext.user;
+  }
+
+  return getIdentityUserFromToken(event, config);
 }
 
 function normalizeStatus(rawStatus) {
@@ -86,7 +129,8 @@ exports.handler = async (event) => {
     if (method === "GET") {
       const isAdminMode = query.admin === "1";
       if (isAdminMode) {
-        if (!isAuthenticated(event)) {
+        const user = await getAuthenticatedUser(event, config);
+        if (!user) {
           return json(401, { error: "Authentication required" });
         }
         const rows = await listBlogArticlesAdmin(config);
@@ -103,8 +147,11 @@ exports.handler = async (event) => {
       return json(200, { articles: (rows || []).map(mapArticle) });
     }
 
-    if (["POST", "PATCH", "DELETE"].includes(method) && !isAuthenticated(event)) {
-      return json(401, { error: "Authentication required" });
+    if (["POST", "PATCH", "DELETE"].includes(method)) {
+      const user = await getAuthenticatedUser(event, config);
+      if (!user) {
+        return json(401, { error: "Authentication required" });
+      }
     }
 
     if (method === "POST") {
