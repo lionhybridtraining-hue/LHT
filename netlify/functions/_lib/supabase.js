@@ -183,7 +183,7 @@ async function listWeeklyCheckinsByAthlete(config, athleteId) {
   return supabaseRequest({
     url: config.supabaseUrl,
     serviceRoleKey: config.supabaseServiceRoleKey,
-    path: `weekly_checkins?athlete_id=eq.${encodeURIComponent(athleteId)}&select=id,token,upload_batch_id,week_start,status,created_at,responded_at,approved_at,training_summary&order=week_start.desc&limit=50`
+    path: `weekly_checkins?athlete_id=eq.${encodeURIComponent(athleteId)}&select=id,token,upload_batch_id,week_start,status,created_at,responded_at,approved_at,training_summary,has_strength_manual_confirmation,strength_planned_done_count,strength_planned_not_done_count,coach_strength_feedback&order=week_start.desc&limit=50`
   });
 }
 

@@ -12,21 +12,64 @@ function safeJsonParse(content) {
   }
 }
 
-function fallbackQuestions(summary) {
-  return {
-    summary,
-    questions: [
+function fallbackQuestions(summary, strengthManualConfirmation) {
+  const hasStrength = Boolean(
+    strengthManualConfirmation && strengthManualConfirmation.hasStrengthManualConfirmation
+  );
+  const strengthDone = hasStrength && Number.isInteger(strengthManualConfirmation.strengthPlannedDoneCount)
+    ? strengthManualConfirmation.strengthPlannedDoneCount
+    : 0;
+  const strengthNotDone = hasStrength && Number.isInteger(strengthManualConfirmation.strengthPlannedNotDoneCount)
+    ? strengthManualConfirmation.strengthPlannedNotDoneCount
+    : 0;
+  const questions = [
       "A tua percepcao de esforco desta semana bate com os picos de carga que vemos nos dados?",
       "Houve algum fator fora do treino (sono, trabalho, stress, nutricao) que tenha afetado a tua execucao?",
       "Sentiste necessidade de reduzir intensidade ou volume em algum dia? Em que sessao e por que razao?",
       "Como classificas a tua recuperacao geral (1-10) e quais os sinais que observaste no corpo?"
-    ]
+  ];
+  if (hasStrength) {
+    questions[3] = `No treino de forca, confirmaste ${strengthDone} sessoes planned done e ${strengthNotDone} planned not done. O que explica este resultado?`;
+  }
+
+  return {
+    summary,
+    questions
   };
 }
 
-async function generateWeeklyQuestions({ apiKey, modelName, athlete, sessions, weekStart, weekEnd }) {
+function ensureStrengthQuestion(questions, strengthHint) {
+  const list = Array.isArray(questions) ? questions.filter(Boolean) : [];
+  const hasStrengthQuestion = list.some((q) => /forca|strength|ginasio|muscul/i.test(String(q)));
+  if (hasStrengthQuestion) return list;
+
+  const fallback = strengthHint
+    ? `No treino de forca, como avalias a execucao tecnica e a tolerancia ao bloco desta semana (${strengthHint})?`
+    : "No treino de forca, sentiste que cumpriste o que estava planeado em qualidade e consistencia?";
+  return [...list.slice(0, 5), fallback];
+}
+
+async function generateWeeklyQuestions({
+  apiKey,
+  modelName,
+  athlete,
+  sessions,
+  weekStart,
+  weekEnd,
+  strengthManualConfirmation,
+  manualStrengthFeedback
+}) {
   const basicSummary = `Semana ${weekStart} a ${weekEnd}: ${sessions.length} sessoes.`;
-  if (!apiKey) return fallbackQuestions(basicSummary);
+  if (!apiKey) return fallbackQuestions(basicSummary, strengthManualConfirmation);
+
+  const manual = strengthManualConfirmation || {};
+  const hasStrengthManualConfirmation = Boolean(manual.hasStrengthManualConfirmation);
+  const strengthDone = Number.isInteger(manual.strengthPlannedDoneCount) ? manual.strengthPlannedDoneCount : 0;
+  const strengthNotDone = Number.isInteger(manual.strengthPlannedNotDoneCount) ? manual.strengthPlannedNotDoneCount : 0;
+  const totalStrengthSessionsDetected = Number.isInteger(manual.totalStrengthSessionsDetected)
+    ? manual.totalStrengthSessionsDetected
+    : null;
+  const strengthHint = `${strengthDone} planned done / ${strengthNotDone} planned not done`;
 
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${getModelName(modelName)}:generateContent`;
   const prompt = [
@@ -34,9 +77,18 @@ async function generateWeeklyQuestions({ apiKey, modelName, athlete, sessions, w
     "Responde em Portugues europeu.",
     "Gera uma analise curta da semana e 4 perguntas estrategicas para o atleta.",
     "As perguntas devem confrontar percepcao subjetiva com dados objetivos.",
+    "ATENCAO: para treino de forca, NAO uses classificacao automatica done_not_planned do CSV.",
+    "Para forca, usa apenas os contadores de confirmacao manual fornecidos pelo coach.",
+    "Se houver confirmacao manual de forca, o resumo deve mencionar esses contadores.",
+    "Se houver confirmacao manual de forca, inclui pelo menos uma pergunta especifica de forca.",
     "Devolve apenas JSON valido com formato: {\"summary\": string, \"questions\": string[]}",
     `Atleta: ${athlete ? athlete.name || athlete.email || athlete.id : "desconhecido"}`,
     `Semana: ${weekStart} ate ${weekEnd}`,
+    `Confirmacao manual de forca ativa: ${hasStrengthManualConfirmation ? "sim" : "nao"}`,
+    `Forca planned done: ${strengthDone}`,
+    `Forca planned not done: ${strengthNotDone}`,
+    `Total sessoes de forca detectadas no upload: ${totalStrengthSessionsDetected === null ? "n/d" : totalStrengthSessionsDetected}`,
+    `Feedback manual do coach sobre forca: ${manualStrengthFeedback || "(sem feedback textual)"}`,
     `Dados: ${JSON.stringify(sessions)}`
   ].join("\n");
 
@@ -56,7 +108,7 @@ async function generateWeeklyQuestions({ apiKey, modelName, athlete, sessions, w
   });
 
   if (!response.ok) {
-    return fallbackQuestions(basicSummary);
+    return fallbackQuestions(basicSummary, strengthManualConfirmation);
   }
 
   const payload = await response.json();
@@ -67,12 +119,16 @@ async function generateWeeklyQuestions({ apiKey, modelName, athlete, sessions, w
   const textPart = content && Array.isArray(content.parts) ? content.parts.find((p) => typeof p.text === "string") : null;
   const parsed = safeJsonParse(textPart ? textPart.text : "");
   if (!parsed || !Array.isArray(parsed.questions)) {
-    return fallbackQuestions(basicSummary);
+    return fallbackQuestions(basicSummary, strengthManualConfirmation);
   }
+
+  const generatedQuestions = hasStrengthManualConfirmation
+    ? ensureStrengthQuestion(parsed.questions, strengthHint)
+    : parsed.questions;
 
   return {
     summary: parsed.summary || basicSummary,
-    questions: parsed.questions.slice(0, 6)
+    questions: generatedQuestions.slice(0, 6)
   };
 }
 

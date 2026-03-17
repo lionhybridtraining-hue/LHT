@@ -29,6 +29,20 @@ function summarizeExecutionStatuses(sessions) {
   }, {});
 }
 
+function parseNonNegativeInteger(value) {
+  const num = Number(value);
+  if (!Number.isInteger(num) || num < 0) {
+    return null;
+  }
+  return num;
+}
+
+function isStrengthSession(session) {
+  const sportType = String(session.sport_type || "").toLowerCase();
+  const title = String(session.normalized_title || session.title || "").toLowerCase();
+  return /strength|forca|gym|muscul|weights/.test(`${sportType} ${title}`);
+}
+
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
     return json(405, { error: "Method not allowed" });
@@ -40,6 +54,17 @@ exports.handler = async (event) => {
     if (!athleteId) {
       return json(400, { error: "Missing athleteId" });
     }
+
+    const strengthPlannedDoneCount = parseNonNegativeInteger(payload.strengthPlannedDoneCount);
+    const strengthPlannedNotDoneCount = parseNonNegativeInteger(payload.strengthPlannedNotDoneCount);
+    if (strengthPlannedDoneCount === null || strengthPlannedNotDoneCount === null) {
+      return json(400, {
+        error: "Missing or invalid manual strength confirmation. Provide strengthPlannedDoneCount and strengthPlannedNotDoneCount as non-negative integers"
+      });
+    }
+    const manualStrengthFeedback = typeof payload.manualStrengthFeedback === "string"
+      ? payload.manualStrengthFeedback.trim()
+      : "";
 
     const csvText = csvTextFromPayload(payload);
     const parsed = parseCsv(csvText, payload.delimiter);
@@ -101,6 +126,13 @@ exports.handler = async (event) => {
     const updateCount = await updateSessionResults(config, toUpdate);
 
     const executionSummary = summarizeExecutionStatuses(sessions);
+    const totalStrengthSessionsDetected = sessions.filter(isStrengthSession).length;
+    if (strengthPlannedDoneCount + strengthPlannedNotDoneCount > totalStrengthSessionsDetected) {
+      return json(400, {
+        error: "Invalid strength confirmation: planned_done + planned_not_done cannot exceed detected strength sessions",
+        totalStrengthSessionsDetected
+      });
+    }
 
     const latestDate = sessions
       .map((s) => s.session_date)
@@ -112,6 +144,16 @@ exports.handler = async (event) => {
 
     let checkin = await getWeeklyCheckinByBatch(config, athleteId, uploadBatchId);
     const reusedCheckin = Boolean(checkin);
+    let strengthConfirmationApplied = !reusedCheckin;
+    let strengthConfirmationWarning = null;
+
+    if (reusedCheckin && !checkin.has_strength_manual_confirmation) {
+      return json(409, {
+        error: "Batch ja existente sem confirmacao manual de forca. Cancela o batch e faz novo upload com confirmacao de forca.",
+        uploadBatchId,
+        totalStrengthSessionsDetected
+      });
+    }
 
     if (!checkin) {
       const athlete = await getAthleteById(config, athleteId);
@@ -121,6 +163,13 @@ exports.handler = async (event) => {
         modelName: config.geminiModel,
         athlete,
         sessions: weekSessions,
+        strengthManualConfirmation: {
+          hasStrengthManualConfirmation: true,
+          strengthPlannedDoneCount,
+          strengthPlannedNotDoneCount,
+          totalStrengthSessionsDetected
+        },
+        manualStrengthFeedback,
         weekStart,
         weekEnd
       });
@@ -130,11 +179,30 @@ exports.handler = async (event) => {
         upload_batch_id: uploadBatchId,
         week_start: weekStart,
         status: "pending_athlete",
+        has_strength_manual_confirmation: true,
+        strength_planned_done_count: strengthPlannedDoneCount,
+        strength_planned_not_done_count: strengthPlannedNotDoneCount,
+        coach_strength_feedback: manualStrengthFeedback || null,
         training_summary: aiResult.summary,
         ai_questions: aiResult.questions,
         token: crypto.randomUUID(),
         created_at: new Date().toISOString()
       });
+    } else {
+      strengthConfirmationApplied = false;
+      const existingDone = Number.isInteger(checkin.strength_planned_done_count)
+        ? checkin.strength_planned_done_count
+        : null;
+      const existingNotDone = Number.isInteger(checkin.strength_planned_not_done_count)
+        ? checkin.strength_planned_not_done_count
+        : null;
+      if (
+        existingDone !== strengthPlannedDoneCount ||
+        existingNotDone !== strengthPlannedNotDoneCount ||
+        (manualStrengthFeedback && manualStrengthFeedback !== (checkin.coach_strength_feedback || ""))
+      ) {
+        strengthConfirmationWarning = "Batch ja existente: confirmacao manual de forca nao foi reaplicada. Cancela e reimporta para atualizar.";
+      }
     }
 
     return json(200, {
@@ -145,6 +213,15 @@ exports.handler = async (event) => {
       weekStart,
       weekEnd,
       reusedCheckin,
+      totalStrengthSessionsDetected,
+      strengthConfirmationApplied,
+      strengthConfirmationWarning,
+      strengthPlannedDoneCount: Number.isInteger(checkin && checkin.strength_planned_done_count)
+        ? checkin.strength_planned_done_count
+        : strengthPlannedDoneCount,
+      strengthPlannedNotDoneCount: Number.isInteger(checkin && checkin.strength_planned_not_done_count)
+        ? checkin.strength_planned_not_done_count
+        : strengthPlannedNotDoneCount,
       executionSummary,
       checkinId: checkin ? checkin.id : null,
       checkinUrl: checkin && checkin.token

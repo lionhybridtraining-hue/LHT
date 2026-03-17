@@ -86,6 +86,10 @@ create table if not exists weekly_checkins (
   upload_batch_id uuid,
   week_start date not null,
   status text not null default 'pending_athlete',
+  has_strength_manual_confirmation boolean not null default false,
+  strength_planned_done_count integer,
+  strength_planned_not_done_count integer,
+  coach_strength_feedback text,
   training_summary text,
   ai_questions jsonb default '[]'::jsonb,
   athlete_answers jsonb,
@@ -96,6 +100,14 @@ create table if not exists weekly_checkins (
   responded_at timestamptz,
   approved_at timestamptz
 );
+
+alter table weekly_checkins add column if not exists has_strength_manual_confirmation boolean;
+alter table weekly_checkins add column if not exists strength_planned_done_count integer;
+alter table weekly_checkins add column if not exists strength_planned_not_done_count integer;
+alter table weekly_checkins add column if not exists coach_strength_feedback text;
+update weekly_checkins set has_strength_manual_confirmation = false where has_strength_manual_confirmation is null;
+alter table weekly_checkins alter column has_strength_manual_confirmation set default false;
+alter table weekly_checkins alter column has_strength_manual_confirmation set not null;
 
 create index if not exists weekly_checkins_athlete_week_idx
 on weekly_checkins (athlete_id, week_start desc);

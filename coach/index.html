@@ -445,6 +445,19 @@
                 <label for="csvFile">Ficheiro de export (CSV/GZ/ZIP)</label>
                 <input id="csvFile" name="csvFile" type="file" accept=".csv,.gz,.zip" required />
               </div>
+              <div class="field">
+                <label for="strengthPlannedDoneCount">Forca planned done (manual)</label>
+                <input id="strengthPlannedDoneCount" name="strengthPlannedDoneCount" type="number" min="0" step="1" value="0" required />
+              </div>
+              <div class="field">
+                <label for="strengthPlannedNotDoneCount">Forca planned not done (manual)</label>
+                <input id="strengthPlannedNotDoneCount" name="strengthPlannedNotDoneCount" type="number" min="0" step="1" value="0" required />
+              </div>
+              <div class="field full">
+                <label for="manualStrengthFeedback">Feedback manual do treino de forca (opcional)</label>
+                <textarea id="manualStrengthFeedback" name="manualStrengthFeedback" rows="3" placeholder="Ex.: 2 sessoes feitas com boa qualidade tecnica; 1 sessao cortada por fadiga"></textarea>
+                <p class="microcopy" style="margin-top:6px;">A confirmacao numerica de forca e obrigatoria para gerar check-in. O texto e opcional e melhora a pergunta especifica de forca.</p>
+              </div>
             </div>
 
             <div class="form-actions">
@@ -506,6 +519,9 @@
     const selectedAthleteInput = document.getElementById("selectedAthlete");
     const form = document.getElementById("uploadForm");
     const csvFileInput = document.getElementById("csvFile");
+    const strengthPlannedDoneCountInput = document.getElementById("strengthPlannedDoneCount");
+    const strengthPlannedNotDoneCountInput = document.getElementById("strengthPlannedNotDoneCount");
+    const manualStrengthFeedbackInput = document.getElementById("manualStrengthFeedback");
     const checkinStatusFilter = document.getElementById("checkinStatusFilter");
     const checkinsContainer = document.getElementById("checkinsContainer");
     const result = document.getElementById("result");
@@ -566,6 +582,13 @@
         const isLocked = Boolean(checkin.responded_at || checkin.approved_at);
         const hasBatch = Boolean(checkin.upload_batch_id);
         const canCancel = hasBatch && !isLocked;
+        const hasStrengthConfirmation = Boolean(checkin.has_strength_manual_confirmation);
+        const strengthDone = Number.isInteger(checkin.strength_planned_done_count)
+          ? checkin.strength_planned_done_count
+          : 0;
+        const strengthNotDone = Number.isInteger(checkin.strength_planned_not_done_count)
+          ? checkin.strength_planned_not_done_count
+          : 0;
         const cancelLabel = !hasBatch
           ? "Sem batch"
           : isLocked
@@ -577,6 +600,9 @@
             <div style="display:flex; justify-content:space-between; gap:8px; flex-wrap:wrap;">
               <strong>Semana: ${escapeHtml(checkin.week_start || "-")}</strong>
               <span>Status: ${escapeHtml(checkin.status || "-")}</span>
+            </div>
+            <div style="margin-top:6px; font-size:12px; opacity:0.95;">
+              Forca confirmada: ${hasStrengthConfirmation ? `${strengthDone} done / ${strengthNotDone} not done` : "nao"}
             </div>
             <div style="margin-top:6px; font-size:12px; opacity:0.9;">Criado: ${escapeHtml(createdAt)}</div>
             <div style="margin-top:6px;">${escapeHtml(summary)}</div>
@@ -857,6 +883,22 @@
 
       try {
         const fileName = file.name || "";
+        const strengthPlannedDoneCount = Number(strengthPlannedDoneCountInput.value);
+        const strengthPlannedNotDoneCount = Number(strengthPlannedNotDoneCountInput.value);
+        const manualStrengthFeedback = (manualStrengthFeedbackInput.value || "").trim();
+
+        if (!Number.isInteger(strengthPlannedDoneCount) || strengthPlannedDoneCount < 0) {
+          showResult("Erro: forca planned done tem de ser um inteiro >= 0.", "error");
+          submitButton.disabled = false;
+          return;
+        }
+
+        if (!Number.isInteger(strengthPlannedNotDoneCount) || strengthPlannedNotDoneCount < 0) {
+          showResult("Erro: forca planned not done tem de ser um inteiro >= 0.", "error");
+          submitButton.disabled = false;
+          return;
+        }
+
         const lowerFileName = fileName.toLowerCase();
         const isGz = lowerFileName.endsWith(".gz");
         const isZip = lowerFileName.endsWith(".zip");
@@ -870,11 +912,21 @@
           payload = {
             athleteId: selectedAthleteId,
             sourceFileName: fileName,
+            strengthPlannedDoneCount,
+            strengthPlannedNotDoneCount,
+            manualStrengthFeedback,
             ...(isZip ? { zipBase64: btoa(binary) } : { gzBase64: btoa(binary) })
           };
         } else {
           const csvText = await file.text();
-          payload = { athleteId: selectedAthleteId, sourceFileName: fileName, csvText };
+          payload = {
+            athleteId: selectedAthleteId,
+            sourceFileName: fileName,
+            csvText,
+            strengthPlannedDoneCount,
+            strengthPlannedNotDoneCount,
+            manualStrengthFeedback
+          };
         }
 
         const response = await fetch("/.netlify/functions/upload-csv", {
@@ -894,8 +946,10 @@
         const checkinMessage = data.reusedCheckin
           ? "Check-in existente reutilizado"
           : "Novo check-in criado";
+        const strengthInfo = `Forca confirmada: ${data.strengthPlannedDoneCount} done / ${data.strengthPlannedNotDoneCount} not done (detetadas no upload: ${data.totalStrengthSessionsDetected})`;
+        const warning = data.strengthConfirmationWarning ? `\nAviso: ${data.strengthConfirmationWarning}` : "";
         showResult(
-          `Atleta: ${athleteName}\nBatch: ${data.uploadBatchId}\nImportado: ${data.imported} sessões\nAtualizado: ${data.updated}\nSemana: ${data.weekStart} a ${data.weekEnd}\n${checkinMessage}\nLink check-in: <a href="${data.checkinUrl}" target="_blank" rel="noopener">${data.checkinUrl}</a>`,
+          `Atleta: ${athleteName}\nBatch: ${data.uploadBatchId}\nImportado: ${data.imported} sessões\nAtualizado: ${data.updated}\nSemana: ${data.weekStart} a ${data.weekEnd}\n${strengthInfo}\n${checkinMessage}${warning}\nLink check-in: <a href="${data.checkinUrl}" target="_blank" rel="noopener">${data.checkinUrl}</a>`,
           "success"
         );
         await loadCheckinsForAthlete(selectedAthleteId);
