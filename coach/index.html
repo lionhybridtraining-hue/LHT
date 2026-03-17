@@ -509,6 +509,13 @@
                 <label for="csvFile">Ficheiro de export (CSV/GZ/ZIP)</label>
                 <input id="csvFile" name="csvFile" type="file" accept=".csv,.gz,.zip" required />
               </div>
+              <div class="field full">
+                <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+                  <input id="skipCheckin" name="skipCheckin" type="checkbox" />
+                  <span>Importar sem criar check-in</span>
+                </label>
+                <p class="microcopy" style="margin-top:6px;">Usa este modo para importar historico, atualizar sessoes e recalcular carga sem gerar perguntas nem link publico.</p>
+              </div>
               <div class="field">
                 <label for="strengthPlannedDoneCount">Forca planned done (manual)</label>
                 <input id="strengthPlannedDoneCount" name="strengthPlannedDoneCount" type="number" min="0" step="1" value="0" required />
@@ -622,6 +629,7 @@
     const selectedAthleteInput = document.getElementById("selectedAthlete");
     const form = document.getElementById("uploadForm");
     const csvFileInput = document.getElementById("csvFile");
+    const skipCheckinInput = document.getElementById("skipCheckin");
     const strengthPlannedDoneCountInput = document.getElementById("strengthPlannedDoneCount");
     const strengthPlannedNotDoneCountInput = document.getElementById("strengthPlannedNotDoneCount");
     const manualStrengthFeedbackInput = document.getElementById("manualStrengthFeedback");
@@ -649,6 +657,18 @@
     let athletes = [];
     let selectedAthleteId = "";
     let allCheckins = [];
+
+    function syncCheckinMode() {
+      const skipCheckin = Boolean(skipCheckinInput.checked);
+      strengthPlannedDoneCountInput.disabled = skipCheckin;
+      strengthPlannedNotDoneCountInput.disabled = skipCheckin;
+      manualStrengthFeedbackInput.disabled = skipCheckin;
+      strengthPlannedDoneCountInput.required = !skipCheckin;
+      strengthPlannedNotDoneCountInput.required = !skipCheckin;
+      submitButton.textContent = skipCheckin
+        ? "Importar sem check-in"
+        : "Importar e gerar check-in";
+    }
 
     function renderTrainingLoadSummary(summary, metaText) {
       const load = summary || {};
@@ -1024,6 +1044,7 @@
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
       const file = csvFileInput.files[0];
+      const skipCheckin = Boolean(skipCheckinInput.checked);
 
       if (!selectedAthleteId) {
         showResult("Erro: seleciona primeiro um atleta no dropdown.", "error");
@@ -1036,7 +1057,12 @@
       }
 
       submitButton.disabled = true;
-      showResult("A processar upload e a gerar check-in...", "");
+      showResult(
+        skipCheckin
+          ? "A processar upload sem criar check-in..."
+          : "A processar upload e a gerar check-in...",
+        ""
+      );
 
       try {
         const fileName = file.name || "";
@@ -1044,13 +1070,13 @@
         const strengthPlannedNotDoneCount = Number(strengthPlannedNotDoneCountInput.value);
         const manualStrengthFeedback = (manualStrengthFeedbackInput.value || "").trim();
 
-        if (!Number.isInteger(strengthPlannedDoneCount) || strengthPlannedDoneCount < 0) {
+        if (!skipCheckin && (!Number.isInteger(strengthPlannedDoneCount) || strengthPlannedDoneCount < 0)) {
           showResult("Erro: forca planned done tem de ser um inteiro >= 0.", "error");
           submitButton.disabled = false;
           return;
         }
 
-        if (!Number.isInteger(strengthPlannedNotDoneCount) || strengthPlannedNotDoneCount < 0) {
+        if (!skipCheckin && (!Number.isInteger(strengthPlannedNotDoneCount) || strengthPlannedNotDoneCount < 0)) {
           showResult("Erro: forca planned not done tem de ser um inteiro >= 0.", "error");
           submitButton.disabled = false;
           return;
@@ -1069,9 +1095,10 @@
           payload = {
             athleteId: selectedAthleteId,
             sourceFileName: fileName,
-            strengthPlannedDoneCount,
-            strengthPlannedNotDoneCount,
-            manualStrengthFeedback,
+            skipCheckin,
+            ...(skipCheckin
+              ? {}
+              : { strengthPlannedDoneCount, strengthPlannedNotDoneCount, manualStrengthFeedback }),
             ...(isZip ? { zipBase64: btoa(binary) } : { gzBase64: btoa(binary) })
           };
         } else {
@@ -1080,9 +1107,10 @@
             athleteId: selectedAthleteId,
             sourceFileName: fileName,
             csvText,
-            strengthPlannedDoneCount,
-            strengthPlannedNotDoneCount,
-            manualStrengthFeedback
+            skipCheckin,
+            ...(skipCheckin
+              ? {}
+              : { strengthPlannedDoneCount, strengthPlannedNotDoneCount, manualStrengthFeedback })
           };
         }
 
@@ -1100,16 +1128,23 @@
         }
 
         const athleteName = selectedAthleteInput.value || selectedAthleteId;
-        const checkinMessage = data.reusedCheckin
-          ? "Check-in existente reutilizado"
-          : "Novo check-in criado";
-        const strengthInfo = `Forca confirmada: ${data.strengthPlannedDoneCount} done / ${data.strengthPlannedNotDoneCount} not done (detetadas no upload: ${data.totalStrengthSessionsDetected})`;
+        const checkinMessage = data.skipCheckin
+          ? "Importacao concluida sem criar check-in"
+          : data.reusedCheckin
+            ? "Check-in existente reutilizado"
+            : "Novo check-in criado";
+        const strengthInfo = data.skipCheckin
+          ? `Sessoes de forca detetadas no upload: ${data.totalStrengthSessionsDetected}`
+          : `Forca confirmada: ${data.strengthPlannedDoneCount} done / ${data.strengthPlannedNotDoneCount} not done (detetadas no upload: ${data.totalStrengthSessionsDetected})`;
         const load = data.trainingLoadSummary || {};
         const loadInfo = `Carga: CTL ${load.ctl ?? 0} | ATL ${load.atl ?? 0} | TSB ${load.tsb ?? 0}\nTotal Duration: ${load.totalDurationFormatted || "0:00"}\nTotal TSS: ${load.totalTss ?? 0}\nRun Distance: ${load.runDistanceKm ?? 0} km\nWork: ${load.workKj ?? 0} kJ`;
         const warning = data.strengthConfirmationWarning ? `\nAviso: ${data.strengthConfirmationWarning}` : "";
+        const checkinLink = data.checkinUrl
+          ? `\nLink check-in: <a href="${data.checkinUrl}" target="_blank" rel="noopener">${data.checkinUrl}</a>`
+          : "";
         renderTrainingLoadSummary(data.trainingLoadSummary, `Semana ${data.weekStart} a ${data.weekEnd}`);
         showResult(
-          `Atleta: ${athleteName}\nBatch: ${data.uploadBatchId}\nImportado: ${data.imported} sessões\nAtualizado: ${data.updated}\nSemana: ${data.weekStart} a ${data.weekEnd}\n${strengthInfo}\n${loadInfo}\n${checkinMessage}${warning}\nLink check-in: <a href="${data.checkinUrl}" target="_blank" rel="noopener">${data.checkinUrl}</a>`,
+          `Atleta: ${athleteName}\nBatch: ${data.uploadBatchId}\nImportado: ${data.imported} sessões\nAtualizado: ${data.updated}\nSemana: ${data.weekStart} a ${data.weekEnd}\n${strengthInfo}\n${loadInfo}\n${checkinMessage}${warning}${checkinLink}`,
           "success"
         );
         await loadCheckinsForAthlete(selectedAthleteId);
@@ -1120,7 +1155,10 @@
       submitButton.disabled = false;
     });
 
+    skipCheckinInput.addEventListener("change", syncCheckinMode);
+
     loadAthletes();
+    syncCheckinMode();
   </script>
 </body>
 </html>

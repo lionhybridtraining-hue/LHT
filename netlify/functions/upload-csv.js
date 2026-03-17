@@ -23,6 +23,22 @@ const {
 } = require("./_lib/supabase");
 const { generateWeeklyQuestions } = require("./_lib/ai");
 
+function isTruthy(value) {
+  if (typeof value === "boolean") {
+    return value;
+  }
+
+  if (typeof value === "string") {
+    return ["1", "true", "yes", "on"].includes(value.trim().toLowerCase());
+  }
+
+  if (typeof value === "number") {
+    return value === 1;
+  }
+
+  return false;
+}
+
 function endOfWeekIso(weekStartIso) {
   const date = new Date(`${weekStartIso}T00:00:00.000Z`);
   date.setUTCDate(date.getUTCDate() + 6);
@@ -59,17 +75,20 @@ exports.handler = async (event) => {
   try {
     const payload = parseJsonBody(event);
     const athleteId = payload.athleteId;
+    const skipCheckin = isTruthy(payload.skipCheckin);
     if (!athleteId) {
       return json(400, { error: "Missing athleteId" });
     }
 
-    const strengthPlannedDoneCount = parseNonNegativeInteger(payload.strengthPlannedDoneCount);
-    const strengthPlannedNotDoneCount = parseNonNegativeInteger(payload.strengthPlannedNotDoneCount);
-    if (strengthPlannedDoneCount === null || strengthPlannedNotDoneCount === null) {
+    const rawStrengthPlannedDoneCount = parseNonNegativeInteger(payload.strengthPlannedDoneCount);
+    const rawStrengthPlannedNotDoneCount = parseNonNegativeInteger(payload.strengthPlannedNotDoneCount);
+    if (!skipCheckin && (rawStrengthPlannedDoneCount === null || rawStrengthPlannedNotDoneCount === null)) {
       return json(400, {
         error: "Missing or invalid manual strength confirmation. Provide strengthPlannedDoneCount and strengthPlannedNotDoneCount as non-negative integers"
       });
     }
+    const strengthPlannedDoneCount = skipCheckin ? 0 : rawStrengthPlannedDoneCount;
+    const strengthPlannedNotDoneCount = skipCheckin ? 0 : rawStrengthPlannedNotDoneCount;
     const manualStrengthFeedback = typeof payload.manualStrengthFeedback === "string"
       ? payload.manualStrengthFeedback.trim()
       : "";
@@ -153,73 +172,81 @@ exports.handler = async (event) => {
     await replaceTrainingLoadMetrics(config, athleteId, metricsRows);
     const trainingLoadSummary = summarizeTrainingLoadWeek(dailyLoadRows, metricsRows, weekStart, weekEnd, latestDate);
 
-    let checkin = await getWeeklyCheckinByBatch(config, athleteId, uploadBatchId);
-    const reusedCheckin = Boolean(checkin);
-    let strengthConfirmationApplied = !reusedCheckin;
-    let strengthConfirmationWarning = strengthCountMismatch
-      ? "Confirmacao manual de forca excede o total de sessoes de forca detetadas automaticamente. A contagem manual do coach foi mantida como fonte de verdade."
-      : null;
+    let checkin = null;
+    let reusedCheckin = false;
+    let strengthConfirmationApplied = false;
+    let strengthConfirmationWarning = null;
 
-    if (reusedCheckin && !checkin.has_strength_manual_confirmation) {
-      return json(409, {
-        error: "Batch ja existente sem confirmacao manual de forca. Cancela o batch e faz novo upload com confirmacao de forca.",
-        uploadBatchId,
-        totalStrengthSessionsDetected
-      });
-    }
+    if (!skipCheckin) {
+      checkin = await getWeeklyCheckinByBatch(config, athleteId, uploadBatchId);
+      reusedCheckin = Boolean(checkin);
+      strengthConfirmationApplied = !reusedCheckin;
+      strengthConfirmationWarning = strengthCountMismatch
+        ? "Confirmacao manual de forca excede o total de sessoes de forca detetadas automaticamente. A contagem manual do coach foi mantida como fonte de verdade."
+        : null;
 
-    if (!checkin) {
-      const athlete = await getAthleteById(config, athleteId);
-      const weekSessions = await getWeekSessions(config, athleteId, weekStart, weekEnd);
-      const aiResult = await generateWeeklyQuestions({
-        apiKey: config.geminiApiKey,
-        modelName: config.geminiModel,
-        athlete,
-        sessions: weekSessions,
-        strengthManualConfirmation: {
-          hasStrengthManualConfirmation: true,
-          strengthPlannedDoneCount,
-          strengthPlannedNotDoneCount,
+      if (reusedCheckin && !checkin.has_strength_manual_confirmation) {
+        return json(409, {
+          error: "Batch ja existente sem confirmacao manual de forca. Cancela o batch e faz novo upload com confirmacao de forca.",
+          uploadBatchId,
           totalStrengthSessionsDetected
-        },
-        trainingLoadSummary,
-        manualStrengthFeedback,
-        weekStart,
-        weekEnd
-      });
+        });
+      }
 
-      checkin = await createWeeklyCheckin(config, {
-        athlete_id: athleteId,
-        upload_batch_id: uploadBatchId,
-        week_start: weekStart,
-        status: "pending_athlete",
-        has_strength_manual_confirmation: true,
-        strength_planned_done_count: strengthPlannedDoneCount,
-        strength_planned_not_done_count: strengthPlannedNotDoneCount,
-        coach_strength_feedback: manualStrengthFeedback || null,
-        training_summary: aiResult.summary,
-        ai_questions: aiResult.questions,
-        token: crypto.randomUUID(),
-        created_at: new Date().toISOString()
-      });
-    } else {
-      strengthConfirmationApplied = false;
-      const existingDone = Number.isInteger(checkin.strength_planned_done_count)
-        ? checkin.strength_planned_done_count
-        : null;
-      const existingNotDone = Number.isInteger(checkin.strength_planned_not_done_count)
-        ? checkin.strength_planned_not_done_count
-        : null;
-      if (
-        existingDone !== strengthPlannedDoneCount ||
-        existingNotDone !== strengthPlannedNotDoneCount ||
-        (manualStrengthFeedback && manualStrengthFeedback !== (checkin.coach_strength_feedback || ""))
-      ) {
-        strengthConfirmationWarning = "Batch ja existente: confirmacao manual de forca nao foi reaplicada. Cancela e reimporta para atualizar.";
+      if (!checkin) {
+        const athlete = await getAthleteById(config, athleteId);
+        const weekSessions = await getWeekSessions(config, athleteId, weekStart, weekEnd);
+        const aiResult = await generateWeeklyQuestions({
+          apiKey: config.geminiApiKey,
+          modelName: config.geminiModel,
+          athlete,
+          sessions: weekSessions,
+          strengthManualConfirmation: {
+            hasStrengthManualConfirmation: true,
+            strengthPlannedDoneCount,
+            strengthPlannedNotDoneCount,
+            totalStrengthSessionsDetected
+          },
+          trainingLoadSummary,
+          manualStrengthFeedback,
+          weekStart,
+          weekEnd
+        });
+
+        checkin = await createWeeklyCheckin(config, {
+          athlete_id: athleteId,
+          upload_batch_id: uploadBatchId,
+          week_start: weekStart,
+          status: "pending_athlete",
+          has_strength_manual_confirmation: true,
+          strength_planned_done_count: strengthPlannedDoneCount,
+          strength_planned_not_done_count: strengthPlannedNotDoneCount,
+          coach_strength_feedback: manualStrengthFeedback || null,
+          training_summary: aiResult.summary,
+          ai_questions: aiResult.questions,
+          token: crypto.randomUUID(),
+          created_at: new Date().toISOString()
+        });
+      } else {
+        strengthConfirmationApplied = false;
+        const existingDone = Number.isInteger(checkin.strength_planned_done_count)
+          ? checkin.strength_planned_done_count
+          : null;
+        const existingNotDone = Number.isInteger(checkin.strength_planned_not_done_count)
+          ? checkin.strength_planned_not_done_count
+          : null;
+        if (
+          existingDone !== strengthPlannedDoneCount ||
+          existingNotDone !== strengthPlannedNotDoneCount ||
+          (manualStrengthFeedback && manualStrengthFeedback !== (checkin.coach_strength_feedback || ""))
+        ) {
+          strengthConfirmationWarning = "Batch ja existente: confirmacao manual de forca nao foi reaplicada. Cancela e reimporta para atualizar.";
+        }
       }
     }
 
     return json(200, {
+      skipCheckin,
       uploadBatchId,
       imported: inserted.length,
       updated: updateCount,
