@@ -43,6 +43,36 @@
 
     .page-shell { width: min(1200px, 100%); margin: 0 auto; }
 
+    .auth-gate {
+      min-height: calc(100vh - 64px);
+      display: grid;
+      place-items: center;
+    }
+
+    .auth-gate-card {
+      width: min(560px, 100%);
+      border: 1px solid var(--line-strong);
+      border-radius: var(--radius-xl);
+      padding: 26px;
+      background: linear-gradient(180deg, rgba(24, 24, 24, 0.95), rgba(10, 10, 10, 0.98));
+      box-shadow: var(--shadow);
+    }
+
+    .auth-gate-card h2 {
+      margin: 8px 0;
+      font-family: "Oswald", sans-serif;
+      font-size: 32px;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      color: var(--gold);
+    }
+
+    .auth-gate-card p {
+      margin: 0 0 14px;
+      color: var(--text-soft);
+      line-height: 1.6;
+    }
+
     .brandbar {
       display: flex;
       align-items: center;
@@ -436,7 +466,16 @@
   </style>
 </head>
 <body>
-  <div class="page-shell">
+  <section id="coach-auth-gate" class="auth-gate">
+    <div class="auth-gate-card">
+      <span class="eyebrow">Acesso restrito</span>
+      <h2>Login obrigatório</h2>
+      <p>Para aceder ao painel de coach tens de iniciar sessão.</p>
+      <button id="gate-login-btn" type="button" class="btn btn-primary">Entrar no coach</button>
+    </div>
+  </section>
+
+  <div id="protected-content" class="page-shell" hidden>
     <header class="brandbar">
       <div class="brand">
         <img src="../assets/img/logo-lht.png" alt="Lion Hybrid Training" />
@@ -646,6 +685,9 @@
 
   <script>
     const athleteSearchInput = document.getElementById("athleteSearch");
+    const authGate = document.getElementById("coach-auth-gate");
+    const protectedContent = document.getElementById("protected-content");
+    const gateLoginBtn = document.getElementById("gate-login-btn");
     const athleteFilterMeta = document.getElementById("athleteFilterMeta");
     const athleteSelect = document.getElementById("athleteSelect");
     const selectedAthleteInput = document.getElementById("selectedAthlete");
@@ -726,6 +768,8 @@
 
     function setAuthUI() {
       const loggedIn = Boolean(state.user);
+      authGate.hidden = loggedIn;
+      protectedContent.hidden = !loggedIn;
       authStatus.textContent = loggedIn
         ? `Autenticado: ${state.user.email || state.user.id}`
         : "Não autenticado";
@@ -1409,11 +1453,21 @@
     }
 
     loginBtn.addEventListener("click", () => {
-      window.netlifyIdentity.open();
+      if (window.netlifyIdentity) {
+        window.netlifyIdentity.open();
+      }
+    });
+
+    gateLoginBtn.addEventListener("click", () => {
+      if (window.netlifyIdentity) {
+        window.netlifyIdentity.open();
+      }
     });
 
     logoutBtn.addEventListener("click", () => {
-      window.netlifyIdentity.logout();
+      if (window.netlifyIdentity) {
+        window.netlifyIdentity.logout();
+      }
     });
 
     syncTrainingLoadWeekControls();

@@ -11,7 +11,16 @@
 </head>
 <body>
   <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
-  <div class="admin-shell">
+  <section id="admin-auth-gate" class="auth-gate">
+    <div class="auth-gate-card">
+      <p class="auth-gate-eyebrow">Acesso restrito</p>
+      <h2>Login obrigatorio</h2>
+      <p>Para ver o painel de administracao tens de iniciar sessao.</p>
+      <button id="gate-login-btn" type="button">Entrar no admin</button>
+    </div>
+  </section>
+
+  <div id="protected-content" class="admin-shell" hidden>
     <header class="admin-header">
       <div class="header-brand">
         <div class="brand-lockup">
@@ -26,6 +35,13 @@
           <span class="surface-chip">Blog CMS</span>
           <span class="surface-chip surface-chip-muted">Operacao editorial</span>
         </div>
+        <div class="admin-tabs" role="tablist" aria-label="Secoes do admin">
+          <button id="tab-blog" class="admin-tab is-active" type="button" role="tab" aria-selected="true" aria-controls="blog-editor">Blog</button>
+          <button id="tab-athletes" class="admin-tab" type="button" role="tab" aria-selected="false" aria-controls="athletes-panel">Gerir atletas</button>
+          <button id="tab-programs" class="admin-tab" type="button" role="tab" aria-selected="false" aria-controls="programs-panel">Programas</button>
+          <button id="tab-coaches" class="admin-tab" type="button" role="tab" aria-selected="false" aria-controls="coaches-panel">Coaches</button>
+          <button id="tab-operations" class="admin-tab" type="button" role="tab" aria-selected="false" aria-controls="operations-panel">Operacoes</button>
+        </div>
       </div>
       <div class="auth-panel">
         <p class="auth-eyebrow">Acesso editorial</p>
@@ -38,7 +54,7 @@
     </header>
 
     <main class="admin-main">
-      <aside class="admin-sidebar">
+      <aside id="blog-sidebar" class="admin-sidebar">
         <div class="sidebar-intro">
           <p class="section-eyebrow">Fila de artigos</p>
           <h2>Biblioteca editorial</h2>
@@ -51,7 +67,7 @@
         <ul id="article-list" class="article-list" aria-live="polite"></ul>
       </aside>
 
-      <section class="admin-editor">
+      <section id="blog-editor" class="admin-editor">
         <div class="editor-top">
           <div>
             <p class="section-eyebrow">Composer</p>
@@ -110,19 +126,132 @@
           </div>
         </form>
       </section>
+
+      <section id="athletes-panel" class="admin-athletes" hidden>
+        <div class="editor-top">
+          <div>
+            <p class="section-eyebrow">Coach Ops</p>
+            <h2>Gerir atletas</h2>
+            <p>Atribui atletas sem coach para um coach especifico usando o coach_identity_id.</p>
+          </div>
+          <div class="editor-badges" aria-label="Servicos ligados ao painel de atletas">
+            <span class="service-badge">Supabase</span>
+            <span class="service-badge">Identity</span>
+          </div>
+        </div>
+
+        <p id="athletes-message" class="message" role="status"></p>
+
+        <div class="athletes-toolbar">
+          <div class="field">
+            <label for="coach-identity-id">Coach identity ID (user.sub)</label>
+            <input id="coach-identity-id" type="text" placeholder="Ex.: 4d3ef9af-..." />
+          </div>
+          <button id="refresh-athletes-btn" type="button">Atualizar nao atribuidos</button>
+        </div>
+
+        <div id="unassigned-empty" class="athletes-empty" hidden>
+          <p>Sem atletas por atribuir.</p>
+          <span>Todos os atletas ja tem coach_identity_id.</span>
+        </div>
+
+        <div class="athletes-list-wrap">
+          <table class="athletes-table">
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>Email</th>
+                <th>Criado em</th>
+                <th>Acoes</th>
+              </tr>
+            </thead>
+            <tbody id="unassigned-athletes-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="programs-panel" class="admin-athletes" hidden>
+        <div class="editor-top">
+          <div>
+            <p class="section-eyebrow">Program Ops</p>
+            <h2>Programas</h2>
+            <p>Area preparada para catalogo de programas, precos, duracao e apresentacao no site.</p>
+          </div>
+        </div>
+        <div class="module-grid">
+          <article class="module-card">
+            <h3>Catalogo de programas</h3>
+            <p>Gestao de programas com origem no TrainingPeaks, metadata comercial e formato de acompanhamento.</p>
+          </article>
+          <article class="module-card">
+            <h3>Calendario e lifecycle</h3>
+            <p>Preparado para inicio imediato/agendado, duracao em semanas e data de fim automatica.</p>
+          </article>
+        </div>
+      </section>
+
+      <section id="coaches-panel" class="admin-athletes" hidden>
+        <div class="editor-top">
+          <div>
+            <p class="section-eyebrow">Coach Ops</p>
+            <h2>Coaches</h2>
+            <p>Area preparada para criar, editar e gerir capacidade operacional dos coaches.</p>
+          </div>
+        </div>
+        <div class="module-grid">
+          <article class="module-card">
+            <h3>Registo de coach</h3>
+            <p>Estrutura pronta para onboarding de coach e parametros operacionais.</p>
+          </article>
+          <article class="module-card">
+            <h3>Atribuicoes</h3>
+            <p>Consolida atribuicoes de atletas por coach numa vista central.</p>
+          </article>
+        </div>
+      </section>
+
+      <section id="operations-panel" class="admin-athletes" hidden>
+        <div class="editor-top">
+          <div>
+            <p class="section-eyebrow">Operations</p>
+            <h2>Operacoes</h2>
+            <p>Area preparada para monitorizacao de cargas, check-ins, onboarding e qualidade de dados.</p>
+          </div>
+        </div>
+        <div class="module-grid">
+          <article class="module-card">
+            <h3>Acompanhamento de atletas</h3>
+            <p>Resumo operacional para cargas de treino, risco e aderencia por atleta.</p>
+          </article>
+          <article class="module-card">
+            <h3>Fila de check-ins</h3>
+            <p>Painel de estados, pendencias e SLA de resposta do coach.</p>
+          </article>
+          <article class="module-card">
+            <h3>Onboarding</h3>
+            <p>Controlo de progresso de onboarding, pendencias e ativacao operacional.</p>
+          </article>
+        </div>
+      </section>
     </main>
   </div>
 
   <script>
     const apiBase = '/.netlify/functions/blog-articles';
+    const unassignedAthletesApiBase = '/.netlify/functions/admin-unassigned-athletes';
+    const assignAthleteApiBase = '/.netlify/functions/admin-assign-athlete';
     const state = {
       user: null,
       token: null,
       articles: [],
-      selectedId: null
+      selectedId: null,
+      unassignedAthletes: []
     };
 
     const els = {
+      authGate: document.getElementById('admin-auth-gate'),
+      protectedContent: document.getElementById('protected-content'),
+      gateLoginBtn: document.getElementById('gate-login-btn'),
       authStatus: document.getElementById('auth-status'),
       loginBtn: document.getElementById('login-btn'),
       logoutBtn: document.getElementById('logout-btn'),
@@ -141,7 +270,132 @@
       saveBtn: document.getElementById('save-btn'),
       publishNowBtn: document.getElementById('publish-now-btn'),
       deleteBtn: document.getElementById('delete-btn')
+      ,
+      tabBlog: document.getElementById('tab-blog'),
+      tabAthletes: document.getElementById('tab-athletes'),
+      tabPrograms: document.getElementById('tab-programs'),
+      tabCoaches: document.getElementById('tab-coaches'),
+      tabOperations: document.getElementById('tab-operations'),
+      blogSidebar: document.getElementById('blog-sidebar'),
+      blogEditor: document.getElementById('blog-editor'),
+      athletesPanel: document.getElementById('athletes-panel'),
+      programsPanel: document.getElementById('programs-panel'),
+      coachesPanel: document.getElementById('coaches-panel'),
+      operationsPanel: document.getElementById('operations-panel'),
+      athletesMessage: document.getElementById('athletes-message'),
+      coachIdentityIdInput: document.getElementById('coach-identity-id'),
+      refreshAthletesBtn: document.getElementById('refresh-athletes-btn'),
+      unassignedEmpty: document.getElementById('unassigned-empty'),
+      unassignedAthletesBody: document.getElementById('unassigned-athletes-body')
     };
+
+    const tabConfig = {
+      blog: {
+        tabEl: () => els.tabBlog,
+        panels: () => [els.blogSidebar, els.blogEditor]
+      },
+      athletes: {
+        tabEl: () => els.tabAthletes,
+        panels: () => [els.athletesPanel]
+      },
+      programs: {
+        tabEl: () => els.tabPrograms,
+        panels: () => [els.programsPanel]
+      },
+      coaches: {
+        tabEl: () => els.tabCoaches,
+        panels: () => [els.coachesPanel]
+      },
+      operations: {
+        tabEl: () => els.tabOperations,
+        panels: () => [els.operationsPanel]
+      }
+    };
+
+    let activeTab = 'blog';
+
+    function setActiveTab(tab) {
+      activeTab = tabConfig[tab] ? tab : 'blog';
+
+      Object.keys(tabConfig).forEach((key) => {
+        const current = tabConfig[key];
+        const selected = key === activeTab;
+        const tabEl = current.tabEl();
+        tabEl.classList.toggle('is-active', selected);
+        tabEl.setAttribute('aria-selected', String(selected));
+        current.panels().forEach((panel) => {
+          panel.hidden = !selected;
+        });
+      });
+
+      if (activeTab === 'athletes' && state.user) {
+        refreshUnassignedAthletes().catch((err) => showAthletesMessage(err.message, true));
+      }
+    }
+
+    function showAthletesMessage(text, isError) {
+      els.athletesMessage.textContent = text || '';
+      els.athletesMessage.classList.toggle('error', Boolean(isError));
+      els.athletesMessage.classList.toggle('success', !isError && Boolean(text));
+    }
+
+    function formatDate(iso) {
+      if (!iso) return '-';
+      const date = new Date(iso);
+      if (Number.isNaN(date.getTime())) return '-';
+      return date.toLocaleString('pt-PT');
+    }
+
+    function renderUnassignedAthletes() {
+      els.unassignedAthletesBody.innerHTML = '';
+
+      if (!state.unassignedAthletes.length) {
+        els.unassignedEmpty.hidden = false;
+        return;
+      }
+
+      els.unassignedEmpty.hidden = true;
+      const fragment = document.createDocumentFragment();
+
+      state.unassignedAthletes.forEach((athlete) => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${athlete.name || '-'}</td>
+          <td>${athlete.email || '-'}</td>
+          <td>${formatDate(athlete.createdAt)}</td>
+          <td>
+            <button type="button" class="assign-athlete-btn" data-athlete-id="${athlete.id}">Atribuir</button>
+          </td>
+        `;
+        fragment.appendChild(row);
+      });
+
+      els.unassignedAthletesBody.appendChild(fragment);
+    }
+
+    async function refreshUnassignedAthletes() {
+      if (!state.user) return;
+      showAthletesMessage('A carregar atletas nao atribuidos...', false);
+      const data = await apiRequest('GET', unassignedAthletesApiBase);
+      state.unassignedAthletes = Array.isArray(data.athletes) ? data.athletes : [];
+      renderUnassignedAthletes();
+      showAthletesMessage(`Atletas nao atribuidos: ${state.unassignedAthletes.length}.`, false);
+    }
+
+    async function assignAthlete(athleteId) {
+      const coachIdentityId = (els.coachIdentityIdInput.value || '').trim();
+      if (!coachIdentityId) {
+        throw new Error('Coach identity ID e obrigatorio para atribuir.');
+      }
+
+      await apiRequest('POST', assignAthleteApiBase, {
+        athleteId,
+        coachIdentityId
+      });
+
+      showAthletesMessage('Atleta atribuido com sucesso.', false);
+      await refreshUnassignedAthletes();
+    }
 
     function showMessage(text, isError) {
       els.message.textContent = text || '';
@@ -190,6 +444,8 @@
 
     function setAuthUI() {
       const loggedIn = Boolean(state.user);
+      els.authGate.hidden = loggedIn;
+      els.protectedContent.hidden = !loggedIn;
       els.authStatus.textContent = loggedIn
         ? `Autenticado: ${state.user.email || state.user.id}`
         : 'Nao autenticado';
@@ -348,10 +604,16 @@
       setAuthUI();
       if (state.user) {
         await refreshList();
+        if (activeTab === 'athletes') {
+          await refreshUnassignedAthletes();
+        }
       } else {
         state.articles = [];
+        state.unassignedAthletes = [];
         renderList();
+        renderUnassignedAthletes();
         resetForm();
+        showAthletesMessage('Faz login para gerir atletas.', false);
       }
     }
 
@@ -366,14 +628,26 @@
         handleAuthChange(null).catch((err) => showMessage(err.message, true));
       });
       window.netlifyIdentity.init();
+    } else {
+      setAuthUI();
     }
 
     els.loginBtn.addEventListener('click', () => {
-      window.netlifyIdentity.open();
+      if (window.netlifyIdentity) {
+        window.netlifyIdentity.open();
+      }
+    });
+
+    els.gateLoginBtn.addEventListener('click', () => {
+      if (window.netlifyIdentity) {
+        window.netlifyIdentity.open();
+      }
     });
 
     els.logoutBtn.addEventListener('click', () => {
-      window.netlifyIdentity.logout();
+      if (window.netlifyIdentity) {
+        window.netlifyIdentity.logout();
+      }
     });
 
     els.refreshBtn.addEventListener('click', async () => {
@@ -417,7 +691,46 @@
       }
     });
 
+    els.refreshAthletesBtn.addEventListener('click', async () => {
+      try {
+        await refreshUnassignedAthletes();
+      } catch (err) {
+        showAthletesMessage(err.message, true);
+      }
+    });
+
+    els.unassignedAthletesBody.addEventListener('click', async (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLButtonElement)) return;
+      if (!target.classList.contains('assign-athlete-btn')) return;
+
+      const athleteId = target.getAttribute('data-athlete-id') || '';
+      if (!athleteId) return;
+
+      const originalText = target.textContent;
+      target.disabled = true;
+      target.textContent = 'A atribuir...';
+
+      try {
+        await assignAthlete(athleteId);
+      } catch (err) {
+        showAthletesMessage(err.message, true);
+      } finally {
+        target.disabled = false;
+        target.textContent = originalText;
+      }
+    });
+
+    els.tabBlog.addEventListener('click', () => setActiveTab('blog'));
+    els.tabAthletes.addEventListener('click', () => setActiveTab('athletes'));
+    els.tabPrograms.addEventListener('click', () => setActiveTab('programs'));
+    els.tabCoaches.addEventListener('click', () => setActiveTab('coaches'));
+    els.tabOperations.addEventListener('click', () => setActiveTab('operations'));
+
     setAuthUI();
+    setActiveTab('blog');
+    renderUnassignedAthletes();
+    showAthletesMessage('Faz login para gerir atletas.', false);
     resetForm();
   </script>
 </body>

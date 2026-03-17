@@ -32,6 +32,54 @@ body {
   color: var(--white);
 }
 
+.auth-gate {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.auth-gate-card {
+  width: min(540px, 100%);
+  border: 1px solid rgba(241, 200, 111, 0.24);
+  border-radius: 22px;
+  padding: 26px;
+  background: linear-gradient(180deg, rgba(16, 13, 9, 0.92), rgba(8, 7, 6, 0.94));
+  box-shadow: var(--shadow);
+}
+
+.auth-gate-eyebrow {
+  margin: 0 0 8px;
+  font-family: "Oswald", sans-serif;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--accent-strong);
+  font-size: 0.8rem;
+}
+
+.auth-gate-card h2 {
+  margin: 0 0 8px;
+  font-family: "Oswald", sans-serif;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.auth-gate-card p {
+  margin: 0 0 14px;
+  color: rgba(255, 249, 240, 0.78);
+}
+
+.auth-gate-card button {
+  border: 1px solid var(--line-strong);
+  border-radius: 14px;
+  padding: 12px 16px;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  background: linear-gradient(180deg, #f2d184 0%, #c89a3c 100%);
+  color: #17120c;
+}
+
 .admin-shell {
   min-height: 100vh;
   display: flex;
@@ -144,6 +192,39 @@ body {
   gap: 10px;
 }
 
+.admin-tabs {
+  display: inline-flex;
+  gap: 8px;
+  padding: 6px;
+  border-radius: 14px;
+  border: 1px solid rgba(241, 200, 111, 0.18);
+  background: rgba(0, 0, 0, 0.22);
+}
+
+.admin-tab {
+  border: 1px solid transparent;
+  border-radius: 10px;
+  padding: 10px 14px;
+  background: transparent;
+  color: rgba(255, 249, 240, 0.82);
+  font: inherit;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.admin-tab:hover {
+  border-color: rgba(241, 200, 111, 0.24);
+  color: var(--white);
+}
+
+.admin-tab.is-active {
+  background: linear-gradient(180deg, #f2d184 0%, #c89a3c 100%);
+  color: #17120c;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+}
+
 .surface-chip,
 .service-badge,
 .status-chip {
@@ -241,6 +322,17 @@ body {
 
 .admin-sidebar,
 .admin-editor {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  padding: 22px;
+  color: var(--ink);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(14px);
+}
+
+.admin-athletes {
+  grid-column: 1 / -1;
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 24px;
@@ -423,6 +515,108 @@ body {
   color: var(--ok);
 }
 
+.athletes-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  margin-bottom: 14px;
+  align-items: end;
+}
+
+.athletes-toolbar button,
+.assign-athlete-btn {
+  border: 1px solid var(--line-strong);
+  border-radius: 14px;
+  padding: 12px 16px;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  background: linear-gradient(180deg, #f2d184 0%, #c89a3c 100%);
+  color: #17120c;
+}
+
+.athletes-toolbar button:disabled,
+.assign-athlete-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.athletes-list-wrap {
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(255, 252, 247, 0.7);
+}
+
+.athletes-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 640px;
+}
+
+.athletes-table th,
+.athletes-table td {
+  text-align: left;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.athletes-table th {
+  font-family: "Oswald", sans-serif;
+  font-size: 0.86rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  background: rgba(200, 154, 60, 0.08);
+}
+
+.athletes-empty {
+  padding: 16px;
+  border: 1px dashed var(--line-strong);
+  border-radius: 14px;
+  background: rgba(255, 249, 240, 0.8);
+  margin-bottom: 12px;
+}
+
+.athletes-empty p {
+  margin: 0 0 6px;
+  font-family: "Oswald", sans-serif;
+  font-size: 1rem;
+  text-transform: uppercase;
+}
+
+.athletes-empty span {
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.module-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.module-card {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 16px;
+  background: rgba(255, 252, 247, 0.72);
+}
+
+.module-card h3 {
+  margin: 0 0 6px;
+  font-family: "Oswald", sans-serif;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+.module-card p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
 #article-form {
   display: flex;
   flex-direction: column;
@@ -531,6 +725,14 @@ body {
     align-items: flex-start;
   }
 
+  .admin-tabs {
+    width: 100%;
+  }
+
+  .admin-tab {
+    flex: 1;
+  }
+
   .auth-panel {
     min-width: 0;
   }
@@ -547,6 +749,10 @@ body {
   .form-actions {
     flex-direction: column;
   }
+
+  .athletes-toolbar {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 560px) {
@@ -561,6 +767,7 @@ body {
 
   .admin-sidebar,
   .admin-editor,
+  .admin-athletes,
   .auth-panel {
     border-radius: 18px;
   }

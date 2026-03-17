@@ -357,6 +357,28 @@ async function verifyCoachOwnsAthlete(config, coachIdentityId, athleteId) {
   return Array.isArray(athlete) && athlete.length > 0;
 }
 
+async function listUnassignedAthletes(config) {
+  return supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: "athletes?coach_identity_id=is.null&select=id,name,email,created_at&order=created_at.desc&limit=500"
+  });
+}
+
+async function assignUnassignedAthleteToCoach(config, athleteId, coachIdentityId) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `athletes?id=eq.${encodeURIComponent(athleteId)}&coach_identity_id=is.null`,
+    method: "PATCH",
+    body: {
+      coach_identity_id: coachIdentityId
+    },
+    prefer: "return=representation"
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
 module.exports = {
   insertTrainingSessions,
   findExistingSessions,
@@ -370,6 +392,8 @@ module.exports = {
   listAthletesByCoach,
   createAthleteForCoach,
   verifyCoachOwnsAthlete,
+  listUnassignedAthletes,
+  assignUnassignedAthleteToCoach,
   getWeekSessions,
   listTrainingSessionsForAthlete,
   replaceTrainingLoadDaily,
