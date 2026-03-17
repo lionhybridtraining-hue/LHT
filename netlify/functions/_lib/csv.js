@@ -257,6 +257,12 @@ function mapTrainingPeaksRecord(record, athleteId) {
   const plannedDistanceMeters = toNumber(record["planneddistanceinmeters"] || record["planned distance in meters"]);
   const actualDistanceMeters = toNumber(record["distanceinmeters"] || record["distance in meters"]);
   const tss = toNumber(record["tss"]);
+  const workKj = toNumber(
+    record["work"] ||
+    record["work kj"] ||
+    record["work (kj)"] ||
+    record["kj"]
+  );
   const { executionStatus, executionRatio } = classifyExecutionStatus({
     plannedDurationMinutes,
     plannedDistanceMeters,
@@ -283,6 +289,7 @@ function mapTrainingPeaksRecord(record, athleteId) {
     tsb: toNumber(record["tsb"]),
     avg_heart_rate: toNumber(record["average heart rate"] || record["avg heart rate"]),
     avg_power: toNumber(record["average power"] || record["avg power"]),
+    work_kj: workKj,
     distance_km: hasPositiveNumber(actualDistanceMeters) ? roundNumber(actualDistanceMeters / 1000, 2) : toNumber(record["distance"]),
     avg_pace: record["average pace"] || record["pace"] || null,
     execution_status: executionStatus,

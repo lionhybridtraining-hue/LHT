@@ -5,11 +5,19 @@ const { getWeekStartIso } = require("./_lib/date");
 const { csvTextFromPayload, parseCsv, mapTrainingPeaksRecord } = require("./_lib/csv");
 const { deriveUploadBatchId } = require("./_lib/upload-batch");
 const {
+  aggregateTrainingLoadDaily,
+  calculateTrainingLoadMetrics,
+  summarizeTrainingLoadWeek
+} = require("./_lib/training-load");
+const {
   insertTrainingSessions,
   findExistingSessions,
   updateSessionResults,
   getAthleteById,
   getWeekSessions,
+  listTrainingSessionsForAthlete,
+  replaceTrainingLoadDaily,
+  replaceTrainingLoadMetrics,
   createWeeklyCheckin,
   getWeeklyCheckinByBatch
 } = require("./_lib/supabase");
@@ -113,6 +121,7 @@ exports.handler = async (event) => {
           intensity_factor: session.intensity_factor,
           avg_heart_rate: session.avg_heart_rate,
           avg_power: session.avg_power,
+          work_kj: session.work_kj,
           distance_km: session.distance_km,
           avg_pace: session.avg_pace
         });
@@ -137,6 +146,12 @@ exports.handler = async (event) => {
 
     const weekStart = getWeekStartIso(latestDate);
     const weekEnd = endOfWeekIso(weekStart);
+    const allSessions = await listTrainingSessionsForAthlete(config, athleteId);
+    const dailyLoadRows = aggregateTrainingLoadDaily(athleteId, Array.isArray(allSessions) ? allSessions : []);
+    const metricsRows = calculateTrainingLoadMetrics(athleteId, dailyLoadRows);
+    await replaceTrainingLoadDaily(config, athleteId, dailyLoadRows);
+    await replaceTrainingLoadMetrics(config, athleteId, metricsRows);
+    const trainingLoadSummary = summarizeTrainingLoadWeek(dailyLoadRows, metricsRows, weekStart, weekEnd, latestDate);
 
     let checkin = await getWeeklyCheckinByBatch(config, athleteId, uploadBatchId);
     const reusedCheckin = Boolean(checkin);
@@ -167,6 +182,7 @@ exports.handler = async (event) => {
           strengthPlannedNotDoneCount,
           totalStrengthSessionsDetected
         },
+        trainingLoadSummary,
         manualStrengthFeedback,
         weekStart,
         weekEnd
@@ -220,6 +236,7 @@ exports.handler = async (event) => {
       strengthPlannedNotDoneCount: Number.isInteger(checkin && checkin.strength_planned_not_done_count)
         ? checkin.strength_planned_not_done_count
         : strengthPlannedNotDoneCount,
+      trainingLoadSummary,
       executionSummary,
       checkinId: checkin ? checkin.id : null,
       checkinUrl: checkin && checkin.token

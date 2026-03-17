@@ -57,6 +57,7 @@ async function generateWeeklyQuestions({
   weekStart,
   weekEnd,
   strengthManualConfirmation,
+  trainingLoadSummary,
   manualStrengthFeedback
 }) {
   const basicSummary = `Semana ${weekStart} a ${weekEnd}: ${sessions.length} sessoes.`;
@@ -70,6 +71,7 @@ async function generateWeeklyQuestions({
     ? manual.totalStrengthSessionsDetected
     : null;
   const strengthHint = `${strengthDone} planned done / ${strengthNotDone} planned not done`;
+  const loadSummary = trainingLoadSummary || {};
 
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${getModelName(modelName)}:generateContent`;
   const prompt = [
@@ -89,6 +91,7 @@ async function generateWeeklyQuestions({
     `Forca planned not done: ${strengthNotDone}`,
     `Total sessoes de forca detectadas no upload: ${totalStrengthSessionsDetected === null ? "n/d" : totalStrengthSessionsDetected}`,
     `Feedback manual do coach sobre forca: ${manualStrengthFeedback || "(sem feedback textual)"}`,
+    `Carga semanal calculada no LHT: ${JSON.stringify(loadSummary)}`,
     `Dados: ${JSON.stringify(sessions)}`
   ].join("\n");
 

@@ -31,6 +31,7 @@ create table if not exists training_sessions (
   tsb numeric(6,2),
   avg_heart_rate numeric(6,2),
   avg_power numeric(8,2),
+  work_kj numeric(10,2),
   distance_km numeric(8,2),
   avg_pace text,
   execution_status text not null default 'unknown',
@@ -47,6 +48,7 @@ alter table training_sessions add column if not exists planned_distance_meters n
 alter table training_sessions add column if not exists actual_duration_minutes integer;
 alter table training_sessions add column if not exists actual_distance_meters numeric(10,2);
 alter table training_sessions add column if not exists upload_batch_id uuid;
+alter table training_sessions add column if not exists work_kj numeric(10,2);
 alter table training_sessions add column if not exists execution_status text;
 alter table training_sessions add column if not exists execution_ratio numeric(6,3);
 alter table training_sessions add column if not exists context_class text;
@@ -114,3 +116,34 @@ on weekly_checkins (athlete_id, week_start desc);
 
 create index if not exists weekly_checkins_athlete_batch_idx
 on weekly_checkins (athlete_id, upload_batch_id);
+
+create table if not exists training_load_daily (
+  athlete_id uuid not null references athletes(id) on delete cascade,
+  load_date date not null,
+  daily_tss numeric(8,2) not null default 0,
+  daily_duration_minutes integer not null default 0,
+  daily_run_distance_km numeric(8,2) not null default 0,
+  daily_work_kj numeric(10,2) not null default 0,
+  session_count integer not null default 0,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  primary key (athlete_id, load_date)
+);
+
+create index if not exists training_load_daily_athlete_date_idx
+on training_load_daily (athlete_id, load_date desc);
+
+create table if not exists training_load_metrics (
+  athlete_id uuid not null references athletes(id) on delete cascade,
+  metric_date date not null,
+  daily_tss numeric(8,2) not null default 0,
+  ctl numeric(8,2) not null default 0,
+  atl numeric(8,2) not null default 0,
+  tsb numeric(8,2) not null default 0,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  primary key (athlete_id, metric_date)
+);
+
+create index if not exists training_load_metrics_athlete_date_idx
+on training_load_metrics (athlete_id, metric_date desc);

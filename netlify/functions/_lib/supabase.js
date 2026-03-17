@@ -60,7 +60,7 @@ async function findExistingSessions(config, athleteId, sessionKeys) {
 async function updateSessionResults(config, patchList) {
   if (!patchList.length) return 0;
   let updated = 0;
-  for (const { id, tss, intensity_factor, avg_heart_rate, avg_power, distance_km, avg_pace } of patchList) {
+  for (const { id, tss, intensity_factor, avg_heart_rate, avg_power, work_kj, distance_km, avg_pace } of patchList) {
     try {
       await supabaseRequest({
         url: config.supabaseUrl,
@@ -72,6 +72,7 @@ async function updateSessionResults(config, patchList) {
           intensity_factor: intensity_factor ?? null,
           avg_heart_rate: avg_heart_rate ?? null,
           avg_power: avg_power ?? null,
+          work_kj: work_kj ?? null,
           distance_km: distance_km ?? null,
           avg_pace: avg_pace ?? null
         }
@@ -150,6 +151,52 @@ async function getWeekSessions(config, athleteId, weekStart, weekEnd) {
   });
 }
 
+async function listTrainingSessionsForAthlete(config, athleteId) {
+  return supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `training_sessions?athlete_id=eq.${encodeURIComponent(athleteId)}&select=session_date,title,sport_type,duration_minutes,tss,work_kj,distance_km&order=session_date.asc`
+  });
+}
+
+async function replaceTrainingLoadDaily(config, athleteId, rows) {
+  await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `training_load_daily?athlete_id=eq.${encodeURIComponent(athleteId)}`,
+    method: "DELETE"
+  });
+
+  if (!rows.length) return [];
+  return supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: "training_load_daily",
+    method: "POST",
+    body: rows,
+    prefer: "return=representation"
+  });
+}
+
+async function replaceTrainingLoadMetrics(config, athleteId, rows) {
+  await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `training_load_metrics?athlete_id=eq.${encodeURIComponent(athleteId)}`,
+    method: "DELETE"
+  });
+
+  if (!rows.length) return [];
+  return supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: "training_load_metrics",
+    method: "POST",
+    body: rows,
+    prefer: "return=representation"
+  });
+}
+
 async function createWeeklyCheckin(config, payload) {
   const rows = await supabaseRequest({
     url: config.supabaseUrl,
@@ -209,6 +256,9 @@ module.exports = {
   listAthletes,
   createAthlete,
   getWeekSessions,
+  listTrainingSessionsForAthlete,
+  replaceTrainingLoadDaily,
+  replaceTrainingLoadMetrics,
   createWeeklyCheckin,
   getWeeklyCheckinByToken,
   getWeeklyCheckinByBatch,

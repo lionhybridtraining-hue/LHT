@@ -235,7 +235,8 @@
     label { font-size: 14px; font-weight: 600; color: var(--text); }
 
     input,
-    select {
+    select,
+    textarea {
       width: 100%;
       padding: 13px 14px;
       border-radius: var(--radius-md);
@@ -248,10 +249,16 @@
     input::placeholder { color: #7b756b; }
 
     input:focus,
-    select:focus {
+    select:focus,
+    textarea:focus {
       outline: none;
       border-color: rgba(212, 165, 79, 0.62);
       box-shadow: 0 0 0 4px rgba(212, 165, 79, 0.12);
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 96px;
     }
 
     .form-actions {
@@ -310,6 +317,61 @@
 
     .microcopy { color: var(--muted); font-size: 13px; line-height: 1.6; }
 
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .metric-card {
+      padding: 14px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.025);
+    }
+
+    .metric-label {
+      display: block;
+      font-size: 12px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .metric-value {
+      display: block;
+      font-family: "Oswald", sans-serif;
+      font-size: 30px;
+      line-height: 1;
+      color: var(--text);
+    }
+
+    .metric-value.fitness { color: #7ab3ff; }
+    .metric-value.fatigue { color: #ff8a9e; }
+    .metric-value.form { color: #ffb255; }
+
+    .metrics-summary-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .summary-metric {
+      padding: 14px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.025);
+    }
+
+    .summary-metric strong {
+      display: block;
+      margin-top: 6px;
+      font-size: 18px;
+      color: var(--text);
+    }
+
     .modal-backdrop {
       position: fixed;
       inset: 0;
@@ -365,6 +427,8 @@
       .header-actions { width: 100%; }
 
       .form-grid { grid-template-columns: 1fr; }
+      .metrics-grid,
+      .metrics-summary-grid { grid-template-columns: 1fr; }
       .main-panel,
       .side-panel { padding: 22px; }
     }
@@ -469,6 +533,45 @@
 
         <section class="section-card">
           <div style="display:flex; justify-content:space-between; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:10px;">
+            <h3 class="section-title" style="margin:0;">Carga de treino</h3>
+            <span id="trainingLoadMeta" class="microcopy">Sem dados calculados ainda.</span>
+          </div>
+          <div class="metrics-grid">
+            <div class="metric-card">
+              <span class="metric-label">Fitness</span>
+              <span id="metricCtl" class="metric-value fitness">0</span>
+            </div>
+            <div class="metric-card">
+              <span class="metric-label">Fatigue</span>
+              <span id="metricAtl" class="metric-value fatigue">0</span>
+            </div>
+            <div class="metric-card">
+              <span class="metric-label">Form</span>
+              <span id="metricTsb" class="metric-value form">0</span>
+            </div>
+          </div>
+          <div class="metrics-summary-grid">
+            <div class="summary-metric">
+              <span class="metric-label">Total Duration</span>
+              <strong id="metricDuration">0:00</strong>
+            </div>
+            <div class="summary-metric">
+              <span class="metric-label">Total TSS</span>
+              <strong id="metricTss">0</strong>
+            </div>
+            <div class="summary-metric">
+              <span class="metric-label">Run Distance</span>
+              <strong id="metricDistance">0 km</strong>
+            </div>
+            <div class="summary-metric">
+              <span class="metric-label">Work</span>
+              <strong id="metricWork">0 kJ</strong>
+            </div>
+          </div>
+        </section>
+
+        <section class="section-card">
+          <div style="display:flex; justify-content:space-between; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:10px;">
             <h3 class="section-title" style="margin:0;">Historico de check-ins</h3>
             <div class="field" style="min-width:220px; margin:0;">
               <label for="checkinStatusFilter">Filtrar por estado</label>
@@ -524,6 +627,14 @@
     const manualStrengthFeedbackInput = document.getElementById("manualStrengthFeedback");
     const checkinStatusFilter = document.getElementById("checkinStatusFilter");
     const checkinsContainer = document.getElementById("checkinsContainer");
+    const trainingLoadMeta = document.getElementById("trainingLoadMeta");
+    const metricCtl = document.getElementById("metricCtl");
+    const metricAtl = document.getElementById("metricAtl");
+    const metricTsb = document.getElementById("metricTsb");
+    const metricDuration = document.getElementById("metricDuration");
+    const metricTss = document.getElementById("metricTss");
+    const metricDistance = document.getElementById("metricDistance");
+    const metricWork = document.getElementById("metricWork");
     const result = document.getElementById("result");
     const submitButton = document.getElementById("submitButton");
 
@@ -538,6 +649,18 @@
     let athletes = [];
     let selectedAthleteId = "";
     let allCheckins = [];
+
+    function renderTrainingLoadSummary(summary, metaText) {
+      const load = summary || {};
+      metricCtl.textContent = `${load.ctl ?? 0}`;
+      metricAtl.textContent = `${load.atl ?? 0}`;
+      metricTsb.textContent = `${load.tsb ?? 0}`;
+      metricDuration.textContent = load.totalDurationFormatted || "0:00";
+      metricTss.textContent = `${load.totalTss ?? 0}`;
+      metricDistance.textContent = `${load.runDistanceKm ?? 0} km`;
+      metricWork.textContent = `${load.workKj ?? 0} kJ`;
+      trainingLoadMeta.textContent = metaText || "Sem dados calculados ainda.";
+    }
 
     function normalizeForSearch(value) {
       return (value || "")
@@ -745,6 +868,7 @@
       selectedAthleteId = athleteId || "";
       if (!selectedAthleteId) {
         selectedAthleteInput.value = "";
+        renderTrainingLoadSummary(null, "Sem dados calculados ainda.");
         return;
       }
       const athlete = athletes.find((item) => item.id === selectedAthleteId);
@@ -778,11 +902,13 @@
           await loadCheckinsForAthlete(preselectId);
         } else {
           checkinsContainer.innerHTML = "Seleciona um atleta para ver os check-ins.";
+          renderTrainingLoadSummary(null, "Sem dados calculados ainda.");
         }
       } catch (error) {
         athleteSelect.innerHTML = '<option value="">Erro ao carregar atletas</option>';
         showResult("Erro: não foi possível carregar a lista de atletas.", "error");
         checkinsContainer.innerHTML = "Erro ao carregar check-ins.";
+        renderTrainingLoadSummary(null, "Erro ao carregar dados de carga.");
       }
     }
 
@@ -947,9 +1073,12 @@
           ? "Check-in existente reutilizado"
           : "Novo check-in criado";
         const strengthInfo = `Forca confirmada: ${data.strengthPlannedDoneCount} done / ${data.strengthPlannedNotDoneCount} not done (detetadas no upload: ${data.totalStrengthSessionsDetected})`;
+        const load = data.trainingLoadSummary || {};
+        const loadInfo = `Carga: CTL ${load.ctl ?? 0} | ATL ${load.atl ?? 0} | TSB ${load.tsb ?? 0}\nTotal Duration: ${load.totalDurationFormatted || "0:00"}\nTotal TSS: ${load.totalTss ?? 0}\nRun Distance: ${load.runDistanceKm ?? 0} km\nWork: ${load.workKj ?? 0} kJ`;
         const warning = data.strengthConfirmationWarning ? `\nAviso: ${data.strengthConfirmationWarning}` : "";
+        renderTrainingLoadSummary(data.trainingLoadSummary, `Semana ${data.weekStart} a ${data.weekEnd}`);
         showResult(
-          `Atleta: ${athleteName}\nBatch: ${data.uploadBatchId}\nImportado: ${data.imported} sessões\nAtualizado: ${data.updated}\nSemana: ${data.weekStart} a ${data.weekEnd}\n${strengthInfo}\n${checkinMessage}${warning}\nLink check-in: <a href="${data.checkinUrl}" target="_blank" rel="noopener">${data.checkinUrl}</a>`,
+          `Atleta: ${athleteName}\nBatch: ${data.uploadBatchId}\nImportado: ${data.imported} sessões\nAtualizado: ${data.updated}\nSemana: ${data.weekStart} a ${data.weekEnd}\n${strengthInfo}\n${loadInfo}\n${checkinMessage}${warning}\nLink check-in: <a href="${data.checkinUrl}" target="_blank" rel="noopener">${data.checkinUrl}</a>`,
           "success"
         );
         await loadCheckinsForAthlete(selectedAthleteId);
