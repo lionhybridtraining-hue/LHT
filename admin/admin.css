@@ -1,33 +1,195 @@
-/* Admin preview mobile tweaks */
-/* Ensure CMS preview and images scale to container on small screens */
-.nc-root, .nc-app, .nc-main, .nc-entry-preview, .nc-previewPane {
-  max-width: 100% !important;
+:root {
+  --bg: #f4f3ef;
+  --panel: #ffffff;
+  --ink: #1f2328;
+  --muted: #5d6674;
+  --accent: #d89c2b;
+  --danger: #b42318;
+  --ok: #0f766e;
+  --line: #d7dce3;
+}
+
+* {
   box-sizing: border-box;
 }
 
-.nc-entry-preview img, .nc-previewPane img, img.preview-image {
-  max-width: 100% !important;
-  height: auto !important;
+body {
+  margin: 0;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, #f4f3ef 0%, #eceff3 100%);
+  color: var(--ink);
 }
 
-/* Force iframe-based previews to use full width */
-iframe {
-  width: 100% !important;
-  min-height: 420px;
+.admin-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
-/* Make text readable on small viewports */
-body, .nc-entry-preview {
-  font-size: 16px;
-  line-height: 1.45;
+.admin-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+  background: #10151d;
+  color: #fff;
 }
 
-/* Reduce UI chrome on mobile */
-.nc-toolbar, .nc-sidebar {
-  font-size: 14px;
+.admin-header h1 {
+  margin: 0;
+  font-size: 1.35rem;
 }
 
-/* Small padding so content doesn't touch edges on narrow screens */
-.nc-entry-preview, .nc-previewPane {
-  padding: 12px !important;
+.admin-header p {
+  margin: 4px 0 0;
+  color: #aab2bf;
+}
+
+.auth-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.auth-controls button,
+.sidebar-actions button,
+.form-actions button {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-weight: 600;
+  cursor: pointer;
+  background: var(--panel);
+}
+
+.auth-controls button:disabled,
+.sidebar-actions button:disabled,
+.form-actions button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.admin-main {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 18px;
+  padding: 18px;
+}
+
+.admin-sidebar,
+.admin-editor {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.sidebar-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.article-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: calc(100vh - 220px);
+  overflow-y: auto;
+}
+
+.article-item {
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--line);
+  background: #f9fafb;
+  border-radius: 8px;
+  padding: 10px;
+  cursor: pointer;
+}
+
+.article-item strong {
+  display: block;
+  font-size: 0.95rem;
+}
+
+.article-item small {
+  display: block;
+  color: var(--muted);
+  margin-top: 3px;
+}
+
+.article-item.active {
+  border-color: var(--accent);
+  background: #fff7ea;
+}
+
+.message {
+  min-height: 22px;
+  margin: 0 0 10px;
+  font-weight: 600;
+}
+
+.message.error {
+  color: var(--danger);
+}
+
+.message.success {
+  color: var(--ok);
+}
+
+#article-form {
+  display: grid;
+  gap: 8px;
+}
+
+#article-form input,
+#article-form select,
+#article-form textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 9px 10px;
+  font: inherit;
+}
+
+#article-form textarea {
+  resize: vertical;
+}
+
+.form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+#publish-now-btn {
+  border-color: #d4a11d;
+  background: #ffefc2;
+}
+
+#delete-btn {
+  border-color: #f5c2c2;
+  background: #fff1f1;
+}
+
+@media (max-width: 900px) {
+  .admin-main {
+    grid-template-columns: 1fr;
+  }
+
+  .article-list {
+    max-height: 220px;
+  }
+
+  .auth-controls {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
 }

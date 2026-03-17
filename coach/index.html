@@ -498,6 +498,57 @@
         </section>
 
         <section class="section-card">
+          <div style="display:flex; justify-content:space-between; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:10px;">
+            <h3 class="section-title" style="margin:0;">Carga de treino</h3>
+            <div class="header-actions" style="align-items:flex-end;">
+              <div class="field" style="min-width:220px; margin:0;">
+                <label for="trainingLoadWeek">Semana</label>
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <button id="prevTrainingLoadWeek" class="btn btn-secondary" type="button" style="min-width:auto; padding:10px 14px;" aria-label="Semana anterior">&larr;</button>
+                  <input id="trainingLoadWeek" type="week" />
+                  <button id="nextTrainingLoadWeek" class="btn btn-secondary" type="button" style="min-width:auto; padding:10px 14px;" aria-label="Semana seguinte">&rarr;</button>
+                </div>
+              </div>
+              <button id="applyTrainingLoadWeek" class="btn btn-secondary" type="button">Aplicar semana</button>
+              <button id="latestTrainingLoadWeek" class="btn btn-secondary" type="button">Semana mais recente</button>
+            </div>
+          </div>
+          <span id="trainingLoadMeta" class="microcopy">Sem dados calculados ainda.</span>
+          <div class="metrics-grid" style="margin-top:12px;">
+            <div class="metric-card">
+              <span class="metric-label">Fitness</span>
+              <span id="metricCtl" class="metric-value fitness">0</span>
+            </div>
+            <div class="metric-card">
+              <span class="metric-label">Fatigue</span>
+              <span id="metricAtl" class="metric-value fatigue">0</span>
+            </div>
+            <div class="metric-card">
+              <span class="metric-label">Form</span>
+              <span id="metricTsb" class="metric-value form">0</span>
+            </div>
+          </div>
+          <div class="metrics-summary-grid">
+            <div class="summary-metric">
+              <span class="metric-label">Total Duration</span>
+              <strong id="metricDuration">0:00</strong>
+            </div>
+            <div class="summary-metric">
+              <span class="metric-label">Total TSS</span>
+              <strong id="metricTss">0</strong>
+            </div>
+            <div class="summary-metric">
+              <span class="metric-label">Run Distance</span>
+              <strong id="metricDistance">0 km</strong>
+            </div>
+            <div class="summary-metric">
+              <span class="metric-label">Work</span>
+              <strong id="metricWork">0 kJ</strong>
+            </div>
+          </div>
+        </section>
+
+        <section class="section-card">
           <h3 class="section-title">Novo upload</h3>
           <form id="uploadForm">
             <div class="form-grid">
@@ -536,45 +587,6 @@
             </div>
             <p class="microcopy">O Athlete ID é gerido internamente pelo dropdown, sem preenchimento manual.</p>
           </form>
-        </section>
-
-        <section class="section-card">
-          <div style="display:flex; justify-content:space-between; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:10px;">
-            <h3 class="section-title" style="margin:0;">Carga de treino</h3>
-            <span id="trainingLoadMeta" class="microcopy">Sem dados calculados ainda.</span>
-          </div>
-          <div class="metrics-grid">
-            <div class="metric-card">
-              <span class="metric-label">Fitness</span>
-              <span id="metricCtl" class="metric-value fitness">0</span>
-            </div>
-            <div class="metric-card">
-              <span class="metric-label">Fatigue</span>
-              <span id="metricAtl" class="metric-value fatigue">0</span>
-            </div>
-            <div class="metric-card">
-              <span class="metric-label">Form</span>
-              <span id="metricTsb" class="metric-value form">0</span>
-            </div>
-          </div>
-          <div class="metrics-summary-grid">
-            <div class="summary-metric">
-              <span class="metric-label">Total Duration</span>
-              <strong id="metricDuration">0:00</strong>
-            </div>
-            <div class="summary-metric">
-              <span class="metric-label">Total TSS</span>
-              <strong id="metricTss">0</strong>
-            </div>
-            <div class="summary-metric">
-              <span class="metric-label">Run Distance</span>
-              <strong id="metricDistance">0 km</strong>
-            </div>
-            <div class="summary-metric">
-              <span class="metric-label">Work</span>
-              <strong id="metricWork">0 kJ</strong>
-            </div>
-          </div>
         </section>
 
         <section class="section-card">
@@ -636,6 +648,11 @@
     const checkinStatusFilter = document.getElementById("checkinStatusFilter");
     const checkinsContainer = document.getElementById("checkinsContainer");
     const trainingLoadMeta = document.getElementById("trainingLoadMeta");
+    const trainingLoadWeekInput = document.getElementById("trainingLoadWeek");
+    const applyTrainingLoadWeekButton = document.getElementById("applyTrainingLoadWeek");
+    const latestTrainingLoadWeekButton = document.getElementById("latestTrainingLoadWeek");
+    const prevTrainingLoadWeekButton = document.getElementById("prevTrainingLoadWeek");
+    const nextTrainingLoadWeekButton = document.getElementById("nextTrainingLoadWeek");
     const metricCtl = document.getElementById("metricCtl");
     const metricAtl = document.getElementById("metricAtl");
     const metricTsb = document.getElementById("metricTsb");
@@ -656,6 +673,7 @@
 
     let athletes = [];
     let selectedAthleteId = "";
+    let selectedTrainingLoadWeekStart = "";
     let allCheckins = [];
 
     function syncCheckinMode() {
@@ -680,6 +698,86 @@
       metricDistance.textContent = `${load.runDistanceKm ?? 0} km`;
       metricWork.textContent = `${load.workKj ?? 0} kJ`;
       trainingLoadMeta.textContent = metaText || "Sem dados calculados ainda.";
+    }
+
+    function weekInputToWeekStartIso(weekInputValue) {
+      if (!/^\d{4}-W\d{2}$/.test(weekInputValue || "")) {
+        return "";
+      }
+
+      const [yearText, weekText] = weekInputValue.split("-W");
+      const year = Number(yearText);
+      const week = Number(weekText);
+      if (!Number.isInteger(year) || !Number.isInteger(week) || week < 1 || week > 53) {
+        return "";
+      }
+
+      const jan4 = new Date(Date.UTC(year, 0, 4));
+      const jan4Day = (jan4.getUTCDay() + 6) % 7;
+      const firstIsoMonday = new Date(jan4.getTime());
+      firstIsoMonday.setUTCDate(jan4.getUTCDate() - jan4Day);
+
+      const targetMonday = new Date(firstIsoMonday.getTime());
+      targetMonday.setUTCDate(firstIsoMonday.getUTCDate() + (week - 1) * 7);
+      return targetMonday.toISOString().slice(0, 10);
+    }
+
+    function weekStartIsoToWeekInput(weekStartIso) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(weekStartIso || "")) {
+        return "";
+      }
+
+      const date = new Date(`${weekStartIso}T00:00:00.000Z`);
+      if (Number.isNaN(date.getTime())) {
+        return "";
+      }
+
+      const thursday = new Date(date.getTime());
+      thursday.setUTCDate(date.getUTCDate() + 3);
+      const isoYear = thursday.getUTCFullYear();
+
+      const jan4 = new Date(Date.UTC(isoYear, 0, 4));
+      const jan4Day = (jan4.getUTCDay() + 6) % 7;
+      const firstIsoMonday = new Date(jan4.getTime());
+      firstIsoMonday.setUTCDate(jan4.getUTCDate() - jan4Day);
+
+      const diffDays = Math.round((date.getTime() - firstIsoMonday.getTime()) / 86400000);
+      const isoWeek = Math.floor(diffDays / 7) + 1;
+
+      return `${isoYear}-W${String(isoWeek).padStart(2, "0")}`;
+    }
+
+    function addDaysToIsoDate(isoDate, days) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(isoDate || "")) {
+        return "";
+      }
+
+      const date = new Date(`${isoDate}T00:00:00.000Z`);
+      if (Number.isNaN(date.getTime())) {
+        return "";
+      }
+
+      date.setUTCDate(date.getUTCDate() + days);
+      return date.toISOString().slice(0, 10);
+    }
+
+    function setSelectedTrainingLoadWeekStart(weekStartIso) {
+      selectedTrainingLoadWeekStart = weekStartIso || "";
+      trainingLoadWeekInput.value = weekStartIso ? weekStartIsoToWeekInput(weekStartIso) : "";
+    }
+
+    function syncTrainingLoadWeekControls() {
+      const hasAthlete = Boolean(selectedAthleteId);
+      trainingLoadWeekInput.disabled = !hasAthlete;
+      applyTrainingLoadWeekButton.disabled = !hasAthlete;
+      latestTrainingLoadWeekButton.disabled = !hasAthlete;
+      prevTrainingLoadWeekButton.disabled = !hasAthlete;
+      nextTrainingLoadWeekButton.disabled = !hasAthlete;
+    }
+
+    function getCurrentOrInputWeekStart() {
+      const inputWeekStart = weekInputToWeekStartIso(trainingLoadWeekInput.value);
+      return inputWeekStart || selectedTrainingLoadWeekStart || "";
     }
 
     function normalizeForSearch(value) {
@@ -809,16 +907,25 @@
       }
     }
 
-    async function loadLatestTrainingLoadForAthlete(athleteId) {
+    async function loadTrainingLoadForAthlete(athleteId, forcedWeekStartIso = "") {
       if (!athleteId) {
+        setSelectedTrainingLoadWeekStart("");
         renderTrainingLoadSummary(null, "Sem dados calculados ainda.");
         return;
       }
 
-      trainingLoadMeta.textContent = "A carregar carga mais recente...";
+      trainingLoadMeta.textContent = forcedWeekStartIso || selectedTrainingLoadWeekStart
+        ? "A carregar carga da semana selecionada..."
+        : "A carregar carga mais recente...";
 
       try {
-        const response = await fetch(`/.netlify/functions/latest-training-load?athleteId=${encodeURIComponent(athleteId)}`);
+        const requestedWeekStart = forcedWeekStartIso || selectedTrainingLoadWeekStart || "";
+        const params = new URLSearchParams({ athleteId });
+        if (requestedWeekStart) {
+          params.set("weekStart", requestedWeekStart);
+        }
+
+        const response = await fetch(`/.netlify/functions/latest-training-load?${params.toString()}`);
         const data = await response.json();
 
         if (!response.ok) {
@@ -827,12 +934,22 @@
         }
 
         if (!data.trainingLoadSummary) {
-          renderTrainingLoadSummary(null, "Sem dados de carga para este atleta.");
+          if (requestedWeekStart) {
+            renderTrainingLoadSummary(null, `Sem dados de carga na semana ${requestedWeekStart}.`);
+            setSelectedTrainingLoadWeekStart(requestedWeekStart);
+          } else {
+            renderTrainingLoadSummary(null, "Sem dados de carga para este atleta.");
+            setSelectedTrainingLoadWeekStart("");
+          }
           return;
         }
 
         const summary = data.trainingLoadSummary;
-        renderTrainingLoadSummary(summary, `Ultima semana com dados: ${summary.weekStart} a ${summary.weekEnd}`);
+        setSelectedTrainingLoadWeekStart(summary.weekStart || requestedWeekStart || "");
+        const metaText = requestedWeekStart
+          ? `Semana selecionada: ${summary.weekStart} a ${summary.weekEnd}`
+          : `Ultima semana com dados: ${summary.weekStart} a ${summary.weekEnd}`;
+        renderTrainingLoadSummary(summary, metaText);
       } catch (error) {
         renderTrainingLoadSummary(null, "Erro ao carregar dados de carga.");
       }
@@ -917,17 +1034,21 @@
       selectedAthleteId = athleteId || "";
       if (!selectedAthleteId) {
         selectedAthleteInput.value = "";
+        setSelectedTrainingLoadWeekStart("");
+        syncTrainingLoadWeekControls();
         renderTrainingLoadSummary(null, "Sem dados calculados ainda.");
         return;
       }
       const athlete = athletes.find((item) => item.id === selectedAthleteId);
       if (!athlete) {
         selectedAthleteInput.value = "";
+        syncTrainingLoadWeekControls();
         return;
       }
       selectedAthleteInput.value = athlete.name
         ? `${athlete.name} (${athlete.email || athlete.id})`
         : (athlete.email || athlete.id);
+      syncTrainingLoadWeekControls();
     }
 
     async function loadAthletes(preselectId) {
@@ -949,9 +1070,11 @@
           athleteSelect.value = preselectId;
           syncSelectedAthlete(preselectId);
           await loadCheckinsForAthlete(preselectId);
-          await loadLatestTrainingLoadForAthlete(preselectId);
+          await loadTrainingLoadForAthlete(preselectId);
         } else {
           checkinsContainer.innerHTML = "Seleciona um atleta para ver os check-ins.";
+          setSelectedTrainingLoadWeekStart("");
+          syncTrainingLoadWeekControls();
           renderTrainingLoadSummary(null, "Sem dados calculados ainda.");
         }
       } catch (error) {
@@ -1019,8 +1142,79 @@
 
     athleteSelect.addEventListener("change", () => {
       syncSelectedAthlete(athleteSelect.value);
+      setSelectedTrainingLoadWeekStart("");
       loadCheckinsForAthlete(athleteSelect.value);
-      loadLatestTrainingLoadForAthlete(athleteSelect.value);
+      loadTrainingLoadForAthlete(athleteSelect.value);
+    });
+
+    applyTrainingLoadWeekButton.addEventListener("click", () => {
+      if (!selectedAthleteId) {
+        showResult("Erro: seleciona primeiro um atleta para filtrar a semana.", "error");
+        return;
+      }
+
+      const weekStartIso = weekInputToWeekStartIso(trainingLoadWeekInput.value);
+      if (!weekStartIso) {
+        showResult("Erro: seleciona uma semana valida para filtrar.", "error");
+        return;
+      }
+
+      setSelectedTrainingLoadWeekStart(weekStartIso);
+      loadTrainingLoadForAthlete(selectedAthleteId, weekStartIso);
+    });
+
+    latestTrainingLoadWeekButton.addEventListener("click", () => {
+      if (!selectedAthleteId) {
+        showResult("Erro: seleciona primeiro um atleta.", "error");
+        return;
+      }
+
+      setSelectedTrainingLoadWeekStart("");
+      loadTrainingLoadForAthlete(selectedAthleteId);
+    });
+
+    prevTrainingLoadWeekButton.addEventListener("click", () => {
+      if (!selectedAthleteId) {
+        showResult("Erro: seleciona primeiro um atleta.", "error");
+        return;
+      }
+
+      const baseWeekStart = getCurrentOrInputWeekStart();
+      if (!baseWeekStart) {
+        showResult("Escolhe primeiro uma semana, ou clica em 'Semana mais recente'.", "error");
+        return;
+      }
+
+      const previousWeekStart = addDaysToIsoDate(baseWeekStart, -7);
+      if (!previousWeekStart) {
+        showResult("Erro ao calcular semana anterior.", "error");
+        return;
+      }
+
+      setSelectedTrainingLoadWeekStart(previousWeekStart);
+      loadTrainingLoadForAthlete(selectedAthleteId, previousWeekStart);
+    });
+
+    nextTrainingLoadWeekButton.addEventListener("click", () => {
+      if (!selectedAthleteId) {
+        showResult("Erro: seleciona primeiro um atleta.", "error");
+        return;
+      }
+
+      const baseWeekStart = getCurrentOrInputWeekStart();
+      if (!baseWeekStart) {
+        showResult("Escolhe primeiro uma semana, ou clica em 'Semana mais recente'.", "error");
+        return;
+      }
+
+      const nextWeekStart = addDaysToIsoDate(baseWeekStart, 7);
+      if (!nextWeekStart) {
+        showResult("Erro ao calcular semana seguinte.", "error");
+        return;
+      }
+
+      setSelectedTrainingLoadWeekStart(nextWeekStart);
+      loadTrainingLoadForAthlete(selectedAthleteId, nextWeekStart);
     });
 
     athleteSearchInput.addEventListener("input", applyAthleteFilter);
@@ -1142,6 +1336,7 @@
         const checkinLink = data.checkinUrl
           ? `\nLink check-in: <a href="${data.checkinUrl}" target="_blank" rel="noopener">${data.checkinUrl}</a>`
           : "";
+        setSelectedTrainingLoadWeekStart(data.weekStart || "");
         renderTrainingLoadSummary(data.trainingLoadSummary, `Semana ${data.weekStart} a ${data.weekEnd}`);
         showResult(
           `Atleta: ${athleteName}\nBatch: ${data.uploadBatchId}\nImportado: ${data.imported} sessões\nAtualizado: ${data.updated}\nSemana: ${data.weekStart} a ${data.weekEnd}\n${strengthInfo}\n${loadInfo}\n${checkinMessage}${warning}${checkinLink}`,
@@ -1158,6 +1353,7 @@
     skipCheckinInput.addEventListener("change", syncCheckinMode);
 
     loadAthletes();
+    syncTrainingLoadWeekControls();
     syncCheckinMode();
   </script>
 </body>

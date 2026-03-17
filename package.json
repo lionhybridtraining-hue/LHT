@@ -4,7 +4,8 @@
   "scripts": {
     "build": "node scripts/generate-posts-json.mjs",
     "dev": "netlify dev --context dev --no-open --port 8888 --functions-port 9999",
-    "dev:offline": "netlify dev --offline --context dev --no-open --port 8888 --functions-port 9999"
+    "dev:offline": "netlify dev --offline --context dev --no-open --port 8888 --functions-port 9999",
+    "migrate:posts": "node scripts/migrate-posts-to-db.mjs"
   },
   "devDependencies": {
     "netlify-cli": "^24.2.0"

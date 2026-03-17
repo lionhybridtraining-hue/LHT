@@ -3,7 +3,8 @@ const { getConfig } = require("./_lib/config");
 const { getWeekStartIso } = require("./_lib/date");
 const {
   getLatestTrainingLoadMetric,
-  getTrainingLoadDailyRange
+  getTrainingLoadDailyRange,
+  getTrainingLoadMetricsRange
 } = require("./_lib/supabase");
 const { summarizeTrainingLoadWeek } = require("./_lib/training-load");
 
@@ -27,26 +28,57 @@ exports.handler = async (event) => {
       return json(400, { error: "Missing athleteId" });
     }
 
-    const config = getConfig();
-    const latestMetric = await getLatestTrainingLoadMetric(config, athleteId);
-    if (!latestMetric) {
-      return json(200, { trainingLoadSummary: null });
+    const rawWeekStart = event.queryStringParameters && event.queryStringParameters.weekStart
+      ? String(event.queryStringParameters.weekStart).trim()
+      : "";
+
+    if (rawWeekStart && !/^\d{4}-\d{2}-\d{2}$/.test(rawWeekStart)) {
+      return json(400, { error: "Invalid weekStart format. Use YYYY-MM-DD." });
     }
 
-    const latestDate = latestMetric.metric_date;
-    const weekStart = getWeekStartIso(latestDate);
-    const weekEnd = endOfWeekIso(weekStart);
+    const config = getConfig();
+    let weekStart = rawWeekStart;
+    let weekEnd = "";
+    let metricReferenceDate = "";
+
+    if (!weekStart) {
+      const latestMetric = await getLatestTrainingLoadMetric(config, athleteId);
+      if (!latestMetric) {
+        return json(200, { trainingLoadSummary: null });
+      }
+
+      metricReferenceDate = latestMetric.metric_date;
+      weekStart = getWeekStartIso(metricReferenceDate);
+      weekEnd = endOfWeekIso(weekStart);
+    } else {
+      weekEnd = endOfWeekIso(weekStart);
+      metricReferenceDate = weekEnd;
+    }
+
     const dailyRows = await getTrainingLoadDailyRange(config, athleteId, weekStart, weekEnd);
+    const metricsRows = await getTrainingLoadMetricsRange(config, athleteId, weekStart, weekEnd);
+
+    if ((!Array.isArray(dailyRows) || !dailyRows.length) && (!Array.isArray(metricsRows) || !metricsRows.length)) {
+      return json(200, {
+        trainingLoadSummary: null,
+        weekStart,
+        weekEnd
+      });
+    }
 
     const summary = summarizeTrainingLoadWeek(
       Array.isArray(dailyRows) ? dailyRows : [],
-      [latestMetric],
+      Array.isArray(metricsRows) ? metricsRows : [],
       weekStart,
       weekEnd,
-      latestDate
+      metricReferenceDate
     );
 
-    return json(200, { trainingLoadSummary: summary });
+    return json(200, {
+      trainingLoadSummary: summary,
+      weekStart,
+      weekEnd
+    });
   } catch (err) {
     return json(500, { error: err.message || "Erro ao carregar carga de treino" });
   }

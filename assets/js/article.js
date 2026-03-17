@@ -18,24 +18,11 @@
     }
   }
 
-  async function fetchPostsMeta(){
-    const candidates = [
-      '/blog/posts.json'
-    ];
-
-    for(const url of candidates){
-      try{
-        const res = await fetch(url, { cache: 'no-cache' });
-        if(!res.ok) continue;
-        let data = await res.json();
-        if(Array.isArray(data)) return data;
-        if(data && Array.isArray(data.items)) return data.items;
-        if(data && Array.isArray(data.posts)) return data.posts;
-      }catch(e){
-        // try next
-      }
-    }
-    return [];
+  async function fetchArticleBySlug(slug){
+    const res = await fetch(`/.netlify/functions/blog-articles?slug=${encodeURIComponent(slug)}`, { cache: 'no-cache' });
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    return data && data.article ? data.article : null;
   }
 
   async function load(){
@@ -52,49 +39,25 @@
     }
 
     try{
-      // Load metadata
-      const posts = await fetchPostsMeta();
-      const meta = posts.find(p=> p.slug === slug);
-      if(meta){
-        titleEl.textContent = meta.title;
-        document.title = `${meta.title} — Lion Hybrid Training`;
-        dateEl.setAttribute('datetime', meta.date);
-        dateEl.textContent = formatDate(meta.date);
-        catEl.textContent = meta.category || '';
-      }
+      const article = await fetchArticleBySlug(slug);
+      if(!article) throw new Error('Conteudo nao encontrado');
 
-      // Load markdown
-      const mdRes = await fetch(`/blog/posts/${encodeURIComponent(slug)}.md`, { cache: 'no-cache' });
-      if(!mdRes.ok) throw new Error('Conteúdo não encontrado');
-      const md = await mdRes.text();
-      let mdBody = md;
-
-      // Try front matter for meta
-      const fmMatch = md.match(/^---\s*[\s\S]*?\n---\s*\n?/);
-      if(fmMatch){
-        const fmBlock = fmMatch[0];
-        mdBody = md.slice(fmBlock.length);
-        const fm = fmBlock
-          .replace(/^---\s*/, '')
-          .replace(/\s*---\s*$/, '');
-        fm.split(/\n+/).forEach(line=>{
-          const m = line.match(/^([A-Za-z_][A-Za-z0-9_-]*):\s*(.*)$/);
-          if(!m) return;
-          const key = m[1].trim();
-          const val = m[2].trim().replace(/^"|"$/g,'');
-          if(key === 'title' && val) { titleEl.textContent = val; document.title = `${val} — Lion Hybrid Training`; }
-          if(key === 'date' && val) { dateEl.setAttribute('datetime', val); dateEl.textContent = formatDate(val); }
-          if(key === 'category' && val) { catEl.textContent = val; }
-          if(key === 'excerpt' && val && !document.querySelector('.header-subtitle')) { /* no-op: could add meta description */ }
-        });
+      const date = article.publishedAt || article.createdAt || '';
+      titleEl.textContent = article.title || 'Artigo';
+      document.title = `${titleEl.textContent} — Lion Hybrid Training`;
+      if(date){
+        dateEl.setAttribute('datetime', date);
+        dateEl.textContent = formatDate(date);
       }
+      catEl.textContent = article.category || '';
+
       const conv = new showdown.Converter({
         tables: true,
         simplifiedAutoLink: true,
         strikethrough: true,
         tasklists: true
       });
-      contentEl.innerHTML = conv.makeHtml(mdBody);
+      contentEl.innerHTML = conv.makeHtml(article.content || '');
 
       // Track article view with consent-aware Meta Pixel / GA4
       try{
@@ -118,7 +81,7 @@
     }catch(err){
       console.error(err);
       titleEl.textContent = 'Artigo';
-      contentEl.innerHTML = '<p>Não foi possível carregar este artigo. Verifica se o ficheiro existe em <strong>blog/posts/SLUG.md</strong>.</p>';
+      contentEl.innerHTML = '<p>Nao foi possivel carregar este artigo a partir da base de dados.</p>';
     }
   }
 

@@ -26,47 +26,16 @@
     return res.json();
   }
 
-  function normalizeList(data){
-    if(Array.isArray(data)) return data;
-    if(data && Array.isArray(data.items)) return data.items;
-    if(data && Array.isArray(data.posts)) return data.posts;
-    return [];
-  }
-
-  function mergePosts(indexPosts, apiPosts){
-    const bySlug = new Map();
-    apiPosts.forEach(p=> { if(p && p.slug) bySlug.set(p.slug, p); });
-
-    const used = new Set();
-    const merged = [];
-
-    // Keep curated order from posts.json, but fill missing fields from API
-    indexPosts.forEach(p=>{
-      if(!p || !p.slug) return;
-      const fromApi = bySlug.get(p.slug) || {};
-      used.add(p.slug);
-      merged.push({
-        ...fromApi,
-        ...p
-      });
-    });
-
-    // Append any new posts not yet in posts.json
-    apiPosts.forEach(p=>{
-      if(!p || !p.slug) return;
-      if(used.has(p.slug)) return;
-      merged.push(p);
-    });
-
-    return merged;
-  }
-
   async function fetchPosts(){
-    try{
-      const indexPosts = normalizeList(await fetchJson('/blog/posts.json'));
-      if(indexPosts.length) return indexPosts;
-    }catch(e){}
-    return [];
+    const data = await fetchJson('/.netlify/functions/blog-articles');
+    const rows = data && Array.isArray(data.articles) ? data.articles : [];
+    return rows.map((item)=>({
+      slug: item.slug,
+      title: item.title,
+      date: item.publishedAt || item.createdAt,
+      category: item.category || 'Artigo',
+      excerpt: item.excerpt || ''
+    }));
   }
 
   function createCard(post){
@@ -187,7 +156,7 @@
       h3.textContent = 'Erro a carregar artigos';
       const p = document.createElement('p');
       p.className='article-excerpt';
-      p.textContent = 'Verifica se /blog/posts.json existe e devolve JSON.';
+      p.textContent = 'Verifica se a funcao /.netlify/functions/blog-articles esta disponivel.';
       error.appendChild(h3);
       error.appendChild(p);
       document.getElementById('articles-grid')?.appendChild(error);

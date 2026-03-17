@@ -4,24 +4,354 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Admin — LHT</title>
-  <!-- Use site styles in preview so the post preview matches production (responsive) -->
-  <link rel="stylesheet" href="../assets/css/style.css" />
-  <!-- Admin-specific tweaks to improve mobile preview layout -->
   <link rel="stylesheet" href="admin.css" />
 </head>
 <body>
   <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
-  <script src="https://unpkg.com/decap-cms@^3.0.0/dist/decap-cms.js"></script>
+  <div class="admin-shell">
+    <header class="admin-header">
+      <div>
+        <h1>Gestao de Artigos</h1>
+        <p>Painel CRUD ligado a blog_articles</p>
+      </div>
+      <div class="auth-controls">
+        <span id="auth-status">Nao autenticado</span>
+        <button id="login-btn" type="button">Entrar</button>
+        <button id="logout-btn" type="button" disabled>Sair</button>
+      </div>
+    </header>
+
+    <main class="admin-main">
+      <aside class="admin-sidebar">
+        <div class="sidebar-actions">
+          <button id="refresh-btn" type="button">Atualizar lista</button>
+          <button id="new-btn" type="button">Novo</button>
+        </div>
+        <ul id="article-list" class="article-list" aria-live="polite"></ul>
+      </aside>
+
+      <section class="admin-editor">
+        <p id="message" class="message" role="status"></p>
+        <form id="article-form">
+          <input type="hidden" id="article-id" />
+
+          <label for="title">Titulo</label>
+          <input id="title" name="title" required />
+
+          <label for="slug">Slug</label>
+          <input id="slug" name="slug" placeholder="exemplo-de-slug" />
+
+          <label for="category">Categoria</label>
+          <input id="category" name="category" value="Artigo" />
+
+          <label for="excerpt">Resumo</label>
+          <textarea id="excerpt" name="excerpt" rows="3"></textarea>
+
+          <label for="status">Estado</label>
+          <select id="status" name="status">
+            <option value="draft">draft</option>
+            <option value="published">published</option>
+          </select>
+
+          <label for="content">Conteudo (Markdown)</label>
+          <textarea id="content" name="content" rows="16" required></textarea>
+
+          <div class="form-actions">
+            <button id="save-btn" type="submit">Guardar</button>
+            <button id="publish-now-btn" type="button">Publicar agora</button>
+            <button id="delete-btn" type="button">Eliminar</button>
+          </div>
+        </form>
+      </section>
+    </main>
+  </div>
+
   <script>
-    if (window.netlifyIdentity) {
-      window.netlifyIdentity.on('init', user => {
-        if (!user) {
-          window.netlifyIdentity.on('login', () => {
-            document.location.reload();
-          });
-        }
-      });
+    const apiBase = '/.netlify/functions/blog-articles';
+    const state = {
+      user: null,
+      token: null,
+      articles: [],
+      selectedId: null
+    };
+
+    const els = {
+      authStatus: document.getElementById('auth-status'),
+      loginBtn: document.getElementById('login-btn'),
+      logoutBtn: document.getElementById('logout-btn'),
+      refreshBtn: document.getElementById('refresh-btn'),
+      newBtn: document.getElementById('new-btn'),
+      articleList: document.getElementById('article-list'),
+      message: document.getElementById('message'),
+      form: document.getElementById('article-form'),
+      id: document.getElementById('article-id'),
+      title: document.getElementById('title'),
+      slug: document.getElementById('slug'),
+      category: document.getElementById('category'),
+      excerpt: document.getElementById('excerpt'),
+      status: document.getElementById('status'),
+      content: document.getElementById('content'),
+      saveBtn: document.getElementById('save-btn'),
+      publishNowBtn: document.getElementById('publish-now-btn'),
+      deleteBtn: document.getElementById('delete-btn')
+    };
+
+    function showMessage(text, isError) {
+      els.message.textContent = text || '';
+      els.message.classList.toggle('error', Boolean(isError));
+      els.message.classList.toggle('success', !isError && Boolean(text));
     }
+
+    function slugify(value) {
+      return (value || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, '')
+        .trim()
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-');
+    }
+
+    async function getToken(user) {
+      const token = await user.jwt();
+      state.token = token;
+      return token;
+    }
+
+    async function apiRequest(method, url, body) {
+      if (!state.user) {
+        throw new Error('Sessao expirada. Faz login novamente.');
+      }
+
+      const token = await getToken(state.user);
+      const res = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer ' + token
+        },
+        body: body ? JSON.stringify(body) : undefined
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error || `HTTP ${res.status}`);
+      }
+      return data;
+    }
+
+    function setAuthUI() {
+      const loggedIn = Boolean(state.user);
+      els.authStatus.textContent = loggedIn
+        ? `Autenticado: ${state.user.email || state.user.id}`
+        : 'Nao autenticado';
+      els.loginBtn.disabled = loggedIn;
+      els.logoutBtn.disabled = !loggedIn;
+      els.refreshBtn.disabled = !loggedIn;
+      els.newBtn.disabled = !loggedIn;
+      els.saveBtn.disabled = !loggedIn;
+      els.publishNowBtn.disabled = !loggedIn;
+      els.deleteBtn.disabled = !loggedIn;
+    }
+
+    function resetForm() {
+      state.selectedId = null;
+      els.id.value = '';
+      els.title.value = '';
+      els.slug.value = '';
+      els.category.value = 'Artigo';
+      els.excerpt.value = '';
+      els.status.value = 'draft';
+      els.content.value = '';
+      showMessage('Novo artigo pronto para edicao.', false);
+      renderList();
+    }
+
+    function fillForm(article) {
+      if (!article) return;
+      state.selectedId = article.id;
+      els.id.value = article.id || '';
+      els.title.value = article.title || '';
+      els.slug.value = article.slug || '';
+      els.category.value = article.category || 'Artigo';
+      els.excerpt.value = article.excerpt || '';
+      els.status.value = article.status || 'draft';
+      els.content.value = article.content || '';
+      renderList();
+    }
+
+    function renderList() {
+      els.articleList.innerHTML = '';
+      const frag = document.createDocumentFragment();
+
+      state.articles.forEach((article) => {
+        const li = document.createElement('li');
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'article-item';
+        if (article.id === state.selectedId) {
+          btn.classList.add('active');
+        }
+        btn.innerHTML = `<strong>${article.title || '(sem titulo)'}</strong><small>${article.slug || ''} · ${article.status || 'draft'}</small>`;
+        btn.addEventListener('click', () => fillForm(article));
+        li.appendChild(btn);
+        frag.appendChild(li);
+      });
+
+      els.articleList.appendChild(frag);
+    }
+
+    async function refreshList() {
+      if (!state.user) return;
+      showMessage('A atualizar lista...', false);
+      const data = await apiRequest('GET', `${apiBase}?admin=1`);
+      state.articles = Array.isArray(data.articles) ? data.articles : [];
+      renderList();
+      showMessage(`Lista atualizada (${state.articles.length} artigos).`, false);
+    }
+
+    function collectPayload() {
+      const title = els.title.value.trim();
+      const content = els.content.value;
+      if (!title) throw new Error('Titulo e obrigatorio.');
+      if (!content.trim()) throw new Error('Conteudo e obrigatorio.');
+
+      return {
+        id: els.id.value.trim() || undefined,
+        title,
+        slug: (els.slug.value || slugify(title)).trim(),
+        category: (els.category.value || 'Artigo').trim() || 'Artigo',
+        excerpt: els.excerpt.value.trim(),
+        status: els.status.value,
+        content
+      };
+    }
+
+    async function saveArticle() {
+      const payload = collectPayload();
+
+      if (payload.id) {
+        const data = await apiRequest('PATCH', apiBase, payload);
+        showMessage('Artigo atualizado com sucesso.', false);
+        await refreshList();
+        fillForm(data.article);
+      } else {
+        const data = await apiRequest('POST', apiBase, payload);
+        showMessage('Artigo criado com sucesso.', false);
+        await refreshList();
+        fillForm(data.article);
+      }
+    }
+
+    async function publishNow() {
+      const id = els.id.value.trim();
+      if (!id) {
+        throw new Error('Guarda o artigo antes de publicar.');
+      }
+
+      const patch = {
+        id,
+        status: 'published',
+        publishedAt: new Date().toISOString()
+      };
+
+      const data = await apiRequest('PATCH', apiBase, patch);
+      showMessage('Artigo publicado.', false);
+      await refreshList();
+      fillForm(data.article);
+    }
+
+    async function deleteArticle() {
+      const id = els.id.value.trim();
+      if (!id) {
+        throw new Error('Seleciona um artigo para eliminar.');
+      }
+      const sure = window.confirm('Eliminar este artigo? Esta acao faz soft-delete.');
+      if (!sure) return;
+
+      await apiRequest('DELETE', `${apiBase}?id=${encodeURIComponent(id)}`);
+      showMessage('Artigo eliminado.', false);
+      await refreshList();
+      resetForm();
+    }
+
+    async function handleAuthChange(user) {
+      state.user = user || null;
+      setAuthUI();
+      if (state.user) {
+        await refreshList();
+      } else {
+        state.articles = [];
+        renderList();
+        resetForm();
+      }
+    }
+
+    if (window.netlifyIdentity) {
+      window.netlifyIdentity.on('init', (user) => {
+        handleAuthChange(user).catch((err) => showMessage(err.message, true));
+      });
+      window.netlifyIdentity.on('login', (user) => {
+        handleAuthChange(user).catch((err) => showMessage(err.message, true));
+      });
+      window.netlifyIdentity.on('logout', () => {
+        handleAuthChange(null).catch((err) => showMessage(err.message, true));
+      });
+      window.netlifyIdentity.init();
+    }
+
+    els.loginBtn.addEventListener('click', () => {
+      window.netlifyIdentity.open();
+    });
+
+    els.logoutBtn.addEventListener('click', () => {
+      window.netlifyIdentity.logout();
+    });
+
+    els.refreshBtn.addEventListener('click', async () => {
+      try {
+        await refreshList();
+      } catch (err) {
+        showMessage(err.message, true);
+      }
+    });
+
+    els.newBtn.addEventListener('click', () => resetForm());
+
+    els.title.addEventListener('blur', () => {
+      if (!els.slug.value.trim() && els.title.value.trim()) {
+        els.slug.value = slugify(els.title.value);
+      }
+    });
+
+    els.form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      try {
+        await saveArticle();
+      } catch (err) {
+        showMessage(err.message, true);
+      }
+    });
+
+    els.publishNowBtn.addEventListener('click', async () => {
+      try {
+        await publishNow();
+      } catch (err) {
+        showMessage(err.message, true);
+      }
+    });
+
+    els.deleteBtn.addEventListener('click', async () => {
+      try {
+        await deleteArticle();
+      } catch (err) {
+        showMessage(err.message, true);
+      }
+    });
+
+    setAuthUI();
+    resetForm();
   </script>
 </body>
 </html>

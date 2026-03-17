@@ -2,6 +2,16 @@
 
 create extension if not exists pgcrypto;
 
+create or replace function set_updated_at()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$;
+
 create table if not exists athletes (
   id uuid primary key default gen_random_uuid(),
   name text,
@@ -147,3 +157,78 @@ create table if not exists training_load_metrics (
 
 create index if not exists training_load_metrics_athlete_date_idx
 on training_load_metrics (athlete_id, metric_date desc);
+
+create table if not exists blog_articles (
+  id uuid primary key default gen_random_uuid(),
+  slug text not null unique,
+  title text not null,
+  excerpt text,
+  category text not null default 'Artigo',
+  content text not null,
+  status text not null default 'draft' check (status in ('draft', 'published')),
+  published_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  deleted_at timestamptz
+);
+
+alter table blog_articles add column if not exists slug text;
+alter table blog_articles add column if not exists title text;
+alter table blog_articles add column if not exists excerpt text;
+alter table blog_articles add column if not exists category text;
+alter table blog_articles add column if not exists content text;
+alter table blog_articles add column if not exists status text;
+alter table blog_articles add column if not exists published_at timestamptz;
+alter table blog_articles add column if not exists created_at timestamptz;
+alter table blog_articles add column if not exists updated_at timestamptz;
+alter table blog_articles add column if not exists deleted_at timestamptz;
+
+update blog_articles set slug = coalesce(nullif(slug, ''), id::text) where slug is null or slug = '';
+update blog_articles set title = coalesce(nullif(title, ''), 'Sem titulo') where title is null or title = '';
+update blog_articles set category = coalesce(nullif(category, ''), 'Artigo') where category is null or category = '';
+update blog_articles set content = coalesce(content, '') where content is null;
+update blog_articles set status = 'draft' where status is null or status not in ('draft', 'published');
+update blog_articles set created_at = now() where created_at is null;
+update blog_articles set updated_at = now() where updated_at is null;
+
+alter table blog_articles alter column slug set not null;
+alter table blog_articles alter column title set not null;
+alter table blog_articles alter column category set default 'Artigo';
+alter table blog_articles alter column category set not null;
+alter table blog_articles alter column content set not null;
+alter table blog_articles alter column status set default 'draft';
+alter table blog_articles alter column status set not null;
+alter table blog_articles alter column created_at set default now();
+alter table blog_articles alter column created_at set not null;
+alter table blog_articles alter column updated_at set default now();
+alter table blog_articles alter column updated_at set not null;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'blog_articles_status_check'
+      and conrelid = 'blog_articles'::regclass
+  ) then
+    alter table blog_articles
+      add constraint blog_articles_status_check
+      check (status in ('draft', 'published'));
+  end if;
+end $$;
+
+create unique index if not exists blog_articles_slug_uidx
+on blog_articles (slug);
+
+create index if not exists blog_articles_public_listing_idx
+on blog_articles (published_at desc)
+where deleted_at is null and status = 'published';
+
+create index if not exists blog_articles_updated_at_idx
+on blog_articles (updated_at desc);
+
+drop trigger if exists set_blog_articles_updated_at on blog_articles;
+create trigger set_blog_articles_updated_at
+before update on blog_articles
+for each row
+execute function set_updated_at();

@@ -210,6 +210,14 @@ async function getTrainingLoadDailyRange(config, athleteId, startDate, endDate) 
   });
 }
 
+async function getTrainingLoadMetricsRange(config, athleteId, startDate, endDate) {
+  return supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `training_load_metrics?athlete_id=eq.${encodeURIComponent(athleteId)}&metric_date=gte.${startDate}&metric_date=lte.${endDate}&order=metric_date.asc`
+  });
+}
+
 async function createWeeklyCheckin(config, payload) {
   const rows = await supabaseRequest({
     url: config.supabaseUrl,
@@ -258,6 +266,69 @@ async function updateWeeklyCheckin(config, id, patch) {
   return Array.isArray(rows) ? rows[0] || null : null;
 }
 
+async function listPublishedBlogArticles(config) {
+  return supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: "blog_articles?deleted_at=is.null&status=eq.published&select=id,slug,title,excerpt,category,content,status,published_at,created_at,updated_at&order=published_at.desc"
+  });
+}
+
+async function getPublishedBlogArticleBySlug(config, slug) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `blog_articles?deleted_at=is.null&status=eq.published&slug=eq.${encodeURIComponent(slug)}&select=id,slug,title,excerpt,category,content,status,published_at,created_at,updated_at&limit=1`
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function listBlogArticlesAdmin(config) {
+  return supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: "blog_articles?deleted_at=is.null&select=id,slug,title,excerpt,category,content,status,published_at,created_at,updated_at&order=updated_at.desc"
+  });
+}
+
+async function createBlogArticle(config, payload) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: "blog_articles",
+    method: "POST",
+    body: [payload],
+    prefer: "return=representation"
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function updateBlogArticle(config, id, patch) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `blog_articles?id=eq.${encodeURIComponent(id)}&deleted_at=is.null`,
+    method: "PATCH",
+    body: patch,
+    prefer: "return=representation"
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function softDeleteBlogArticle(config, id) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `blog_articles?id=eq.${encodeURIComponent(id)}&deleted_at=is.null`,
+    method: "PATCH",
+    body: {
+      deleted_at: new Date().toISOString()
+    },
+    prefer: "return=representation"
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
 module.exports = {
   insertTrainingSessions,
   findExistingSessions,
@@ -274,9 +345,16 @@ module.exports = {
   replaceTrainingLoadMetrics,
   getLatestTrainingLoadMetric,
   getTrainingLoadDailyRange,
+  getTrainingLoadMetricsRange,
   createWeeklyCheckin,
   getWeeklyCheckinByToken,
   getWeeklyCheckinByBatch,
   listWeeklyCheckinsByAthlete,
-  updateWeeklyCheckin
+  updateWeeklyCheckin,
+  listPublishedBlogArticles,
+  getPublishedBlogArticleBySlug,
+  listBlogArticlesAdmin,
+  createBlogArticle,
+  updateBlogArticle,
+  softDeleteBlogArticle
 };
