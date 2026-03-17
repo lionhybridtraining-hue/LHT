@@ -197,6 +197,23 @@ async function replaceTrainingLoadMetrics(config, athleteId, rows) {
   });
 }
 
+async function getLatestTrainingLoadMetric(config, athleteId) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `training_load_metrics?athlete_id=eq.${encodeURIComponent(athleteId)}&select=*&order=metric_date.desc&limit=1`
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function getTrainingLoadDailyRange(config, athleteId, startDate, endDate) {
+  return supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `training_load_daily?athlete_id=eq.${encodeURIComponent(athleteId)}&load_date=gte.${startDate}&load_date=lte.${endDate}&order=load_date.asc`
+  });
+}
+
 async function createWeeklyCheckin(config, payload) {
   const rows = await supabaseRequest({
     url: config.supabaseUrl,
@@ -259,6 +276,8 @@ module.exports = {
   listTrainingSessionsForAthlete,
   replaceTrainingLoadDaily,
   replaceTrainingLoadMetrics,
+  getLatestTrainingLoadMetric,
+  getTrainingLoadDailyRange,
   createWeeklyCheckin,
   getWeeklyCheckinByToken,
   getWeeklyCheckinByBatch,

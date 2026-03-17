@@ -789,6 +789,35 @@
       }
     }
 
+    async function loadLatestTrainingLoadForAthlete(athleteId) {
+      if (!athleteId) {
+        renderTrainingLoadSummary(null, "Sem dados calculados ainda.");
+        return;
+      }
+
+      trainingLoadMeta.textContent = "A carregar carga mais recente...";
+
+      try {
+        const response = await fetch(`/.netlify/functions/latest-training-load?athleteId=${encodeURIComponent(athleteId)}`);
+        const data = await response.json();
+
+        if (!response.ok) {
+          renderTrainingLoadSummary(null, `Erro ao carregar carga: ${data.error || "falha"}`);
+          return;
+        }
+
+        if (!data.trainingLoadSummary) {
+          renderTrainingLoadSummary(null, "Sem dados de carga para este atleta.");
+          return;
+        }
+
+        const summary = data.trainingLoadSummary;
+        renderTrainingLoadSummary(summary, `Ultima semana com dados: ${summary.weekStart} a ${summary.weekEnd}`);
+      } catch (error) {
+        renderTrainingLoadSummary(null, "Erro ao carregar dados de carga.");
+      }
+    }
+
     async function cancelUploadBatch(uploadBatchId, weekStart) {
       if (!selectedAthleteId || !uploadBatchId) {
         showResult("Erro: batch invalido para cancelamento.", "error");
@@ -900,6 +929,7 @@
           athleteSelect.value = preselectId;
           syncSelectedAthlete(preselectId);
           await loadCheckinsForAthlete(preselectId);
+          await loadLatestTrainingLoadForAthlete(preselectId);
         } else {
           checkinsContainer.innerHTML = "Seleciona um atleta para ver os check-ins.";
           renderTrainingLoadSummary(null, "Sem dados calculados ainda.");
@@ -970,6 +1000,7 @@
     athleteSelect.addEventListener("change", () => {
       syncSelectedAthlete(athleteSelect.value);
       loadCheckinsForAthlete(athleteSelect.value);
+      loadLatestTrainingLoadForAthlete(athleteSelect.value);
     });
 
     athleteSearchInput.addEventListener("input", applyAthleteFilter);
