@@ -1,6 +1,7 @@
 const { json } = require("./_lib/http");
 const { getConfig } = require("./_lib/config");
-const { listWeeklyCheckinsByAthlete } = require("./_lib/supabase");
+const { listWeeklyCheckinsByAthlete, verifyCoachOwnsAthlete } = require("./_lib/supabase");
+const { getAuthenticatedUser } = require("./_lib/auth-identity");
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "GET") {
@@ -8,6 +9,14 @@ exports.handler = async (event) => {
   }
 
   try {
+    const config = getConfig();
+    const user = await getAuthenticatedUser(event, config);
+    
+    if (!user) {
+      return json(401, { error: "Authentication required" });
+    }
+
+    const coachId = user.sub;
     const athleteId = event.queryStringParameters && event.queryStringParameters.athleteId
       ? event.queryStringParameters.athleteId
       : "";
@@ -16,7 +25,11 @@ exports.handler = async (event) => {
       return json(400, { error: "Missing athleteId" });
     }
 
-    const config = getConfig();
+    const owns = await verifyCoachOwnsAthlete(config, coachId, athleteId);
+    if (!owns) {
+      return json(403, { error: "Acesso negado ao atleta" });
+    }
+
     const rows = await listWeeklyCheckinsByAthlete(config, athleteId);
     const checkins = (Array.isArray(rows) ? rows : []).map((item) => ({
       ...item,

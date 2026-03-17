@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>LHT Coach - Upload CSV</title>
   <meta name="description" content="Painel de coach LHT para importação semanal de CSV do TrainingPeaks e geração de check-ins assistidos por IA." />
+  <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
@@ -444,7 +445,16 @@
           <p class="brand-title">Coach Upload</p>
         </div>
       </div>
-      <div class="brand-badge">TrainingPeaks weekly import</div>
+      <div style="display:flex; gap:20px; align-items:center;">
+        <div class="brand-badge">TrainingPeaks weekly import</div>
+        <div class="auth-panel" style="display:flex; align-items:center; gap:12px; font-size:13px; white-space:nowrap;">
+          <span id="auth-status">Não autenticado</span>
+          <div class="auth-controls" style="display:flex; gap:8px;">
+            <button id="login-btn" type="button" class="btn btn-secondary" style="padding:8px 14px; font-size:12px;">Entrar</button>
+            <button id="logout-btn" type="button" class="btn btn-secondary" style="padding:8px 14px; font-size:12px;" disabled>Sair</button>
+          </div>
+        </div>
+      </div>
     </header>
 
     <main class="layout">
@@ -670,11 +680,81 @@
     const newAthleteNameInput = document.getElementById("newAthleteName");
     const newAthleteEmailInput = document.getElementById("newAthleteEmail");
     const createAthleteButton = document.getElementById("createAthleteButton");
+    const authStatus = document.getElementById("auth-status");
+    const loginBtn = document.getElementById("login-btn");
+    const logoutBtn = document.getElementById("logout-btn");
 
     let athletes = [];
     let selectedAthleteId = "";
     let selectedTrainingLoadWeekStart = "";
     let allCheckins = [];
+    let state = {
+      user: null,
+      token: null
+    };
+
+    async function getToken(user) {
+      const token = await user.jwt();
+      state.token = token;
+      return token;
+    }
+
+    async function apiRequest(method, url, body) {
+      if (!state.user) {
+        throw new Error("Sessão expirada. Faz login novamente.");
+      }
+
+      const token = await getToken(state.user);
+      const res = await fetch(url, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + token
+        },
+        body: body ? JSON.stringify(body) : undefined
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        if (res.status === 401) {
+          await handleAuthChange(null);
+        }
+        throw new Error(data.error || `HTTP ${res.status}`);
+      }
+      return data;
+    }
+
+    function setAuthUI() {
+      const loggedIn = Boolean(state.user);
+      authStatus.textContent = loggedIn
+        ? `Autenticado: ${state.user.email || state.user.id}`
+        : "Não autenticado";
+      loginBtn.disabled = loggedIn;
+      logoutBtn.disabled = !loggedIn;
+      athleteSelect.disabled = !loggedIn;
+      athleteSearchInput.disabled = !loggedIn;
+      openAddAthleteModalButton.disabled = !loggedIn;
+      form.disabled = !loggedIn;
+      submitButton.disabled = !loggedIn;
+    }
+
+    async function handleAuthChange(user) {
+      state.user = user || null;
+      setAuthUI();
+      if (state.user) {
+        try {
+          await loadAthletes();
+        } catch (err) {
+          showResult(err.message, true);
+        }
+      } else {
+        athletes = [];
+        selectedAthleteId = "";
+        renderAthleteOptions(athletes);
+        renderTrainingLoadSummary(null, "Sem dados calculados ainda.");
+        checkinsContainer.innerHTML = "Faz login para ver check-ins.";
+      }
+    }
 
     function syncCheckinMode() {
       const skipCheckin = Boolean(skipCheckinInput.checked);
@@ -891,13 +971,7 @@
       checkinsContainer.innerHTML = "A carregar check-ins...";
 
       try {
-        const response = await fetch(`/.netlify/functions/list-checkins?athleteId=${encodeURIComponent(athleteId)}`);
-        const data = await response.json();
-
-        if (!response.ok) {
-          checkinsContainer.innerHTML = `Erro ao carregar check-ins: ${escapeHtml(data.error || "falha")}`;
-          return;
-        }
+        const data = await apiRequest("GET", `/.netlify/functions/list-checkins?athleteId=${encodeURIComponent(athleteId)}`);
 
         allCheckins = Array.isArray(data.checkins) ? data.checkins : [];
         applyCheckinsFilter();
@@ -925,13 +999,7 @@
           params.set("weekStart", requestedWeekStart);
         }
 
-        const response = await fetch(`/.netlify/functions/latest-training-load?${params.toString()}`);
-        const data = await response.json();
-
-        if (!response.ok) {
-          renderTrainingLoadSummary(null, `Erro ao carregar carga: ${data.error || "falha"}`);
-          return;
-        }
+        const data = await apiRequest("GET", `/.netlify/functions/latest-training-load?${params.toString()}`);
 
         if (!data.trainingLoadSummary) {
           if (requestedWeekStart) {
@@ -969,17 +1037,10 @@
       showResult("A cancelar upload...", "");
 
       try {
-        const response = await fetch("/.netlify/functions/cancel-upload", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ athleteId: selectedAthleteId, uploadBatchId })
+        const data = await apiRequest("POST", "/.netlify/functions/cancel-upload", {
+          athleteId: selectedAthleteId,
+          uploadBatchId
         });
-
-        const data = await response.json();
-        if (!response.ok) {
-          showResult(`Erro ao cancelar: ${data.error || "falha"}`, "error");
-          return;
-        }
 
         showResult(
           `Upload cancelado com sucesso. Batch: ${data.uploadBatchId}\nSessoes removidas: ${data.deletedSessions}\nCheck-ins removidos: ${data.deletedCheckins}`,
@@ -1054,14 +1115,7 @@
     async function loadAthletes(preselectId) {
       try {
         athleteSelect.innerHTML = '<option value="">A carregar atletas...</option>';
-        const response = await fetch("/.netlify/functions/list-athletes");
-        const data = await response.json();
-
-        if (!response.ok) {
-          showResult(`Erro: ${data.error || "não foi possível carregar atletas"}`, "error");
-          athleteSelect.innerHTML = '<option value="">Erro ao carregar atletas</option>';
-          return;
-        }
+        const data = await apiRequest("GET", "/.netlify/functions/list-athletes");
 
         athletes = Array.isArray(data.athletes) ? data.athletes : [];
         applyAthleteFilter();
@@ -1117,18 +1171,10 @@
       createAthleteButton.disabled = true;
 
       try {
-        const response = await fetch("/.netlify/functions/create-athlete", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name, email })
+        const data = await apiRequest("POST", "/.netlify/functions/create-athlete", {
+          name,
+          email
         });
-        const data = await response.json();
-
-        if (!response.ok) {
-          showResult(`Erro ao criar atleta: ${data.error || "falha"}`, "error");
-          createAthleteButton.disabled = false;
-          return;
-        }
 
         closeAddAthleteModal();
         await loadAthletes(data.athlete && data.athlete.id ? data.athlete.id : "");
@@ -1308,18 +1354,8 @@
           };
         }
 
-        const response = await fetch("/.netlify/functions/upload-csv", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
-        });
-
-        const data = await response.json();
-        if (!response.ok) {
-          showResult(`Erro: ${data.error || "falha no upload"}`, "error");
-          submitButton.disabled = false;
-          return;
-        }
+        const response = await apiRequest("POST", "/.netlify/functions/upload-csv", payload);
+        const data = response;
 
         const athleteName = selectedAthleteInput.value || selectedAthleteId;
         const checkinMessage = data.skipCheckin
@@ -1352,7 +1388,28 @@
 
     skipCheckinInput.addEventListener("change", syncCheckinMode);
 
-    loadAthletes();
+    if (window.netlifyIdentity) {
+      window.netlifyIdentity.on("init", (user) => {
+        handleAuthChange(user).catch((err) => showResult(err.message, true));
+      });
+      window.netlifyIdentity.on("login", (user) => {
+        handleAuthChange(user).catch((err) => showResult(err.message, true));
+      });
+      window.netlifyIdentity.on("logout", () => {
+        handleAuthChange(null).catch((err) => showResult(err.message, true));
+      });
+      window.netlifyIdentity.init();
+    }
+
+    loginBtn.addEventListener("click", () => {
+      window.netlifyIdentity.open();
+    });
+
+    logoutBtn.addEventListener("click", () => {
+      window.netlifyIdentity.logout();
+    });
+
+    setAuthUI();
     syncTrainingLoadWeekControls();
     syncCheckinMode();
   </script>

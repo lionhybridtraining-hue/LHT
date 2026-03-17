@@ -329,6 +329,34 @@ async function softDeleteBlogArticle(config, id) {
   return Array.isArray(rows) ? rows[0] || null : null;
 }
 
+async function listAthletesByCoach(config, coachIdentityId) {
+  return supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `athletes?coach_identity_id=eq.${encodeURIComponent(coachIdentityId)}&select=id,name,email&limit=200`
+  });
+}
+
+async function createAthleteForCoach(config, coachIdentityId, payload) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: "athletes",
+    method: "POST",
+    body: [{ ...payload, coach_identity_id: coachIdentityId }]
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function verifyCoachOwnsAthlete(config, coachIdentityId, athleteId) {
+  const athlete = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `athletes?id=eq.${encodeURIComponent(athleteId)}&coach_identity_id=eq.${encodeURIComponent(coachIdentityId)}&select=id`
+  });
+  return Array.isArray(athlete) && athlete.length > 0;
+}
+
 module.exports = {
   insertTrainingSessions,
   findExistingSessions,
@@ -339,6 +367,9 @@ module.exports = {
   getAthleteById,
   listAthletes,
   createAthlete,
+  listAthletesByCoach,
+  createAthleteForCoach,
+  verifyCoachOwnsAthlete,
   getWeekSessions,
   listTrainingSessionsForAthlete,
   replaceTrainingLoadDaily,

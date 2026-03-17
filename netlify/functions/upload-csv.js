@@ -19,9 +19,11 @@ const {
   replaceTrainingLoadDaily,
   replaceTrainingLoadMetrics,
   createWeeklyCheckin,
-  getWeeklyCheckinByBatch
+  getWeeklyCheckinByBatch,
+  verifyCoachOwnsAthlete
 } = require("./_lib/supabase");
 const { generateWeeklyQuestions } = require("./_lib/ai");
+const { getAuthenticatedUser } = require("./_lib/auth-identity");
 
 function isTruthy(value) {
   if (typeof value === "boolean") {
@@ -105,11 +107,25 @@ exports.handler = async (event) => {
   }
 
   try {
+    const config = getConfig();
+    const user = await getAuthenticatedUser(event, config);
+    
+    if (!user) {
+      return json(401, { error: "Authentication required" });
+    }
+
+    const coachId = user.sub;
     const payload = parseJsonBody(event);
     const athleteId = payload.athleteId;
     const skipCheckin = isTruthy(payload.skipCheckin);
+    
     if (!athleteId) {
       return json(400, { error: "Missing athleteId" });
+    }
+
+    const owns = await verifyCoachOwnsAthlete(config, coachId, athleteId);
+    if (!owns) {
+      return json(403, { error: "Acesso negado ao atleta" });
     }
 
     const rawStrengthPlannedDoneCount = parseNonNegativeInteger(payload.strengthPlannedDoneCount);
@@ -131,7 +147,6 @@ exports.handler = async (event) => {
       return json(400, { error: "CSV vazio ou sem linhas de dados" });
     }
 
-    const config = getConfig();
     const uploadBatchId = deriveUploadBatchId({
       athleteId,
       sourceFileName: payload.sourceFileName,

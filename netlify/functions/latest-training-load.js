@@ -4,9 +4,11 @@ const { getWeekStartIso } = require("./_lib/date");
 const {
   getLatestTrainingLoadMetric,
   getTrainingLoadDailyRange,
-  getTrainingLoadMetricsRange
+  getTrainingLoadMetricsRange,
+  verifyCoachOwnsAthlete
 } = require("./_lib/supabase");
 const { summarizeTrainingLoadWeek } = require("./_lib/training-load");
+const { getAuthenticatedUser } = require("./_lib/auth-identity");
 
 function endOfWeekIso(weekStartIso) {
   const date = new Date(`${weekStartIso}T00:00:00.000Z`);
@@ -20,12 +22,25 @@ exports.handler = async (event) => {
   }
 
   try {
+    const config = getConfig();
+    const user = await getAuthenticatedUser(event, config);
+    
+    if (!user) {
+      return json(401, { error: "Authentication required" });
+    }
+
+    const coachId = user.sub;
     const athleteId = event.queryStringParameters && event.queryStringParameters.athleteId
       ? event.queryStringParameters.athleteId
       : "";
 
     if (!athleteId) {
       return json(400, { error: "Missing athleteId" });
+    }
+
+    const owns = await verifyCoachOwnsAthlete(config, coachId, athleteId);
+    if (!owns) {
+      return json(403, { error: "Acesso negado ao atleta" });
     }
 
     const rawWeekStart = event.queryStringParameters && event.queryStringParameters.weekStart
@@ -36,7 +51,6 @@ exports.handler = async (event) => {
       return json(400, { error: "Invalid weekStart format. Use YYYY-MM-DD." });
     }
 
-    const config = getConfig();
     let weekStart = rawWeekStart;
     let weekEnd = "";
     let metricReferenceDate = "";

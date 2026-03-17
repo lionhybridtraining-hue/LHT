@@ -1,6 +1,7 @@
 const { json } = require("./_lib/http");
 const { getConfig } = require("./_lib/config");
-const { listAthletes } = require("./_lib/supabase");
+const { listAthletesByCoach } = require("./_lib/supabase");
+const { getAuthenticatedUser } = require("./_lib/auth-identity");
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "GET") {
@@ -9,7 +10,14 @@ exports.handler = async (event) => {
 
   try {
     const config = getConfig();
-    const athletes = await listAthletes(config);
+    const user = await getAuthenticatedUser(event, config);
+    
+    if (!user) {
+      return json(401, { error: "Authentication required" });
+    }
+
+    const coachId = user.sub;
+    const athletes = await listAthletesByCoach(config, coachId);
     const normalized = Array.isArray(athletes)
       ? athletes
           .map((athlete) => ({

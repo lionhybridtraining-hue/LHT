@@ -5,8 +5,10 @@ const {
   getLatestUploadBatchId,
   getWeeklyCheckinByBatch,
   deleteTrainingSessionsByBatch,
-  deleteWeeklyCheckinsByBatch
+  deleteWeeklyCheckinsByBatch,
+  verifyCoachOwnsAthlete
 } = require("./_lib/supabase");
+const { getAuthenticatedUser } = require("./_lib/auth-identity");
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
@@ -14,13 +16,26 @@ exports.handler = async (event) => {
   }
 
   try {
+    const config = getConfig();
+    const user = await getAuthenticatedUser(event, config);
+    
+    if (!user) {
+      return json(401, { error: "Authentication required" });
+    }
+
+    const coachId = user.sub;
     const payload = parseJsonBody(event);
     const athleteId = payload.athleteId;
+    
     if (!athleteId) {
       return json(400, { error: "Missing athleteId" });
     }
 
-    const config = getConfig();
+    const owns = await verifyCoachOwnsAthlete(config, coachId, athleteId);
+    if (!owns) {
+      return json(403, { error: "Acesso negado ao atleta" });
+    }
+
     let uploadBatchId = deriveUploadBatchId({
       athleteId,
       sourceFileName: payload.sourceFileName,

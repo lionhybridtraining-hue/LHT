@@ -19,8 +19,12 @@ create table if not exists athletes (
   lthr integer,
   vdot numeric(5,2),
   zones jsonb default '{}'::jsonb,
+  coach_identity_id text,
   created_at timestamptz not null default now()
 );
+
+alter table athletes add column if not exists coach_identity_id text;
+create index if not exists athletes_coach_identity_idx on athletes(coach_identity_id);
 
 create table if not exists training_sessions (
   id uuid primary key default gen_random_uuid(),
