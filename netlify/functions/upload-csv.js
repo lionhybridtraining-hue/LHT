@@ -127,12 +127,8 @@ exports.handler = async (event) => {
 
     const executionSummary = summarizeExecutionStatuses(sessions);
     const totalStrengthSessionsDetected = sessions.filter(isStrengthSession).length;
-    if (strengthPlannedDoneCount + strengthPlannedNotDoneCount > totalStrengthSessionsDetected) {
-      return json(400, {
-        error: "Invalid strength confirmation: planned_done + planned_not_done cannot exceed detected strength sessions",
-        totalStrengthSessionsDetected
-      });
-    }
+    const strengthCountMismatch =
+      strengthPlannedDoneCount + strengthPlannedNotDoneCount > totalStrengthSessionsDetected;
 
     const latestDate = sessions
       .map((s) => s.session_date)
@@ -145,7 +141,9 @@ exports.handler = async (event) => {
     let checkin = await getWeeklyCheckinByBatch(config, athleteId, uploadBatchId);
     const reusedCheckin = Boolean(checkin);
     let strengthConfirmationApplied = !reusedCheckin;
-    let strengthConfirmationWarning = null;
+    let strengthConfirmationWarning = strengthCountMismatch
+      ? "Confirmacao manual de forca excede o total de sessoes de forca detetadas automaticamente. A contagem manual do coach foi mantida como fonte de verdade."
+      : null;
 
     if (reusedCheckin && !checkin.has_strength_manual_confirmation) {
       return json(409, {
