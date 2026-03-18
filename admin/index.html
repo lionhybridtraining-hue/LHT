@@ -20,6 +20,13 @@
     </div>
   </section>
 
+  <section id="admin-auth-loader" class="auth-loader" hidden>
+    <div class="auth-loader-card">
+      <div class="auth-loader-spinner" aria-hidden="true"></div>
+      <p>A autenticar sessao...</p>
+    </div>
+  </section>
+
   <div id="protected-content" class="admin-shell" hidden>
     <header class="admin-header">
       <div class="header-brand">
@@ -132,11 +139,11 @@
           <div>
             <p class="section-eyebrow">Coach Ops</p>
             <h2>Gerir atletas</h2>
-            <p>Atribui atletas sem coach para um coach especifico usando o coach_identity_id.</p>
+            <p>Atribui atletas sem coach para um coach existente e cria coaches sem sair do admin.</p>
           </div>
           <div class="editor-badges" aria-label="Servicos ligados ao painel de atletas">
             <span class="service-badge">Supabase</span>
-            <span class="service-badge">Identity</span>
+            <span class="service-badge">Auth</span>
           </div>
         </div>
 
@@ -144,10 +151,40 @@
 
         <div class="athletes-toolbar">
           <div class="field">
-            <label for="coach-identity-id">Coach identity ID (user.sub)</label>
-            <input id="coach-identity-id" type="text" placeholder="Ex.: 4d3ef9af-..." />
+            <label for="coach-select">Coach para atribuicao</label>
+            <select id="coach-select">
+              <option value="">A carregar coaches...</option>
+            </select>
           </div>
+          <button id="open-create-coach-btn" type="button">Criar coach</button>
           <button id="refresh-athletes-btn" type="button">Atualizar nao atribuidos</button>
+        </div>
+
+        <div id="create-coach-box" class="admin-inline-form" hidden>
+          <div class="field">
+            <label for="new-coach-name">Nome do coach</label>
+            <input id="new-coach-name" type="text" placeholder="Ex.: Pedro Libanio" />
+          </div>
+          <div class="field">
+            <label for="new-coach-email">Email</label>
+            <input id="new-coach-email" type="email" placeholder="Ex.: coach@lionhybridtraining.com" />
+          </div>
+          <div class="field">
+            <label for="new-coach-identity-id">UUID do utilizador Supabase</label>
+            <input id="new-coach-identity-id" type="text" placeholder="Ex.: a99b2131-..." />
+          </div>
+          <div class="field">
+            <label for="new-coach-timezone">Timezone</label>
+            <input id="new-coach-timezone" type="text" value="Europe/Lisbon" />
+          </div>
+          <div class="field">
+            <label for="new-coach-capacity">Capacidade (opcional)</label>
+            <input id="new-coach-capacity" type="number" min="0" placeholder="Ex.: 25" />
+          </div>
+          <div class="form-actions">
+            <button id="create-coach-btn" type="button">Guardar coach</button>
+            <button id="cancel-create-coach-btn" type="button">Cancelar</button>
+          </div>
         </div>
 
         <div id="unassigned-empty" class="athletes-empty" hidden>
@@ -244,16 +281,20 @@
     const apiBase = '/.netlify/functions/blog-articles';
     const unassignedAthletesApiBase = '/.netlify/functions/admin-unassigned-athletes';
     const assignAthleteApiBase = '/.netlify/functions/admin-assign-athlete';
+    const coachesApiBase = '/.netlify/functions/admin-coaches';
     const state = {
       user: null,
       token: null,
       articles: [],
       selectedId: null,
-      unassignedAthletes: []
+      unassignedAthletes: [],
+      coaches: [],
+      authLoading: true
     };
 
     const els = {
       authGate: document.getElementById('admin-auth-gate'),
+      authLoader: document.getElementById('admin-auth-loader'),
       protectedContent: document.getElementById('protected-content'),
       gateLoginBtn: document.getElementById('gate-login-btn'),
       authStatus: document.getElementById('auth-status'),
@@ -287,7 +328,16 @@
       coachesPanel: document.getElementById('coaches-panel'),
       operationsPanel: document.getElementById('operations-panel'),
       athletesMessage: document.getElementById('athletes-message'),
-      coachIdentityIdInput: document.getElementById('coach-identity-id'),
+      coachSelect: document.getElementById('coach-select'),
+      openCreateCoachBtn: document.getElementById('open-create-coach-btn'),
+      createCoachBox: document.getElementById('create-coach-box'),
+      newCoachName: document.getElementById('new-coach-name'),
+      newCoachEmail: document.getElementById('new-coach-email'),
+      newCoachIdentityId: document.getElementById('new-coach-identity-id'),
+      newCoachTimezone: document.getElementById('new-coach-timezone'),
+      newCoachCapacity: document.getElementById('new-coach-capacity'),
+      createCoachBtn: document.getElementById('create-coach-btn'),
+      cancelCreateCoachBtn: document.getElementById('cancel-create-coach-btn'),
       refreshAthletesBtn: document.getElementById('refresh-athletes-btn'),
       unassignedEmpty: document.getElementById('unassigned-empty'),
       unassignedAthletesBody: document.getElementById('unassigned-athletes-body')
@@ -333,14 +383,44 @@
       });
 
       if (activeTab === 'athletes' && state.user) {
-        refreshUnassignedAthletes().catch((err) => showAthletesMessage(err.message, true));
+        refreshAthletesData().catch((err) => showAthletesMessage(err.message, true));
       }
+    }
+
+    function setAuthLoading(loading) {
+      state.authLoading = Boolean(loading);
+      els.authLoader.hidden = !state.authLoading;
+      document.body.classList.toggle('auth-locked', state.authLoading || !state.user);
     }
 
     function showAthletesMessage(text, isError) {
       els.athletesMessage.textContent = text || '';
       els.athletesMessage.classList.toggle('error', Boolean(isError));
       els.athletesMessage.classList.toggle('success', !isError && Boolean(text));
+    }
+
+    function renderCoachOptions(selectedIdentityId) {
+      els.coachSelect.innerHTML = '';
+      const placeholder = document.createElement('option');
+      placeholder.value = '';
+      placeholder.textContent = state.coaches.length ? 'Seleciona um coach' : 'Sem coaches ativos';
+      els.coachSelect.appendChild(placeholder);
+
+      state.coaches.forEach((coach) => {
+        const option = document.createElement('option');
+        option.value = coach.identityId;
+        option.textContent = `${coach.name || coach.email} (${coach.email})`;
+        if (selectedIdentityId && coach.identityId === selectedIdentityId) {
+          option.selected = true;
+        }
+        els.coachSelect.appendChild(option);
+      });
+    }
+
+    async function loadCoaches(selectedIdentityId) {
+      const data = await apiRequest('GET', coachesApiBase);
+      state.coaches = Array.isArray(data.coaches) ? data.coaches : [];
+      renderCoachOptions(selectedIdentityId);
     }
 
     function formatDate(iso) {
@@ -386,10 +466,15 @@
       showAthletesMessage(`Atletas nao atribuidos: ${state.unassignedAthletes.length}.`, false);
     }
 
+    async function refreshAthletesData(selectedIdentityId) {
+      await loadCoaches(selectedIdentityId);
+      await refreshUnassignedAthletes();
+    }
+
     async function assignAthlete(athleteId) {
-      const coachIdentityId = (els.coachIdentityIdInput.value || '').trim();
+      const coachIdentityId = (els.coachSelect.value || '').trim();
       if (!coachIdentityId) {
-        throw new Error('Coach identity ID e obrigatorio para atribuir.');
+        throw new Error('Seleciona um coach para atribuir.');
       }
 
       await apiRequest('POST', assignAthleteApiBase, {
@@ -399,6 +484,41 @@
 
       showAthletesMessage('Atleta atribuido com sucesso.', false);
       await refreshUnassignedAthletes();
+    }
+
+    function clearCreateCoachForm() {
+      els.newCoachName.value = '';
+      els.newCoachEmail.value = '';
+      els.newCoachIdentityId.value = '';
+      els.newCoachTimezone.value = 'Europe/Lisbon';
+      els.newCoachCapacity.value = '';
+    }
+
+    async function createCoachFromAdmin() {
+      const name = (els.newCoachName.value || '').trim();
+      const email = (els.newCoachEmail.value || '').trim().toLowerCase();
+      const identityId = (els.newCoachIdentityId.value || '').trim();
+      const timezone = (els.newCoachTimezone.value || '').trim() || 'Europe/Lisbon';
+      const capacityRaw = (els.newCoachCapacity.value || '').trim();
+      const capacityLimit = capacityRaw === '' ? null : Number(capacityRaw);
+
+      if (!name || !email || !identityId) {
+        throw new Error('Nome, email e UUID do utilizador Supabase sao obrigatorios.');
+      }
+
+      await apiRequest('POST', coachesApiBase, {
+        name,
+        email,
+        identityId,
+        timezone,
+        capacityLimit,
+        followupType: 'standard'
+      });
+
+      await refreshAthletesData(identityId);
+      els.createCoachBox.hidden = true;
+      clearCreateCoachForm();
+      showAthletesMessage('Coach criado e selecionado com sucesso.', false);
     }
 
     function showMessage(text, isError) {
@@ -453,7 +573,7 @@
       const loggedIn = Boolean(state.user);
       els.authGate.hidden = loggedIn;
       els.protectedContent.hidden = !loggedIn;
-      document.body.classList.toggle('auth-locked', !loggedIn);
+      document.body.classList.toggle('auth-locked', state.authLoading || !loggedIn);
       els.authStatus.textContent = loggedIn
         ? `Autenticado: ${state.user.email || state.user.id}`
         : 'Nao autenticado';
@@ -621,13 +741,15 @@
       if (state.user) {
         await refreshList();
         if (activeTab === 'athletes') {
-          await refreshUnassignedAthletes();
+          await refreshAthletesData();
         }
       } else {
         state.articles = [];
         state.unassignedAthletes = [];
+        state.coaches = [];
         renderList();
         renderUnassignedAthletes();
+        renderCoachOptions();
         resetForm();
         showAthletesMessage('Faz login para gerir atletas.', false);
       }
@@ -643,6 +765,8 @@
     }
 
     async function initializeAuth() {
+      setAuthLoading(true);
+
       // Espera que o Supabase script carregue
       let attempts = 0;
       while (!window.supabase && attempts < 50) {
@@ -668,35 +792,63 @@
         } else {
           await handleAuthChange(null);
         }
+        setAuthLoading(false);
       });
 
       // Check auth on page load
-      checkAuthOnLoad().catch((err) => showMessage(err.message, true));
+      checkAuthOnLoad()
+        .catch((err) => showMessage(err.message, true))
+        .finally(() => setAuthLoading(false));
 
       // Setup event listeners APÓS Supabase estar pronto
       els.loginBtn.addEventListener('click', async () => {
+        setAuthLoading(true);
         const { error } = await supabaseClient.auth.signInWithOAuth({
           provider: 'google',
           options: {
             redirectTo: window.location.origin + '/admin'
           }
         });
-        if (error) showMessage(error.message, true);
+        if (error) {
+          setAuthLoading(false);
+          showMessage(error.message, true);
+        }
       });
 
       els.gateLoginBtn.addEventListener('click', async () => {
+        setAuthLoading(true);
         const { error } = await supabaseClient.auth.signInWithOAuth({
           provider: 'google',
           options: {
             redirectTo: window.location.origin + '/admin'
           }
         });
-        if (error) showMessage(error.message, true);
+        if (error) {
+          setAuthLoading(false);
+          showMessage(error.message, true);
+        }
       });
 
       els.logoutBtn.addEventListener('click', async () => {
         await supabaseClient.auth.signOut();
         await handleAuthChange(null);
+      });
+
+      els.openCreateCoachBtn.addEventListener('click', () => {
+        els.createCoachBox.hidden = !els.createCoachBox.hidden;
+      });
+
+      els.cancelCreateCoachBtn.addEventListener('click', () => {
+        clearCreateCoachForm();
+        els.createCoachBox.hidden = true;
+      });
+
+      els.createCoachBtn.addEventListener('click', async () => {
+        try {
+          await createCoachFromAdmin();
+        } catch (err) {
+          showAthletesMessage(err.message, true);
+        }
       });
     }
 
@@ -746,7 +898,7 @@
 
     els.refreshAthletesBtn.addEventListener('click', async () => {
       try {
-        await refreshUnassignedAthletes();
+        await refreshAthletesData();
       } catch (err) {
         showAthletesMessage(err.message, true);
       }
