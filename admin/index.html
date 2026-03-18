@@ -240,7 +240,7 @@
     const SUPABASE_URL = 'https://rlivxjarqpqmvjtgmxhh.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJsaXZ4amFycXBxbXZqdGdteGhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MDk3NzcsImV4cCI6MjA4OTE4NTc3N30.MHwkQnytSCOBleYVOF5hJHWiV8d_-2V9UGIqsLTgjIY';
     
-    let supabase = null;
+    let supabaseClient = null;
     const unassignedAthletesApiBase = '/.netlify/functions/admin-unassigned-athletes';
     const assignAthleteApiBase = '/.netlify/functions/admin-assign-athlete';
     const state = {
@@ -418,7 +418,7 @@
     }
 
     async function getToken() {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session } } = await supabaseClient.auth.getSession();
       if (!session) {
         throw new Error('Nao autenticado. Faz login novamente.');
       }
@@ -653,13 +653,13 @@
       }
 
       // Inicializar o client Supabase
-      if (!supabase) {
-        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      if (!supabaseClient) {
+        supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         console.log('Supabase inicializado');
       }
 
       // Monitor de auth state changes
-      supabase.auth.onAuthStateChange(async (_event, session) => {
+      supabaseClient.auth.onAuthStateChange(async (_event, session) => {
         if (session?.user) {
           await handleAuthChange(session.user);
         } else {
@@ -672,7 +672,7 @@
 
       // Setup event listeners APÓS Supabase estar pronto
       els.loginBtn.addEventListener('click', async () => {
-        const { error } = await supabase.auth.signInWithOAuth({
+        const { error } = await supabaseClient.auth.signInWithOAuth({
           provider: 'google',
           options: {
             redirectTo: window.location.origin + '/admin'
@@ -682,7 +682,7 @@
       });
 
       els.gateLoginBtn.addEventListener('click', async () => {
-        const { error } = await supabase.auth.signInWithOAuth({
+        const { error } = await supabaseClient.auth.signInWithOAuth({
           provider: 'google',
           options: {
             redirectTo: window.location.origin + '/admin'
@@ -692,7 +692,7 @@
       });
 
       els.logoutBtn.addEventListener('click', async () => {
-        await supabase.auth.signOut();
+        await supabaseClient.auth.signOut();
         await handleAuthChange(null);
       });
     }
