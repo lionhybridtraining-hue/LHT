@@ -468,6 +468,118 @@ async function createProgramAssignment(config, payload) {
   return Array.isArray(rows) ? rows[0] || null : null;
 }
 
+async function listSiteMetadata(config) {
+  return supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: "site_metadata?select=key,value,updated_at&order=key.asc"
+  });
+}
+
+async function listSiteMetrics(config) {
+  return supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: "site_metrics?select=id,sort_order,value,label,active,updated_at&order=sort_order.asc,updated_at.desc"
+  });
+}
+
+async function listSiteReviews(config) {
+  return supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: "site_reviews?select=id,sort_order,name,stars,text,meta,review_date,active,updated_at&order=sort_order.asc,updated_at.desc"
+  });
+}
+
+async function listSiteLinks(config) {
+  return supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: "site_links?select=key,url,updated_at&order=key.asc"
+  });
+}
+
+async function replaceSiteMetadata(config, rows) {
+  await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: "site_metadata?key=not.is.null",
+    method: "DELETE",
+    prefer: "return=minimal"
+  });
+
+  if (!rows.length) return [];
+  return supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: "site_metadata",
+    method: "POST",
+    body: rows,
+    prefer: "return=representation"
+  });
+}
+
+async function replaceSiteMetrics(config, rows) {
+  await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: "site_metrics?id=not.is.null",
+    method: "DELETE",
+    prefer: "return=minimal"
+  });
+
+  if (!rows.length) return [];
+  return supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: "site_metrics",
+    method: "POST",
+    body: rows,
+    prefer: "return=representation"
+  });
+}
+
+async function replaceSiteReviews(config, rows) {
+  await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: "site_reviews?id=not.is.null",
+    method: "DELETE",
+    prefer: "return=minimal"
+  });
+
+  if (!rows.length) return [];
+  return supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: "site_reviews",
+    method: "POST",
+    body: rows,
+    prefer: "return=representation"
+  });
+}
+
+async function replaceSiteLinks(config, rows) {
+  await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: "site_links?key=not.is.null",
+    method: "DELETE",
+    prefer: "return=minimal"
+  });
+
+  if (!rows.length) return [];
+  return supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: "site_links",
+    method: "POST",
+    body: rows,
+    prefer: "return=representation"
+  });
+}
+
 module.exports = {
   insertTrainingSessions,
   findExistingSessions,
@@ -490,6 +602,14 @@ module.exports = {
   listTrainingPrograms,
   createTrainingProgram,
   createProgramAssignment,
+  listSiteMetadata,
+  listSiteMetrics,
+  listSiteReviews,
+  listSiteLinks,
+  replaceSiteMetadata,
+  replaceSiteMetrics,
+  replaceSiteReviews,
+  replaceSiteLinks,
   getWeekSessions,
   listTrainingSessionsForAthlete,
   replaceTrainingLoadDaily,

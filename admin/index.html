@@ -37,6 +37,7 @@
         </div>
         <div class="admin-tabs" role="tablist" aria-label="Secoes do admin">
           <button id="tab-blog" class="admin-tab is-active" type="button" role="tab" aria-selected="true" aria-controls="blog-editor">Blog</button>
+          <button id="tab-site-content" class="admin-tab" type="button" role="tab" aria-selected="false" aria-controls="site-content-panel">Conteudo do site</button>
           <button id="tab-athletes" class="admin-tab" type="button" role="tab" aria-selected="false" aria-controls="athletes-panel">Gerir atletas</button>
           <button id="tab-programs" class="admin-tab" type="button" role="tab" aria-selected="false" aria-controls="programs-panel">Programas</button>
           <button id="tab-coaches" class="admin-tab" type="button" role="tab" aria-selected="false" aria-controls="coaches-panel">Coaches</button>
@@ -125,6 +126,46 @@
             <button id="delete-btn" type="button">Eliminar</button>
           </div>
         </form>
+      </section>
+
+      <section id="site-content-panel" class="admin-athletes" hidden>
+        <div class="editor-top">
+          <div>
+            <p class="section-eyebrow">Site Ops</p>
+            <h2>Conteudo do site</h2>
+            <p>Edita o conteudo dinamico da homepage e calendario sem Google Sheets.</p>
+          </div>
+          <div class="editor-badges" aria-label="Servicos ligados ao painel de conteudo">
+            <span class="service-badge">Supabase</span>
+            <span class="service-badge">Netlify Functions</span>
+          </div>
+        </div>
+
+        <p id="site-content-message" class="message" role="status"></p>
+
+        <div class="site-content-actions">
+          <button id="refresh-site-content-btn" type="button">Atualizar conteudo</button>
+          <button id="save-site-content-btn" type="button">Guardar conteudo</button>
+        </div>
+
+        <div class="site-content-grid">
+          <div class="field">
+            <label for="site-metadata-input">Metadata (JSON objeto)</label>
+            <textarea id="site-metadata-input" rows="10" spellcheck="false"></textarea>
+          </div>
+          <div class="field">
+            <label for="site-links-input">Links (JSON objeto)</label>
+            <textarea id="site-links-input" rows="10" spellcheck="false"></textarea>
+          </div>
+          <div class="field field-wide">
+            <label for="site-metrics-input">Metrics (JSON array)</label>
+            <textarea id="site-metrics-input" rows="10" spellcheck="false"></textarea>
+          </div>
+          <div class="field field-wide">
+            <label for="site-reviews-input">Reviews (JSON array)</label>
+            <textarea id="site-reviews-input" rows="14" spellcheck="false"></textarea>
+          </div>
+        </div>
       </section>
 
       <section id="athletes-panel" class="admin-athletes" hidden>
@@ -272,6 +313,7 @@
     
     let supabaseClient = null;
     const apiBase = '/.netlify/functions/blog-articles';
+    const siteContentApiBase = '/.netlify/functions/admin-site-content';
     const unassignedAthletesApiBase = '/.netlify/functions/admin-unassigned-athletes';
     const assignAthleteApiBase = '/.netlify/functions/admin-assign-athlete';
     const coachesApiBase = '/.netlify/functions/admin-coaches';
@@ -280,6 +322,7 @@
       token: null,
       articles: [],
       selectedId: null,
+      siteContent: null,
       unassignedAthletes: [],
       coaches: []
     };
@@ -308,16 +351,25 @@
       deleteBtn: document.getElementById('delete-btn')
       ,
       tabBlog: document.getElementById('tab-blog'),
+      tabSiteContent: document.getElementById('tab-site-content'),
       tabAthletes: document.getElementById('tab-athletes'),
       tabPrograms: document.getElementById('tab-programs'),
       tabCoaches: document.getElementById('tab-coaches'),
       tabOperations: document.getElementById('tab-operations'),
       blogSidebar: document.getElementById('blog-sidebar'),
       blogEditor: document.getElementById('blog-editor'),
+      siteContentPanel: document.getElementById('site-content-panel'),
       athletesPanel: document.getElementById('athletes-panel'),
       programsPanel: document.getElementById('programs-panel'),
       coachesPanel: document.getElementById('coaches-panel'),
       operationsPanel: document.getElementById('operations-panel'),
+      siteContentMessage: document.getElementById('site-content-message'),
+      refreshSiteContentBtn: document.getElementById('refresh-site-content-btn'),
+      saveSiteContentBtn: document.getElementById('save-site-content-btn'),
+      siteMetadataInput: document.getElementById('site-metadata-input'),
+      siteLinksInput: document.getElementById('site-links-input'),
+      siteMetricsInput: document.getElementById('site-metrics-input'),
+      siteReviewsInput: document.getElementById('site-reviews-input'),
       athletesMessage: document.getElementById('athletes-message'),
       coachSelect: document.getElementById('coach-select'),
       openCreateCoachBtn: document.getElementById('open-create-coach-btn'),
@@ -338,6 +390,10 @@
       blog: {
         tabEl: () => els.tabBlog,
         panels: () => [els.blogSidebar, els.blogEditor]
+      },
+      siteContent: {
+        tabEl: () => els.tabSiteContent,
+        panels: () => [els.siteContentPanel]
       },
       athletes: {
         tabEl: () => els.tabAthletes,
@@ -376,6 +432,70 @@
       if (activeTab === 'athletes' && state.user) {
         refreshAthletesData().catch((err) => showAthletesMessage(err.message, true));
       }
+
+      if (activeTab === 'siteContent' && state.user) {
+        refreshSiteContentData().catch((err) => showSiteContentMessage(err.message, true));
+      }
+    }
+
+    function formatJsonEditor(value) {
+      return JSON.stringify(value, null, 2);
+    }
+
+    function showSiteContentMessage(text, isError) {
+      els.siteContentMessage.textContent = text || '';
+      els.siteContentMessage.classList.toggle('error', Boolean(isError));
+      els.siteContentMessage.classList.toggle('success', !isError && Boolean(text));
+    }
+
+    function setSiteContentEditors(payload) {
+      const safePayload = payload || {
+        metadata: [],
+        metrics: [],
+        reviews: [],
+        links: []
+      };
+
+      els.siteMetadataInput.value = formatJsonEditor(safePayload.metadata || []);
+      els.siteLinksInput.value = formatJsonEditor(safePayload.links || []);
+      els.siteMetricsInput.value = formatJsonEditor(safePayload.metrics || []);
+      els.siteReviewsInput.value = formatJsonEditor(safePayload.reviews || []);
+    }
+
+    function parseJsonEditor(text, label) {
+      const raw = (text || '').trim();
+      if (!raw) return null;
+      try {
+        return JSON.parse(raw);
+      } catch (err) {
+        throw new Error(`${label}: JSON invalido`);
+      }
+    }
+
+    async function refreshSiteContentData() {
+      if (!state.user) return;
+      showSiteContentMessage('A carregar conteudo do site...', false);
+      const data = await apiRequest('GET', siteContentApiBase);
+      state.siteContent = data;
+      setSiteContentEditors(data);
+      showSiteContentMessage('Conteudo carregado.', false);
+    }
+
+    async function saveSiteContentData() {
+      if (!state.user) return;
+
+      const payload = {
+        metadata: parseJsonEditor(els.siteMetadataInput.value, 'Metadata') || [],
+        links: parseJsonEditor(els.siteLinksInput.value, 'Links') || [],
+        metrics: parseJsonEditor(els.siteMetricsInput.value, 'Metrics') || [],
+        reviews: parseJsonEditor(els.siteReviewsInput.value, 'Reviews') || []
+      };
+
+      showSiteContentMessage('A guardar conteudo do site...', false);
+      const data = await apiRequest('PUT', siteContentApiBase, payload);
+      state.siteContent = data;
+      setSiteContentEditors(data);
+      showSiteContentMessage('Conteudo guardado com sucesso.', false);
     }
 
     function showAthletesMessage(text, isError) {
@@ -573,10 +693,21 @@
       els.saveBtn.disabled = !loggedIn;
       els.publishNowBtn.disabled = !loggedIn;
       els.deleteBtn.disabled = !loggedIn;
+      els.refreshSiteContentBtn.disabled = !loggedIn;
+      els.saveSiteContentBtn.disabled = !loggedIn;
       
       // Desabilitar todos os inputs/textareas dentro do form
       const formInputs = els.form.querySelectorAll('input, select, textarea');
       formInputs.forEach(input => input.disabled = !loggedIn);
+
+      [
+        els.siteMetadataInput,
+        els.siteLinksInput,
+        els.siteMetricsInput,
+        els.siteReviewsInput
+      ].forEach((input) => {
+        input.disabled = !loggedIn;
+      });
     }
 
     function resetForm() {
@@ -742,13 +873,23 @@
             showAthletesMessage(err.message, true);
           }
         }
+        if (activeTab === 'siteContent') {
+          try {
+            await refreshSiteContentData();
+          } catch (err) {
+            showSiteContentMessage(err.message, true);
+          }
+        }
       } else {
         state.articles = [];
+        state.siteContent = null;
         state.unassignedAthletes = [];
         state.coaches = [];
         renderList();
         renderUnassignedAthletes();
         renderCoachOptions();
+        setSiteContentEditors(null);
+        showSiteContentMessage('Faz login para gerir o conteudo do site.', false);
         resetForm();
         showAthletesMessage('Faz login para gerir atletas.', false);
       }
@@ -904,6 +1045,22 @@
       }
     });
 
+    els.refreshSiteContentBtn.addEventListener('click', async () => {
+      try {
+        await refreshSiteContentData();
+      } catch (err) {
+        showSiteContentMessage(err.message, true);
+      }
+    });
+
+    els.saveSiteContentBtn.addEventListener('click', async () => {
+      try {
+        await saveSiteContentData();
+      } catch (err) {
+        showSiteContentMessage(err.message, true);
+      }
+    });
+
     els.unassignedAthletesBody.addEventListener('click', async (event) => {
       const target = event.target;
       if (!(target instanceof HTMLButtonElement)) return;
@@ -927,6 +1084,7 @@
     });
 
     els.tabBlog.addEventListener('click', () => setActiveTab('blog'));
+    els.tabSiteContent.addEventListener('click', () => setActiveTab('siteContent'));
     els.tabAthletes.addEventListener('click', () => setActiveTab('athletes'));
     els.tabPrograms.addEventListener('click', () => setActiveTab('programs'));
     els.tabCoaches.addEventListener('click', () => setActiveTab('coaches'));
@@ -935,6 +1093,8 @@
     setAuthUI();
     setActiveTab('blog');
     renderUnassignedAthletes();
+    setSiteContentEditors(null);
+    showSiteContentMessage('Faz login para gerir o conteudo do site.', false);
     showAthletesMessage('Faz login para gerir atletas.', false);
     resetForm();
   </script>

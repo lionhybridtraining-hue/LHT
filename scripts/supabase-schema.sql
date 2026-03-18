@@ -237,6 +237,71 @@ before update on blog_articles
 for each row
 execute function set_updated_at();
 
+-- Dynamic site content managed via /admin
+
+create table if not exists site_metadata (
+  key text primary key,
+  value text,
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists site_metrics (
+  id uuid primary key default gen_random_uuid(),
+  sort_order integer not null default 0,
+  value text,
+  label text,
+  active boolean not null default true,
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists site_reviews (
+  id uuid primary key default gen_random_uuid(),
+  sort_order integer not null default 0,
+  name text,
+  stars integer not null default 5 check (stars between 1 and 5),
+  text text,
+  meta text,
+  review_date date,
+  active boolean not null default true,
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists site_links (
+  key text primary key,
+  url text not null,
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists site_metrics_sort_idx
+on site_metrics (sort_order asc, updated_at desc);
+
+create index if not exists site_reviews_sort_idx
+on site_reviews (sort_order asc, updated_at desc);
+
+drop trigger if exists set_site_metadata_updated_at on site_metadata;
+create trigger set_site_metadata_updated_at
+before update on site_metadata
+for each row
+execute function set_updated_at();
+
+drop trigger if exists set_site_metrics_updated_at on site_metrics;
+create trigger set_site_metrics_updated_at
+before update on site_metrics
+for each row
+execute function set_updated_at();
+
+drop trigger if exists set_site_reviews_updated_at on site_reviews;
+create trigger set_site_reviews_updated_at
+before update on site_reviews
+for each row
+execute function set_updated_at();
+
+drop trigger if exists set_site_links_updated_at on site_links;
+create trigger set_site_links_updated_at
+before update on site_links
+for each row
+execute function set_updated_at();
+
 -- Long-term auth and operations foundation
 
 create table if not exists app_roles (

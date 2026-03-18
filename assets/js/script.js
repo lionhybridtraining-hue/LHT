@@ -38,9 +38,9 @@ function handleScrollIndicator(){
 window.addEventListener('scroll', handleScrollIndicator, { passive: true });
 window.addEventListener('load', handleScrollIndicator);
 
-// ===== Dynamic content via Google Apps Script / Google Sheets =====
+// ===== Dynamic content via Netlify Function =====
 (function(){
-  const CACHE_KEY = 'lht_dynamic_cache_v1';
+  const CACHE_KEY = 'lht_dynamic_cache_v2';
 
   function withTimeout(ms){
     const controller = new AbortController();
