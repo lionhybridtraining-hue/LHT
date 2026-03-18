@@ -599,6 +599,13 @@ body.auth-locked {
   font-size: 0.88rem;
 }
 
+.sc-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
 .sc-add-btn {
   flex-shrink: 0;
   border: 1px solid var(--line-strong);
@@ -611,6 +618,10 @@ body.auth-locked {
   background: linear-gradient(180deg, #f2d184 0%, #c89a3c 100%);
   color: #17120c;
   transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.sc-add-btn-secondary {
+  background: linear-gradient(180deg, #fff7e6 0%, #e7d3aa 100%);
 }
 
 .sc-add-btn:hover {
@@ -682,6 +693,13 @@ body.auth-locked {
   font-size: 0.9rem;
   font-style: italic;
   margin: 0;
+}
+
+.sc-hint {
+  margin: 0 0 12px;
+  color: var(--muted);
+  font-size: 0.84rem;
+  line-height: 1.5;
 }
 
 .sc-items-list {
@@ -1092,6 +1110,15 @@ body.auth-locked {
 
   .sc-kv-row {
     grid-template-columns: minmax(100px, 160px) minmax(0, 1fr) auto;
+  }
+
+  .sc-section-header {
+    flex-direction: column;
+  }
+
+  .sc-header-actions {
+    width: 100%;
+    justify-content: flex-start;
   }
 }
 

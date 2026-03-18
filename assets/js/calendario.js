@@ -13,7 +13,7 @@ const LHT_CALENDAR_CONFIG = {
 };
 
 (function(){
-  const CACHE_KEY = 'lht_dynamic_cache_v1';
+  const CACHE_KEY = 'lht_dynamic_cache_v2';
 
   function text(node, value){
     if(node && value){

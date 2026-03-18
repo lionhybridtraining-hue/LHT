@@ -83,6 +83,219 @@ window.addEventListener('load', handleScrollIndicator);
     node.textContent = String(value == null ? '' : value);
   }
 
+  function firstDefinedValue(values, fallback){
+    for(const value of values){
+      if(value == null) continue;
+      const normalized = String(value).trim();
+      if(normalized) return normalized;
+    }
+    return fallback;
+  }
+
+  function metadataValue(metadata, keys, fallback){
+    const values = (keys || []).map((key) => metadata && Object.prototype.hasOwnProperty.call(metadata, key) ? metadata[key] : undefined);
+    return firstDefinedValue(values, fallback);
+  }
+
+  function pathName(){
+    return (window.location.pathname || '/').toLowerCase();
+  }
+
+  function currentPageKey(){
+    const path = pathName();
+    if(path === '/' || path === '/index.html') return 'home';
+    if(path === '/calendario' || path === '/calendario.html') return 'calendar';
+    if(path === '/sobre' || path === '/sobre.html') return 'about';
+    if(path === '/onboarding' || path === '/onboarding.html') return 'onboarding';
+    return null;
+  }
+
+  function upsertMeta(attribute, key, content){
+    if(!content) return;
+    let node = document.head.querySelector(`meta[${attribute}="${key}"]`);
+    if(!node){
+      node = document.createElement('meta');
+      node.setAttribute(attribute, key);
+      document.head.appendChild(node);
+    }
+    node.setAttribute('content', content);
+  }
+
+  function setCanonical(href){
+    if(!href) return;
+    let node = document.head.querySelector('link[rel="canonical"]');
+    if(!node){
+      node = document.createElement('link');
+      node.setAttribute('rel', 'canonical');
+      document.head.appendChild(node);
+    }
+    node.setAttribute('href', href);
+  }
+
+  function setJsonLd(id, payload){
+    const node = document.getElementById(id);
+    if(!node || !payload) return;
+    node.textContent = JSON.stringify(payload);
+  }
+
+  function buildOrganizationSameAs(metadata){
+    return [
+      metadataValue(metadata, ['organization_same_as_instagram'], ''),
+      metadataValue(metadata, ['organization_same_as_youtube'], ''),
+      metadataValue(metadata, ['organization_same_as_whatsapp'], '')
+    ].filter(Boolean);
+  }
+
+  function bindSeoMetadata(data){
+    if(!data || !data.metadata) return;
+
+    const metadata = data.metadata;
+    const pageKey = currentPageKey();
+    if(!pageKey) return;
+
+    const pagePrefix = `${pageKey}_`;
+    const siteName = metadataValue(metadata, ['site_name', 'organization_name'], 'Lion Hybrid Training');
+    const siteUrl = metadataValue(metadata, ['site_url', 'organization_url'], 'https://lionhybridtraining.com/');
+    const locale = metadataValue(metadata, ['site_locale'], 'pt_PT');
+    const defaultRobots = metadataValue(metadata, ['default_robots'], 'index, follow');
+    const defaultOgType = metadataValue(metadata, ['default_og_type'], 'website');
+    const defaultTwitterCard = metadataValue(metadata, ['default_twitter_card'], 'summary_large_image');
+    const defaultImage = metadataValue(metadata, ['default_share_image'], 'https://lionhybridtraining.com/assets/img/logo_lht.jpg');
+    const defaultImageType = metadataValue(metadata, ['default_share_image_type'], 'image/jpeg');
+    const defaultImageWidth = metadataValue(metadata, ['default_share_image_width'], '1024');
+    const defaultImageHeight = metadataValue(metadata, ['default_share_image_height'], '1024');
+
+    const title = metadataValue(metadata, [`${pagePrefix}title`], document.title);
+    const description = metadataValue(metadata, [`${pagePrefix}description`], '');
+    const canonicalUrl = metadataValue(metadata, [`${pagePrefix}canonical_url`], '');
+    const robots = metadataValue(metadata, [`${pagePrefix}robots`], defaultRobots);
+    const ogType = metadataValue(metadata, [`${pagePrefix}og_type`], defaultOgType);
+    const ogLocale = metadataValue(metadata, [`${pagePrefix}og_locale`], locale);
+    const ogSiteName = metadataValue(metadata, [`${pagePrefix}og_site_name`], siteName);
+    const ogTitle = metadataValue(metadata, [`${pagePrefix}og_title`], title);
+    const ogDescription = metadataValue(metadata, [`${pagePrefix}og_description`], description);
+    const ogUrl = metadataValue(metadata, [`${pagePrefix}og_url`], canonicalUrl || window.location.href);
+    const ogImage = metadataValue(metadata, [`${pagePrefix}og_image`], defaultImage);
+    const ogImageType = metadataValue(metadata, [`${pagePrefix}og_image_type`], defaultImageType);
+    const ogImageWidth = metadataValue(metadata, [`${pagePrefix}og_image_width`], defaultImageWidth);
+    const ogImageHeight = metadataValue(metadata, [`${pagePrefix}og_image_height`], defaultImageHeight);
+    const ogImageAlt = metadataValue(metadata, [`${pagePrefix}og_image_alt`], title);
+    const twitterCard = metadataValue(metadata, [`${pagePrefix}twitter_card`], defaultTwitterCard);
+    const twitterTitle = metadataValue(metadata, [`${pagePrefix}twitter_title`], ogTitle);
+    const twitterDescription = metadataValue(metadata, [`${pagePrefix}twitter_description`], ogDescription);
+    const twitterImage = metadataValue(metadata, [`${pagePrefix}twitter_image`], ogImage);
+    const twitterImageAlt = metadataValue(metadata, [`${pagePrefix}twitter_image_alt`], ogImageAlt);
+
+    if(title) document.title = title;
+    upsertMeta('name', 'description', description);
+    upsertMeta('name', 'robots', robots);
+    setCanonical(canonicalUrl);
+
+    upsertMeta('property', 'og:site_name', ogSiteName);
+    upsertMeta('property', 'og:type', ogType);
+    upsertMeta('property', 'og:locale', ogLocale);
+    upsertMeta('property', 'og:title', ogTitle);
+    upsertMeta('property', 'og:description', ogDescription);
+    upsertMeta('property', 'og:url', ogUrl);
+    upsertMeta('property', 'og:image', ogImage);
+    upsertMeta('property', 'og:image:type', ogImageType);
+    upsertMeta('property', 'og:image:width', ogImageWidth);
+    upsertMeta('property', 'og:image:height', ogImageHeight);
+    upsertMeta('property', 'og:image:alt', ogImageAlt);
+
+    upsertMeta('name', 'twitter:card', twitterCard);
+    upsertMeta('name', 'twitter:title', twitterTitle);
+    upsertMeta('name', 'twitter:description', twitterDescription);
+    upsertMeta('name', 'twitter:image', twitterImage);
+    upsertMeta('name', 'twitter:image:alt', twitterImageAlt);
+
+    if(pageKey === 'home') {
+      setJsonLd('home-org-jsonld', {
+        '@context': 'https://schema.org',
+        '@type': 'Organization',
+        name: metadataValue(metadata, ['organization_name', 'site_name'], siteName),
+        url: metadataValue(metadata, ['organization_url', 'site_url'], siteUrl),
+        logo: metadataValue(metadata, ['organization_logo_url'], ogImage),
+        sameAs: buildOrganizationSameAs(metadata)
+      });
+
+      setJsonLd('home-website-jsonld', {
+        '@context': 'https://schema.org',
+        '@type': 'WebSite',
+        name: metadataValue(metadata, ['website_name', 'site_name'], siteName),
+        url: metadataValue(metadata, ['website_url', 'site_url'], siteUrl)
+      });
+
+      setJsonLd('home-event-jsonld', {
+        '@context': 'https://schema.org',
+        '@type': 'Event',
+        name: metadataValue(metadata, ['event_name'], 'Lançamento AER — Athletic Endurance Runner'),
+        startDate: metadataValue(metadata, ['event_start_date'], '2026-02-02'),
+        eventAttendanceMode: metadataValue(metadata, ['event_attendance_mode'], 'https://schema.org/OnlineEventAttendanceMode'),
+        eventStatus: metadataValue(metadata, ['event_status'], 'https://schema.org/EventScheduled'),
+        location: {
+          '@type': 'VirtualLocation',
+          url: metadataValue(metadata, ['event_location_url'], 'https://aer.lionhybridtraining.com')
+        },
+        image: metadataValue(metadata, ['event_image'], 'https://lionhybridtraining.com/assets/img/logo-aer.png'),
+        description: metadataValue(metadata, ['event_description'], 'Lançamento do programa AER. Reserva a tua vaga.'),
+        offers: {
+          '@type': 'Offer',
+          url: metadataValue(metadata, ['event_offer_url'], 'https://buy.stripe.com/14AcN63Qi7p451SbkY97G00'),
+          price: metadataValue(metadata, ['event_offer_price'], '0'),
+          priceCurrency: metadataValue(metadata, ['event_offer_currency'], 'EUR'),
+          availability: metadataValue(metadata, ['event_offer_availability'], 'https://schema.org/InStock')
+        }
+      });
+    }
+
+    if(pageKey === 'calendar') {
+      setJsonLd('calendar-webpage-jsonld', {
+        '@context': 'https://schema.org',
+        '@type': 'WebPage',
+        name: metadataValue(metadata, ['calendar_page_name', 'calendar_title'], title),
+        url: metadataValue(metadata, ['calendar_page_url', 'calendar_canonical_url'], canonicalUrl || ogUrl),
+        description: metadataValue(metadata, ['calendar_page_description', 'calendar_description'], description),
+        isPartOf: {
+          '@type': 'WebSite',
+          name: metadataValue(metadata, ['website_name', 'site_name'], siteName),
+          url: metadataValue(metadata, ['website_url', 'site_url'], siteUrl)
+        }
+      });
+    }
+
+    if(pageKey === 'about') {
+      setJsonLd('about-page-jsonld', {
+        '@context': 'https://schema.org',
+        '@type': 'AboutPage',
+        name: metadataValue(metadata, ['about_page_name', 'about_title'], title),
+        url: metadataValue(metadata, ['about_page_url', 'about_canonical_url'], canonicalUrl || ogUrl),
+        description: metadataValue(metadata, ['about_page_description', 'about_description'], description),
+        primaryImageOfPage: metadataValue(metadata, ['about_page_primary_image'], ogImage)
+      });
+
+      setJsonLd('about-person-jsonld', {
+        '@context': 'https://schema.org',
+        '@type': 'Person',
+        name: metadataValue(metadata, ['about_person_name'], 'Rodrigo Libânio'),
+        affiliation: {
+          '@type': 'Organization',
+          name: metadataValue(metadata, ['about_person_affiliation_name', 'organization_name', 'site_name'], siteName)
+        }
+      });
+    }
+
+    if(pageKey === 'onboarding') {
+      setJsonLd('onboarding-webpage-jsonld', {
+        '@context': 'https://schema.org',
+        '@type': 'WebPage',
+        name: metadataValue(metadata, ['onboarding_page_name', 'onboarding_title'], title),
+        url: metadataValue(metadata, ['onboarding_page_url', 'onboarding_canonical_url'], canonicalUrl || ogUrl),
+        description: metadataValue(metadata, ['onboarding_page_description', 'onboarding_description'], description)
+      });
+    }
+  }
+
   function bindAerDate(data){
     const node = document.getElementById('aer-next-date');
     if(!node || !data || !data.metadata) return;
@@ -154,6 +367,7 @@ window.addEventListener('load', handleScrollIndicator);
 
     const jsonLdScript = document.getElementById('reviews-jsonld');
     if(jsonLdScript){
+      const metadata = data.metadata || {};
       const ratingValue = Number(data.aggregateRating && data.aggregateRating.ratingValue ? data.aggregateRating.ratingValue : 4.9);
       const reviewCount = Number(data.aggregateRating && data.aggregateRating.reviewCount ? data.aggregateRating.reviewCount : data.reviews.length);
 
@@ -168,8 +382,8 @@ window.addEventListener('load', handleScrollIndicator);
       const payload = {
         '@context': 'https://schema.org',
         '@type': 'Product',
-        name: 'AER — Athletic Endurance Runner',
-        brand: 'Lion Hybrid Training',
+        name: metadataValue(metadata, ['product_name'], 'AER — Athletic Endurance Runner'),
+        brand: metadataValue(metadata, ['product_brand', 'organization_name', 'site_name'], 'Lion Hybrid Training'),
         aggregateRating: { '@type': 'AggregateRating', ratingValue: String(ratingValue), reviewCount: String(reviewCount) },
         review: reviewJson
       };
@@ -192,6 +406,7 @@ window.addEventListener('load', handleScrollIndicator);
 
   function applyDynamicData(data){
     if(!data || typeof data !== 'object') return;
+    bindSeoMetadata(data);
     bindAerDate(data);
     bindMetrics(data);
     bindReviews(data);

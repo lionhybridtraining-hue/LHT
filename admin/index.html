@@ -154,10 +154,14 @@
             <div class="sc-section-header">
               <div>
                 <h3 class="sc-section-title">Metadata</h3>
-                <p class="sc-section-desc">Pares chave-valor para configuracao do site.</p>
+                <p class="sc-section-desc">Pares chave-valor para configuracao do site, SEO e structured data.</p>
               </div>
-              <button id="add-metadata-btn" type="button" class="sc-add-btn">+ Adicionar</button>
+              <div class="sc-header-actions">
+                <button id="add-metadata-presets-btn" type="button" class="sc-add-btn sc-add-btn-secondary">+ Presets SEO</button>
+                <button id="add-metadata-btn" type="button" class="sc-add-btn">+ Adicionar</button>
+              </div>
             </div>
+            <p class="sc-hint">Inclui home, calendario, sobre, onboarding, Organization, WebSite, Event, AboutPage e WebPage.</p>
             <div id="metadata-list" class="sc-kv-list" role="list" data-empty="metadata-empty">
               <p class="sc-empty" id="metadata-empty">Sem entradas de metadata.</p>
             </div>
@@ -169,7 +173,10 @@
                 <h3 class="sc-section-title">Links</h3>
                 <p class="sc-section-desc">Ligacoes e URLs dinamicas do site.</p>
               </div>
-              <button id="add-link-btn" type="button" class="sc-add-btn">+ Adicionar</button>
+              <div class="sc-header-actions">
+                <button id="add-link-presets-btn" type="button" class="sc-add-btn sc-add-btn-secondary">+ Presets links</button>
+                <button id="add-link-btn" type="button" class="sc-add-btn">+ Adicionar</button>
+              </div>
             </div>
             <div id="links-list" class="sc-kv-list" role="list" data-empty="links-empty">
               <p class="sc-empty" id="links-empty">Sem links configurados.</p>
@@ -408,6 +415,111 @@
       leads: []
     };
 
+    const SITE_METADATA_PRESETS = [
+      ['site_name', 'Lion Hybrid Training'],
+      ['site_url', 'https://lionhybridtraining.com/'],
+      ['site_locale', 'pt_PT'],
+      ['default_robots', 'index, follow'],
+      ['default_og_type', 'website'],
+      ['default_twitter_card', 'summary_large_image'],
+      ['default_share_image', 'https://lionhybridtraining.com/assets/img/logo_lht.jpg'],
+      ['default_share_image_type', 'image/jpeg'],
+      ['default_share_image_width', '1024'],
+      ['default_share_image_height', '1024'],
+      ['organization_name', 'Lion Hybrid Training'],
+      ['organization_url', 'https://lionhybridtraining.com/'],
+      ['organization_logo_url', 'https://lionhybridtraining.com/assets/img/logo-lht.png'],
+      ['organization_same_as_instagram', 'https://www.instagram.com/lionhybridtraining/'],
+      ['organization_same_as_whatsapp', 'https://chat.whatsapp.com/JVsqO05fm4kLhbSaSiKL8n'],
+      ['website_name', 'Lion Hybrid Training'],
+      ['home_title', 'Lion Hybrid Training — Comunidade'],
+      ['home_description', 'Lion Hybrid Training — Força. Resistência. Consistência. A Comunidade onde ciência, propósito e treino híbrido se encontram.'],
+      ['home_canonical_url', 'https://lionhybridtraining.com/'],
+      ['home_og_title', 'Lion Hybrid Training — Comunidade'],
+      ['home_og_description', 'Lion Hybrid Training — Força. Resistência. Consistência. A Comunidade onde ciência, propósito e treino híbrido se encontram.'],
+      ['home_og_url', 'https://lionhybridtraining.com/'],
+      ['home_og_image', 'https://lionhybridtraining.com/assets/img/logo_lht.jpg'],
+      ['home_og_image_alt', 'Lion Hybrid Training — Força. Resistência. Consistência.'],
+      ['home_twitter_title', 'Lion Hybrid Training — Comunidade'],
+      ['home_twitter_description', 'Força. Resistência. Consistência. Comunidade e treino híbrido com propósito.'],
+      ['home_twitter_image', 'https://lionhybridtraining.com/assets/img/logo_lht.jpg'],
+      ['home_twitter_image_alt', 'Lion Hybrid Training — Força. Resistência. Consistência.'],
+      ['event_name', 'Lançamento AER — Athletic Endurance Runner'],
+      ['event_start_date', '2026-02-02'],
+      ['event_attendance_mode', 'https://schema.org/OnlineEventAttendanceMode'],
+      ['event_status', 'https://schema.org/EventScheduled'],
+      ['event_location_url', 'https://aer.lionhybridtraining.com'],
+      ['event_image', 'https://lionhybridtraining.com/assets/img/logo-aer.png'],
+      ['event_description', 'Lançamento do programa AER. Reserva a tua vaga.'],
+      ['event_offer_url', 'https://buy.stripe.com/14AcN63Qi7p451SbkY97G00'],
+      ['event_offer_price', '0'],
+      ['event_offer_currency', 'EUR'],
+      ['event_offer_availability', 'https://schema.org/InStock'],
+      ['product_name', 'AER — Athletic Endurance Runner'],
+      ['product_brand', 'Lion Hybrid Training'],
+      ['calendar_title', 'Calendário de Desafios LHT | Lion Hybrid Training'],
+      ['calendar_description', 'Acede ao calendário de desafios da comunidade LHT e percebe como o programa AER te prepara para o teu próximo desafio com mais estrutura, consistência e confiança.'],
+      ['calendar_canonical_url', 'https://lionhybridtraining.com/calendario'],
+      ['calendar_og_title', 'Calendário de Desafios LHT'],
+      ['calendar_og_description', 'Descobre as próximas provas da comunidade LHT e percebe como o AER te prepara para chegar mais forte ao teu próximo desafio.'],
+      ['calendar_og_url', 'https://lionhybridtraining.com/calendario'],
+      ['calendar_og_image', 'https://lionhybridtraining.com/assets/img/logo_lht.jpg'],
+      ['calendar_og_image_alt', 'Calendário de Desafios LHT'],
+      ['calendar_twitter_title', 'Calendário de Desafios LHT'],
+      ['calendar_twitter_description', 'Acede ao calendário de provas da comunidade LHT e percebe como o AER te prepara para o teu próximo desafio.'],
+      ['calendar_twitter_image', 'https://lionhybridtraining.com/assets/img/logo_lht.jpg'],
+      ['calendar_twitter_image_alt', 'Calendário de Desafios LHT'],
+      ['calendar_page_name', 'Calendário de Desafios LHT'],
+      ['calendar_page_url', 'https://lionhybridtraining.com/calendario'],
+      ['calendar_page_description', 'Página pública com o calendário de desafios LHT e explicação de como o programa AER prepara os atletas para provas e desafios.'],
+      ['about_title', 'Sobre Mim — Lion Hybrid Training'],
+      ['about_description', 'Sou pai, marido e treinador. Acredito que o treino é mais do que físico — é propósito, presença e desenvolvimento humano. Conhece a história por trás da Lion Hybrid Training.'],
+      ['about_canonical_url', 'https://lionhybridtraining.com/sobre'],
+      ['about_og_title', 'Sobre Mim — Lion Hybrid Training'],
+      ['about_og_description', 'Sou pai, marido e treinador. Acredito que o treino é mais do que físico — é propósito, presença e desenvolvimento humano. Conhece a história por trás da Lion Hybrid Training.'],
+      ['about_og_url', 'https://lionhybridtraining.com/sobre'],
+      ['about_og_image', 'https://lionhybridtraining.com/assets/img/logo_lht.jpg'],
+      ['about_og_image_alt', 'Rodrigo Libânio — Fundador da Lion Hybrid Training'],
+      ['about_twitter_title', 'Sobre Mim — Lion Hybrid Training'],
+      ['about_twitter_description', 'Sou pai, marido e treinador. Acredito que o treino é mais do que físico — é propósito, presença e desenvolvimento humano. Conhece a história por trás da Lion Hybrid Training.'],
+      ['about_twitter_image', 'https://lionhybridtraining.com/assets/img/logo_lht.jpg'],
+      ['about_twitter_image_alt', 'Lion Hybrid Training — Sobre Mim'],
+      ['about_page_name', 'Sobre Mim — Lion Hybrid Training'],
+      ['about_page_url', 'https://lionhybridtraining.com/sobre'],
+      ['about_page_description', 'Sou pai, marido e treinador. Acredito que o treino é mais do que físico — é propósito, presença e desenvolvimento humano. Conhece a história por trás da Lion Hybrid Training.'],
+      ['about_page_primary_image', 'https://lionhybridtraining.com/assets/img/logo-lht.png'],
+      ['about_person_name', 'Rodrigo Libânio'],
+      ['about_person_affiliation_name', 'Lion Hybrid Training'],
+      ['onboarding_title', 'Onboarding — Lion Hybrid Training'],
+      ['onboarding_description', 'Bem-vindo à Lion Hybrid Training! Segue estes passos para começar a treinar com o programa AER.'],
+      ['onboarding_canonical_url', 'https://lionhybridtraining.com/onboarding'],
+      ['onboarding_og_title', 'Onboarding — Lion Hybrid Training'],
+      ['onboarding_og_description', 'Bem-vindo à Lion Hybrid Training! Segue estes passos para começar a treinar com o programa AER.'],
+      ['onboarding_og_url', 'https://lionhybridtraining.com/onboarding'],
+      ['onboarding_og_image', 'https://lionhybridtraining.com/assets/img/logo_lht.jpg'],
+      ['onboarding_og_image_alt', 'Lion Hybrid Training — Onboarding'],
+      ['onboarding_twitter_title', 'Onboarding — Lion Hybrid Training'],
+      ['onboarding_twitter_description', 'Bem-vindo à Lion Hybrid Training! Segue estes passos para começar a treinar com o programa AER.'],
+      ['onboarding_twitter_image', 'https://lionhybridtraining.com/assets/img/logo_lht.jpg'],
+      ['onboarding_twitter_image_alt', 'Lion Hybrid Training — Onboarding'],
+      ['onboarding_page_name', 'Onboarding — Lion Hybrid Training'],
+      ['onboarding_page_url', 'https://lionhybridtraining.com/onboarding'],
+      ['onboarding_page_description', 'Bem-vindo à Lion Hybrid Training! Segue estes passos para começar a treinar com o programa AER.'],
+      ['aer_next_date', '16 de Fevereiro'],
+      ['challenge_name', 'Desafio LHT em preparação'],
+      ['challenge_date_label', 'Data por definir'],
+      ['challenge_location', 'Portugal'],
+      ['challenge_format', 'Corrida, trail ou desafio híbrido'],
+      ['challenge_focus', 'Base aeróbica, resiliência e progressão'],
+      ['challenge_description', 'Escolhe a prova que te motiva, junta-te à comunidade e usa o AER para transformar intenção em execução semana após semana.']
+    ];
+
+    const SITE_LINK_PRESETS = [
+      ['calendar_embed_url', 'https://calendar.google.com/calendar/embed?src=912e82e3fded609ada172e79c94251f92bc8f0ba03fffc7fb230ac6afe1b759f%40group.calendar.google.com&ctz=Europe%2FLisbon'],
+      ['calendar_google_url', 'https://calendar.google.com/calendar/u/1?cid=OTEyZTgyZTNmZGVkNjA5YWRhMTcyZTc5Yzk0MjUxZjkyYmM4ZjBiYTAzZmZmYzdmYjIzMGFjNmFmZTFiNzU5ZkBncm91cC5jYWxlbmRhci5nb29nbGUuY29t'],
+      ['calendar_ical_url', 'https://calendar.google.com/calendar/ical/912e82e3fded609ada172e79c94251f92bc8f0ba03fffc7fb230ac6afe1b759f%40group.calendar.google.com/public/basic.ics']
+    ];
+
     const els = {
       authGate: document.getElementById('admin-auth-gate'),
       protectedContent: document.getElementById('protected-content'),
@@ -447,6 +559,8 @@
       siteContentMessage: document.getElementById('site-content-message'),
       refreshSiteContentBtn: document.getElementById('refresh-site-content-btn'),
       saveSiteContentBtn: document.getElementById('save-site-content-btn'),
+      addMetadataPresetsBtn: document.getElementById('add-metadata-presets-btn'),
+      addLinkPresetsBtn: document.getElementById('add-link-presets-btn'),
       addMetadataBtn: document.getElementById('add-metadata-btn'),
       addLinkBtn: document.getElementById('add-link-btn'),
       addMetricBtn: document.getElementById('add-metric-btn'),
@@ -596,6 +710,34 @@
       row.appendChild(valInput);
       row.appendChild(removeBtn);
       return row;
+    }
+
+    function ensureKvRow(listEl, key, value, valuePlaceholder) {
+      const existing = Array.from(listEl.querySelectorAll('.sc-kv-row')).find((row) => {
+        const input = row.querySelector('.sc-key-input');
+        return input && input.value.trim() === key;
+      });
+
+      if (existing) return existing;
+
+      const row = createKvRow(key, value, valuePlaceholder);
+      listEl.appendChild(row);
+      refreshEmptyState(listEl, '.sc-kv-row');
+      return row;
+    }
+
+    function addMetadataPresets() {
+      SITE_METADATA_PRESETS.forEach(([key, value]) => {
+        ensureKvRow(els.metadataList, key, value, 'Valor');
+      });
+      showSiteContentMessage('Presets de metadata adicionados.', false);
+    }
+
+    function addLinkPresets() {
+      SITE_LINK_PRESETS.forEach(([key, value]) => {
+        ensureKvRow(els.linksList, key, value, 'URL');
+      });
+      showSiteContentMessage('Presets de links adicionados.', false);
     }
 
     function createMetricCard(metric, index) {
@@ -1625,6 +1767,14 @@
       } catch (err) {
         showSiteContentMessage(err.message, true);
       }
+    });
+
+    els.addMetadataPresetsBtn.addEventListener('click', () => {
+      addMetadataPresets();
+    });
+
+    els.addLinkPresetsBtn.addEventListener('click', () => {
+      addLinkPresets();
     });
 
     els.addMetadataBtn.addEventListener('click', () => {
