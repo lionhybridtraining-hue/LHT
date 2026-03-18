@@ -580,6 +580,36 @@ async function replaceSiteLinks(config, rows) {
   });
 }
 
+async function insertMetaLead(config, lead) {
+  return supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: "meta_leads",
+    method: "POST",
+    body: lead,
+    prefer: "return=representation,resolution=ignore-duplicates"
+  });
+}
+
+async function listMetaLeads(config) {
+  return supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: "meta_leads?order=received_at.desc&limit=200"
+  });
+}
+
+async function updateMetaLead(config, id, patch) {
+  return supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `meta_leads?id=eq.${encodeURIComponent(id)}`,
+    method: "PATCH",
+    body: patch,
+    prefer: "return=representation"
+  });
+}
+
 module.exports = {
   insertTrainingSessions,
   findExistingSessions,
@@ -627,5 +657,8 @@ module.exports = {
   listBlogArticlesAdmin,
   createBlogArticle,
   updateBlogArticle,
-  softDeleteBlogArticle
+  softDeleteBlogArticle,
+  insertMetaLead,
+  listMetaLeads,
+  updateMetaLead
 };

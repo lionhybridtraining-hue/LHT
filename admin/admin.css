@@ -1161,3 +1161,55 @@ body.auth-locked {
     height: 48px;
   }
 }
+
+/* Leads Meta table */
+.leads-table {
+  min-width: 900px;
+}
+
+.lead-status-select {
+  font-family: inherit;
+  font-size: 0.85rem;
+  padding: 5px 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: var(--white);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.lead-actions-cell {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.lead-notes-input {
+  flex: 1;
+  font-family: inherit;
+  font-size: 0.85rem;
+  padding: 5px 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: var(--white);
+  color: var(--ink);
+  min-width: 120px;
+}
+
+.save-lead-btn {
+  font-family: "Oswald", sans-serif;
+  font-size: 0.82rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 5px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--accent-deep);
+  background: rgba(200, 154, 60, 0.12);
+  color: var(--ink);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.save-lead-btn:hover {
+  background: rgba(200, 154, 60, 0.24);
+}

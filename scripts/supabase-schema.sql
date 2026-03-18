@@ -425,3 +425,37 @@ create trigger set_program_assignments_updated_at
 before update on program_assignments
 for each row
 execute function set_updated_at();
+
+-- Meta Lead Ads integration
+
+create table if not exists meta_leads (
+  id uuid primary key default gen_random_uuid(),
+  leadgen_id text unique,
+  form_id text,
+  form_name text,
+  page_id text,
+  ad_id text,
+  ad_name text,
+  name text,
+  email text,
+  phone text,
+  field_data jsonb not null default '[]'::jsonb,
+  raw_payload jsonb,
+  status text not null default 'new' check (status in ('new', 'contacted', 'qualified', 'disqualified')),
+  notes text,
+  received_at timestamptz not null default now(),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists meta_leads_status_idx
+on meta_leads (status, received_at desc);
+
+create index if not exists meta_leads_received_at_idx
+on meta_leads (received_at desc);
+
+drop trigger if exists set_meta_leads_updated_at on meta_leads;
+create trigger set_meta_leads_updated_at
+before update on meta_leads
+for each row
+execute function set_updated_at();
