@@ -1554,6 +1554,7 @@
 
       if (!window.supabase) {
         console.error('Supabase script não foi carregado');
+        setAuthLoading(false);
         return;
       }
 
@@ -1608,8 +1609,16 @@
       });
 
       logoutBtn.addEventListener("click", async () => {
-        await supabaseClient.auth.signOut();
-        await handleAuthChange(null);
+        setAuthLoading(true);
+        try {
+          await supabaseClient.auth.signOut({ scope: 'local' });
+        } catch (err) {
+          showResult("Erro ao terminar sessão. A limpar sessão local...", "error");
+        } finally {
+          await handleAuthChange(null);
+          setAuthLoading(false);
+          window.location.replace('/coach');
+        }
       });
     }
 

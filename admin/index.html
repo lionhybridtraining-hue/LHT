@@ -739,9 +739,17 @@
       
       setAuthUI();
       if (state.user) {
-        await refreshList();
+        try {
+          await refreshList();
+        } catch (err) {
+          showMessage(err.message, true);
+        }
         if (activeTab === 'athletes') {
-          await refreshAthletesData();
+          try {
+            await refreshAthletesData();
+          } catch (err) {
+            showAthletesMessage(err.message, true);
+          }
         }
       } else {
         state.articles = [];
@@ -776,6 +784,7 @@
 
       if (!window.supabase) {
         console.error('Supabase script não foi carregado');
+        setAuthLoading(false);
         return;
       }
 
@@ -787,12 +796,17 @@
 
       // Monitor de auth state changes
       supabaseClient.auth.onAuthStateChange(async (_event, session) => {
-        if (session?.user) {
-          await handleAuthChange(session.user);
-        } else {
-          await handleAuthChange(null);
+        try {
+          if (session?.user) {
+            await handleAuthChange(session.user);
+          } else {
+            await handleAuthChange(null);
+          }
+        } catch (err) {
+          showMessage(err.message || 'Erro ao validar sessão', true);
+        } finally {
+          setAuthLoading(false);
         }
-        setAuthLoading(false);
       });
 
       // Check auth on page load
@@ -830,8 +844,16 @@
       });
 
       els.logoutBtn.addEventListener('click', async () => {
-        await supabaseClient.auth.signOut();
-        await handleAuthChange(null);
+        setAuthLoading(true);
+        try {
+          await supabaseClient.auth.signOut({ scope: 'local' });
+        } catch (err) {
+          showMessage('Erro ao terminar sessao. A limpar sessao local...', true);
+        } finally {
+          await handleAuthChange(null);
+          setAuthLoading(false);
+          window.location.replace('/admin');
+        }
       });
 
       els.openCreateCoachBtn.addEventListener('click', () => {
