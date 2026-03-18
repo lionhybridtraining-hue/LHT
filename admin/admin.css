@@ -563,30 +563,289 @@ body.auth-locked {
   cursor: not-allowed;
 }
 
-.site-content-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
+.sc-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 }
 
-.site-content-grid textarea {
+.sc-section {
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 16px 18px;
+  background: rgba(255, 252, 247, 0.6);
+}
+
+.sc-section-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.sc-section-title {
+  margin: 0 0 3px;
+  font-family: "Oswald", sans-serif;
+  font-size: 1rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+.sc-section-desc {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.sc-add-btn {
+  flex-shrink: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  padding: 8px 14px;
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  background: linear-gradient(180deg, #f2d184 0%, #c89a3c 100%);
+  color: #17120c;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.sc-add-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.12);
+}
+
+.sc-add-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.sc-kv-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sc-kv-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 200px) minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.sc-kv-row input {
   width: 100%;
   border: 1px solid var(--line);
-  border-radius: 16px;
-  padding: 13px 14px;
-  font: 500 0.9rem/1.5 "Consolas", "Courier New", monospace;
+  border-radius: 12px;
+  padding: 9px 12px;
+  font: inherit;
+  font-size: 0.9rem;
   color: var(--ink);
   background: rgba(255, 252, 247, 0.96);
-  resize: vertical;
-  min-height: 180px;
-  transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
 }
 
-.site-content-grid textarea:focus {
+.sc-kv-row input:focus {
   outline: none;
   border-color: rgba(200, 154, 60, 0.56);
-  box-shadow: 0 0 0 4px rgba(200, 154, 60, 0.14);
+  box-shadow: 0 0 0 3px rgba(200, 154, 60, 0.12);
   background: #fffdf8;
+}
+
+.sc-remove-btn {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border: 1px solid rgba(182, 70, 51, 0.22);
+  border-radius: 10px;
+  background: rgba(182, 70, 51, 0.07);
+  color: var(--danger);
+  font-size: 0.8rem;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: background 0.16s ease;
+}
+
+.sc-remove-btn:hover {
+  background: rgba(182, 70, 51, 0.16);
+}
+
+.sc-empty {
+  padding: 10px 4px;
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-style: italic;
+  margin: 0;
+}
+
+.sc-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sc-item-card {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(255, 252, 247, 0.96);
+  overflow: hidden;
+}
+
+.sc-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 14px;
+  background: rgba(200, 154, 60, 0.07);
+  border-bottom: 1px solid var(--line);
+}
+
+.sc-card-label {
+  font-family: "Oswald", sans-serif;
+  font-size: 0.82rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.sc-card-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sc-card-body {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  color: var(--ink);
+}
+
+.sc-card-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: flex-end;
+}
+
+.sc-field {
+  display: grid;
+  gap: 5px;
+  min-width: 120px;
+  flex: 1;
+}
+
+.sc-field-narrow {
+  flex: 0 0 120px;
+  min-width: 100px;
+}
+
+.sc-field-full {
+  flex: 1 1 100%;
+}
+
+.sc-field label {
+  font-family: "Oswald", sans-serif;
+  font-size: 0.78rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.sc-field input,
+.sc-field select,
+.sc-field textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 9px 12px;
+  font: inherit;
+  font-size: 0.9rem;
+  color: var(--ink);
+  background: rgba(255, 252, 247, 0.96);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.sc-field input:focus,
+.sc-field select:focus,
+.sc-field textarea:focus {
+  outline: none;
+  border-color: rgba(200, 154, 60, 0.56);
+  box-shadow: 0 0 0 3px rgba(200, 154, 60, 0.12);
+  background: #fffdf8;
+}
+
+.sc-field textarea {
+  resize: vertical;
+  min-height: 68px;
+}
+
+.sc-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.sc-toggle input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.sc-toggle-track {
+  display: inline-block;
+  width: 34px;
+  height: 20px;
+  border-radius: 10px;
+  background: rgba(100, 85, 65, 0.2);
+  border: 1px solid rgba(100, 85, 65, 0.25);
+  position: relative;
+  flex-shrink: 0;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.sc-toggle-track::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: rgba(100, 85, 65, 0.4);
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.sc-toggle input:checked + .sc-toggle-track {
+  background: rgba(36, 107, 82, 0.18);
+  border-color: rgba(36, 107, 82, 0.35);
+}
+
+.sc-toggle input:checked + .sc-toggle-track::after {
+  transform: translateX(14px);
+  background: var(--ok);
+}
+
+.sc-toggle-inline {
+  font-size: 0.88rem;
+}
+
+.sc-toggle-label {
+  font-family: "Oswald", sans-serif;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
 }
 
 .athletes-toolbar {
@@ -829,8 +1088,8 @@ body.auth-locked {
     grid-template-columns: 1fr;
   }
 
-  .site-content-grid {
-    grid-template-columns: 1fr;
+  .sc-kv-row {
+    grid-template-columns: minmax(100px, 160px) minmax(0, 1fr) auto;
   }
 }
 

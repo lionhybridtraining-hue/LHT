@@ -148,22 +148,57 @@
           <button id="save-site-content-btn" type="button">Guardar conteudo</button>
         </div>
 
-        <div class="site-content-grid">
-          <div class="field">
-            <label for="site-metadata-input">Metadata (JSON objeto)</label>
-            <textarea id="site-metadata-input" rows="10" spellcheck="false"></textarea>
+        <div class="sc-sections">
+          <div class="sc-section">
+            <div class="sc-section-header">
+              <div>
+                <h3 class="sc-section-title">Metadata</h3>
+                <p class="sc-section-desc">Pares chave-valor para configuracao do site.</p>
+              </div>
+              <button id="add-metadata-btn" type="button" class="sc-add-btn">+ Adicionar</button>
+            </div>
+            <div id="metadata-list" class="sc-kv-list" role="list" data-empty="metadata-empty">
+              <p class="sc-empty" id="metadata-empty">Sem entradas de metadata.</p>
+            </div>
           </div>
-          <div class="field">
-            <label for="site-links-input">Links (JSON objeto)</label>
-            <textarea id="site-links-input" rows="10" spellcheck="false"></textarea>
+
+          <div class="sc-section">
+            <div class="sc-section-header">
+              <div>
+                <h3 class="sc-section-title">Links</h3>
+                <p class="sc-section-desc">Ligacoes e URLs dinamicas do site.</p>
+              </div>
+              <button id="add-link-btn" type="button" class="sc-add-btn">+ Adicionar</button>
+            </div>
+            <div id="links-list" class="sc-kv-list" role="list" data-empty="links-empty">
+              <p class="sc-empty" id="links-empty">Sem links configurados.</p>
+            </div>
           </div>
-          <div class="field field-wide">
-            <label for="site-metrics-input">Metrics (JSON array)</label>
-            <textarea id="site-metrics-input" rows="10" spellcheck="false"></textarea>
+
+          <div class="sc-section">
+            <div class="sc-section-header">
+              <div>
+                <h3 class="sc-section-title">Metricas</h3>
+                <p class="sc-section-desc">Numeros e estatisticas apresentados na homepage.</p>
+              </div>
+              <button id="add-metric-btn" type="button" class="sc-add-btn">+ Adicionar</button>
+            </div>
+            <div id="metrics-list" class="sc-items-list" role="list" data-empty="metrics-empty">
+              <p class="sc-empty" id="metrics-empty">Sem metricas configuradas.</p>
+            </div>
           </div>
-          <div class="field field-wide">
-            <label for="site-reviews-input">Reviews (JSON array)</label>
-            <textarea id="site-reviews-input" rows="14" spellcheck="false"></textarea>
+
+          <div class="sc-section">
+            <div class="sc-section-header">
+              <div>
+                <h3 class="sc-section-title">Reviews</h3>
+                <p class="sc-section-desc">Testemunhos de atletas apresentados no site.</p>
+              </div>
+              <button id="add-review-btn" type="button" class="sc-add-btn">+ Adicionar</button>
+            </div>
+            <div id="reviews-list" class="sc-items-list" role="list" data-empty="reviews-empty">
+              <p class="sc-empty" id="reviews-empty">Sem reviews configuradas.</p>
+            </div>
           </div>
         </div>
       </section>
@@ -366,10 +401,14 @@
       siteContentMessage: document.getElementById('site-content-message'),
       refreshSiteContentBtn: document.getElementById('refresh-site-content-btn'),
       saveSiteContentBtn: document.getElementById('save-site-content-btn'),
-      siteMetadataInput: document.getElementById('site-metadata-input'),
-      siteLinksInput: document.getElementById('site-links-input'),
-      siteMetricsInput: document.getElementById('site-metrics-input'),
-      siteReviewsInput: document.getElementById('site-reviews-input'),
+      addMetadataBtn: document.getElementById('add-metadata-btn'),
+      addLinkBtn: document.getElementById('add-link-btn'),
+      addMetricBtn: document.getElementById('add-metric-btn'),
+      addReviewBtn: document.getElementById('add-review-btn'),
+      metadataList: document.getElementById('metadata-list'),
+      linksList: document.getElementById('links-list'),
+      metricsList: document.getElementById('metrics-list'),
+      reviewsList: document.getElementById('reviews-list'),
       athletesMessage: document.getElementById('athletes-message'),
       coachSelect: document.getElementById('coach-select'),
       openCreateCoachBtn: document.getElementById('open-create-coach-btn'),
@@ -448,6 +487,255 @@
       els.siteContentMessage.classList.toggle('success', !isError && Boolean(text));
     }
 
+    function refreshEmptyState(listEl, rowSelector) {
+      const emptyId = listEl.dataset.empty;
+      if (!emptyId) return;
+      const emptyEl = document.getElementById(emptyId);
+      if (emptyEl) emptyEl.hidden = !!listEl.querySelector(rowSelector);
+    }
+
+    function makeScField(labelText, cssClass, inputEl) {
+      const wrap = document.createElement('div');
+      wrap.className = cssClass || 'sc-field';
+      const lbl = document.createElement('label');
+      lbl.textContent = labelText;
+      wrap.appendChild(lbl);
+      wrap.appendChild(inputEl);
+      return wrap;
+    }
+
+    function createKvRow(key, value, valuePlaceholder) {
+      const row = document.createElement('div');
+      row.className = 'sc-kv-row';
+      row.setAttribute('role', 'listitem');
+
+      const keyInput = document.createElement('input');
+      keyInput.type = 'text';
+      keyInput.className = 'sc-key-input';
+      keyInput.placeholder = 'Chave';
+      keyInput.value = key || '';
+
+      const valInput = document.createElement('input');
+      valInput.type = 'text';
+      valInput.className = 'sc-val-input';
+      valInput.placeholder = valuePlaceholder || 'Valor';
+      valInput.value = value || '';
+
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.className = 'sc-remove-btn';
+      removeBtn.setAttribute('aria-label', 'Remover linha');
+      removeBtn.textContent = '✕';
+      removeBtn.addEventListener('click', () => {
+        const list = row.parentNode;
+        row.remove();
+        if (list) refreshEmptyState(list, '.sc-kv-row');
+      });
+
+      row.appendChild(keyInput);
+      row.appendChild(valInput);
+      row.appendChild(removeBtn);
+      return row;
+    }
+
+    function createMetricCard(metric, index) {
+      const card = document.createElement('div');
+      card.className = 'sc-item-card';
+      card.setAttribute('role', 'listitem');
+
+      const sortOrder = metric.sortOrder != null ? metric.sortOrder : index;
+      const active = metric.active !== false;
+
+      const header = document.createElement('div');
+      header.className = 'sc-card-header';
+
+      const labelSpan = document.createElement('span');
+      labelSpan.className = 'sc-card-label';
+      labelSpan.textContent = 'Metrica';
+
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.className = 'sc-remove-btn';
+      removeBtn.setAttribute('aria-label', 'Remover metrica');
+      removeBtn.textContent = '✕';
+      removeBtn.addEventListener('click', () => {
+        const list = card.parentNode;
+        card.remove();
+        if (list) refreshEmptyState(list, '.sc-item-card');
+      });
+
+      header.appendChild(labelSpan);
+      header.appendChild(removeBtn);
+
+      const body = document.createElement('div');
+      body.className = 'sc-card-body';
+
+      const fields = document.createElement('div');
+      fields.className = 'sc-card-fields';
+
+      const valueInput = document.createElement('input');
+      valueInput.type = 'text';
+      valueInput.className = 'sc-metric-value';
+      valueInput.placeholder = 'Ex.: 312+';
+      valueInput.value = metric.value || '';
+
+      const labelInput = document.createElement('input');
+      labelInput.type = 'text';
+      labelInput.className = 'sc-metric-label';
+      labelInput.placeholder = 'Ex.: Atletas treinados';
+      labelInput.value = metric.label || '';
+
+      const orderInput = document.createElement('input');
+      orderInput.type = 'number';
+      orderInput.className = 'sc-metric-order';
+      orderInput.min = '0';
+      orderInput.value = String(sortOrder);
+
+      const activeCheckbox = document.createElement('input');
+      activeCheckbox.type = 'checkbox';
+      activeCheckbox.className = 'sc-metric-active';
+      activeCheckbox.checked = active;
+
+      const toggleTrack = document.createElement('span');
+      toggleTrack.className = 'sc-toggle-track';
+
+      const toggleLabel = document.createElement('label');
+      toggleLabel.className = 'sc-toggle';
+      toggleLabel.appendChild(activeCheckbox);
+      toggleLabel.appendChild(toggleTrack);
+
+      fields.appendChild(makeScField('Valor', 'sc-field', valueInput));
+      fields.appendChild(makeScField('Label', 'sc-field', labelInput));
+      fields.appendChild(makeScField('Ordem', 'sc-field sc-field-narrow', orderInput));
+      fields.appendChild(makeScField('Ativo', 'sc-field sc-field-narrow', toggleLabel));
+
+      body.appendChild(fields);
+      card.appendChild(header);
+      card.appendChild(body);
+      return card;
+    }
+
+    function createReviewCard(review, index) {
+      const card = document.createElement('div');
+      card.className = 'sc-item-card';
+      card.setAttribute('role', 'listitem');
+
+      const sortOrder = review.sortOrder != null ? review.sortOrder : index;
+      const active = review.active !== false;
+      const stars = review.stars || 5;
+
+      const hiddenId = document.createElement('input');
+      hiddenId.type = 'hidden';
+      hiddenId.className = 'sc-review-id';
+      hiddenId.value = review.id || '';
+
+      const header = document.createElement('div');
+      header.className = 'sc-card-header';
+
+      const labelSpan = document.createElement('span');
+      labelSpan.className = 'sc-card-label';
+      labelSpan.textContent = 'Review';
+
+      const headerActions = document.createElement('div');
+      headerActions.className = 'sc-card-header-actions';
+
+      const activeCheckbox = document.createElement('input');
+      activeCheckbox.type = 'checkbox';
+      activeCheckbox.className = 'sc-review-active';
+      activeCheckbox.checked = active;
+      const toggleTrack = document.createElement('span');
+      toggleTrack.className = 'sc-toggle-track';
+      const toggleLabelSpan = document.createElement('span');
+      toggleLabelSpan.className = 'sc-toggle-label';
+      toggleLabelSpan.textContent = 'Ativo';
+      const toggleLabel = document.createElement('label');
+      toggleLabel.className = 'sc-toggle sc-toggle-inline';
+      toggleLabel.appendChild(activeCheckbox);
+      toggleLabel.appendChild(toggleTrack);
+      toggleLabel.appendChild(toggleLabelSpan);
+
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.className = 'sc-remove-btn';
+      removeBtn.setAttribute('aria-label', 'Remover review');
+      removeBtn.textContent = '✕';
+      removeBtn.addEventListener('click', () => {
+        const list = card.parentNode;
+        card.remove();
+        if (list) refreshEmptyState(list, '.sc-item-card');
+      });
+
+      headerActions.appendChild(toggleLabel);
+      headerActions.appendChild(removeBtn);
+      header.appendChild(labelSpan);
+      header.appendChild(headerActions);
+
+      const body = document.createElement('div');
+      body.className = 'sc-card-body';
+
+      const topFields = document.createElement('div');
+      topFields.className = 'sc-card-fields';
+
+      const nameInput = document.createElement('input');
+      nameInput.type = 'text';
+      nameInput.className = 'sc-review-name';
+      nameInput.placeholder = 'Nome do atleta';
+      nameInput.value = review.name || '';
+
+      const starsSelect = document.createElement('select');
+      starsSelect.className = 'sc-review-stars';
+      [1, 2, 3, 4, 5].forEach((n) => {
+        const opt = document.createElement('option');
+        opt.value = String(n);
+        opt.textContent = '★'.repeat(n);
+        if (n === stars) opt.selected = true;
+        starsSelect.appendChild(opt);
+      });
+
+      const dateInput = document.createElement('input');
+      dateInput.type = 'date';
+      dateInput.className = 'sc-review-date';
+      dateInput.value = review.date || '';
+
+      const orderInput = document.createElement('input');
+      orderInput.type = 'number';
+      orderInput.className = 'sc-review-order';
+      orderInput.min = '0';
+      orderInput.value = String(sortOrder);
+
+      topFields.appendChild(makeScField('Nome', 'sc-field', nameInput));
+      topFields.appendChild(makeScField('Stars', 'sc-field sc-field-narrow', starsSelect));
+      topFields.appendChild(makeScField('Data', 'sc-field sc-field-narrow', dateInput));
+      topFields.appendChild(makeScField('Ordem', 'sc-field sc-field-narrow', orderInput));
+
+      const textWrap = document.createElement('div');
+      textWrap.className = 'sc-field sc-field-full';
+      const textLabel = document.createElement('label');
+      textLabel.textContent = 'Texto da review';
+      const textArea = document.createElement('textarea');
+      textArea.className = 'sc-review-text';
+      textArea.rows = 3;
+      textArea.placeholder = 'Texto do testemunho...';
+      textArea.value = review.text || '';
+      textWrap.appendChild(textLabel);
+      textWrap.appendChild(textArea);
+
+      const metaInput = document.createElement('input');
+      metaInput.type = 'text';
+      metaInput.className = 'sc-review-meta';
+      metaInput.placeholder = 'Ex.: ATHLETIC ENDURANCE RUNNER';
+      metaInput.value = review.meta || '';
+
+      body.appendChild(topFields);
+      body.appendChild(textWrap);
+      body.appendChild(makeScField('Meta (perfil)', 'sc-field', metaInput));
+
+      card.appendChild(hiddenId);
+      card.appendChild(header);
+      card.appendChild(body);
+      return card;
+    }
+
     function setSiteContentEditors(payload) {
       const safePayload = payload || {
         metadata: [],
@@ -456,10 +744,39 @@
         links: []
       };
 
-      els.siteMetadataInput.value = formatJsonEditor(safePayload.metadata || []);
-      els.siteLinksInput.value = formatJsonEditor(safePayload.links || []);
-      els.siteMetricsInput.value = formatJsonEditor(safePayload.metrics || []);
-      els.siteReviewsInput.value = formatJsonEditor(safePayload.reviews || []);
+      const metadataList = els.metadataList;
+      const linksList = els.linksList;
+      const metricsList = els.metricsList;
+      const reviewsList = els.reviewsList;
+
+      metadataList.querySelectorAll('.sc-kv-row').forEach((el) => el.remove());
+      linksList.querySelectorAll('.sc-kv-row').forEach((el) => el.remove());
+      metricsList.querySelectorAll('.sc-item-card').forEach((el) => el.remove());
+      reviewsList.querySelectorAll('.sc-item-card').forEach((el) => el.remove());
+
+      const metadataItems = safePayload.metadata || [];
+      metadataItems.forEach((item) => {
+        metadataList.appendChild(createKvRow(item.key, item.value, 'Valor'));
+      });
+      refreshEmptyState(metadataList, '.sc-kv-row');
+
+      const linksItems = safePayload.links || [];
+      linksItems.forEach((item) => {
+        linksList.appendChild(createKvRow(item.key, item.url, 'URL'));
+      });
+      refreshEmptyState(linksList, '.sc-kv-row');
+
+      const metricsItems = safePayload.metrics || [];
+      metricsItems.forEach((item, index) => {
+        metricsList.appendChild(createMetricCard(item, index));
+      });
+      refreshEmptyState(metricsList, '.sc-item-card');
+
+      const reviewsItems = safePayload.reviews || [];
+      reviewsItems.forEach((item, index) => {
+        reviewsList.appendChild(createReviewCard(item, index));
+      });
+      refreshEmptyState(reviewsList, '.sc-item-card');
     }
 
     function parseJsonEditor(text, label) {
@@ -470,6 +787,49 @@
       } catch (err) {
         throw new Error(`${label}: JSON invalido`);
       }
+    }
+
+    function collectSiteContentData() {
+      const metadata = [];
+      els.metadataList.querySelectorAll('.sc-kv-row').forEach((row) => {
+        const key = row.querySelector('.sc-key-input').value.trim();
+        const value = row.querySelector('.sc-val-input').value;
+        if (key) metadata.push({ key, value });
+      });
+
+      const links = [];
+      els.linksList.querySelectorAll('.sc-kv-row').forEach((row) => {
+        const key = row.querySelector('.sc-key-input').value.trim();
+        const url = row.querySelector('.sc-val-input').value;
+        if (key) links.push({ key, url });
+      });
+
+      const metrics = [];
+      els.metricsList.querySelectorAll('.sc-item-card').forEach((card, index) => {
+        metrics.push({
+          value: card.querySelector('.sc-metric-value').value,
+          label: card.querySelector('.sc-metric-label').value,
+          sortOrder: parseInt(card.querySelector('.sc-metric-order').value, 10) || index,
+          active: card.querySelector('.sc-metric-active').checked
+        });
+      });
+
+      const reviews = [];
+      els.reviewsList.querySelectorAll('.sc-item-card').forEach((card, index) => {
+        const id = card.querySelector('.sc-review-id').value.trim() || undefined;
+        reviews.push({
+          ...(id ? { id } : {}),
+          name: card.querySelector('.sc-review-name').value,
+          stars: parseInt(card.querySelector('.sc-review-stars').value, 10) || 5,
+          text: card.querySelector('.sc-review-text').value,
+          meta: card.querySelector('.sc-review-meta').value,
+          date: card.querySelector('.sc-review-date').value || null,
+          sortOrder: parseInt(card.querySelector('.sc-review-order').value, 10) || index,
+          active: card.querySelector('.sc-review-active').checked
+        });
+      });
+
+      return { metadata, links, metrics, reviews };
     }
 
     async function refreshSiteContentData() {
@@ -484,12 +844,7 @@
     async function saveSiteContentData() {
       if (!state.user) return;
 
-      const payload = {
-        metadata: parseJsonEditor(els.siteMetadataInput.value, 'Metadata') || [],
-        links: parseJsonEditor(els.siteLinksInput.value, 'Links') || [],
-        metrics: parseJsonEditor(els.siteMetricsInput.value, 'Metrics') || [],
-        reviews: parseJsonEditor(els.siteReviewsInput.value, 'Reviews') || []
-      };
+      const payload = collectSiteContentData();
 
       showSiteContentMessage('A guardar conteudo do site...', false);
       const data = await apiRequest('PUT', siteContentApiBase, payload);
@@ -695,19 +1050,14 @@
       els.deleteBtn.disabled = !loggedIn;
       els.refreshSiteContentBtn.disabled = !loggedIn;
       els.saveSiteContentBtn.disabled = !loggedIn;
-      
-      // Desabilitar todos os inputs/textareas dentro do form
+      els.addMetadataBtn.disabled = !loggedIn;
+      els.addLinkBtn.disabled = !loggedIn;
+      els.addMetricBtn.disabled = !loggedIn;
+      els.addReviewBtn.disabled = !loggedIn;
+
+      // Desabilitar todos os inputs/textareas dentro do form do blog
       const formInputs = els.form.querySelectorAll('input, select, textarea');
       formInputs.forEach(input => input.disabled = !loggedIn);
-
-      [
-        els.siteMetadataInput,
-        els.siteLinksInput,
-        els.siteMetricsInput,
-        els.siteReviewsInput
-      ].forEach((input) => {
-        input.disabled = !loggedIn;
-      });
     }
 
     function resetForm() {
@@ -1059,6 +1409,32 @@
       } catch (err) {
         showSiteContentMessage(err.message, true);
       }
+    });
+
+    els.addMetadataBtn.addEventListener('click', () => {
+      const emptyEl = document.getElementById('metadata-empty');
+      if (emptyEl) emptyEl.hidden = true;
+      els.metadataList.appendChild(createKvRow('', '', 'Valor'));
+    });
+
+    els.addLinkBtn.addEventListener('click', () => {
+      const emptyEl = document.getElementById('links-empty');
+      if (emptyEl) emptyEl.hidden = true;
+      els.linksList.appendChild(createKvRow('', '', 'URL'));
+    });
+
+    els.addMetricBtn.addEventListener('click', () => {
+      const emptyEl = document.getElementById('metrics-empty');
+      if (emptyEl) emptyEl.hidden = true;
+      const index = els.metricsList.querySelectorAll('.sc-item-card').length;
+      els.metricsList.appendChild(createMetricCard({}, index));
+    });
+
+    els.addReviewBtn.addEventListener('click', () => {
+      const emptyEl = document.getElementById('reviews-empty');
+      if (emptyEl) emptyEl.hidden = true;
+      const index = els.reviewsList.querySelectorAll('.sc-item-card').length;
+      els.reviewsList.appendChild(createReviewCard({}, index));
     });
 
     els.unassignedAthletesBody.addEventListener('click', async (event) => {
