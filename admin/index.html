@@ -20,13 +20,6 @@
     </div>
   </section>
 
-  <section id="admin-auth-loader" class="auth-loader" hidden>
-    <div class="auth-loader-card">
-      <div class="auth-loader-spinner" aria-hidden="true"></div>
-      <p>A autenticar sessao...</p>
-    </div>
-  </section>
-
   <div id="protected-content" class="admin-shell" hidden>
     <header class="admin-header">
       <div class="header-brand">
@@ -288,13 +281,11 @@
       articles: [],
       selectedId: null,
       unassignedAthletes: [],
-      coaches: [],
-      authLoading: true
+      coaches: []
     };
 
     const els = {
       authGate: document.getElementById('admin-auth-gate'),
-      authLoader: document.getElementById('admin-auth-loader'),
       protectedContent: document.getElementById('protected-content'),
       gateLoginBtn: document.getElementById('gate-login-btn'),
       authStatus: document.getElementById('auth-status'),
@@ -385,12 +376,6 @@
       if (activeTab === 'athletes' && state.user) {
         refreshAthletesData().catch((err) => showAthletesMessage(err.message, true));
       }
-    }
-
-    function setAuthLoading(loading) {
-      state.authLoading = Boolean(loading);
-      els.authLoader.hidden = !state.authLoading;
-      document.body.classList.toggle('auth-locked', state.authLoading || !state.user);
     }
 
     function showAthletesMessage(text, isError) {
@@ -539,8 +524,12 @@
     }
 
     async function getToken() {
+      if (state.token) {
+        return state.token;
+      }
+
       const { data: { session } } = await supabaseClient.auth.getSession();
-      if (!session) {
+      if (!session || !session.access_token) {
         throw new Error('Nao autenticado. Faz login novamente.');
       }
       state.token = session.access_token;
@@ -573,7 +562,7 @@
       const loggedIn = Boolean(state.user);
       els.authGate.hidden = loggedIn;
       els.protectedContent.hidden = !loggedIn;
-      document.body.classList.toggle('auth-locked', state.authLoading || !loggedIn);
+      document.body.classList.toggle('auth-locked', !loggedIn);
       els.authStatus.textContent = loggedIn
         ? `Autenticado: ${state.user.email || state.user.id}`
         : 'Nao autenticado';
@@ -727,14 +716,16 @@
       resetForm();
     }
 
-    async function handleAuthChange(supabaseUser) {
+    async function handleAuthChange(supabaseUser, session) {
       if (supabaseUser) {
         state.user = {
           id: supabaseUser.id,
           email: supabaseUser.email
         };
+        state.token = session && session.access_token ? session.access_token : null;
       } else {
         state.user = null;
+        state.token = null;
       }
       
       setAuthUI();
@@ -768,13 +759,11 @@
       if (!supabaseClient) return;
       const { data: { session } } = await supabaseClient.auth.getSession();
       if (session?.user) {
-        await handleAuthChange(session.user);
+        await handleAuthChange(session.user, session);
       }
     }
 
     async function initializeAuth() {
-      setAuthLoading(true);
-
       // Espera que o Supabase script carregue
       let attempts = 0;
       while (!window.supabase && attempts < 50) {
@@ -784,7 +773,6 @@
 
       if (!window.supabase) {
         console.error('Supabase script não foi carregado');
-        setAuthLoading(false);
         return;
       }
 
@@ -798,25 +786,20 @@
       supabaseClient.auth.onAuthStateChange(async (_event, session) => {
         try {
           if (session?.user) {
-            await handleAuthChange(session.user);
+            await handleAuthChange(session.user, session);
           } else {
-            await handleAuthChange(null);
+            await handleAuthChange(null, null);
           }
         } catch (err) {
           showMessage(err.message || 'Erro ao validar sessão', true);
-        } finally {
-          setAuthLoading(false);
         }
       });
 
       // Check auth on page load
-      checkAuthOnLoad()
-        .catch((err) => showMessage(err.message, true))
-        .finally(() => setAuthLoading(false));
+      checkAuthOnLoad().catch((err) => showMessage(err.message, true));
 
       // Setup event listeners APÓS Supabase estar pronto
       els.loginBtn.addEventListener('click', async () => {
-        setAuthLoading(true);
         const { error } = await supabaseClient.auth.signInWithOAuth({
           provider: 'google',
           options: {
@@ -824,13 +807,11 @@
           }
         });
         if (error) {
-          setAuthLoading(false);
           showMessage(error.message, true);
         }
       });
 
       els.gateLoginBtn.addEventListener('click', async () => {
-        setAuthLoading(true);
         const { error } = await supabaseClient.auth.signInWithOAuth({
           provider: 'google',
           options: {
@@ -838,20 +819,17 @@
           }
         });
         if (error) {
-          setAuthLoading(false);
           showMessage(error.message, true);
         }
       });
 
       els.logoutBtn.addEventListener('click', async () => {
-        setAuthLoading(true);
         try {
           await supabaseClient.auth.signOut({ scope: 'local' });
         } catch (err) {
           showMessage('Erro ao terminar sessao. A limpar sessao local...', true);
         } finally {
-          await handleAuthChange(null);
-          setAuthLoading(false);
+          await handleAuthChange(null, null);
           window.location.replace('/admin');
         }
       });

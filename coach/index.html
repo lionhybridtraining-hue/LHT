@@ -88,46 +88,6 @@
       line-height: 1.6;
     }
 
-    .auth-loader {
-      position: fixed;
-      inset: 0;
-      z-index: 1100;
-      display: grid;
-      place-items: center;
-      background: rgba(5, 5, 5, 0.72);
-      backdrop-filter: blur(4px);
-    }
-
-    .auth-loader[hidden] {
-      display: none !important;
-    }
-
-    .auth-loader-card {
-      display: grid;
-      justify-items: center;
-      gap: 10px;
-      padding: 18px 20px;
-      border-radius: var(--radius-md);
-      border: 1px solid var(--line-strong);
-      background: rgba(12, 12, 12, 0.92);
-      color: var(--text-soft);
-    }
-
-    .auth-loader-spinner {
-      width: 22px;
-      height: 22px;
-      border-radius: 50%;
-      border: 2px solid rgba(212, 165, 79, 0.2);
-      border-top-color: var(--gold);
-      animation: spin 0.8s linear infinite;
-    }
-
-    @keyframes spin {
-      to {
-        transform: rotate(360deg);
-      }
-    }
-
     .brandbar {
       display: flex;
       align-items: center;
@@ -530,13 +490,6 @@
     </div>
   </section>
 
-  <section id="coach-auth-loader" class="auth-loader" hidden>
-    <div class="auth-loader-card">
-      <div class="auth-loader-spinner" aria-hidden="true"></div>
-      <p>A autenticar sessao...</p>
-    </div>
-  </section>
-
   <div id="protected-content" class="page-shell" hidden>
     <header class="brandbar">
       <div class="brand">
@@ -748,7 +701,6 @@
   <script>
     const athleteSearchInput = document.getElementById("athleteSearch");
     const authGate = document.getElementById("coach-auth-gate");
-    const authLoader = document.getElementById("coach-auth-loader");
     const protectedContent = document.getElementById("protected-content");
     const gateLoginBtn = document.getElementById("gate-login-btn");
     const athleteFilterMeta = document.getElementById("athleteFilterMeta");
@@ -800,19 +752,16 @@
     let allCheckins = [];
     let state = {
       user: null,
-      token: null,
-      authLoading: true
+      token: null
     };
 
-    function setAuthLoading(loading) {
-      state.authLoading = Boolean(loading);
-      authLoader.hidden = !state.authLoading;
-      document.body.classList.toggle("auth-locked", state.authLoading || !state.user);
-    }
-
     async function getToken() {
+      if (state.token) {
+        return state.token;
+      }
+
       const { data: { session } } = await supabaseClient.auth.getSession();
-      if (!session) {
+      if (!session || !session.access_token) {
         throw new Error('Nao autenticado. Faz login novamente.');
       }
       state.token = session.access_token;
@@ -848,7 +797,7 @@
       const loggedIn = Boolean(state.user);
       authGate.hidden = loggedIn;
       protectedContent.hidden = !loggedIn;
-      document.body.classList.toggle("auth-locked", state.authLoading || !loggedIn);
+      document.body.classList.toggle("auth-locked", !loggedIn);
       authStatus.textContent = loggedIn
         ? `Autenticado: ${state.user.email || state.user.id}`
         : "Não autenticado";
@@ -865,14 +814,16 @@
       submitButton.disabled = !loggedIn;
     }
 
-    async function handleAuthChange(supabaseUser) {
+    async function handleAuthChange(supabaseUser, session) {
       if (supabaseUser) {
         state.user = {
           id: supabaseUser.id,
           email: supabaseUser.email
         };
+        state.token = session && session.access_token ? session.access_token : null;
       } else {
         state.user = null;
+        state.token = null;
       }
       
       setAuthUI();
@@ -1538,13 +1489,11 @@
       if (!supabaseClient) return;
       const { data: { session } } = await supabaseClient.auth.getSession();
       if (session?.user) {
-        await handleAuthChange(session.user);
+        await handleAuthChange(session.user, session);
       }
     }
 
     async function initializeAuth() {
-      setAuthLoading(true);
-
       // Espera que o Supabase script carregue
       let attempts = 0;
       while (!window.supabase && attempts < 50) {
@@ -1554,7 +1503,6 @@
 
       if (!window.supabase) {
         console.error('Supabase script não foi carregado');
-        setAuthLoading(false);
         return;
       }
 
@@ -1566,22 +1514,22 @@
 
       // Monitor de auth state changes
       supabaseClient.auth.onAuthStateChange(async (_event, session) => {
-        if (session?.user) {
-          await handleAuthChange(session.user);
-        } else {
-          await handleAuthChange(null);
+        try {
+          if (session?.user) {
+            await handleAuthChange(session.user, session);
+          } else {
+            await handleAuthChange(null, null);
+          }
+        } catch (err) {
+          showResult(err.message || "Erro ao validar sessão", "error");
         }
-        setAuthLoading(false);
       });
 
       // Check auth on page load
-      checkAuthOnLoad()
-        .catch((err) => showResult(err.message, true))
-        .finally(() => setAuthLoading(false));
+      checkAuthOnLoad().catch((err) => showResult(err.message, true));
 
       // Setup event listeners APÓS Supabase estar pronto
       loginBtn.addEventListener("click", async () => {
-        setAuthLoading(true);
         const { error } = await supabaseClient.auth.signInWithOAuth({
           provider: 'google',
           options: {
@@ -1589,13 +1537,11 @@
           }
         });
         if (error) {
-          setAuthLoading(false);
           showResult(error.message, true);
         }
       });
 
       gateLoginBtn.addEventListener("click", async () => {
-        setAuthLoading(true);
         const { error } = await supabaseClient.auth.signInWithOAuth({
           provider: 'google',
           options: {
@@ -1603,20 +1549,17 @@
           }
         });
         if (error) {
-          setAuthLoading(false);
           showResult(error.message, true);
         }
       });
 
       logoutBtn.addEventListener("click", async () => {
-        setAuthLoading(true);
         try {
           await supabaseClient.auth.signOut({ scope: 'local' });
         } catch (err) {
           showResult("Erro ao terminar sessão. A limpar sessão local...", "error");
         } finally {
-          await handleAuthChange(null);
-          setAuthLoading(false);
+          await handleAuthChange(null, null);
           window.location.replace('/coach');
         }
       });

@@ -94,46 +94,6 @@ body.auth-locked {
   color: #17120c;
 }
 
-.auth-loader {
-  position: fixed;
-  inset: 0;
-  z-index: 1100;
-  display: grid;
-  place-items: center;
-  background: rgba(5, 5, 5, 0.72);
-  backdrop-filter: blur(4px);
-}
-
-.auth-loader[hidden] {
-  display: none !important;
-}
-
-.auth-loader-card {
-  display: grid;
-  justify-items: center;
-  gap: 10px;
-  padding: 18px 20px;
-  border-radius: 14px;
-  border: 1px solid rgba(241, 200, 111, 0.25);
-  background: rgba(12, 10, 7, 0.92);
-  color: rgba(255, 249, 240, 0.9);
-}
-
-.auth-loader-spinner {
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  border: 2px solid rgba(241, 200, 111, 0.2);
-  border-top-color: var(--accent-strong);
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
 .admin-inline-form {
   margin-top: 14px;
   display: grid;
