@@ -37,6 +37,11 @@
   to = "/check-in/"
   status = 301
 
+[[redirects]]
+  from = "/planocorrida/*"
+  to = "/planocorrida/index.html"
+  status = 200
+
 # Ensure posts index is not captured by the slug rewrite
 [[redirects]]
   from = "/blog/posts.json"

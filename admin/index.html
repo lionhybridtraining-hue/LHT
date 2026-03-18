@@ -149,7 +149,115 @@
           <button id="save-site-content-btn" type="button">Guardar conteudo</button>
         </div>
 
-        <div class="sc-sections">
+        <div class="sc-essencial">
+          <div class="sc-ess-section">
+            <div class="sc-ess-section-header">
+              <h3>Textos visíveis</h3>
+              <p>O que muda aqui aparece imediatamente no site.</p>
+            </div>
+            <div class="sc-ess-grid">
+              <div class="sc-ess-field">
+                <label class="sc-ess-label" for="ess-aer_next_date">Próxima data AER <span class="sc-ess-page">Homepage</span></label>
+                <input id="ess-aer_next_date" type="text" class="sc-ess-input" placeholder="Ex.: 14 de Setembro" />
+              </div>
+              <div class="sc-ess-divider">Próximo desafio — Calendário</div>
+              <div class="sc-ess-field">
+                <label class="sc-ess-label" for="ess-challenge_name">Nome do desafio <span class="sc-ess-page">Calendário</span></label>
+                <input id="ess-challenge_name" type="text" class="sc-ess-input" placeholder="Ex.: Trail do Gerês 2026" />
+              </div>
+              <div class="sc-ess-field">
+                <label class="sc-ess-label" for="ess-challenge_date_label">Data (texto) <span class="sc-ess-page">Calendário</span></label>
+                <input id="ess-challenge_date_label" type="text" class="sc-ess-input" placeholder="Ex.: Junho 2026" />
+              </div>
+              <div class="sc-ess-field">
+                <label class="sc-ess-label" for="ess-challenge_location">Local <span class="sc-ess-page">Calendário</span></label>
+                <input id="ess-challenge_location" type="text" class="sc-ess-input" placeholder="Ex.: Serra da Estrela, Portugal" />
+              </div>
+              <div class="sc-ess-field">
+                <label class="sc-ess-label" for="ess-challenge_format">Formato <span class="sc-ess-page">Calendário</span></label>
+                <input id="ess-challenge_format" type="text" class="sc-ess-input" placeholder="Ex.: Corrida, trail ou desafio híbrido" />
+              </div>
+              <div class="sc-ess-field">
+                <label class="sc-ess-label" for="ess-challenge_focus">Foco <span class="sc-ess-page">Calendário</span></label>
+                <input id="ess-challenge_focus" type="text" class="sc-ess-input" placeholder="Ex.: Base aeróbica, resiliência e progressão" />
+              </div>
+              <div class="sc-ess-field sc-ess-field--wide">
+                <label class="sc-ess-label" for="ess-challenge_description">Descrição do desafio <span class="sc-ess-page">Calendário</span></label>
+                <textarea id="ess-challenge_description" class="sc-ess-input" rows="3" placeholder="Descrição que aparece no cartão do desafio"></textarea>
+              </div>
+            </div>
+          </div>
+
+          <div class="sc-ess-section">
+            <div class="sc-ess-section-header">
+              <h3>Links &amp; CTAs</h3>
+              <p>URLs dos botões e redes sociais usados em todo o site.</p>
+            </div>
+            <div class="sc-ess-grid">
+              <div class="sc-ess-field">
+                <label class="sc-ess-label" for="ess-cta_reserva_aer">Reserva AER (Stripe) <span class="sc-ess-page">Todos</span></label>
+                <input id="ess-cta_reserva_aer" type="url" class="sc-ess-input" placeholder="https://buy.stripe.com/..." />
+              </div>
+              <div class="sc-ess-field">
+                <label class="sc-ess-label" for="ess-cta_plano_gratuito">Plano Gratuito (Google Form) <span class="sc-ess-page">Todos</span></label>
+                <input id="ess-cta_plano_gratuito" type="url" class="sc-ess-input" placeholder="https://docs.google.com/forms/..." />
+              </div>
+              <div class="sc-ess-field">
+                <label class="sc-ess-label" for="ess-social_instagram">Instagram <span class="sc-ess-page">Rodapé</span></label>
+                <input id="ess-social_instagram" type="url" class="sc-ess-input" placeholder="https://www.instagram.com/..." />
+              </div>
+              <div class="sc-ess-field">
+                <label class="sc-ess-label" for="ess-social_youtube">YouTube <span class="sc-ess-page">Rodapé</span></label>
+                <input id="ess-social_youtube" type="url" class="sc-ess-input" placeholder="https://www.youtube.com/..." />
+              </div>
+              <div class="sc-ess-field">
+                <label class="sc-ess-label" for="ess-social_whatsapp">WhatsApp Comunidade <span class="sc-ess-page">Todos</span></label>
+                <input id="ess-social_whatsapp" type="url" class="sc-ess-input" placeholder="https://chat.whatsapp.com/..." />
+              </div>
+              <div class="sc-ess-field">
+                <label class="sc-ess-label" for="ess-calendar_google_url">Adicionar ao Google Calendar <span class="sc-ess-page">Calendário</span></label>
+                <input id="ess-calendar_google_url" type="url" class="sc-ess-input" placeholder="https://calendar.google.com/..." />
+              </div>
+              <div class="sc-ess-field">
+                <label class="sc-ess-label" for="ess-calendar_ical_url">Subscrever via iCal <span class="sc-ess-page">Calendário</span></label>
+                <input id="ess-calendar_ical_url" type="url" class="sc-ess-input" placeholder="https://calendar.google.com/calendar/ical/..." />
+              </div>
+            </div>
+          </div>
+
+          <details class="sc-ess-section sc-ess-details">
+            <summary class="sc-ess-summary">SEO Essencial <span class="sc-ess-badge">Google &amp; Partilhas</span></summary>
+            <div class="sc-ess-grid sc-ess-grid--padded">
+              <div class="sc-ess-divider">Homepage</div>
+              <div class="sc-ess-field">
+                <label class="sc-ess-label" for="ess-home_title">Título (aba do browser e Google)</label>
+                <input id="ess-home_title" type="text" class="sc-ess-input" />
+              </div>
+              <div class="sc-ess-field sc-ess-field--wide">
+                <label class="sc-ess-label" for="ess-home_description">Descrição (Google / partilha)</label>
+                <textarea id="ess-home_description" class="sc-ess-input" rows="2"></textarea>
+              </div>
+              <div class="sc-ess-divider">Calendário</div>
+              <div class="sc-ess-field">
+                <label class="sc-ess-label" for="ess-calendar_title">Título</label>
+                <input id="ess-calendar_title" type="text" class="sc-ess-input" />
+              </div>
+              <div class="sc-ess-field sc-ess-field--wide">
+                <label class="sc-ess-label" for="ess-calendar_description">Descrição</label>
+                <textarea id="ess-calendar_description" class="sc-ess-input" rows="2"></textarea>
+              </div>
+              <div class="sc-ess-divider">Geral</div>
+              <div class="sc-ess-field sc-ess-field--wide">
+                <label class="sc-ess-label" for="ess-default_share_image">Imagem padrão de partilha (URL)</label>
+                <input id="ess-default_share_image" type="url" class="sc-ess-input" />
+              </div>
+            </div>
+          </details>
+        </div>
+
+        <details class="sc-avancado-details">
+          <summary class="sc-avancado-summary">Avançado — Metadata, Links, Métricas e Reviews</summary>
+          <div class="sc-sections">
           <div class="sc-section">
             <div class="sc-section-header">
               <div>
@@ -209,6 +317,7 @@
             </div>
           </div>
         </div>
+        </details>
       </section>
 
       <section id="athletes-panel" class="admin-athletes" hidden>
@@ -430,8 +539,10 @@
       ['organization_url', 'https://lionhybridtraining.com/'],
       ['organization_logo_url', 'https://lionhybridtraining.com/assets/img/logo-lht.png'],
       ['organization_same_as_instagram', 'https://www.instagram.com/lionhybridtraining/'],
+      ['organization_same_as_youtube', ''],
       ['organization_same_as_whatsapp', 'https://chat.whatsapp.com/JVsqO05fm4kLhbSaSiKL8n'],
       ['website_name', 'Lion Hybrid Training'],
+      ['website_url', 'https://lionhybridtraining.com/'],
       ['home_title', 'Lion Hybrid Training — Comunidade'],
       ['home_description', 'Lion Hybrid Training — Força. Resistência. Consistência. A Comunidade onde ciência, propósito e treino híbrido se encontram.'],
       ['home_canonical_url', 'https://lionhybridtraining.com/'],
@@ -517,7 +628,34 @@
     const SITE_LINK_PRESETS = [
       ['calendar_embed_url', 'https://calendar.google.com/calendar/embed?src=912e82e3fded609ada172e79c94251f92bc8f0ba03fffc7fb230ac6afe1b759f%40group.calendar.google.com&ctz=Europe%2FLisbon'],
       ['calendar_google_url', 'https://calendar.google.com/calendar/u/1?cid=OTEyZTgyZTNmZGVkNjA5YWRhMTcyZTc5Yzk0MjUxZjkyYmM4ZjBiYTAzZmZmYzdmYjIzMGFjNmFmZTFiNzU5ZkBncm91cC5jYWxlbmRhci5nb29nbGUuY29t'],
-      ['calendar_ical_url', 'https://calendar.google.com/calendar/ical/912e82e3fded609ada172e79c94251f92bc8f0ba03fffc7fb230ac6afe1b759f%40group.calendar.google.com/public/basic.ics']
+      ['calendar_ical_url', 'https://calendar.google.com/calendar/ical/912e82e3fded609ada172e79c94251f92bc8f0ba03fffc7fb230ac6afe1b759f%40group.calendar.google.com/public/basic.ics'],
+      ['cta_reserva_aer', 'https://buy.stripe.com/14AcN63Qi7p451SbkY97G00'],
+      ['cta_plano_gratuito', 'https://docs.google.com/forms/d/e/1FAIpQLSfLhPlXojO2-fEvi32VLitq6P7-WcAgD4Ro04lvGtlIlscUGA/viewform?usp=dialog'],
+      ['social_youtube', ''],
+      ['social_instagram', 'https://www.instagram.com/lionhybridtraining/'],
+      ['social_whatsapp', 'https://chat.whatsapp.com/JVsqO05fm4kLhbSaSiKL8n']
+    ];
+
+    const ESSENTIAL_FIELDS_CONFIG = [
+      { id: 'ess-aer_next_date',        key: 'aer_next_date',        section: 'metadata' },
+      { id: 'ess-challenge_name',        key: 'challenge_name',        section: 'metadata' },
+      { id: 'ess-challenge_date_label',  key: 'challenge_date_label',  section: 'metadata' },
+      { id: 'ess-challenge_location',    key: 'challenge_location',    section: 'metadata' },
+      { id: 'ess-challenge_format',      key: 'challenge_format',      section: 'metadata' },
+      { id: 'ess-challenge_focus',       key: 'challenge_focus',       section: 'metadata' },
+      { id: 'ess-challenge_description', key: 'challenge_description', section: 'metadata' },
+      { id: 'ess-home_title',            key: 'home_title',            section: 'metadata' },
+      { id: 'ess-home_description',      key: 'home_description',      section: 'metadata' },
+      { id: 'ess-calendar_title',        key: 'calendar_title',        section: 'metadata' },
+      { id: 'ess-calendar_description',  key: 'calendar_description',  section: 'metadata' },
+      { id: 'ess-default_share_image',   key: 'default_share_image',   section: 'metadata' },
+      { id: 'ess-cta_reserva_aer',       key: 'cta_reserva_aer',       section: 'link' },
+      { id: 'ess-cta_plano_gratuito',    key: 'cta_plano_gratuito',    section: 'link' },
+      { id: 'ess-social_instagram',      key: 'social_instagram',      section: 'link' },
+      { id: 'ess-social_youtube',        key: 'social_youtube',        section: 'link' },
+      { id: 'ess-social_whatsapp',       key: 'social_whatsapp',       section: 'link' },
+      { id: 'ess-calendar_google_url',   key: 'calendar_google_url',   section: 'link' },
+      { id: 'ess-calendar_ical_url',     key: 'calendar_ical_url',     section: 'link' },
     ];
 
     const els = {
@@ -678,7 +816,37 @@
       return wrap;
     }
 
-    function createKvRow(key, value, valuePlaceholder) {
+    function populateEssentialFields(payload) {
+      const meta = {};
+      (payload.metadata || []).forEach((item) => { meta[item.key] = item.value; });
+      const links = {};
+      (payload.links || []).forEach((item) => { links[item.key] = item.url; });
+      ESSENTIAL_FIELDS_CONFIG.forEach(({ id, key, section }) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const val = section === 'link' ? links[key] : meta[key];
+        if (val !== undefined) el.value = val;
+      });
+    }
+
+    function mergeEssentialIntoPayload(metadata, links) {
+      ESSENTIAL_FIELDS_CONFIG.forEach(({ id, key, section }) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const val = el.value;
+        if (section === 'metadata') {
+          const existing = metadata.find((m) => m.key === key);
+          if (existing) existing.value = val;
+          else metadata.push({ key, value: val });
+        } else {
+          const existing = links.find((l) => l.key === key);
+          if (existing) existing.url = val;
+          else links.push({ key, url: val });
+        }
+      });
+    }
+
+    function createKvRow(key, value, valuePlaceholder, locked = false) {
       const row = document.createElement('div');
       row.className = 'sc-kv-row';
       row.setAttribute('role', 'listitem');
@@ -688,6 +856,11 @@
       keyInput.className = 'sc-key-input';
       keyInput.placeholder = 'Chave';
       keyInput.value = key || '';
+      if (locked && key) {
+        keyInput.readOnly = true;
+        keyInput.classList.add('sc-key-locked');
+        keyInput.title = 'Chave bloqueada — alterar aqui quebraria o frontend';
+      }
 
       const valInput = document.createElement('input');
       valInput.type = 'text';
@@ -720,7 +893,7 @@
 
       if (existing) return existing;
 
-      const row = createKvRow(key, value, valuePlaceholder);
+      const row = createKvRow(key, value, valuePlaceholder, true);
       listEl.appendChild(row);
       refreshEmptyState(listEl, '.sc-kv-row');
       return row;
@@ -956,15 +1129,17 @@
       metricsList.querySelectorAll('.sc-item-card').forEach((el) => el.remove());
       reviewsList.querySelectorAll('.sc-item-card').forEach((el) => el.remove());
 
+      const metadataPresetKeys = new Set(SITE_METADATA_PRESETS.map(([presetKey]) => presetKey));
       const metadataItems = safePayload.metadata || [];
       metadataItems.forEach((item) => {
-        metadataList.appendChild(createKvRow(item.key, item.value, 'Valor'));
+        metadataList.appendChild(createKvRow(item.key, item.value, 'Valor', metadataPresetKeys.has(item.key)));
       });
       refreshEmptyState(metadataList, '.sc-kv-row');
 
+      const linkPresetKeys = new Set(SITE_LINK_PRESETS.map(([presetKey]) => presetKey));
       const linksItems = safePayload.links || [];
       linksItems.forEach((item) => {
-        linksList.appendChild(createKvRow(item.key, item.url, 'URL'));
+        linksList.appendChild(createKvRow(item.key, item.url, 'URL', linkPresetKeys.has(item.key)));
       });
       refreshEmptyState(linksList, '.sc-kv-row');
 
@@ -979,6 +1154,7 @@
         reviewsList.appendChild(createReviewCard(item, index));
       });
       refreshEmptyState(reviewsList, '.sc-item-card');
+      populateEssentialFields(safePayload);
     }
 
     function parseJsonEditor(text, label) {
@@ -1031,6 +1207,7 @@
         });
       });
 
+      mergeEssentialIntoPayload(metadata, links);
       return { metadata, links, metrics, reviews };
     }
 
