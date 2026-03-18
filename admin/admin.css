@@ -1047,7 +1047,9 @@ body.auth-locked {
   }
 
   .admin-header {
+    flex-direction: column;
     align-items: stretch;
+    gap: 16px;
     padding-top: 24px;
     padding-bottom: 18px;
   }
@@ -1095,12 +1097,30 @@ body.auth-locked {
 
 @media (max-width: 560px) {
   .brand-logo {
-    width: 62px;
-    height: 62px;
+    width: 56px;
+    height: 56px;
+  }
+
+  .admin-header {
+    padding: 18px 16px;
+  }
+
+  .admin-main {
+    padding: 16px 12px 24px;
   }
 
   .admin-header h1 {
-    font-size: 2rem;
+    font-size: 1.8rem;
+  }
+
+  .admin-tabs {
+    flex-wrap: wrap;
+    display: flex;
+  }
+
+  .admin-tab {
+    flex: 1 0 calc(50% - 10px);
+    text-align: center;
   }
 
   .admin-sidebar,
@@ -1108,5 +1128,36 @@ body.auth-locked {
   .admin-athletes,
   .auth-panel {
     border-radius: 18px;
+    padding: 16px;
+  }
+
+  .sc-kv-row {
+    grid-template-columns: minmax(80px, 120px) minmax(0, 1fr) auto;
+  }
+
+  .sidebar-intro h2,
+  .editor-top h2 {
+    font-size: 1.35rem;
+  }
+}
+
+@media (max-width: 400px) {
+  .admin-header {
+    padding: 14px 12px;
+  }
+
+  .admin-main {
+    padding: 12px 8px 20px;
+  }
+
+  .admin-tab {
+    flex: 1 0 calc(50% - 8px);
+    padding: 9px 8px;
+    font-size: 0.82rem;
+  }
+
+  .brand-logo {
+    width: 48px;
+    height: 48px;
   }
 }

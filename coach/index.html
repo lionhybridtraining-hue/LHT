@@ -458,6 +458,31 @@
 
     .hidden { display: none !important; }
 
+    .brandbar-right {
+      display: flex;
+      gap: 20px;
+      align-items: center;
+    }
+
+    .brandbar-auth {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .brandbar-auth-controls {
+      display: flex;
+      gap: 8px;
+    }
+
+    .week-nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
     @media (max-width: 980px) {
       .layout { grid-template-columns: 1fr; }
     }
@@ -468,15 +493,75 @@
       .form-actions,
       .modal-actions { flex-direction: column; align-items: flex-start; }
 
+      .brandbar-right {
+        flex-direction: column;
+        align-items: flex-start;
+        width: 100%;
+        gap: 12px;
+      }
+
+      .brandbar-auth {
+        white-space: normal;
+        flex-wrap: wrap;
+        width: 100%;
+      }
+
+      .brandbar-auth-controls {
+        flex: 1;
+        width: 100%;
+      }
+
+      .brandbar-auth .btn {
+        width: auto;
+        flex: 1;
+      }
+
       .brand-badge,
-      .btn,
       .header-actions { width: 100%; }
 
+      .btn { width: 100%; }
+
       .form-grid { grid-template-columns: 1fr; }
-      .metrics-grid,
-      .metrics-summary-grid { grid-template-columns: 1fr; }
+      .metrics-grid { grid-template-columns: 1fr; }
+      .metrics-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .main-panel,
       .side-panel { padding: 22px; }
+
+      .week-nav {
+        width: 100%;
+      }
+
+      .week-nav .btn {
+        width: auto;
+        flex-shrink: 0;
+      }
+
+      .week-nav input {
+        flex: 1;
+        min-width: 0;
+      }
+    }
+
+    @media (max-width: 480px) {
+      body { padding: 16px 12px 32px; }
+
+      .brandbar {
+        padding: 12px 14px;
+        border-radius: 18px;
+      }
+
+      .brand img { width: 40px; height: 40px; }
+
+      .brand-title { font-size: 20px; }
+
+      .panel-header h2 { font-size: 26px; }
+
+      .main-panel,
+      .side-panel { padding: 18px; }
+
+      .metrics-summary-grid { grid-template-columns: 1fr; }
+
+      .btn { min-width: 0; }
     }
   </style>
 </head>
@@ -499,11 +584,11 @@
           <p class="brand-title">Coach Upload</p>
         </div>
       </div>
-      <div style="display:flex; gap:20px; align-items:center;">
+      <div class="brandbar-right">
         <div class="brand-badge">TrainingPeaks weekly import</div>
-        <div class="auth-panel" style="display:flex; align-items:center; gap:12px; font-size:13px; white-space:nowrap;">
+        <div class="brandbar-auth">
           <span id="auth-status">Não autenticado</span>
-          <div class="auth-controls" style="display:flex; gap:8px;">
+          <div class="brandbar-auth-controls">
             <button id="login-btn" type="button" class="btn btn-secondary" style="padding:8px 14px; font-size:12px;">Entrar</button>
             <button id="logout-btn" type="button" class="btn btn-secondary" style="padding:8px 14px; font-size:12px;" disabled>Sair</button>
           </div>
@@ -567,7 +652,7 @@
             <div class="header-actions" style="align-items:flex-end;">
               <div class="field" style="min-width:220px; margin:0;">
                 <label for="trainingLoadWeek">Semana</label>
-                <div style="display:flex; align-items:center; gap:8px;">
+                <div class="week-nav">
                   <button id="prevTrainingLoadWeek" class="btn btn-secondary" type="button" style="min-width:auto; padding:10px 14px;" aria-label="Semana anterior">&larr;</button>
                   <input id="trainingLoadWeek" type="week" />
                   <button id="nextTrainingLoadWeek" class="btn btn-secondary" type="button" style="min-width:auto; padding:10px 14px;" aria-label="Semana seguinte">&rarr;</button>

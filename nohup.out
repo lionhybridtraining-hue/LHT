@@ -1,0 +1,6 @@
+127.0.0.1 - - [18/Mar/2026 12:39:55] "GET /admin/index.html HTTP/1.1" 200 -
+127.0.0.1 - - [18/Mar/2026 12:40:00] "GET /admin/index.html HTTP/1.1" 200 -
+127.0.0.1 - - [18/Mar/2026 12:40:00] "GET /admin/admin.css HTTP/1.1" 200 -
+127.0.0.1 - - [18/Mar/2026 12:40:00] "GET /assets/img/logo-lht.png HTTP/1.1" 200 -
+127.0.0.1 - - [18/Mar/2026 12:40:25] "GET /coach/index.html HTTP/1.1" 200 -
+127.0.0.1 - - [18/Mar/2026 12:40:25] "GET /assets/img/logo-lht.png HTTP/1.1" 200 -
