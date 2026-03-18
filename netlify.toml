@@ -1,6 +1,6 @@
 [build]
   publish = "."
-  command = "node scripts/generate-posts-json.mjs"
+  command = "npm run build"
 
 [functions]
   directory = "netlify/functions"
@@ -35,6 +35,11 @@
 [[redirects]]
   from = "/check-in"
   to = "/check-in/"
+  status = 301
+
+[[redirects]]
+  from = "/planocorrida"
+  to = "/planocorrida/"
   status = 301
 
 [[redirects]]

@@ -1,11 +1,25 @@
 {
   "items": [
     {
-      "slug": "filosofia-lht-treino-hibrido",
-      "title": "TREINO HÍBRIDO - Filosofia LHT",
-      "date": "2026-01-18",
-      "category": "Treino Híbrido",
-      "excerpt": "O conceito de Treino Híbrido: desenvolver força e resistência em simultâneo. Descobre a filosofia LHT e como o treino híbrido pode transformar a tua vida."
+      "slug": "estímulo-vs-adaptação",
+      "title": "Estímulo vs Adaptação",
+      "date": "2026-02-07",
+      "category": "Fisiologia",
+      "excerpt": "Treinar bem é priorizar adaptações, dosear estímulos e dar tempo ao"
+    },
+    {
+      "slug": "construir-a-base-a-fisiologia-do-treino-de-endurance",
+      "title": "Construir a base: a fisiologia do treino de endurance",
+      "date": "2026-01-31",
+      "category": "Fisiologia",
+      "excerpt": "Tolerância à carga, capacidade aeróbia, eficiênia metabólica..."
+    },
+    {
+      "slug": "motivação-vs-disciplina",
+      "title": "Motivação vs Disciplina",
+      "date": "2026-01-23",
+      "category": "Mindset",
+      "excerpt": "'Cada vez mais nos levam a acreditar numa ideia perigosa: “Não precisas"
     },
     {
       "slug": "limiar-fisiológico-≠-número-mágico",

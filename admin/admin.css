@@ -977,6 +977,28 @@ body.auth-locked {
   line-height: 1.5;
 }
 
+.ai-subtabs {
+  margin-bottom: 12px;
+}
+
+.ai-view {
+  display: grid;
+  gap: 12px;
+}
+
+.ai-toolbar {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.ai-editor-form textarea,
+.ai-log-details textarea {
+  min-height: 180px;
+}
+
+.ai-row-selected {
+  background: rgba(200, 154, 60, 0.14);
+}
+
 #article-form {
   display: flex;
   flex-direction: column;

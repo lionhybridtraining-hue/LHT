@@ -14,6 +14,7 @@ import getTrainingProgram from "@/services/get-trainingplan/get-training-plan";
 import { ImSpinner11 } from "react-icons/im";
 import { processData } from "@/utils/getGraphData";
 import splitStringFormatted from "@/utils/split-string-split";
+import { Link } from "react-router-dom";
 
 function parseRequiredNumberParam(value: string | null): number | null {
   if (value === null || value.trim() === "") {
@@ -167,6 +168,12 @@ function Home() {
             Confirma que a URL contem os parametros obrigatorios: progression_rate,
             phase_duration, training_frequency, program_distance.
           </p>
+          <Link
+            to="/formulario"
+            className="inline-block mt-4 px-4 py-2 rounded-md bg-red-700 text-white text-sm font-semibold hover:bg-red-800"
+          >
+            Abrir formulario de plano
+          </Link>
         </div>
       </div>
     );
@@ -178,6 +185,12 @@ function Home() {
         {/* Titulo e Nome da Pessoa */}
         <h1 className="text-2xl font-semibold">Plano de Treino</h1>
         <h2 className="text-lg font-semibold text-muted-foreground">{name}</h2>
+        <Link
+          to="/formulario"
+          className="mt-3 px-4 py-2 rounded-md bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700"
+        >
+          Gerar novo plano
+        </Link>
         {/* Escolha de Fase */}
         <Tabs
           defaultValue="fase1"
@@ -426,6 +439,12 @@ function Home() {
         <p className="text-gray-700">
           O servico respondeu sem dados para os parametros enviados.
         </p>
+        <Link
+          to="/formulario"
+          className="inline-block mt-4 px-4 py-2 rounded-md bg-gray-800 text-white text-sm font-semibold hover:bg-gray-900"
+        >
+          Preencher formulario
+        </Link>
       </div>
     </div>
   );

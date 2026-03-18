@@ -459,3 +459,132 @@ create trigger set_meta_leads_updated_at
 before update on meta_leads
 for each row
 execute function set_updated_at();
+
+-- AI control center (Phase 1)
+
+create table if not exists ai_prompts (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  feature text not null,
+  type text not null check (type in ('system', 'user')),
+  content text not null,
+  version integer not null default 1,
+  is_active boolean not null default true,
+  notes text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists ai_prompts_feature_type_active_idx
+on ai_prompts (feature, type, is_active);
+
+create unique index if not exists ai_prompts_single_active_per_slot_uidx
+on ai_prompts (feature, type)
+where is_active = true;
+
+drop trigger if exists set_ai_prompts_updated_at on ai_prompts;
+create trigger set_ai_prompts_updated_at
+before update on ai_prompts
+for each row
+execute function set_updated_at();
+
+create table if not exists ai_prompt_versions (
+  id uuid primary key default gen_random_uuid(),
+  prompt_id uuid not null references ai_prompts(id) on delete cascade,
+  version integer not null,
+  content text not null,
+  notes text,
+  created_at timestamptz not null default now()
+);
+
+create unique index if not exists ai_prompt_versions_prompt_version_uidx
+on ai_prompt_versions (prompt_id, version);
+
+create index if not exists ai_prompt_versions_prompt_created_idx
+on ai_prompt_versions (prompt_id, created_at desc);
+
+create table if not exists ai_settings (
+  id uuid primary key default gen_random_uuid(),
+  key text not null unique,
+  value text not null default '',
+  updated_at timestamptz not null default now()
+);
+
+drop trigger if exists set_ai_settings_updated_at on ai_settings;
+create trigger set_ai_settings_updated_at
+before update on ai_settings
+for each row
+execute function set_updated_at();
+
+create table if not exists ai_logs (
+  id uuid primary key default gen_random_uuid(),
+  feature text not null,
+  athlete_id uuid references athletes(id) on delete set null,
+  model text,
+  system_prompt_snapshot text,
+  user_prompt_snapshot text,
+  input_data jsonb,
+  output_data jsonb,
+  tokens_estimated integer,
+  duration_ms integer,
+  success boolean not null default false,
+  error text,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists ai_logs_feature_created_idx
+on ai_logs (feature, created_at desc);
+
+create index if not exists ai_logs_athlete_created_idx
+on ai_logs (athlete_id, created_at desc);
+
+create index if not exists ai_logs_success_created_idx
+on ai_logs (success, created_at desc);
+
+insert into ai_settings (key, value)
+values
+  ('tone', 'motivacional'),
+  ('language', 'pt-PT'),
+  ('persona', 'Coach Linea Iber Training'),
+  ('max_kb_chars', '8000')
+on conflict (key) do nothing;
+
+do $$
+declare
+  weekly_system_exists boolean;
+  coach_system_exists boolean;
+begin
+  select exists (
+    select 1 from ai_prompts where feature = 'weekly_questions' and type = 'system' and is_active = true
+  ) into weekly_system_exists;
+
+  if not weekly_system_exists then
+    insert into ai_prompts (name, feature, type, content, version, is_active, notes)
+    values (
+      'Weekly Questions - System',
+      'weekly_questions',
+      'system',
+      'Tu es um treinador de endurance + forca. Responde em Portugues europeu. Gera uma analise curta da semana e 4 perguntas estrategicas para o atleta. As perguntas devem confrontar percepcao subjetiva com dados objetivos. ATENCAO: para treino de forca, NAO uses classificacao automatica done_not_planned do CSV. Para forca, usa apenas os contadores de confirmacao manual fornecidos pelo coach. Se houver confirmacao manual de forca, o resumo deve mencionar esses contadores. Se houver confirmacao manual de forca, inclui pelo menos uma pergunta especifica de forca. Devolve apenas JSON valido com formato: {"summary": string, "questions": string[]}.',
+      1,
+      true,
+      'Seed inicial Phase 1'
+    );
+  end if;
+
+  select exists (
+    select 1 from ai_prompts where feature = 'coach_draft' and type = 'system' and is_active = true
+  ) into coach_system_exists;
+
+  if not coach_system_exists then
+    insert into ai_prompts (name, feature, type, content, version, is_active, notes)
+    values (
+      'Coach Draft - System',
+      'coach_draft',
+      'system',
+      'Tu es um treinador de endurance + forca. Responde em Portugues europeu. Confronta os dados de treino da semana com as respostas do atleta. Devolve apenas JSON valido com formato: {"alignment": string, "adjustments": string[], "final_feedback": string}.',
+      1,
+      true,
+      'Seed inicial Phase 1'
+    );
+  end if;
+end $$;

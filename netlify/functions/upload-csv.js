@@ -252,6 +252,7 @@ exports.handler = async (event) => {
         const athlete = await getAthleteById(config, athleteId);
         const weekSessions = await getWeekSessions(config, athleteId, weekStart, weekEnd);
         const aiResult = await generateWeeklyQuestions({
+          config,
           apiKey: config.geminiApiKey,
           modelName: config.geminiModel,
           athlete,

@@ -42,6 +42,7 @@
           <button id="tab-programs" class="admin-tab" type="button" role="tab" aria-selected="false" aria-controls="programs-panel">Programas</button>
           <button id="tab-coaches" class="admin-tab" type="button" role="tab" aria-selected="false" aria-controls="coaches-panel">Coaches</button>
           <button id="tab-leads" class="admin-tab" type="button" role="tab" aria-selected="false" aria-controls="leads-panel">Leads Meta</button>
+          <button id="tab-ai" class="admin-tab" type="button" role="tab" aria-selected="false" aria-controls="ai-panel">IA</button>
           <button id="tab-operations" class="admin-tab" type="button" role="tab" aria-selected="false" aria-controls="operations-panel">Operacoes</button>
         </div>
       </div>
@@ -225,34 +226,6 @@
             </div>
           </div>
 
-          <details class="sc-ess-section sc-ess-details">
-            <summary class="sc-ess-summary">SEO Essencial <span class="sc-ess-badge">Google &amp; Partilhas</span></summary>
-            <div class="sc-ess-grid sc-ess-grid--padded">
-              <div class="sc-ess-divider">Homepage</div>
-              <div class="sc-ess-field">
-                <label class="sc-ess-label" for="ess-home_title">Título (aba do browser e Google)</label>
-                <input id="ess-home_title" type="text" class="sc-ess-input" />
-              </div>
-              <div class="sc-ess-field sc-ess-field--wide">
-                <label class="sc-ess-label" for="ess-home_description">Descrição (Google / partilha)</label>
-                <textarea id="ess-home_description" class="sc-ess-input" rows="2"></textarea>
-              </div>
-              <div class="sc-ess-divider">Calendário</div>
-              <div class="sc-ess-field">
-                <label class="sc-ess-label" for="ess-calendar_title">Título</label>
-                <input id="ess-calendar_title" type="text" class="sc-ess-input" />
-              </div>
-              <div class="sc-ess-field sc-ess-field--wide">
-                <label class="sc-ess-label" for="ess-calendar_description">Descrição</label>
-                <textarea id="ess-calendar_description" class="sc-ess-input" rows="2"></textarea>
-              </div>
-              <div class="sc-ess-divider">Geral</div>
-              <div class="sc-ess-field sc-ess-field--wide">
-                <label class="sc-ess-label" for="ess-default_share_image">Imagem padrão de partilha (URL)</label>
-                <input id="ess-default_share_image" type="url" class="sc-ess-input" />
-              </div>
-            </div>
-          </details>
         </div>
 
         <details class="sc-avancado-details">
@@ -499,6 +472,169 @@
           </article>
         </div>
       </section>
+
+      <section id="ai-panel" class="admin-athletes" hidden>
+        <div class="editor-top">
+          <div>
+            <p class="section-eyebrow">AI Ops</p>
+            <h2>Centro de IA</h2>
+            <p>Controla prompts ativos, historico de versoes e logs de execucao da IA.</p>
+          </div>
+          <div class="editor-badges" aria-label="Servicos ligados ao painel de IA">
+            <span class="service-badge">Gemini</span>
+            <span class="service-badge">Supabase</span>
+          </div>
+        </div>
+
+        <p id="ai-message" class="message" role="status"></p>
+
+        <div class="admin-tabs ai-subtabs" role="tablist" aria-label="Secoes IA">
+          <button id="ai-subtab-prompts" class="admin-tab is-active" type="button" role="tab" aria-selected="true" aria-controls="ai-prompts-view">Prompts</button>
+          <button id="ai-subtab-logs" class="admin-tab" type="button" role="tab" aria-selected="false" aria-controls="ai-logs-view">Logs</button>
+        </div>
+
+        <div id="ai-prompts-view" class="ai-view">
+          <div class="athletes-toolbar ai-toolbar">
+            <div class="field">
+              <label for="ai-prompts-filter-feature">Feature</label>
+              <select id="ai-prompts-filter-feature">
+                <option value="">Todas</option>
+                <option value="weekly_questions">weekly_questions</option>
+                <option value="coach_draft">coach_draft</option>
+              </select>
+            </div>
+            <button id="ai-refresh-prompts-btn" type="button">Atualizar prompts</button>
+          </div>
+
+          <div class="athletes-list-wrap">
+            <table class="athletes-table">
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>Feature</th>
+                  <th>Tipo</th>
+                  <th>Versao</th>
+                  <th>Ativo</th>
+                  <th>Atualizado em</th>
+                </tr>
+              </thead>
+              <tbody id="ai-prompts-body"></tbody>
+            </table>
+          </div>
+
+          <div class="admin-inline-form ai-editor-form">
+            <div class="field">
+              <label for="ai-prompt-name">Nome</label>
+              <input id="ai-prompt-name" type="text" placeholder="Ex.: Weekly Questions - System" />
+            </div>
+            <div class="field">
+              <label for="ai-prompt-feature">Feature</label>
+              <select id="ai-prompt-feature">
+                <option value="weekly_questions">weekly_questions</option>
+                <option value="coach_draft">coach_draft</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="ai-prompt-type">Tipo</label>
+              <select id="ai-prompt-type">
+                <option value="system">system</option>
+                <option value="user">user</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="ai-prompt-active">Ativo</label>
+              <select id="ai-prompt-active">
+                <option value="true">true</option>
+                <option value="false">false</option>
+              </select>
+            </div>
+            <div class="field field-wide">
+              <label for="ai-prompt-content">Conteudo do prompt</label>
+              <textarea id="ai-prompt-content" rows="10" placeholder="Prompt system/user..."></textarea>
+            </div>
+            <div class="field field-wide">
+              <label for="ai-prompt-notes">Notas da versao (opcional)</label>
+              <input id="ai-prompt-notes" type="text" placeholder="Ex.: Ajuste de tom para mais objetividade" />
+            </div>
+            <div class="form-actions">
+              <button id="ai-new-prompt-btn" type="button">Novo prompt</button>
+              <button id="ai-create-prompt-btn" type="button">Criar</button>
+              <button id="ai-save-prompt-btn" type="button">Guardar nova versao</button>
+            </div>
+          </div>
+
+          <div class="admin-inline-form ai-version-box">
+            <div class="field">
+              <label for="ai-prompt-versions">Historico de versoes</label>
+              <select id="ai-prompt-versions">
+                <option value="">Seleciona uma versao...</option>
+              </select>
+            </div>
+            <div class="form-actions">
+              <button id="ai-restore-version-btn" type="button">Restaurar versao selecionada</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="ai-logs-view" class="ai-view" hidden>
+          <div class="admin-inline-form ai-filter-grid">
+            <div class="field">
+              <label for="ai-logs-feature">Feature</label>
+              <select id="ai-logs-feature">
+                <option value="">Todas</option>
+                <option value="weekly_questions">weekly_questions</option>
+                <option value="coach_draft">coach_draft</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="ai-logs-success">Sucesso</label>
+              <select id="ai-logs-success">
+                <option value="">Todos</option>
+                <option value="true">true</option>
+                <option value="false">false</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="ai-logs-athlete">Athlete ID</label>
+              <input id="ai-logs-athlete" type="text" placeholder="UUID do atleta" />
+            </div>
+            <div class="field">
+              <label for="ai-logs-from">Desde</label>
+              <input id="ai-logs-from" type="datetime-local" />
+            </div>
+            <div class="field">
+              <label for="ai-logs-to">Ate</label>
+              <input id="ai-logs-to" type="datetime-local" />
+            </div>
+            <div class="form-actions">
+              <button id="ai-refresh-logs-btn" type="button">Atualizar logs</button>
+            </div>
+          </div>
+
+          <div class="athletes-list-wrap">
+            <table class="athletes-table">
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Feature</th>
+                  <th>Athlete</th>
+                  <th>Modelo</th>
+                  <th>Duracao</th>
+                  <th>Sucesso</th>
+                </tr>
+              </thead>
+              <tbody id="ai-logs-body"></tbody>
+            </table>
+          </div>
+
+          <div class="admin-inline-form ai-log-details">
+            <div class="field field-wide">
+              <label for="ai-log-detail">Detalhe do log selecionado</label>
+              <textarea id="ai-log-detail" rows="14" readonly placeholder="Seleciona um log para ver input/output e snapshots de prompt"></textarea>
+            </div>
+          </div>
+        </div>
+      </section>
     </main>
   </div>
 
@@ -513,6 +649,8 @@
     const assignAthleteApiBase = '/.netlify/functions/admin-assign-athlete';
     const coachesApiBase = '/.netlify/functions/admin-coaches';
     const leadsApiBase = '/.netlify/functions/admin-leads';
+    const aiPromptsApiBase = '/.netlify/functions/admin-ai-prompts';
+    const aiLogsApiBase = '/.netlify/functions/admin-ai-logs';
     const state = {
       user: null,
       token: null,
@@ -521,7 +659,13 @@
       siteContent: null,
       unassignedAthletes: [],
       coaches: [],
-      leads: []
+      leads: [],
+      aiPrompts: [],
+      aiPromptVersions: [],
+      selectedAiPromptId: null,
+      aiLogs: [],
+      selectedAiLogId: null,
+      activeAiSubtab: 'prompts'
     };
 
     const SITE_METADATA_PRESETS = [
@@ -644,11 +788,6 @@
       { id: 'ess-challenge_format',      key: 'challenge_format',      section: 'metadata' },
       { id: 'ess-challenge_focus',       key: 'challenge_focus',       section: 'metadata' },
       { id: 'ess-challenge_description', key: 'challenge_description', section: 'metadata' },
-      { id: 'ess-home_title',            key: 'home_title',            section: 'metadata' },
-      { id: 'ess-home_description',      key: 'home_description',      section: 'metadata' },
-      { id: 'ess-calendar_title',        key: 'calendar_title',        section: 'metadata' },
-      { id: 'ess-calendar_description',  key: 'calendar_description',  section: 'metadata' },
-      { id: 'ess-default_share_image',   key: 'default_share_image',   section: 'metadata' },
       { id: 'ess-cta_reserva_aer',       key: 'cta_reserva_aer',       section: 'link' },
       { id: 'ess-cta_plano_gratuito',    key: 'cta_plano_gratuito',    section: 'link' },
       { id: 'ess-social_instagram',      key: 'social_instagram',      section: 'link' },
@@ -726,7 +865,36 @@
       leadsMessage: document.getElementById('leads-message'),
       refreshLeadsBtn: document.getElementById('refresh-leads-btn'),
       leadsEmpty: document.getElementById('leads-empty'),
-      leadsBody: document.getElementById('leads-body')
+      leadsBody: document.getElementById('leads-body'),
+      tabAi: document.getElementById('tab-ai'),
+      aiPanel: document.getElementById('ai-panel'),
+      aiMessage: document.getElementById('ai-message'),
+      aiSubtabPrompts: document.getElementById('ai-subtab-prompts'),
+      aiSubtabLogs: document.getElementById('ai-subtab-logs'),
+      aiPromptsView: document.getElementById('ai-prompts-view'),
+      aiLogsView: document.getElementById('ai-logs-view'),
+      aiPromptsFilterFeature: document.getElementById('ai-prompts-filter-feature'),
+      aiRefreshPromptsBtn: document.getElementById('ai-refresh-prompts-btn'),
+      aiPromptsBody: document.getElementById('ai-prompts-body'),
+      aiPromptName: document.getElementById('ai-prompt-name'),
+      aiPromptFeature: document.getElementById('ai-prompt-feature'),
+      aiPromptType: document.getElementById('ai-prompt-type'),
+      aiPromptActive: document.getElementById('ai-prompt-active'),
+      aiPromptContent: document.getElementById('ai-prompt-content'),
+      aiPromptNotes: document.getElementById('ai-prompt-notes'),
+      aiNewPromptBtn: document.getElementById('ai-new-prompt-btn'),
+      aiCreatePromptBtn: document.getElementById('ai-create-prompt-btn'),
+      aiSavePromptBtn: document.getElementById('ai-save-prompt-btn'),
+      aiPromptVersions: document.getElementById('ai-prompt-versions'),
+      aiRestoreVersionBtn: document.getElementById('ai-restore-version-btn'),
+      aiLogsFeature: document.getElementById('ai-logs-feature'),
+      aiLogsSuccess: document.getElementById('ai-logs-success'),
+      aiLogsAthlete: document.getElementById('ai-logs-athlete'),
+      aiLogsFrom: document.getElementById('ai-logs-from'),
+      aiLogsTo: document.getElementById('ai-logs-to'),
+      aiRefreshLogsBtn: document.getElementById('ai-refresh-logs-btn'),
+      aiLogsBody: document.getElementById('ai-logs-body'),
+      aiLogDetail: document.getElementById('ai-log-detail')
     };
 
     const tabConfig = {
@@ -753,6 +921,10 @@
       leads: {
         tabEl: () => els.tabLeads,
         panels: () => [els.leadsPanel]
+      },
+      ai: {
+        tabEl: () => els.tabAi,
+        panels: () => [els.aiPanel]
       },
       operations: {
         tabEl: () => els.tabOperations,
@@ -786,6 +958,13 @@
 
       if (activeTab === 'leads' && state.user) {
         refreshLeadsData().catch((err) => showLeadsMessage(err.message, true));
+      }
+
+      if (activeTab === 'ai' && state.user) {
+        refreshAiPromptsData().catch((err) => showAiMessage(err.message, true));
+        if (state.activeAiSubtab === 'logs') {
+          refreshAiLogsData().catch((err) => showAiMessage(err.message, true));
+        }
       }
     }
 
@@ -1168,19 +1347,29 @@
     }
 
     function collectSiteContentData() {
-      const metadata = [];
+      // Collect from the Advanced section DOM rows
+      const domMeta = [];
       els.metadataList.querySelectorAll('.sc-kv-row').forEach((row) => {
         const key = row.querySelector('.sc-key-input').value.trim();
         const value = row.querySelector('.sc-val-input').value;
-        if (key) metadata.push({ key, value });
+        if (key) domMeta.push({ key, value });
       });
 
-      const links = [];
+      const domLinks = [];
       els.linksList.querySelectorAll('.sc-kv-row').forEach((row) => {
         const key = row.querySelector('.sc-key-input').value.trim();
         const url = row.querySelector('.sc-val-input').value;
-        if (key) links.push({ key, url });
+        if (key) domLinks.push({ key, url });
       });
+
+      // Safety fallback: if Advanced lists are empty but we have server state (e.g. user
+      // never expanded the Avançado section), use last-known state to avoid wiping the DB.
+      const knownMeta = state.siteContent && state.siteContent.metadata;
+      const knownLinks = state.siteContent && state.siteContent.links;
+      const metadata = domMeta.length > 0 ? domMeta
+        : (knownMeta ? knownMeta.map((m) => ({ key: m.key, value: m.value })) : []);
+      const links = domLinks.length > 0 ? domLinks
+        : (knownLinks ? knownLinks.map((l) => ({ key: l.key, url: l.url })) : []);
 
       const metrics = [];
       els.metricsList.querySelectorAll('.sc-item-card').forEach((card, index) => {
@@ -1230,6 +1419,305 @@
       state.siteContent = data;
       setSiteContentEditors(data);
       showSiteContentMessage('Conteudo guardado com sucesso.', false);
+    }
+
+    function showAiMessage(text, isError) {
+      els.aiMessage.textContent = text || '';
+      els.aiMessage.classList.toggle('error', Boolean(isError));
+      els.aiMessage.classList.toggle('success', !isError && Boolean(text));
+    }
+
+    function setAiSubtab(nextSubtab) {
+      state.activeAiSubtab = nextSubtab === 'logs' ? 'logs' : 'prompts';
+      const promptsSelected = state.activeAiSubtab === 'prompts';
+      els.aiSubtabPrompts.classList.toggle('is-active', promptsSelected);
+      els.aiSubtabPrompts.setAttribute('aria-selected', String(promptsSelected));
+      els.aiSubtabLogs.classList.toggle('is-active', !promptsSelected);
+      els.aiSubtabLogs.setAttribute('aria-selected', String(!promptsSelected));
+      els.aiPromptsView.hidden = !promptsSelected;
+      els.aiLogsView.hidden = promptsSelected;
+
+      if (!promptsSelected && state.user) {
+        refreshAiLogsData().catch((err) => showAiMessage(err.message, true));
+      }
+    }
+
+    function resetAiPromptEditor() {
+      state.selectedAiPromptId = null;
+      state.aiPromptVersions = [];
+      els.aiPromptName.value = '';
+      els.aiPromptFeature.value = 'weekly_questions';
+      els.aiPromptType.value = 'system';
+      els.aiPromptActive.value = 'true';
+      els.aiPromptContent.value = '';
+      els.aiPromptNotes.value = '';
+      els.aiPromptVersions.innerHTML = '<option value="">Seleciona uma versao...</option>';
+    }
+
+    function renderAiPromptVersions() {
+      const versions = state.aiPromptVersions || [];
+      els.aiPromptVersions.innerHTML = '<option value="">Seleciona uma versao...</option>';
+      versions.forEach((versionRow) => {
+        const option = document.createElement('option');
+        option.value = String(versionRow.version);
+        option.textContent = `v${versionRow.version} - ${formatDate(versionRow.createdAt)}`;
+        els.aiPromptVersions.appendChild(option);
+      });
+    }
+
+    async function loadAiPromptVersions(promptId) {
+      if (!promptId) {
+        state.aiPromptVersions = [];
+        renderAiPromptVersions();
+        return;
+      }
+
+      const data = await apiRequest('GET', `${aiPromptsApiBase}?promptId=${encodeURIComponent(promptId)}&includeVersions=true`);
+      state.aiPromptVersions = Array.isArray(data.versions) ? data.versions : [];
+      renderAiPromptVersions();
+    }
+
+    function renderAiPrompts() {
+      els.aiPromptsBody.innerHTML = '';
+      const prompts = state.aiPrompts || [];
+
+      if (!prompts.length) {
+        const row = document.createElement('tr');
+        row.innerHTML = '<td colspan="6">Sem prompts para os filtros atuais.</td>';
+        els.aiPromptsBody.appendChild(row);
+        return;
+      }
+
+      const fragment = document.createDocumentFragment();
+      prompts.forEach((prompt) => {
+        const row = document.createElement('tr');
+        row.dataset.promptId = prompt.id;
+        if (prompt.id === state.selectedAiPromptId) {
+          row.classList.add('ai-row-selected');
+        }
+        row.innerHTML = `
+          <td>${escapeHtml(prompt.name || '-')}</td>
+          <td>${escapeHtml(prompt.feature || '-')}</td>
+          <td>${escapeHtml(prompt.type || '-')}</td>
+          <td>${prompt.version || 1}</td>
+          <td>${prompt.isActive ? 'true' : 'false'}</td>
+          <td>${formatDate(prompt.updatedAt)}</td>
+        `;
+        fragment.appendChild(row);
+      });
+
+      els.aiPromptsBody.appendChild(fragment);
+    }
+
+    async function refreshAiPromptsData() {
+      if (!state.user) return;
+      showAiMessage('A carregar prompts de IA...', false);
+      const feature = (els.aiPromptsFilterFeature.value || '').trim();
+      const query = feature ? `?feature=${encodeURIComponent(feature)}` : '';
+      const data = await apiRequest('GET', `${aiPromptsApiBase}${query}`);
+      state.aiPrompts = Array.isArray(data.prompts) ? data.prompts : [];
+      renderAiPrompts();
+
+      if (state.selectedAiPromptId) {
+        const selected = state.aiPrompts.find((prompt) => prompt.id === state.selectedAiPromptId);
+        if (selected) {
+          els.aiPromptName.value = selected.name || '';
+          els.aiPromptFeature.value = selected.feature || 'weekly_questions';
+          els.aiPromptType.value = selected.type || 'system';
+          els.aiPromptActive.value = selected.isActive ? 'true' : 'false';
+          els.aiPromptContent.value = selected.content || '';
+          await loadAiPromptVersions(selected.id);
+        } else {
+          resetAiPromptEditor();
+        }
+      }
+
+      showAiMessage(`Prompts carregados: ${state.aiPrompts.length}.`, false);
+    }
+
+    async function selectAiPrompt(promptId) {
+      const selected = state.aiPrompts.find((prompt) => prompt.id === promptId);
+      if (!selected) return;
+      state.selectedAiPromptId = selected.id;
+      els.aiPromptName.value = selected.name || '';
+      els.aiPromptFeature.value = selected.feature || 'weekly_questions';
+      els.aiPromptType.value = selected.type || 'system';
+      els.aiPromptActive.value = selected.isActive ? 'true' : 'false';
+      els.aiPromptContent.value = selected.content || '';
+      els.aiPromptNotes.value = '';
+      renderAiPrompts();
+      await loadAiPromptVersions(selected.id);
+    }
+
+    function collectAiPromptPayload() {
+      const name = (els.aiPromptName.value || '').trim();
+      const feature = (els.aiPromptFeature.value || '').trim();
+      const type = (els.aiPromptType.value || '').trim();
+      const content = (els.aiPromptContent.value || '').trim();
+      const notes = (els.aiPromptNotes.value || '').trim();
+      const isActive = (els.aiPromptActive.value || 'true') === 'true';
+
+      if (!name) throw new Error('Nome do prompt e obrigatorio.');
+      if (!feature) throw new Error('Feature e obrigatoria.');
+      if (!type) throw new Error('Tipo e obrigatorio.');
+      if (!content) throw new Error('Conteudo do prompt e obrigatorio.');
+
+      return {
+        name,
+        feature,
+        type,
+        content,
+        notes,
+        isActive
+      };
+    }
+
+    async function createAiPromptFromEditor() {
+      const payload = collectAiPromptPayload();
+      showAiMessage('A criar prompt...', false);
+      const data = await apiRequest('POST', aiPromptsApiBase, payload);
+      showAiMessage('Prompt criado com sucesso.', false);
+      await refreshAiPromptsData();
+      if (data && data.prompt && data.prompt.id) {
+        await selectAiPrompt(data.prompt.id);
+      }
+    }
+
+    async function saveAiPromptVersion() {
+      if (!state.selectedAiPromptId) {
+        throw new Error('Seleciona primeiro um prompt para criar nova versao.');
+      }
+      const payload = collectAiPromptPayload();
+      showAiMessage('A guardar nova versao do prompt...', false);
+      await apiRequest('PATCH', aiPromptsApiBase, {
+        id: state.selectedAiPromptId,
+        name: payload.name,
+        content: payload.content,
+        notes: payload.notes,
+        versionNote: payload.notes,
+        isActive: payload.isActive
+      });
+      showAiMessage('Nova versao guardada.', false);
+      await refreshAiPromptsData();
+      await selectAiPrompt(state.selectedAiPromptId);
+    }
+
+    async function restoreAiPromptVersion() {
+      if (!state.selectedAiPromptId) {
+        throw new Error('Seleciona primeiro um prompt.');
+      }
+      const restoreVersion = Number(els.aiPromptVersions.value);
+      if (!Number.isInteger(restoreVersion) || restoreVersion <= 0) {
+        throw new Error('Seleciona uma versao valida para restaurar.');
+      }
+
+      showAiMessage(`A restaurar versao v${restoreVersion}...`, false);
+      await apiRequest('PATCH', aiPromptsApiBase, {
+        id: state.selectedAiPromptId,
+        restoreVersion,
+        notes: `Restore para v${restoreVersion}`,
+        versionNote: `Antes de restore para v${restoreVersion}`,
+        isActive: true
+      });
+      showAiMessage('Versao restaurada com sucesso.', false);
+      await refreshAiPromptsData();
+      await selectAiPrompt(state.selectedAiPromptId);
+    }
+
+    function datetimeLocalToIso(value, endOfMinute = false) {
+      if (!value) return '';
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return '';
+      if (endOfMinute) date.setSeconds(59, 999);
+      return date.toISOString();
+    }
+
+    function renderAiLogs() {
+      els.aiLogsBody.innerHTML = '';
+      const logs = state.aiLogs || [];
+      if (!logs.length) {
+        const row = document.createElement('tr');
+        row.innerHTML = '<td colspan="6">Sem logs para os filtros atuais.</td>';
+        els.aiLogsBody.appendChild(row);
+        els.aiLogDetail.value = '';
+        return;
+      }
+
+      const fragment = document.createDocumentFragment();
+      logs.forEach((log) => {
+        const row = document.createElement('tr');
+        row.dataset.logId = log.id;
+        if (log.id === state.selectedAiLogId) {
+          row.classList.add('ai-row-selected');
+        }
+        row.innerHTML = `
+          <td>${formatDate(log.createdAt)}</td>
+          <td>${escapeHtml(log.feature || '-')}</td>
+          <td>${escapeHtml(log.athleteId || '-')}</td>
+          <td>${escapeHtml(log.model || '-')}</td>
+          <td>${log.durationMs == null ? '-' : `${log.durationMs} ms`}</td>
+          <td>${log.success ? 'true' : 'false'}</td>
+        `;
+        fragment.appendChild(row);
+      });
+      els.aiLogsBody.appendChild(fragment);
+    }
+
+    function selectAiLog(logId) {
+      const log = state.aiLogs.find((item) => item.id === logId);
+      if (!log) return;
+      state.selectedAiLogId = log.id;
+      renderAiLogs();
+      els.aiLogDetail.value = formatJsonEditor({
+        id: log.id,
+        feature: log.feature,
+        athleteId: log.athleteId,
+        model: log.model,
+        success: log.success,
+        durationMs: log.durationMs,
+        tokensEstimated: log.tokensEstimated,
+        error: log.error,
+        createdAt: log.createdAt,
+        systemPromptSnapshot: log.systemPromptSnapshot,
+        userPromptSnapshot: log.userPromptSnapshot,
+        inputData: log.inputData,
+        outputData: log.outputData
+      });
+    }
+
+    async function refreshAiLogsData() {
+      if (!state.user) return;
+      showAiMessage('A carregar logs de IA...', false);
+      const query = new URLSearchParams();
+      const feature = (els.aiLogsFeature.value || '').trim();
+      const success = (els.aiLogsSuccess.value || '').trim();
+      const athleteId = (els.aiLogsAthlete.value || '').trim();
+      const fromIso = datetimeLocalToIso(els.aiLogsFrom.value, false);
+      const toIso = datetimeLocalToIso(els.aiLogsTo.value, true);
+
+      if (feature) query.set('feature', feature);
+      if (success) query.set('success', success);
+      if (athleteId) query.set('athleteId', athleteId);
+      if (fromIso) query.set('from', fromIso);
+      if (toIso) query.set('to', toIso);
+      query.set('limit', '200');
+
+      const suffix = query.toString() ? `?${query.toString()}` : '';
+      const data = await apiRequest('GET', `${aiLogsApiBase}${suffix}`);
+      state.aiLogs = Array.isArray(data.logs) ? data.logs : [];
+      renderAiLogs();
+
+      if (state.selectedAiLogId) {
+        const stillExists = state.aiLogs.find((item) => item.id === state.selectedAiLogId);
+        if (stillExists) {
+          selectAiLog(state.selectedAiLogId);
+        } else {
+          state.selectedAiLogId = null;
+          els.aiLogDetail.value = '';
+        }
+      }
+
+      showAiMessage(`Logs carregados: ${state.aiLogs.length}.`, false);
     }
 
     function showAthletesMessage(text, isError) {
@@ -1549,6 +2037,28 @@
       els.addMetricBtn.disabled = !loggedIn;
       els.addReviewBtn.disabled = !loggedIn;
       els.refreshLeadsBtn.disabled = !loggedIn;
+      els.aiSubtabPrompts.disabled = !loggedIn;
+      els.aiSubtabLogs.disabled = !loggedIn;
+      els.aiPromptsFilterFeature.disabled = !loggedIn;
+      els.aiRefreshPromptsBtn.disabled = !loggedIn;
+      els.aiPromptName.disabled = !loggedIn;
+      els.aiPromptFeature.disabled = !loggedIn;
+      els.aiPromptType.disabled = !loggedIn;
+      els.aiPromptActive.disabled = !loggedIn;
+      els.aiPromptContent.disabled = !loggedIn;
+      els.aiPromptNotes.disabled = !loggedIn;
+      els.aiNewPromptBtn.disabled = !loggedIn;
+      els.aiCreatePromptBtn.disabled = !loggedIn;
+      els.aiSavePromptBtn.disabled = !loggedIn;
+      els.aiPromptVersions.disabled = !loggedIn;
+      els.aiRestoreVersionBtn.disabled = !loggedIn;
+      els.aiLogsFeature.disabled = !loggedIn;
+      els.aiLogsSuccess.disabled = !loggedIn;
+      els.aiLogsAthlete.disabled = !loggedIn;
+      els.aiLogsFrom.disabled = !loggedIn;
+      els.aiLogsTo.disabled = !loggedIn;
+      els.aiRefreshLogsBtn.disabled = !loggedIn;
+      els.aiLogDetail.disabled = !loggedIn;
 
       // Desabilitar todos os inputs/textareas dentro do form do blog
       const formInputs = els.form.querySelectorAll('input, select, textarea');
@@ -1732,21 +2242,41 @@
             showLeadsMessage(err.message, true);
           }
         }
+        if (activeTab === 'ai') {
+          try {
+            await refreshAiPromptsData();
+            if (state.activeAiSubtab === 'logs') {
+              await refreshAiLogsData();
+            }
+          } catch (err) {
+            showAiMessage(err.message, true);
+          }
+        }
       } else {
         state.articles = [];
         state.siteContent = null;
         state.unassignedAthletes = [];
         state.coaches = [];
         state.leads = [];
+        state.aiPrompts = [];
+        state.aiPromptVersions = [];
+        state.aiLogs = [];
+        state.selectedAiPromptId = null;
+        state.selectedAiLogId = null;
         renderList();
         renderUnassignedAthletes();
         renderCoachOptions();
         renderLeads();
+        renderAiPrompts();
+        renderAiLogs();
+        resetAiPromptEditor();
+        setAiSubtab('prompts');
         setSiteContentEditors(null);
         showSiteContentMessage('Faz login para gerir o conteudo do site.', false);
         resetForm();
         showAthletesMessage('Faz login para gerir atletas.', false);
         showLeadsMessage('Faz login para ver as leads Meta.', false);
+        showAiMessage('Faz login para gerir prompts e logs de IA.', false);
       }
     }
 
@@ -2002,12 +2532,90 @@
       }
     });
 
+    els.aiSubtabPrompts.addEventListener('click', () => setAiSubtab('prompts'));
+    els.aiSubtabLogs.addEventListener('click', () => setAiSubtab('logs'));
+
+    els.aiRefreshPromptsBtn.addEventListener('click', async () => {
+      try {
+        await refreshAiPromptsData();
+      } catch (err) {
+        showAiMessage(err.message, true);
+      }
+    });
+
+    els.aiPromptsFilterFeature.addEventListener('change', async () => {
+      try {
+        await refreshAiPromptsData();
+      } catch (err) {
+        showAiMessage(err.message, true);
+      }
+    });
+
+    els.aiNewPromptBtn.addEventListener('click', () => {
+      resetAiPromptEditor();
+      showAiMessage('Editor limpo para novo prompt.', false);
+    });
+
+    els.aiCreatePromptBtn.addEventListener('click', async () => {
+      try {
+        await createAiPromptFromEditor();
+      } catch (err) {
+        showAiMessage(err.message, true);
+      }
+    });
+
+    els.aiSavePromptBtn.addEventListener('click', async () => {
+      try {
+        await saveAiPromptVersion();
+      } catch (err) {
+        showAiMessage(err.message, true);
+      }
+    });
+
+    els.aiRestoreVersionBtn.addEventListener('click', async () => {
+      try {
+        await restoreAiPromptVersion();
+      } catch (err) {
+        showAiMessage(err.message, true);
+      }
+    });
+
+    els.aiPromptsBody.addEventListener('click', async (event) => {
+      const row = event.target && event.target.closest ? event.target.closest('tr[data-prompt-id]') : null;
+      if (!row) return;
+      const promptId = row.getAttribute('data-prompt-id') || '';
+      if (!promptId) return;
+
+      try {
+        await selectAiPrompt(promptId);
+      } catch (err) {
+        showAiMessage(err.message, true);
+      }
+    });
+
+    els.aiRefreshLogsBtn.addEventListener('click', async () => {
+      try {
+        await refreshAiLogsData();
+      } catch (err) {
+        showAiMessage(err.message, true);
+      }
+    });
+
+    els.aiLogsBody.addEventListener('click', (event) => {
+      const row = event.target && event.target.closest ? event.target.closest('tr[data-log-id]') : null;
+      if (!row) return;
+      const logId = row.getAttribute('data-log-id') || '';
+      if (!logId) return;
+      selectAiLog(logId);
+    });
+
     els.tabBlog.addEventListener('click', () => setActiveTab('blog'));
     els.tabSiteContent.addEventListener('click', () => setActiveTab('siteContent'));
     els.tabAthletes.addEventListener('click', () => setActiveTab('athletes'));
     els.tabPrograms.addEventListener('click', () => setActiveTab('programs'));
     els.tabCoaches.addEventListener('click', () => setActiveTab('coaches'));
     els.tabLeads.addEventListener('click', () => setActiveTab('leads'));
+    els.tabAi.addEventListener('click', () => setActiveTab('ai'));
     els.tabOperations.addEventListener('click', () => setActiveTab('operations'));
 
     setAuthUI();
@@ -2018,6 +2626,8 @@
     showSiteContentMessage('Faz login para gerir o conteudo do site.', false);
     showAthletesMessage('Faz login para gerir atletas.', false);
     showLeadsMessage('Faz login para ver as leads Meta.', false);
+    showAiMessage('Faz login para gerir prompts e logs de IA.', false);
+    setAiSubtab('prompts');
     resetForm();
   </script>
 </body>

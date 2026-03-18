@@ -610,6 +610,115 @@ async function updateMetaLead(config, id, patch) {
   });
 }
 
+async function listAiPrompts(config, { feature, type } = {}) {
+  const params = [
+    "select=id,name,feature,type,content,version,is_active,notes,created_at,updated_at",
+    "order=feature.asc,type.asc,updated_at.desc"
+  ];
+  if (feature) params.push(`feature=eq.${encodeURIComponent(feature)}`);
+  if (type) params.push(`type=eq.${encodeURIComponent(type)}`);
+
+  return supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `ai_prompts?${params.join("&")}`
+  });
+}
+
+async function getAiPromptById(config, id) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `ai_prompts?id=eq.${encodeURIComponent(id)}&select=id,name,feature,type,content,version,is_active,notes,created_at,updated_at&limit=1`
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function getActiveAiPrompt(config, feature, type = "system") {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `ai_prompts?feature=eq.${encodeURIComponent(feature)}&type=eq.${encodeURIComponent(type)}&is_active=eq.true&select=id,name,feature,type,content,version,is_active,notes,created_at,updated_at&order=updated_at.desc&limit=1`
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function createAiPrompt(config, payload) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: "ai_prompts",
+    method: "POST",
+    body: [payload],
+    prefer: "return=representation"
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function updateAiPrompt(config, id, patch) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `ai_prompts?id=eq.${encodeURIComponent(id)}`,
+    method: "PATCH",
+    body: patch,
+    prefer: "return=representation"
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function createAiPromptVersion(config, payload) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: "ai_prompt_versions",
+    method: "POST",
+    body: [payload],
+    prefer: "return=representation"
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function listAiPromptVersions(config, promptId) {
+  return supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `ai_prompt_versions?prompt_id=eq.${encodeURIComponent(promptId)}&select=id,prompt_id,version,content,notes,created_at&order=version.desc,created_at.desc`
+  });
+}
+
+async function insertAiLog(config, payload) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: "ai_logs",
+    method: "POST",
+    body: [payload],
+    prefer: "return=representation"
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function listAiLogs(config, { feature, athleteId, success, from, to, limit } = {}) {
+  const params = [
+    "select=id,feature,athlete_id,model,system_prompt_snapshot,user_prompt_snapshot,input_data,output_data,tokens_estimated,duration_ms,success,error,created_at",
+    "order=created_at.desc",
+    `limit=${Number.isInteger(limit) && limit > 0 ? Math.min(limit, 500) : 100}`
+  ];
+
+  if (feature) params.push(`feature=eq.${encodeURIComponent(feature)}`);
+  if (athleteId) params.push(`athlete_id=eq.${encodeURIComponent(athleteId)}`);
+  if (typeof success === "boolean") params.push(`success=eq.${success}`);
+  if (from) params.push(`created_at=gte.${encodeURIComponent(from)}`);
+  if (to) params.push(`created_at=lte.${encodeURIComponent(to)}`);
+
+  return supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `ai_logs?${params.join("&")}`
+  });
+}
+
 module.exports = {
   insertTrainingSessions,
   findExistingSessions,
@@ -660,5 +769,14 @@ module.exports = {
   softDeleteBlogArticle,
   insertMetaLead,
   listMetaLeads,
-  updateMetaLead
+  updateMetaLead,
+  listAiPrompts,
+  getAiPromptById,
+  getActiveAiPrompt,
+  createAiPrompt,
+  updateAiPrompt,
+  createAiPromptVersion,
+  listAiPromptVersions,
+  insertAiLog,
+  listAiLogs
 };
