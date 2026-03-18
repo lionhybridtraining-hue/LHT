@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>LHT Coach - Upload CSV</title>
   <meta name="description" content="Painel de coach LHT para importação semanal de CSV do TrainingPeaks e geração de check-ins assistidos por IA." />
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
@@ -729,7 +729,20 @@
     const SUPABASE_URL = 'https://rlivxjarqpqmvjtgmxhh.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJsaXZ4amFycXBxbXZqdGdteGhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MDk3NzcsImV4cCI6MjA4OTE4NTc3N30.MHwkQnytSCOBleYVOF5hJHWiV8d_-2V9UGIqsLTgjIY';
     
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    let supabase = null;
+
+    // Inicializar Supabase quando estiver disponível
+    function initSupabase() {
+      if (!window.supabase) {
+        console.warn('Supabase não carregou ainda, aguardando...');
+        setTimeout(initSupabase, 100);
+        return;
+      }
+      supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      console.log('Supabase inicializado');
+    }
+
+    initSupabase();
 
     let athletes = [];
     let selectedAthleteId = "";
@@ -1460,42 +1473,60 @@
       }
     }
 
-    // Monitor de auth state changes
-    supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (session?.user) {
-        await handleAuthChange(session.user);
-      } else {
-        await handleAuthChange(null);
+    async function initializeAuth() {
+      // Espera que o Supabase seja inicializado
+      let attempts = 0;
+      while (!supabase && attempts < 50) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        attempts++;
       }
-    });
 
-    // Check auth on page load
-    checkAuthOnLoad().catch((err) => showResult(err.message, true));
+      if (!supabase) {
+        console.error('Supabase não foi inicializado');
+        return;
+      }
 
-    loginBtn.addEventListener("click", async () => {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: window.location.origin + '/coach'
+      // Monitor de auth state changes
+      supabase.auth.onAuthStateChange(async (_event, session) => {
+        if (session?.user) {
+          await handleAuthChange(session.user);
+        } else {
+          await handleAuthChange(null);
         }
       });
-      if (error) showResult(error.message, true);
-    });
 
-    gateLoginBtn.addEventListener("click", async () => {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: window.location.origin + '/coach'
-        }
+      // Check auth on page load
+      checkAuthOnLoad().catch((err) => showResult(err.message, true));
+
+      // Setup event listeners APÓS Supabase estar pronto
+      loginBtn.addEventListener("click", async () => {
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo: window.location.origin + '/coach'
+          }
+        });
+        if (error) showResult(error.message, true);
       });
-      if (error) showResult(error.message, true);
-    });
 
-    logoutBtn.addEventListener("click", async () => {
-      await supabase.auth.signOut();
-      await handleAuthChange(null);
-    });
+      gateLoginBtn.addEventListener("click", async () => {
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo: window.location.origin + '/coach'
+          }
+        });
+        if (error) showResult(error.message, true);
+      });
+
+      logoutBtn.addEventListener("click", async () => {
+        await supabase.auth.signOut();
+        await handleAuthChange(null);
+      });
+    }
+
+    // Inicializar auth
+    initializeAuth();
 
     syncTrainingLoadWeekControls();
     syncCheckinMode();
