@@ -1,7 +1,7 @@
 const { json } = require("./_lib/http");
 const { getConfig } = require("./_lib/config");
 const { listWeeklyCheckinsByAthlete, verifyCoachOwnsAthlete } = require("./_lib/supabase");
-const { getAuthenticatedUser } = require("./_lib/auth-identity");
+const { getAuthenticatedUser } = require("./_lib/auth-supabase");
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "GET") {

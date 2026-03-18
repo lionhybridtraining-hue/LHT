@@ -41,12 +41,23 @@
       padding: 24px 16px 40px;
     }
 
+    body.auth-locked {
+      overflow: hidden;
+    }
+
     .page-shell { width: min(1200px, 100%); margin: 0 auto; }
 
     .auth-gate {
-      min-height: calc(100vh - 64px);
+      position: fixed;
+      inset: 0;
       display: grid;
       place-items: center;
+      padding: 24px 16px;
+      background:
+        radial-gradient(circle at top left, rgba(212, 165, 79, 0.14), transparent 28%),
+        radial-gradient(circle at bottom right, rgba(212, 165, 79, 0.12), transparent 24%),
+        linear-gradient(180deg, rgba(21, 21, 21, 0.96) 0%, rgba(8, 8, 8, 0.98) 100%);
+      z-index: 1000;
     }
 
     .auth-gate-card {
@@ -778,6 +789,7 @@
       const loggedIn = Boolean(state.user);
       authGate.hidden = loggedIn;
       protectedContent.hidden = !loggedIn;
+      document.body.classList.toggle("auth-locked", !loggedIn);
       authStatus.textContent = loggedIn
         ? `Autenticado: ${state.user.email || state.user.id}`
         : "Não autenticado";
@@ -1184,6 +1196,16 @@
         athletes = Array.isArray(data.athletes) ? data.athletes : [];
         applyAthleteFilter();
 
+        if (!athletes.length) {
+          athleteSelect.innerHTML = '<option value="">Sem atletas atribuídos</option>';
+          checkinsContainer.innerHTML = "Este utilizador autenticado não tem atletas ligados no campo coach_identity_id.";
+          setSelectedTrainingLoadWeekStart("");
+          syncTrainingLoadWeekControls();
+          renderTrainingLoadSummary(null, "Sem dados: não existem atletas atribuídos a este coach no Supabase.");
+          showResult(`Login concluído, mas não existem atletas atribuídos ao coach ${state.user.id}. Atualiza o campo coach_identity_id dos atletas para este UUID.`, "error");
+          return;
+        }
+
         if (preselectId) {
           athleteSelect.value = preselectId;
           syncSelectedAthlete(preselectId);
@@ -1454,7 +1476,8 @@
 
     // Inicializar auth state
     async function checkAuthOnLoad() {
-      const { data: { session } } = await supabase.auth.getSession();
+      if (!supabaseClient) return;
+      const { data: { session } } = await supabaseClient.auth.getSession();
       if (session?.user) {
         await handleAuthChange(session.user);
       }

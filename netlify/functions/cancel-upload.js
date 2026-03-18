@@ -8,7 +8,7 @@ const {
   deleteWeeklyCheckinsByBatch,
   verifyCoachOwnsAthlete
 } = require("./_lib/supabase");
-const { getAuthenticatedUser } = require("./_lib/auth-identity");
+const { getAuthenticatedUser } = require("./_lib/auth-supabase");
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {

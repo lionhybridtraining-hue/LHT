@@ -452,6 +452,7 @@
       const loggedIn = Boolean(state.user);
       els.authGate.hidden = loggedIn;
       els.protectedContent.hidden = !loggedIn;
+      document.body.classList.toggle('auth-locked', !loggedIn);
       els.authStatus.textContent = loggedIn
         ? `Autenticado: ${state.user.email || state.user.id}`
         : 'Nao autenticado';
@@ -633,7 +634,8 @@
 
     // Inicializar auth state
     async function checkAuthOnLoad() {
-      const { data: { session } } = await supabase.auth.getSession();
+      if (!supabaseClient) return;
+      const { data: { session } } = await supabaseClient.auth.getSession();
       if (session?.user) {
         await handleAuthChange(session.user);
       }

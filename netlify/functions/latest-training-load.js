@@ -8,7 +8,7 @@ const {
   verifyCoachOwnsAthlete
 } = require("./_lib/supabase");
 const { summarizeTrainingLoadWeek } = require("./_lib/training-load");
-const { getAuthenticatedUser } = require("./_lib/auth-identity");
+const { getAuthenticatedUser } = require("./_lib/auth-supabase");
 
 function endOfWeekIso(weekStartIso) {
   const date = new Date(`${weekStartIso}T00:00:00.000Z`);

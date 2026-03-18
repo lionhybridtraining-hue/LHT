@@ -23,7 +23,7 @@ const {
   verifyCoachOwnsAthlete
 } = require("./_lib/supabase");
 const { generateWeeklyQuestions } = require("./_lib/ai");
-const { getAuthenticatedUser } = require("./_lib/auth-identity");
+const { getAuthenticatedUser } = require("./_lib/auth-supabase");
 
 function isTruthy(value) {
   if (typeof value === "boolean") {
