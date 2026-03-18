@@ -731,19 +731,6 @@
     
     let supabase = null;
 
-    // Inicializar Supabase quando estiver disponível
-    function initSupabase() {
-      if (!window.supabase) {
-        console.warn('Supabase não carregou ainda, aguardando...');
-        setTimeout(initSupabase, 100);
-        return;
-      }
-      supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-      console.log('Supabase inicializado');
-    }
-
-    initSupabase();
-
     let athletes = [];
     let selectedAthleteId = "";
     let selectedTrainingLoadWeekStart = "";
@@ -1474,16 +1461,22 @@
     }
 
     async function initializeAuth() {
-      // Espera que o Supabase seja inicializado
+      // Espera que o Supabase script carregue
       let attempts = 0;
-      while (!supabase && attempts < 50) {
+      while (!window.supabase && attempts < 50) {
         await new Promise(resolve => setTimeout(resolve, 100));
         attempts++;
       }
 
-      if (!supabase) {
-        console.error('Supabase não foi inicializado');
+      if (!window.supabase) {
+        console.error('Supabase script não foi carregado');
         return;
+      }
+
+      // Inicializar o client Supabase
+      if (!supabase) {
+        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        console.log('Supabase inicializado');
       }
 
       // Monitor de auth state changes
