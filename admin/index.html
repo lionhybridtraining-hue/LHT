@@ -41,6 +41,7 @@
           <button id="tab-athletes" class="admin-tab" type="button" role="tab" aria-selected="false" aria-controls="athletes-panel">Gerir atletas</button>
           <button id="tab-programs" class="admin-tab" type="button" role="tab" aria-selected="false" aria-controls="programs-panel">Programas</button>
           <button id="tab-coaches" class="admin-tab" type="button" role="tab" aria-selected="false" aria-controls="coaches-panel">Coaches</button>
+          <button id="tab-leads" class="admin-tab" type="button" role="tab" aria-selected="false" aria-controls="leads-panel">Leads Meta</button>
           <button id="tab-operations" class="admin-tab" type="button" role="tab" aria-selected="false" aria-controls="operations-panel">Operacoes</button>
         </div>
       </div>
@@ -316,6 +317,49 @@
         </div>
       </section>
 
+      <section id="leads-panel" class="admin-athletes" hidden>
+        <div class="editor-top">
+          <div>
+            <p class="section-eyebrow">Meta Lead Ads</p>
+            <h2>Leads Meta</h2>
+            <p>Leads captadas via Facebook e Instagram Lead Ads. Atualiza o estado de cada lead e acompanha o pipeline comercial.</p>
+          </div>
+          <div class="editor-badges" aria-label="Servicos ligados ao painel de leads">
+            <span class="service-badge">Meta Lead Ads</span>
+            <span class="service-badge">Supabase</span>
+          </div>
+        </div>
+
+        <p id="leads-message" class="message" role="status"></p>
+
+        <div class="athletes-toolbar">
+          <button id="refresh-leads-btn" type="button">Atualizar leads</button>
+        </div>
+
+        <div id="leads-empty" class="athletes-empty" hidden>
+          <p>Sem leads registadas.</p>
+          <span>As leads do Meta chegam automaticamente via webhook quando um utilizador preenche um formulario de Lead Ad.</span>
+        </div>
+
+        <div class="athletes-list-wrap">
+          <table class="athletes-table leads-table">
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>Email</th>
+                <th>Telefone</th>
+                <th>Formulario</th>
+                <th>Anuncio</th>
+                <th>Recebida em</th>
+                <th>Estado</th>
+                <th>Acoes</th>
+              </tr>
+            </thead>
+            <tbody id="leads-body"></tbody>
+          </table>
+        </div>
+      </section>
+
       <section id="operations-panel" class="admin-athletes" hidden>
         <div class="editor-top">
           <div>
@@ -352,6 +396,7 @@
     const unassignedAthletesApiBase = '/.netlify/functions/admin-unassigned-athletes';
     const assignAthleteApiBase = '/.netlify/functions/admin-assign-athlete';
     const coachesApiBase = '/.netlify/functions/admin-coaches';
+    const leadsApiBase = '/.netlify/functions/admin-leads';
     const state = {
       user: null,
       token: null,
@@ -359,7 +404,8 @@
       selectedId: null,
       siteContent: null,
       unassignedAthletes: [],
-      coaches: []
+      coaches: [],
+      leads: []
     };
 
     const els = {
@@ -422,7 +468,13 @@
       cancelCreateCoachBtn: document.getElementById('cancel-create-coach-btn'),
       refreshAthletesBtn: document.getElementById('refresh-athletes-btn'),
       unassignedEmpty: document.getElementById('unassigned-empty'),
-      unassignedAthletesBody: document.getElementById('unassigned-athletes-body')
+      unassignedAthletesBody: document.getElementById('unassigned-athletes-body'),
+      tabLeads: document.getElementById('tab-leads'),
+      leadsPanel: document.getElementById('leads-panel'),
+      leadsMessage: document.getElementById('leads-message'),
+      refreshLeadsBtn: document.getElementById('refresh-leads-btn'),
+      leadsEmpty: document.getElementById('leads-empty'),
+      leadsBody: document.getElementById('leads-body')
     };
 
     const tabConfig = {
@@ -445,6 +497,10 @@
       coaches: {
         tabEl: () => els.tabCoaches,
         panels: () => [els.coachesPanel]
+      },
+      leads: {
+        tabEl: () => els.tabLeads,
+        panels: () => [els.leadsPanel]
       },
       operations: {
         tabEl: () => els.tabOperations,
@@ -474,6 +530,10 @@
 
       if (activeTab === 'siteContent' && state.user) {
         refreshSiteContentData().catch((err) => showSiteContentMessage(err.message, true));
+      }
+
+      if (activeTab === 'leads' && state.user) {
+        refreshLeadsData().catch((err) => showLeadsMessage(err.message, true));
       }
     }
 
@@ -987,6 +1047,121 @@
       els.message.classList.toggle('success', !isError && Boolean(text));
     }
 
+    function showLeadsMessage(text, isError) {
+      els.leadsMessage.textContent = text || '';
+      els.leadsMessage.classList.toggle('error', Boolean(isError));
+      els.leadsMessage.classList.toggle('success', !isError && Boolean(text));
+    }
+
+    const LEAD_STATUS_LABELS = {
+      new: 'Nova',
+      contacted: 'Contactada',
+      qualified: 'Qualificada',
+      disqualified: 'Desqualificada'
+    };
+
+    const LEAD_STATUS_OPTIONS = ['new', 'contacted', 'qualified', 'disqualified'];
+
+    function renderLeads() {
+      els.leadsBody.innerHTML = '';
+
+      if (!state.leads.length) {
+        els.leadsEmpty.hidden = false;
+        return;
+      }
+
+      els.leadsEmpty.hidden = true;
+      const fragment = document.createDocumentFragment();
+
+      state.leads.forEach((lead) => {
+        const row = document.createElement('tr');
+        row.dataset.leadId = lead.id;
+
+        const statusSelect = document.createElement('select');
+        statusSelect.className = 'lead-status-select';
+        statusSelect.dataset.leadId = lead.id;
+        LEAD_STATUS_OPTIONS.forEach((s) => {
+          const opt = document.createElement('option');
+          opt.value = s;
+          opt.textContent = LEAD_STATUS_LABELS[s] || s;
+          if (s === lead.status) opt.selected = true;
+          statusSelect.appendChild(opt);
+        });
+
+        const notesInput = document.createElement('input');
+        notesInput.type = 'text';
+        notesInput.className = 'lead-notes-input';
+        notesInput.placeholder = 'Notas...';
+        notesInput.value = lead.notes || '';
+        notesInput.dataset.leadId = lead.id;
+
+        const saveBtn = document.createElement('button');
+        saveBtn.type = 'button';
+        saveBtn.className = 'save-lead-btn';
+        saveBtn.textContent = 'Guardar';
+        saveBtn.dataset.leadId = lead.id;
+
+        const tdStatus = document.createElement('td');
+        tdStatus.appendChild(statusSelect);
+
+        const tdActions = document.createElement('td');
+        tdActions.className = 'lead-actions-cell';
+        tdActions.appendChild(notesInput);
+        tdActions.appendChild(saveBtn);
+
+        row.innerHTML = `
+          <td>${escapeHtml(lead.name || '-')}</td>
+          <td>${escapeHtml(lead.email || '-')}</td>
+          <td>${escapeHtml(lead.phone || '-')}</td>
+          <td>${escapeHtml(lead.formName || lead.formId || '-')}</td>
+          <td>${escapeHtml(lead.adName || lead.adId || '-')}</td>
+          <td>${formatDate(lead.receivedAt)}</td>
+        `;
+        row.appendChild(tdStatus);
+        row.appendChild(tdActions);
+        fragment.appendChild(row);
+      });
+
+      els.leadsBody.appendChild(fragment);
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    async function refreshLeadsData() {
+      if (!state.user) return;
+      showLeadsMessage('A carregar leads...', false);
+      const data = await apiRequest('GET', leadsApiBase);
+      state.leads = Array.isArray(data.leads) ? data.leads : [];
+      renderLeads();
+      showLeadsMessage(`Leads carregadas: ${state.leads.length}.`, false);
+    }
+
+    async function saveLeadUpdate(leadId) {
+      const row = els.leadsBody.querySelector(`tr[data-lead-id="${CSS.escape(leadId)}"]`);
+      if (!row) return;
+
+      const statusSelect = row.querySelector('.lead-status-select');
+      const notesInput = row.querySelector('.lead-notes-input');
+      const status = statusSelect ? statusSelect.value : undefined;
+      const notes = notesInput ? notesInput.value : undefined;
+
+      await apiRequest('PATCH', leadsApiBase, { id: leadId, status, notes });
+      showLeadsMessage('Lead atualizada.', false);
+
+      // Update local state
+      const lead = state.leads.find((l) => l.id === leadId);
+      if (lead) {
+        if (status !== undefined) lead.status = status;
+        if (notes !== undefined) lead.notes = notes;
+      }
+    }
+
     function slugify(value) {
       return (value || '')
         .normalize('NFD')
@@ -1054,6 +1229,7 @@
       els.addLinkBtn.disabled = !loggedIn;
       els.addMetricBtn.disabled = !loggedIn;
       els.addReviewBtn.disabled = !loggedIn;
+      els.refreshLeadsBtn.disabled = !loggedIn;
 
       // Desabilitar todos os inputs/textareas dentro do form do blog
       const formInputs = els.form.querySelectorAll('input, select, textarea');
@@ -1230,18 +1406,28 @@
             showSiteContentMessage(err.message, true);
           }
         }
+        if (activeTab === 'leads') {
+          try {
+            await refreshLeadsData();
+          } catch (err) {
+            showLeadsMessage(err.message, true);
+          }
+        }
       } else {
         state.articles = [];
         state.siteContent = null;
         state.unassignedAthletes = [];
         state.coaches = [];
+        state.leads = [];
         renderList();
         renderUnassignedAthletes();
         renderCoachOptions();
+        renderLeads();
         setSiteContentEditors(null);
         showSiteContentMessage('Faz login para gerir o conteudo do site.', false);
         resetForm();
         showAthletesMessage('Faz login para gerir atletas.', false);
+        showLeadsMessage('Faz login para ver as leads Meta.', false);
       }
     }
 
@@ -1395,6 +1581,36 @@
       }
     });
 
+    els.refreshLeadsBtn.addEventListener('click', async () => {
+      try {
+        await refreshLeadsData();
+      } catch (err) {
+        showLeadsMessage(err.message, true);
+      }
+    });
+
+    els.leadsBody.addEventListener('click', async (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLButtonElement)) return;
+      if (!target.classList.contains('save-lead-btn')) return;
+
+      const leadId = target.dataset.leadId || '';
+      if (!leadId) return;
+
+      const originalText = target.textContent;
+      target.disabled = true;
+      target.textContent = 'A guardar...';
+
+      try {
+        await saveLeadUpdate(leadId);
+      } catch (err) {
+        showLeadsMessage(err.message, true);
+      } finally {
+        target.disabled = false;
+        target.textContent = originalText;
+      }
+    });
+
     els.refreshSiteContentBtn.addEventListener('click', async () => {
       try {
         await refreshSiteContentData();
@@ -1464,14 +1680,17 @@
     els.tabAthletes.addEventListener('click', () => setActiveTab('athletes'));
     els.tabPrograms.addEventListener('click', () => setActiveTab('programs'));
     els.tabCoaches.addEventListener('click', () => setActiveTab('coaches'));
+    els.tabLeads.addEventListener('click', () => setActiveTab('leads'));
     els.tabOperations.addEventListener('click', () => setActiveTab('operations'));
 
     setAuthUI();
     setActiveTab('blog');
     renderUnassignedAthletes();
+    renderLeads();
     setSiteContentEditors(null);
     showSiteContentMessage('Faz login para gerir o conteudo do site.', false);
     showAthletesMessage('Faz login para gerir atletas.', false);
+    showLeadsMessage('Faz login para ver as leads Meta.', false);
     resetForm();
   </script>
 </body>
