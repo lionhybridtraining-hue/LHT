@@ -236,3 +236,127 @@ create trigger set_blog_articles_updated_at
 before update on blog_articles
 for each row
 execute function set_updated_at();
+
+-- Long-term auth and operations foundation
+
+create table if not exists app_roles (
+  id uuid primary key default gen_random_uuid(),
+  name text not null unique,
+  description text,
+  created_at timestamptz not null default now()
+);
+
+insert into app_roles (name, description)
+values
+  ('admin', 'Full operational access to admin platform'),
+  ('coach', 'Coach access to athlete portfolio')
+on conflict (name) do nothing;
+
+create table if not exists user_roles (
+  id uuid primary key default gen_random_uuid(),
+  identity_id text not null,
+  role_id uuid not null references app_roles(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  unique (identity_id, role_id)
+);
+
+create index if not exists user_roles_identity_idx
+on user_roles (identity_id);
+
+create table if not exists coaches (
+  id uuid primary key default gen_random_uuid(),
+  identity_id text not null unique,
+  email text not null unique,
+  name text not null,
+  timezone text not null default 'Europe/Lisbon',
+  capacity_limit integer,
+  default_followup_type text not null default 'standard',
+  status text not null default 'active' check (status in ('active', 'inactive')),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  deleted_at timestamptz
+);
+
+create index if not exists coaches_status_idx
+on coaches (status)
+where deleted_at is null;
+
+drop trigger if exists set_coaches_updated_at on coaches;
+create trigger set_coaches_updated_at
+before update on coaches
+for each row
+execute function set_updated_at();
+
+create table if not exists training_programs (
+  id uuid primary key default gen_random_uuid(),
+  external_source text not null default 'trainingpeaks',
+  external_id text,
+  name text not null,
+  description text,
+  duration_weeks integer not null check (duration_weeks > 0),
+  price_cents integer not null default 0,
+  currency text not null default 'EUR',
+  followup_type text not null default 'standard',
+  status text not null default 'draft' check (status in ('draft', 'active', 'archived')),
+  is_scheduled_template boolean not null default false,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  deleted_at timestamptz
+);
+
+create unique index if not exists training_programs_external_uidx
+on training_programs (external_source, external_id)
+where external_id is not null and deleted_at is null;
+
+create index if not exists training_programs_status_idx
+on training_programs (status)
+where deleted_at is null;
+
+drop trigger if exists set_training_programs_updated_at on training_programs;
+create trigger set_training_programs_updated_at
+before update on training_programs
+for each row
+execute function set_updated_at();
+
+create table if not exists program_assignments (
+  id uuid primary key default gen_random_uuid(),
+  athlete_id uuid not null references athletes(id) on delete cascade,
+  coach_id uuid not null references coaches(id) on delete restrict,
+  training_program_id uuid not null references training_programs(id) on delete restrict,
+  start_date date not null,
+  duration_weeks integer not null check (duration_weeks > 0),
+  computed_end_date date generated always as (
+    (start_date + ((duration_weeks * 7 - 1) * interval '1 day'))::date
+  ) stored,
+  actual_end_date date,
+  status text not null default 'scheduled' check (status in ('scheduled', 'active', 'paused', 'completed', 'cancelled')),
+  price_cents_snapshot integer not null default 0,
+  currency_snapshot text not null default 'EUR',
+  followup_type_snapshot text not null default 'standard',
+  notes text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  deleted_at timestamptz
+);
+
+create index if not exists program_assignments_athlete_idx
+on program_assignments (athlete_id, start_date desc)
+where deleted_at is null;
+
+create index if not exists program_assignments_coach_idx
+on program_assignments (coach_id, status)
+where deleted_at is null;
+
+create index if not exists program_assignments_program_idx
+on program_assignments (training_program_id)
+where deleted_at is null;
+
+create unique index if not exists program_assignments_single_active_by_athlete_uidx
+on program_assignments (athlete_id)
+where deleted_at is null and status in ('scheduled', 'active', 'paused');
+
+drop trigger if exists set_program_assignments_updated_at on program_assignments;
+create trigger set_program_assignments_updated_at
+before update on program_assignments
+for each row
+execute function set_updated_at();

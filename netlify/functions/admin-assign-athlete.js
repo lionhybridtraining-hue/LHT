@@ -1,6 +1,6 @@
 const { parseJsonBody, json } = require("./_lib/http");
 const { getConfig } = require("./_lib/config");
-const { getAuthenticatedUser } = require("./_lib/auth-identity");
+const { requireRole } = require("./_lib/authz");
 const { assignUnassignedAthleteToCoach } = require("./_lib/supabase");
 
 exports.handler = async (event) => {
@@ -10,10 +10,8 @@ exports.handler = async (event) => {
 
   try {
     const config = getConfig();
-    const user = await getAuthenticatedUser(event, config);
-    if (!user) {
-      return json(401, { error: "Authentication required" });
-    }
+    const auth = await requireRole(event, config, "admin");
+    if (auth.error) return auth.error;
 
     const payload = parseJsonBody(event);
     const athleteId = (payload.athleteId || "").toString().trim();

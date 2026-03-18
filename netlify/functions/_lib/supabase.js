@@ -379,6 +379,95 @@ async function assignUnassignedAthleteToCoach(config, athleteId, coachIdentityId
   return Array.isArray(rows) ? rows[0] || null : null;
 }
 
+async function getUserRoleNames(config, identityId) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `user_roles?identity_id=eq.${encodeURIComponent(identityId)}&select=app_roles(name)`
+  });
+
+  if (!Array.isArray(rows)) return [];
+  return rows
+    .map((row) => row && row.app_roles && row.app_roles.name)
+    .filter((name) => typeof name === "string" && name.length > 0);
+}
+
+async function listCoaches(config) {
+  return supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: "coaches?deleted_at=is.null&select=id,identity_id,email,name,timezone,capacity_limit,default_followup_type,status,created_at,updated_at&order=created_at.desc"
+  });
+}
+
+async function createCoach(config, payload) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: "coaches",
+    method: "POST",
+    body: [payload],
+    prefer: "return=representation"
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function assignRoleToIdentity(config, identityId, roleName) {
+  const roles = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `app_roles?name=eq.${encodeURIComponent(roleName)}&select=id&limit=1`
+  });
+
+  const roleId = Array.isArray(roles) && roles[0] ? roles[0].id : null;
+  if (!roleId) {
+    throw new Error(`Role not found: ${roleName}`);
+  }
+
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: "user_roles",
+    method: "POST",
+    body: [{ identity_id: identityId, role_id: roleId }],
+    prefer: "resolution=ignore-duplicates,return=representation"
+  });
+
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function listTrainingPrograms(config) {
+  return supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: "training_programs?deleted_at=is.null&select=id,external_source,external_id,name,description,duration_weeks,price_cents,currency,followup_type,status,is_scheduled_template,created_at,updated_at&order=created_at.desc"
+  });
+}
+
+async function createTrainingProgram(config, payload) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: "training_programs",
+    method: "POST",
+    body: [payload],
+    prefer: "return=representation"
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function createProgramAssignment(config, payload) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: "program_assignments",
+    method: "POST",
+    body: [payload],
+    prefer: "return=representation"
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
 module.exports = {
   insertTrainingSessions,
   findExistingSessions,
@@ -394,6 +483,13 @@ module.exports = {
   verifyCoachOwnsAthlete,
   listUnassignedAthletes,
   assignUnassignedAthleteToCoach,
+  getUserRoleNames,
+  listCoaches,
+  createCoach,
+  assignRoleToIdentity,
+  listTrainingPrograms,
+  createTrainingProgram,
+  createProgramAssignment,
   getWeekSessions,
   listTrainingSessionsForAthlete,
   replaceTrainingLoadDaily,

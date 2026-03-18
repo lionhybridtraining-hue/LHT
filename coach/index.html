@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>LHT Coach - Upload CSV</title>
   <meta name="description" content="Painel de coach LHT para importação semanal de CSV do TrainingPeaks e geração de check-ins assistidos por IA." />
-  <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
@@ -726,6 +726,11 @@
     const loginBtn = document.getElementById("login-btn");
     const logoutBtn = document.getElementById("logout-btn");
 
+    const SUPABASE_URL = 'https://rlivxjarqpqmvjtgmxhh.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJsaXZ4amFycXBxbXZqdGdteGhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MDk3NzcsImV4cCI6MjA4OTE4NTc3N30.MHwkQnytSCOBleYVOF5hJHWiV8d_-2V9UGIqsLTgjIY';
+    
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
     let athletes = [];
     let selectedAthleteId = "";
     let selectedTrainingLoadWeekStart = "";
@@ -735,10 +740,13 @@
       token: null
     };
 
-    async function getToken(user) {
-      const token = await user.jwt();
-      state.token = token;
-      return token;
+    async function getToken() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('Nao autenticado. Faz login novamente.');
+      }
+      state.token = session.access_token;
+      return session.access_token;
     }
 
     async function apiRequest(method, url, body) {
@@ -746,7 +754,7 @@
         throw new Error("Sessão expirada. Faz login novamente.");
       }
 
-      const token = await getToken(state.user);
+      const token = await getToken();
       const res = await fetch(url, {
         method,
         headers: {
@@ -786,8 +794,16 @@
       submitButton.disabled = !loggedIn;
     }
 
-    async function handleAuthChange(user) {
-      state.user = user || null;
+    async function handleAuthChange(supabaseUser) {
+      if (supabaseUser) {
+        state.user = {
+          id: supabaseUser.id,
+          email: supabaseUser.email
+        };
+      } else {
+        state.user = null;
+      }
+      
       setAuthUI();
       if (state.user) {
         try {
@@ -1436,38 +1452,49 @@
 
     skipCheckinInput.addEventListener("change", syncCheckinMode);
 
-    if (window.netlifyIdentity) {
-      window.netlifyIdentity.on("init", (user) => {
-        handleAuthChange(user).catch((err) => showResult(err.message, true));
-      });
-      window.netlifyIdentity.on("login", (user) => {
-        handleAuthChange(user).catch((err) => showResult(err.message, true));
-      });
-      window.netlifyIdentity.on("logout", () => {
-        handleAuthChange(null).catch((err) => showResult(err.message, true));
-      });
-      window.netlifyIdentity.init();
-    } else {
-      // Se Netlify Identity não está disponível (dev local), apenas mostrar UI bloqueada
-      setAuthUI();
+    // Inicializar auth state
+    async function checkAuthOnLoad() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        await handleAuthChange(session.user);
+      }
     }
 
-    loginBtn.addEventListener("click", () => {
-      if (window.netlifyIdentity) {
-        window.netlifyIdentity.open();
+    // Monitor de auth state changes
+    supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (session?.user) {
+        await handleAuthChange(session.user);
+      } else {
+        await handleAuthChange(null);
       }
     });
 
-    gateLoginBtn.addEventListener("click", () => {
-      if (window.netlifyIdentity) {
-        window.netlifyIdentity.open();
-      }
+    // Check auth on page load
+    checkAuthOnLoad().catch((err) => showResult(err.message, true));
+
+    loginBtn.addEventListener("click", async () => {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin + '/coach'
+        }
+      });
+      if (error) showResult(error.message, true);
     });
 
-    logoutBtn.addEventListener("click", () => {
-      if (window.netlifyIdentity) {
-        window.netlifyIdentity.logout();
-      }
+    gateLoginBtn.addEventListener("click", async () => {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin + '/coach'
+        }
+      });
+      if (error) showResult(error.message, true);
+    });
+
+    logoutBtn.addEventListener("click", async () => {
+      await supabase.auth.signOut();
+      await handleAuthChange(null);
     });
 
     syncTrainingLoadWeekControls();
