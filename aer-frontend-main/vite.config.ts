@@ -6,7 +6,7 @@ import { defineConfig, loadEnv } from "vite";
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
-  const rawBasePath = env.VITE_ASSET_BASE_PATH || "/";
+  const rawBasePath = process.env.VITE_ASSET_BASE_PATH || env.VITE_ASSET_BASE_PATH || "/";
   const normalizedBasePath = rawBasePath.endsWith("/")
     ? rawBasePath
     : `${rawBasePath}/`;
