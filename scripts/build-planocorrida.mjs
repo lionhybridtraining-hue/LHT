@@ -5,7 +5,6 @@ import { spawnSync } from "node:child_process";
 const projectRoot = resolve(process.cwd());
 const frontendDir = resolve(projectRoot, "aer-frontend-main");
 const frontendDistDir = resolve(frontendDir, "dist");
-const publishDir = resolve(projectRoot, "planocorrida");
 
 function quoteArg(arg) {
   if (arg.includes(" ")) {
@@ -14,7 +13,7 @@ function quoteArg(arg) {
   return arg;
 }
 
-function runCommand(command, args, cwd) {
+function runCommand(command, args, cwd, extraEnv = {}) {
   const result = process.platform === "win32"
     ? spawnSync(
         "cmd.exe",
@@ -22,11 +21,13 @@ function runCommand(command, args, cwd) {
         {
           cwd,
           stdio: "inherit",
+          env: { ...process.env, ...extraEnv },
         }
       )
     : spawnSync(command, args, {
         cwd,
         stdio: "inherit",
+        env: { ...process.env, ...extraEnv },
       });
 
   if (result.status !== 0) {
@@ -37,23 +38,41 @@ function runCommand(command, args, cwd) {
   }
 }
 
-function main() {
-  console.log("[planocorrida] Installing frontend dependencies...");
-  runCommand("npm", ["ci", "--no-audit", "--no-fund"], frontendDir);
-
-  console.log("[planocorrida] Building frontend...");
-  runCommand("npm", ["run", "build"], frontendDir);
+function buildAndCopy(routerBasename, assetBasePath, publishDir) {
+  const label = routerBasename;
+  console.log(`[${label}] Building frontend...`);
+  runCommand("npm", ["run", "build"], frontendDir, {
+    VITE_ROUTER_BASENAME: routerBasename,
+    VITE_ASSET_BASE_PATH: assetBasePath,
+  });
 
   if (!existsSync(frontendDistDir)) {
     throw new Error("Frontend build output not found at aer-frontend-main/dist");
   }
 
-  console.log("[planocorrida] Syncing build to /planocorrida...");
+  console.log(`[${label}] Syncing build to ${publishDir}...`);
   rmSync(publishDir, { recursive: true, force: true });
   mkdirSync(publishDir, { recursive: true });
   cpSync(frontendDistDir, publishDir, { recursive: true });
 
-  console.log("[planocorrida] Done.");
+  console.log(`[${label}] Done.`);
+}
+
+function main() {
+  console.log("[build] Installing frontend dependencies...");
+  runCommand("npm", ["ci", "--no-audit", "--no-fund"], frontendDir);
+
+  buildAndCopy(
+    "/planocorrida",
+    "/planocorrida/",
+    resolve(projectRoot, "planocorrida")
+  );
+
+  buildAndCopy(
+    "/planogratuito",
+    "/planogratuito/",
+    resolve(projectRoot, "planogratuito")
+  );
 }
 
 main();
