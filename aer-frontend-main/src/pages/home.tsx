@@ -1,4 +1,5 @@
 import { useLocation } from "react-router-dom";
+import { getAccessToken } from "@/lib/supabase";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Accordion,
@@ -424,6 +425,11 @@ function Home() {
     const savePlanToDatabase = async () => {
       setSavingPlan(true);
       try {
+        const accessToken = await getAccessToken();
+        if (!accessToken) {
+          return;
+        }
+
         // Prepare plan params
         const planParams = {
           vdot: null, // Will be extracted from race_time calculation if available
@@ -441,6 +447,7 @@ function Home() {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
           },
           body: JSON.stringify({
             plan_data: trainingProgram,

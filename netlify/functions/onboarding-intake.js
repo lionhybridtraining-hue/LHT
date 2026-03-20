@@ -34,9 +34,56 @@ async function getExistingByIdentity(config, identityId) {
   const rows = await supabaseRequest({
     url: config.supabaseUrl,
     serviceRoleKey: config.supabaseServiceRoleKey,
-    path: `onboarding_intake?identity_id=eq.${encodeURIComponent(identityId)}&select=id,identity_id,email,answers,submitted_at,updated_at&limit=1`
+    path: `onboarding_intake?identity_id=eq.${encodeURIComponent(identityId)}&select=id,identity_id,email,phone,full_name,goal_distance,weekly_frequency,experience_level,consistency_level,funnel_stage,plan_generated_at,plan_storage,answers,submitted_at,updated_at&limit=1`
   });
   return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+function asObject(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {};
+  }
+  return value;
+}
+
+function extractStructuredFromAnswers(answers) {
+  const root = asObject(answers);
+  const landing = asObject(root.planocorrida_landing);
+  const planGeneration = asObject(root.plan_generation);
+
+  const goalDistance = Number(landing.goalDistance);
+  const weeklyFrequency = Number(landing.weeklyFrequency);
+
+  return {
+    phone: normalizePhone(landing.phone),
+    full_name: toOptionalString(landing.name),
+    goal_distance: Number.isFinite(goalDistance) ? goalDistance : null,
+    weekly_frequency: Number.isFinite(weeklyFrequency) ? weeklyFrequency : null,
+    experience_level: toOptionalString(landing.experienceLevel),
+    consistency_level: toOptionalString(landing.currentConsistency),
+    funnel_stage: planGeneration.plan_data ? "plan_generated" : "landing",
+    plan_generated_at: planGeneration.plan_data ? new Date().toISOString() : null,
+    plan_storage:
+      planGeneration && planGeneration.storage && typeof planGeneration.storage === "string"
+        ? planGeneration.storage
+        : null,
+  };
+}
+
+function toOptionalString(value) {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const trimmed = value.trim();
+  return trimmed || null;
+}
+
+function normalizePhone(value) {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const trimmed = value.replace(/(?!^)\+/g, "").replace(/[^\d+\s-]/g, "").trim();
+  return trimmed || null;
 }
 
 exports.handler = async (event) => {
@@ -55,6 +102,19 @@ exports.handler = async (event) => {
       const existing = await getExistingByIdentity(config, user.id);
       return json(200, {
         ok: true,
+        profile: existing
+          ? {
+              phone: existing.phone || null,
+              fullName: existing.full_name || null,
+              goalDistance: existing.goal_distance,
+              weeklyFrequency: existing.weekly_frequency,
+              experienceLevel: existing.experience_level || null,
+              consistencyLevel: existing.consistency_level || null,
+              funnelStage: existing.funnel_stage || null,
+              planGeneratedAt: existing.plan_generated_at || null,
+              planStorage: existing.plan_storage || null,
+            }
+          : null,
         answers: existing && existing.answers ? existing.answers : {},
         submittedAt: existing ? existing.submitted_at : null,
         updatedAt: existing ? existing.updated_at : null
@@ -67,9 +127,20 @@ exports.handler = async (event) => {
       return json(400, { error: "Invalid answers payload" });
     }
 
+    const structured = extractStructuredFromAnswers(answers);
+
     const row = {
       identity_id: user.id,
       email: user.email,
+      phone: structured.phone,
+      full_name: structured.full_name,
+      goal_distance: structured.goal_distance,
+      weekly_frequency: structured.weekly_frequency,
+      experience_level: structured.experience_level,
+      consistency_level: structured.consistency_level,
+      funnel_stage: structured.funnel_stage,
+      plan_generated_at: structured.plan_generated_at,
+      plan_storage: structured.plan_storage,
       answers,
       submitted_at: new Date().toISOString(),
       updated_at: new Date().toISOString()

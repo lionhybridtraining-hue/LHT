@@ -3,7 +3,8 @@ const { getConfig } = require("./_lib/config");
 const { getAuthenticatedUser } = require("./_lib/auth-supabase");
 
 /**
- * Saves a generated training plan to the athlete's program assignment
+ * Saves a generated training plan to the active assignment when it exists.
+ * Falls back to onboarding_intake for pre-assignment / free-plan users.
  * 
  * Expected POST body:
  * {
@@ -52,8 +53,8 @@ exports.handler = async (event) => {
       return json(400, { error: "plan_params is required" });
     }
 
-    // Get the athlete ID from the user (stored in sub field of JWT)
-    const athleteId = user.sub;
+    const identityId = user.id || user.sub;
+    const athleteId = identityId;
 
     // Get the active program assignment for this athlete
     const programAssignment = await supabaseRequest({
@@ -62,29 +63,84 @@ exports.handler = async (event) => {
       path: `program_assignments?athlete_id=eq.${encodeURIComponent(athleteId)}&status=in.("scheduled","active","paused")&select=id&order=created_at.desc&limit=1`
     });
 
-    if (!Array.isArray(programAssignment) || !programAssignment.length) {
-      return json(404, { error: "No active program assignment found for athlete" });
+    if (Array.isArray(programAssignment) && programAssignment.length) {
+      const assignmentId = programAssignment[0].id;
+
+      await supabaseRequest({
+        url: config.supabaseUrl,
+        serviceRoleKey: config.supabaseServiceRoleKey,
+        path: `program_assignments?id=eq.${encodeURIComponent(assignmentId)}`,
+        method: "PATCH",
+        body: {
+          plan_data: plan_data,
+          plan_params: plan_params,
+          plan_generated_at: new Date().toISOString()
+        }
+      });
+
+      return json(200, {
+        success: true,
+        message: "Plan saved successfully",
+        storage: "program_assignments",
+        assignment_id: assignmentId,
+        plan_params: plan_params
+      });
     }
 
-    const assignmentId = programAssignment[0].id;
+    const existingOnboarding = await getExistingOnboarding(config, identityId);
+    const mergedAnswers = {
+      ...(existingOnboarding && existingOnboarding.answers ? existingOnboarding.answers : {}),
+      plan_generation: {
+        plan_data,
+        plan_params,
+        storage: "onboarding_intake",
+        saved_at: new Date().toISOString()
+      }
+    };
 
-    // Update the program_assignments table with plan data
-    const updateResult = await supabaseRequest({
+    const fallbackName = toOptionalString(plan_params.athlete_name);
+
+    await supabaseRequest({
       url: config.supabaseUrl,
       serviceRoleKey: config.supabaseServiceRoleKey,
-      path: `program_assignments?id=eq.${encodeURIComponent(assignmentId)}`,
-      method: "PATCH",
-      body: {
-        plan_data: plan_data,
-        plan_params: plan_params,
-        plan_generated_at: new Date().toISOString()
-      }
+      path: "onboarding_intake?on_conflict=identity_id",
+      method: "POST",
+      prefer: "resolution=merge-duplicates,return=representation",
+      body: [
+        {
+          identity_id: identityId,
+          email: user.email || "",
+          phone: existingOnboarding ? existingOnboarding.phone || null : null,
+          full_name:
+            fallbackName ||
+            (existingOnboarding ? existingOnboarding.full_name || null : null),
+          goal_distance:
+            Number.isFinite(Number(plan_params.program_distance))
+              ? Number(plan_params.program_distance)
+              : (existingOnboarding ? existingOnboarding.goal_distance ?? null : null),
+          weekly_frequency:
+            Number.isFinite(Number(plan_params.training_frequency))
+              ? Number(plan_params.training_frequency)
+              : (existingOnboarding ? existingOnboarding.weekly_frequency ?? null : null),
+          experience_level:
+            (existingOnboarding && existingOnboarding.experience_level) || null,
+          consistency_level:
+            (existingOnboarding && existingOnboarding.consistency_level) || null,
+          funnel_stage: "plan_generated",
+          plan_generated_at: new Date().toISOString(),
+          plan_storage: "onboarding_intake",
+          answers: mergedAnswers,
+          submitted_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }
+      ]
     });
 
     return json(200, {
       success: true,
       message: "Plan saved successfully",
-      assignment_id: assignmentId,
+      storage: "onboarding_intake",
+      identity_id: identityId,
       plan_params: plan_params
     });
 
@@ -93,6 +149,23 @@ exports.handler = async (event) => {
     return json(500, { error: err.message || "Error saving plan" });
   }
 };
+
+async function getExistingOnboarding(config, identityId) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `onboarding_intake?identity_id=eq.${encodeURIComponent(identityId)}&select=id,answers,phone,full_name,goal_distance,weekly_frequency,experience_level,consistency_level&limit=1`
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+function toOptionalString(value) {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const trimmed = value.trim();
+  return trimmed || null;
+}
 
 // Helper function (copied from supabase.js)
 async function supabaseRequest({ url, serviceRoleKey, path, method = "GET", body, prefer }) {

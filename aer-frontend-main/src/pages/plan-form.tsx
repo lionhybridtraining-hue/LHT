@@ -1,6 +1,13 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import ButtonGroup from "@/components/button-group";
+import { mergeOnboardingAnswers } from "@/lib/onboarding-intake";
+import {
+  clearPlanLandingDraft,
+  loadPlanLandingDraft,
+  type PlanLandingDraft,
+} from "@/lib/planocorrida-draft";
+import { getAccessToken, signInWithGoogle, supabase } from "@/lib/supabase";
 import {
   AthleteLevel,
   calculateVDOT,
@@ -70,6 +77,9 @@ function parsePaceInput(pace: string): number | undefined {
 
 function PlanForm() {
   const navigate = useNavigate();
+  const [authChecked, setAuthChecked] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [syncingLanding, setSyncingLanding] = useState(false);
 
   // ── Secção 1: Objetivo ──────────────────────────────────────────────────────
   const [programDistance, setProgramDistance] = useState(10);
@@ -98,6 +108,76 @@ function PlanForm() {
   const [weeklyCommitment, setWeeklyCommitment] = useState(false);
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    supabase.auth.getSession().then(({ data }) => {
+      if (!isMounted) return;
+      setIsAuthenticated(Boolean(data.session?.user));
+      setAuthChecked(true);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!isMounted) return;
+      setIsAuthenticated(Boolean(session?.user));
+      setAuthChecked(true);
+    });
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    const draft = loadPlanLandingDraft();
+    if (!draft) return;
+
+    hydrateFormWithDraft(draft, {
+      setName,
+      setProgramDistance,
+      setTrainingFrequency,
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!authChecked || !isAuthenticated) return;
+
+    const draft = loadPlanLandingDraft();
+    if (!draft || draft.syncedAt) return;
+
+    let isMounted = true;
+
+    const syncLandingDraft = async () => {
+      setSyncingLanding(true);
+      try {
+        const accessToken = await getAccessToken();
+        if (!accessToken) return;
+
+        await mergeOnboardingAnswers(accessToken, {
+          planocorrida_landing: buildLandingPayload(draft),
+        });
+
+        if (!isMounted) return;
+        clearPlanLandingDraft();
+      } catch (error) {
+        console.warn("Nao foi possivel sincronizar a landing inicial:", error);
+      } finally {
+        if (isMounted) {
+          setSyncingLanding(false);
+        }
+      }
+    };
+
+    syncLandingDraft();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [authChecked, isAuthenticated]);
 
   // ── VDOT derivado ───────────────────────────────────────────────────────────
   const estimatedVdot = useMemo<number | null>(() => {
@@ -212,6 +292,50 @@ function PlanForm() {
     navigate(`/?${params.toString()}`);
   }
 
+  if (!authChecked) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4 text-[#e4e8ef]">
+        <div className="rounded-2xl border border-[#d4a54f33] bg-[#161616] px-5 py-4">
+          A validar a tua sessao...
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(212,165,79,0.16)_0%,rgba(26,26,26,1)_48%,rgba(10,10,10,1)_100%)] px-4 py-10 text-[#e4e8ef]">
+        <div className="mx-auto max-w-xl rounded-[28px] border border-[#d4a54f33] bg-[#121212f2] p-7 shadow-[0_30px_80px_rgba(0,0,0,0.45)]">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#d4a54f]">
+            Plano de Corrida LHT
+          </p>
+          <h1 className="mt-2 text-3xl font-bold text-[#f4f6fa]">
+            Falta entrares com Google para guardar o teu plano.
+          </h1>
+          <p className="mt-3 text-sm leading-relaxed text-[#c9ced9]">
+            O teu progresso e os dados da etapa anterior ficam associados a tua conta,
+            para que o plano seja guardado e possamos continuar o fluxo sem perder informacao.
+          </p>
+          <div className="mt-6 flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={() => signInWithGoogle("/formulario")}
+              className="rounded-xl bg-[#d4a54f] px-5 py-3 text-sm font-semibold text-[#111111] hover:bg-[#c29740]"
+            >
+              Entrar com Google
+            </button>
+            <Link
+              to="/"
+              className="rounded-xl border border-[#d4a54f55] px-5 py-3 text-sm font-semibold text-[#f4f6fa] hover:bg-[#232323]"
+            >
+              Voltar ao inicio
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // ── JSX ─────────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(212,165,79,0.16)_0%,rgba(26,26,26,1)_48%,rgba(10,10,10,1)_100%)] py-10 px-4 text-[#e4e8ef]">
@@ -229,9 +353,15 @@ function PlanForm() {
             </p>
           </div>
           <Link to="/" className="text-sm font-semibold text-[#d4a54f] hover:text-[#e6bc70]">
-            Voltar ao plano
+            Voltar ao inicio
           </Link>
         </div>
+
+        {syncingLanding ? (
+          <div className="mb-4 rounded-lg border border-[#2f855a66] bg-[#112017] px-3 py-2 text-xs text-[#8fe3b8]">
+            A sincronizar os teus dados iniciais antes de gerar o plano.
+          </div>
+        ) : null}
 
         {/* ── Social proof ── */}
         <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
@@ -603,6 +733,37 @@ function PlanForm() {
       </div>
     </div>
   );
+}
+
+function hydrateFormWithDraft(
+  draft: PlanLandingDraft,
+  actions: {
+    setName: (value: string) => void;
+    setProgramDistance: (value: number) => void;
+    setTrainingFrequency: (value: number) => void;
+  }
+) {
+  if (draft.name) {
+    actions.setName(draft.name);
+  }
+  if (draft.goalDistance) {
+    actions.setProgramDistance(draft.goalDistance);
+  }
+  if (draft.weeklyFrequency) {
+    actions.setTrainingFrequency(draft.weeklyFrequency);
+  }
+}
+
+function buildLandingPayload(draft: PlanLandingDraft) {
+  return {
+    name: draft.name,
+    phone: draft.phone,
+    goalDistance: draft.goalDistance,
+    weeklyFrequency: draft.weeklyFrequency,
+    experienceLevel: draft.experienceLevel,
+    currentConsistency: draft.currentConsistency,
+    savedAt: new Date().toISOString(),
+  };
 }
 
 export default PlanForm;

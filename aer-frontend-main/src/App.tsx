@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Route, Routes } from "react-router-dom";
-import Home from "./pages/home";
 import PlanForm from "./pages/plan-form";
+import PlanEntry from "./pages/plan-entry";
 import AiAssistantFab from "./components/ai-assistant-fab";
 import AiAssistantChat from "./components/ai-assistant-chat";
 
@@ -11,7 +11,7 @@ function App() {
   return (
     <main className="min-h-screen bg-transparent text-[#e4e8ef]">
       <Routes>
-        <Route path="/" element={<Home />} />
+        <Route path="/" element={<PlanEntry />} />
         <Route path="/formulario" element={<PlanForm />} />
         <Route path="/formlario" element={<PlanForm />} />
       </Routes>
