@@ -39,12 +39,12 @@
 
 [[redirects]]
   from = "/planocorrida"
-  to = "/planocorrida/"
-  status = 301
+  to = "/index.html"
+  status = 200
 
 [[redirects]]
   from = "/planocorrida/*"
-  to = "/planocorrida/index.html"
+  to = "/index.html"
   status = 200
 
 # Ensure posts index is not captured by the slug rewrite

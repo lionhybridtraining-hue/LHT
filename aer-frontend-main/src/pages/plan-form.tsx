@@ -1,11 +1,16 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import ButtonGroup from "@/components/button-group";
+import StepIndicator from "@/components/step-indicator";
+import StepNavigation from "@/components/step-navigation";
 import { mergeOnboardingAnswers } from "@/lib/onboarding-intake";
 import {
   clearPlanLandingDraft,
   loadPlanLandingDraft,
   type PlanLandingDraft,
+  loadPlanFormDraft,
+  savePlanFormDraft,
+  type PlanFormDraft,
 } from "@/lib/planocorrida-draft";
 import { getAccessToken, signInWithGoogle, supabase } from "@/lib/supabase";
 import {
@@ -107,6 +112,10 @@ function PlanForm() {
   const [name, setName] = useState("");
   const [weeklyCommitment, setWeeklyCommitment] = useState(false);
 
+  // ── Multi-step form state ────────────────────────────────────────────────────
+  const [currentStep, setCurrentStep] = useState(1);
+  const TOTAL_STEPS = 5;
+
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
@@ -141,6 +150,28 @@ function PlanForm() {
       setProgramDistance,
       setTrainingFrequency,
     });
+  }, []);
+
+  // Load form draft from localStorage on mount
+  useEffect(() => {
+    const formDraft = loadPlanFormDraft();
+    if (!formDraft) return;
+
+    // Hydrate form with saved draft
+    setProgramDistance(formDraft.programDistance);
+    setTrainingFrequency(formDraft.trainingFrequency);
+    setVdotPath(formDraft.vdotPath);
+    setRaceDist(formDraft.raceDist);
+    setRaceTimeStr(formDraft.raceTimeStr);
+    setPaceType(formDraft.paceType);
+    setPaceStr(formDraft.paceStr);
+    setSelectedTier(formDraft.selectedTier);
+    setProgressionRate(formDraft.progressionRate);
+    setPhaseDuration(formDraft.phaseDuration);
+    setInitialVolume(formDraft.initialVolume);
+    setName(formDraft.name);
+    setWeeklyCommitment(formDraft.weeklyCommitment);
+    setCurrentStep(formDraft.currentStep);
   }, []);
 
   useEffect(() => {
@@ -226,6 +257,142 @@ function PlanForm() {
   }, [estimatedLevel]);
 
   // ── Validação ───────────────────────────────────────────────────────────────
+  
+  /** Step 1: Objetivo — Validate distance and frequency */
+  function validateStep1(): string | null {
+    if (!programDistance || !trainingFrequency) {
+      return "Por favor, seleciona a distância objetivo e frequência de treino.";
+    }
+    return null;
+  }
+
+  /** Step 2: VDOT — Validate VDOT path and estimated level */
+  function validateStep2(): string | null {
+    if (vdotPath === "race") {
+      if (!parseRaceTimeToMinutes(raceTimeStr)) {
+        return "Insere o tempo da prova no formato HH:MM:SS (ex.: 00:25:30).";
+      }
+    }
+    if (vdotPath === "pace") {
+      if (!parsePaceInput(paceStr)) {
+        return "Insere o pace no formato MM:SS (ex.: 05:30).";
+      }
+    }
+    if (vdotPath === "level" && selectedTier === null) {
+      return "Seleciona o teu nivel de experiencia.";
+    }
+    if (estimatedVdot === null) {
+      return "Nao foi possivel estimar o teu nivel. Verifica os dados inseridos.";
+    }
+    return null;
+  }
+
+  /** Step 3: Progressão — Validate progression rate */
+  function validateStep3(): string | null {
+    if (progressionRate === null) {
+      return "Seleciona o ritmo de progressao semanal.";
+    }
+    return null;
+  }
+
+  /** Step 4: Duração — Validate phase duration */
+  function validateStep4(): string | null {
+    if (!phaseDuration) {
+      return "Seleciona a duracao do plano.";
+    }
+    return null;
+  }
+
+  /** Step 5: Detalhes — Validate commitment */
+  function validateStep5(): string | null {
+    if (!weeklyCommitment) {
+      return "Para continuar, confirma o teu compromisso semanal.";
+    }
+    return null;
+  }
+
+  /** Validate current step */
+  function validateCurrentStep(): string | null {
+    switch (currentStep) {
+      case 1:
+        return validateStep1();
+      case 2:
+        return validateStep2();
+      case 3:
+        return validateStep3();
+      case 4:
+        return validateStep4();
+      case 5:
+        return validateStep5();
+      default:
+        return null;
+    }
+  }
+
+  /** Determine if we can advance to next step */
+  const canAdvance = useMemo(() => {
+    return validateCurrentStep() === null;
+  }, [currentStep, programDistance, trainingFrequency, vdotPath, raceDist, raceTimeStr, paceType, paceStr, selectedTier, estimatedVdot, progressionRate, phaseDuration, weeklyCommitment]);
+
+  /** Handle next step */
+  function handleNext() {
+    const error = validateCurrentStep();
+    if (error) {
+      setErrorMessage(error);
+      return;
+    }
+
+    setErrorMessage(null);
+
+    if (currentStep < TOTAL_STEPS) {
+      const nextStep = currentStep + 1;
+      setCurrentStep(nextStep);
+      // Auto-save to localStorage
+      saveDraftToLocalStorage(nextStep);
+      // Scroll to top
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } else {
+      // Last step — submit form
+      handleSubmit(new Event("submit") as unknown as FormEvent<HTMLFormElement>);
+    }
+  }
+
+  /** Handle previous step */
+  function handlePrev() {
+    if (currentStep > 1) {
+      const prevStep = currentStep - 1;
+      setCurrentStep(prevStep);
+      setErrorMessage(null);
+      // Auto-save to localStorage
+      saveDraftToLocalStorage(prevStep);
+      // Scroll to top
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }
+
+  /** Save current form state to localStorage as draft */
+  function saveDraftToLocalStorage(step: number) {
+    const draft: PlanFormDraft = {
+      programDistance,
+      trainingFrequency,
+      vdotPath,
+      raceDist,
+      raceTimeStr,
+      paceType,
+      paceStr,
+      selectedTier,
+      progressionRate,
+      phaseDuration,
+      initialVolume,
+      name,
+      weeklyCommitment,
+      currentStep: step,
+      createdAt: new Date().toISOString(),
+      lastModifiedAt: new Date().toISOString(),
+    };
+    savePlanFormDraft(draft);
+  }
+
   function validateForm(): string | null {
     if (!programDistance || !trainingFrequency || !phaseDuration) {
       return "Preenche os campos de objetivo e duracao.";
@@ -387,14 +554,30 @@ function PlanForm() {
         </div>
 
         <form
-          onSubmit={handleSubmit}
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleNext();
+          }}
           className="bg-[#1f1f1ff2] rounded-2xl border border-[#d4a54f33] p-6 shadow-[0_0_30px_rgba(0,0,0,0.35)] space-y-8"
         >
+          {/* Step Indicator */}
+          <StepIndicator
+            currentStep={currentStep}
+            totalSteps={TOTAL_STEPS}
+            stepLabels={[
+              "Objetivo",
+              "Nível Atual",
+              "Progressão",
+              "Duração",
+              "Últimos Detalhes",
+            ]}
+          />
 
           {/* ════════════════════════════════════════════════════════════════
-              SECÇÃO 1 — Objetivo
+              STEP 1 — Objetivo
           ════════════════════════════════════════════════════════════════ */}
-          <section className="space-y-5">
+          {currentStep === 1 && (
+            <section className="space-y-5">
             <div>
               <h2 className="text-lg font-semibold text-[#f4f6fa]">
                 1. Qual é o teu objetivo?
@@ -426,12 +609,14 @@ function PlanForm() {
                 onChange={setTrainingFrequency}
               />
             </div>
-          </section>
+            </section>
+          )}
 
           {/* ════════════════════════════════════════════════════════════════
-              SECÇÃO 2 — Nivel / VDOT
+              STEP 2 — Nível Atual / VDOT
           ════════════════════════════════════════════════════════════════ */}
-          <section className="space-y-5">
+          {currentStep === 2 && (
+            <section className="space-y-5">
             <div>
               <h2 className="text-lg font-semibold text-[#f4f6fa]">
                 2. Qual é o teu nivel atual?
@@ -599,12 +784,13 @@ function PlanForm() {
                 </div>
               </div>
             )}
-          </section>
+            </section>
+          )}
 
           {/* ════════════════════════════════════════════════════════════════
-              SECÇÃO 3 — Progressão (aparece após nivel inferido)
+              STEP 3 — Progressão
           ════════════════════════════════════════════════════════════════ */}
-          {estimatedLevel && currentProgressionOptions && (
+          {currentStep === 3 && estimatedLevel && currentProgressionOptions && (
             <section className="space-y-4">
               <div>
                 <h2 className="text-lg font-semibold text-[#f4f6fa]">
@@ -625,9 +811,10 @@ function PlanForm() {
           )}
 
           {/* ════════════════════════════════════════════════════════════════
-              SECÇÃO 4 — Duração
+              STEP 4 — Duração
           ════════════════════════════════════════════════════════════════ */}
-          <section className="space-y-4">
+          {currentStep === 4 && (
+            <section className="space-y-4">
             <div>
               <h2 className="text-lg font-semibold text-[#f4f6fa]">
                 4. Em quanto tempo tens para atingir o teu objetivo?
@@ -642,11 +829,13 @@ function PlanForm() {
               onChange={setPhaseDuration}
             />
           </section>
+          )}
 
           {/* ════════════════════════════════════════════════════════════════
-              SECÇÃO 5 — Volume + meta
+              STEP 5 — Últimos Detalhes
           ════════════════════════════════════════════════════════════════ */}
-          <section className="space-y-4">
+          {currentStep === 5 && (
+            <section className="space-y-4">
             <h2 className="text-lg font-semibold text-[#f4f6fa]">
               5. Ultimos detalhes
             </h2>
@@ -697,7 +886,8 @@ function PlanForm() {
                 </strong>.
               </span>
             </label>
-          </section>
+            </section>
+          )}
 
           {/* Error */}
           {errorMessage ? (
@@ -706,28 +896,33 @@ function PlanForm() {
             </p>
           ) : null}
 
-          {/* Actions */}
-          <div className="flex gap-3 flex-wrap">
-            <button
-              type="submit"
-              className="px-5 py-3 rounded-md bg-[#d4a54f] text-[#111111] font-semibold hover:bg-[#c29740]"
-            >
-              Gerar o meu Plano LHT
-            </button>
+          {/* Step Navigation */}
+          <StepNavigation
+            currentStep={currentStep}
+            totalSteps={TOTAL_STEPS}
+            canAdvance={canAdvance}
+            onPrev={handlePrev}
+            onNext={handleNext}
+          />
+
+          {/* Additional Links */}
+          <div className="flex flex-wrap gap-3 pt-2">
             <Link
               to="/"
-              className="px-5 py-3 rounded-md border border-[#d4a54f66] text-[#e4e8ef] font-semibold hover:bg-[#2a2a2a]"
+              className="px-5 py-2 rounded-md border border-[#d4a54f66] text-[#e4e8ef] text-sm font-semibold hover:bg-[#2a2a2a]"
             >
               Cancelar
             </Link>
-            <a
-              href={COMMUNITY_URL}
-              target="_blank"
-              rel="noopener"
-              className="px-5 py-3 rounded-md border border-[#3a7c59] text-[#bde8d0] font-semibold hover:bg-[#143726]"
-            >
-              Entrar na Comunidade LHT
-            </a>
+            {currentStep === TOTAL_STEPS && (
+              <a
+                href={COMMUNITY_URL}
+                target="_blank"
+                rel="noopener"
+                className="px-5 py-2 rounded-md border border-[#3a7c59] text-[#bde8d0] text-sm font-semibold hover:bg-[#143726]"
+              >
+                Entrar na Comunidade LHT
+              </a>
+            )}
           </div>
         </form>
       </div>
