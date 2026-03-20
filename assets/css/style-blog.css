@@ -12,9 +12,9 @@
   --text: #e4e8ef;
   --text-soft: #d7d9de;
   --muted: #b8bcc6;
-  --black: #1a1a1a;
-  --ink: #2a2a2a;
-  --panel: #2d2d2d;
+  --black: #090909;
+  --ink: #121212;
+  --panel: #1a1a1a;
   --maxw: 1100px;
   --content-maxw: 740px;
   --py: clamp(36px, 6vw, 64px);
@@ -103,7 +103,9 @@ strong, b {
 
 /* ===== BLOG HEADER ===== */
 .blog-header{
-  background: var(--ink);
+  background:
+    radial-gradient(circle at 50% 0, rgba(212,165,79,.10), transparent 38%),
+    var(--ink);
   border-bottom: 1px solid var(--gold-faint);
   padding: 24px 0;
   box-shadow: 0 2px 12px rgba(0,0,0,.3);
@@ -170,7 +172,7 @@ strong, b {
 /* ===== INTRO SECTION ===== */
 .intro-section{
   padding: var(--py) 0;
-  background: linear-gradient(180deg, var(--ink), var(--black));
+  background: linear-gradient(180deg, #171717, #090909);
 }
 .intro-text{
   max-width: var(--content-maxw);
@@ -184,6 +186,10 @@ strong, b {
 /* ===== ARTICLES SECTION ===== */
 .articles-section{
   padding: var(--py) 0;
+  background:
+    radial-gradient(circle at 82% 8%, rgba(212,165,79,.08), transparent 20%),
+    radial-gradient(circle at 18% 100%, rgba(212,165,79,.06), transparent 24%),
+    linear-gradient(180deg, #0d0d0d, #090909);
 }
 .articles-grid{
   display: grid;

@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="admin.css" />
+  <link rel="stylesheet" href="/admin/admin.css" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
 </head>
 <body>
@@ -641,6 +641,7 @@
   <script>
     const SUPABASE_URL = 'https://rlivxjarqpqmvjtgmxhh.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJsaXZ4amFycXBxbXZqdGdteGhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MDk3NzcsImV4cCI6MjA4OTE4NTc3N30.MHwkQnytSCOBleYVOF5hJHWiV8d_-2V9UGIqsLTgjIY';
+    const DEV_LOCAL_AUTH_BYPASS = ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname);
     
     let supabaseClient = null;
     const apiBase = '/.netlify/functions/blog-articles';
@@ -1994,6 +1995,10 @@
     }
 
     async function apiRequest(method, url, body) {
+      if (DEV_LOCAL_AUTH_BYPASS && !state.user) {
+        throw new Error('Modo teste local: autenticacao desativada. Faz login real para usar a API.');
+      }
+
       if (!state.user) {
         throw new Error('Sessao expirada. Faz login novamente.');
       }
@@ -2016,53 +2021,61 @@
     }
 
     function setAuthUI() {
-      const loggedIn = Boolean(state.user);
-      els.authGate.hidden = loggedIn;
-      els.protectedContent.hidden = !loggedIn;
-      document.body.classList.toggle('auth-locked', !loggedIn);
-      els.authStatus.textContent = loggedIn
-        ? `Autenticado: ${state.user.email || state.user.id}`
-        : 'Nao autenticado';
-      els.loginBtn.disabled = loggedIn;
-      els.logoutBtn.disabled = !loggedIn;
-      els.refreshBtn.disabled = !loggedIn;
-      els.newBtn.disabled = !loggedIn;
-      els.saveBtn.disabled = !loggedIn;
-      els.publishNowBtn.disabled = !loggedIn;
-      els.deleteBtn.disabled = !loggedIn;
-      els.refreshSiteContentBtn.disabled = !loggedIn;
-      els.saveSiteContentBtn.disabled = !loggedIn;
-      els.addMetadataBtn.disabled = !loggedIn;
-      els.addLinkBtn.disabled = !loggedIn;
-      els.addMetricBtn.disabled = !loggedIn;
-      els.addReviewBtn.disabled = !loggedIn;
-      els.refreshLeadsBtn.disabled = !loggedIn;
-      els.aiSubtabPrompts.disabled = !loggedIn;
-      els.aiSubtabLogs.disabled = !loggedIn;
-      els.aiPromptsFilterFeature.disabled = !loggedIn;
-      els.aiRefreshPromptsBtn.disabled = !loggedIn;
-      els.aiPromptName.disabled = !loggedIn;
-      els.aiPromptFeature.disabled = !loggedIn;
-      els.aiPromptType.disabled = !loggedIn;
-      els.aiPromptActive.disabled = !loggedIn;
-      els.aiPromptContent.disabled = !loggedIn;
-      els.aiPromptNotes.disabled = !loggedIn;
-      els.aiNewPromptBtn.disabled = !loggedIn;
-      els.aiCreatePromptBtn.disabled = !loggedIn;
-      els.aiSavePromptBtn.disabled = !loggedIn;
-      els.aiPromptVersions.disabled = !loggedIn;
-      els.aiRestoreVersionBtn.disabled = !loggedIn;
-      els.aiLogsFeature.disabled = !loggedIn;
-      els.aiLogsSuccess.disabled = !loggedIn;
-      els.aiLogsAthlete.disabled = !loggedIn;
-      els.aiLogsFrom.disabled = !loggedIn;
-      els.aiLogsTo.disabled = !loggedIn;
-      els.aiRefreshLogsBtn.disabled = !loggedIn;
-      els.aiLogDetail.disabled = !loggedIn;
+      const viewingAllowed = DEV_LOCAL_AUTH_BYPASS || Boolean(state.user);
+      const canUseApi = Boolean(state.user);
+
+      els.authGate.hidden = viewingAllowed;
+      els.protectedContent.hidden = !viewingAllowed;
+      document.body.classList.toggle('auth-locked', !viewingAllowed);
+
+      if (state.user) {
+        els.authStatus.textContent = `Autenticado: ${state.user.email || state.user.id}`;
+      } else if (DEV_LOCAL_AUTH_BYPASS) {
+        els.authStatus.textContent = 'Modo teste local (sem login)';
+      } else {
+        els.authStatus.textContent = 'Nao autenticado';
+      }
+
+      els.loginBtn.disabled = DEV_LOCAL_AUTH_BYPASS || canUseApi;
+      els.logoutBtn.disabled = DEV_LOCAL_AUTH_BYPASS || !canUseApi;
+      els.refreshBtn.disabled = !canUseApi;
+      els.newBtn.disabled = !canUseApi;
+      els.saveBtn.disabled = !canUseApi;
+      els.publishNowBtn.disabled = !canUseApi;
+      els.deleteBtn.disabled = !canUseApi;
+      els.refreshSiteContentBtn.disabled = !canUseApi;
+      els.saveSiteContentBtn.disabled = !canUseApi;
+      els.addMetadataBtn.disabled = !canUseApi;
+      els.addLinkBtn.disabled = !canUseApi;
+      els.addMetricBtn.disabled = !canUseApi;
+      els.addReviewBtn.disabled = !canUseApi;
+      els.refreshLeadsBtn.disabled = !canUseApi;
+      els.aiSubtabPrompts.disabled = !canUseApi;
+      els.aiSubtabLogs.disabled = !canUseApi;
+      els.aiPromptsFilterFeature.disabled = !canUseApi;
+      els.aiRefreshPromptsBtn.disabled = !canUseApi;
+      els.aiPromptName.disabled = !canUseApi;
+      els.aiPromptFeature.disabled = !canUseApi;
+      els.aiPromptType.disabled = !canUseApi;
+      els.aiPromptActive.disabled = !canUseApi;
+      els.aiPromptContent.disabled = !canUseApi;
+      els.aiPromptNotes.disabled = !canUseApi;
+      els.aiNewPromptBtn.disabled = !canUseApi;
+      els.aiCreatePromptBtn.disabled = !canUseApi;
+      els.aiSavePromptBtn.disabled = !canUseApi;
+      els.aiPromptVersions.disabled = !canUseApi;
+      els.aiRestoreVersionBtn.disabled = !canUseApi;
+      els.aiLogsFeature.disabled = !canUseApi;
+      els.aiLogsSuccess.disabled = !canUseApi;
+      els.aiLogsAthlete.disabled = !canUseApi;
+      els.aiLogsFrom.disabled = !canUseApi;
+      els.aiLogsTo.disabled = !canUseApi;
+      els.aiRefreshLogsBtn.disabled = !canUseApi;
+      els.aiLogDetail.disabled = !canUseApi;
 
       // Desabilitar todos os inputs/textareas dentro do form do blog
       const formInputs = els.form.querySelectorAll('input, select, textarea');
-      formInputs.forEach(input => input.disabled = !loggedIn);
+      formInputs.forEach(input => input.disabled = !canUseApi);
     }
 
     function resetForm() {
@@ -2290,6 +2303,12 @@
     }
 
     async function initializeAuth() {
+      if (DEV_LOCAL_AUTH_BYPASS) {
+        setAuthUI();
+        showMessage('Modo teste local ativo: login Google ignorado em localhost.', false);
+        return;
+      }
+
       // Espera que o Supabase script carregue
       let attempts = 0;
       while (!window.supabase && attempts < 50) {

@@ -1,11 +1,114 @@
 // Onboarding Stepper — Lion Hybrid Training
 (function(){
+  const SUPABASE_URL = 'https://rlivxjarqpqmvjtgmxhh.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJsaXZ4amFycXBxbXZqdGdteGhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MDk3NzcsImV4cCI6MjA4OTE4NTc3N30.MHwkQnytSCOBleYVOF5hJHWiV8d_-2V9UGIqsLTgjIY';
   const COACH_LINK = 'https://home.trainingpeaks.com/attachtocoach?sharedKey=MV4HA6K2QLXYI';
   const COMMUNITY_LINK = 'https://chat.whatsapp.com/IIeEUlwh5oXCa87bNxWM5w';
-  const FORM_CONDICAO = 'https://docs.google.com/forms/d/e/1FAIpQLSe_xuKz-C31Q_m2XpE-OUDWWPinhe4ZS0Bo3Kyvs-wnzRDTeg/viewform?usp=publish-editor';
 
   const STORAGE_KEY = 'lht_onboarding_state_v1';
+  const INTAKE_SCHEMA = [
+    {
+      id: 'dados_gerais',
+      title: 'Dados Gerais e Contactos',
+      fields: [
+        { key: 'nome_completo', label: 'Nome (primeiro e ultimo nome)', type: 'text', required: true },
+        { key: 'sexo', label: 'Sexo', type: 'radio', required: true, options: ['Masculino', 'Feminino'] },
+        { key: 'email', label: 'Email', type: 'email', required: true },
+        { key: 'telemovel', label: 'Telemovel', type: 'text', required: true },
+        { key: 'data_nascimento', label: 'Data de Nascimento', type: 'date', required: true }
+      ]
+    },
+    {
+      id: 'antropometria',
+      title: 'Dados Antropometricos e Biometricos',
+      fields: [
+        { key: 'peso_kg', label: 'Peso (kg)', type: 'number', required: true },
+        { key: 'peso_ideal_kg', label: 'Peso Ideal (kg)', type: 'number', required: true, hint: 'Que peso te fez sentir mais confortavel/atletico(a)?' },
+        { key: 'altura_m', label: 'Altura (m)', type: 'number', step: '0.01', required: true },
+        { key: 'massa_gorda_percent', label: 'Massa Gorda (%)', type: 'number', step: '0.1', required: false },
+        { key: 'perimetro_abdominal_cm', label: 'Perimetro Abdominal (cm)', type: 'number', required: false }
+      ]
+    },
+    {
+      id: 'estilo_vida',
+      title: 'Estilo de Vida, Rotinas e Profissao',
+      fields: [
+        { key: 'profissao', label: 'Profissao', type: 'text', required: true },
+        { key: 'nivel_atividade_diaria', label: 'Nivel de atividade diaria', type: 'radio', required: true, options: ['Predominantemente sedentario', 'Levemente ativo', 'Moderadamente ativo', 'Fisicamente exigente'] },
+        { key: 'media_passos_diarios', label: 'Media de passos diarios', type: 'radio', required: true, options: ['Menos de 4.000 passos', 'Entre 4.000 e 6.000 passos', 'Entre 6.000 e 10.000 passos', 'Mais de 10.000 passos'] },
+        { key: 'habitos_ajudam', label: 'Que comportamentos/habitos te ajudam mais neste momento?', type: 'textarea', required: true },
+        { key: 'habitos_atrapalham', label: 'O que te esta a atrapalhar mais?', type: 'textarea', required: true }
+      ]
+    },
+    {
+      id: 'sono',
+      title: 'Sono',
+      fields: [
+        { key: 'horas_sono_media', label: 'Quantas horas dormes em media?', type: 'number', step: '0.5', required: true },
+        { key: 'qualidade_sono', label: 'Classifica qualidade do sono (1-5)', type: 'rating', required: true },
+        { key: 'sono_reparador', label: 'Sentes que o teu sono e reparador?', type: 'textarea', required: true }
+      ]
+    },
+    {
+      id: 'alimentacao_hidratacao',
+      title: 'Alimentacao, Hidratacao e Suplementacao',
+      fields: [
+        { key: 'qualidade_alimentacao', label: 'Classifica a qualidade da tua alimentacao (1-5)', type: 'rating', required: true },
+        { key: 'padrao_alimentar', label: 'Assinala com as que melhor te identificas', type: 'checkbox-group', required: true, options: ['Como de tudo mas por vezes demasiado', 'Quando me desleixo deixo de comer suficiente', 'Sou bastante moderado(a) nas quantidades'] },
+        { key: 'apetites_dia', label: 'Sentes muitos apetites ao longo do dia?', type: 'radio', required: true, options: ['Sim', 'Por vezes mas consigo gerir', 'Estou sempre saciado(a)'] },
+        { key: 'melhoria_alimentacao', label: 'Se so melhorasses uma coisa na tua alimentacao o que seria?', type: 'textarea', required: true },
+        { key: 'litros_agua_dia', label: 'Quantos litros bebes por dia?', type: 'number', step: '0.1', required: true },
+        { key: 'dificuldade_hidratacao', label: 'Tens dificuldade em ingerir agua? Porquê?', type: 'textarea', required: true },
+        { key: 'suplementos', label: 'Que suplementos usas?', type: 'checkbox-group', required: false, options: ['Creatina', 'Proteina', 'Multivitaminico', 'Omega-3', 'Eletrolitos', 'Magnesio', 'Geis energeticos'] },
+        { key: 'opiniao_suplementacao', label: 'Qual a tua opiniao sobre suplementacao?', type: 'textarea', required: true }
+      ]
+    },
+    {
+      id: 'saude',
+      title: 'Anamnese - Saude, Lesoes e Limitacoes',
+      fields: [
+        { key: 'condicao_saude_diagnosticada', label: 'Tens alguma condicao de saude diagnosticada?', type: 'textarea', required: true },
+        { key: 'checkup_recente', label: 'Fizeste algum check up recentemente?', type: 'radio', required: true, options: ['Sim', 'Nao'] },
+        { key: 'medicacao_diaria', label: 'Tomas medicacao diaria? Se sim, qual?', type: 'textarea', required: true },
+        { key: 'acompanhamento_profissional', label: 'Tens acompanhamento profissional? Se sim, em que especialidade?', type: 'textarea', required: true },
+        { key: 'lesao_atual', label: 'Tens alguma lesao (muscular, articular, ossea)?', type: 'textarea', required: true },
+        { key: 'dores_regulares', label: 'Tens tido dores regularmente?', type: 'textarea', required: true },
+        { key: 'intervencao_cirurgica', label: 'Fizeste alguma intervencao cirurgica? Qual?', type: 'textarea', required: true },
+        { key: 'sintomas_treino', label: 'Sintomas durante/apos treino', type: 'checkbox-group', required: false, options: ['Falta de ar', 'Tonturas', 'Enjoos', 'Dor no peito', 'Palpitacoes', 'Arritmia cardiaca', 'Dores articulares agudas', 'Dormencia/Formigueiros'] },
+        { key: 'condicao_mental_emocional', label: 'Existe alguma condicao fisica, mental ou emocional importante para o acompanhamento?', type: 'textarea', required: true }
+      ]
+    },
+    {
+      id: 'experiencia',
+      title: 'Historico de Treino e Experiencia',
+      fields: [
+        { key: 'treina_ginasio_atualmente', label: 'Estas a treinar num ginasio atualmente?', type: 'radio', required: true, options: ['Nao/raramente', 'Em media 1/2 vezes por semana', 'Em media 2/3 vezes por semana', 'Em media 3/4 vezes por semana', 'Mais de 4 vezes por semana'] },
+        { key: 'tempo_consistencia_treino', label: 'Ha quanto tempo treinas de forma consistente?', type: 'radio', required: true, options: ['Nunca treinei com consistencia', 'Menos de 6 meses', 'Entre 6 meses a 1 ano', 'Entre 1 a 3 anos', 'Mais de 3 anos'] },
+        { key: 'experiencia_ginasio', label: 'Escolhe a opcao que melhor se adequa a tua experiencia em ginasio', type: 'radio', required: true, options: ['Nunca entrei num ginasio', 'O ambiente do ginasio e intimidante', 'Preciso de orientacao nos ajustes e tecnica', 'Estou a vontade e so preciso de plano estruturado', 'Sou capaz de estruturar e executar o treino', 'Tenho experiencia avancada e procuro otimizar todos os pormenores'] },
+        { key: 'desporto_regular', label: 'Praticas ou ja praticaste algum desporto de forma regular?', type: 'textarea', required: true },
+        { key: 'acompanhamento_pt', label: 'Ja fizeste acompanhamento com um PT?', type: 'textarea', required: true },
+        { key: 'partilha_experiencia_treino', label: 'Ha algo relativo a tua experiencia de treino que queiras partilhar?', type: 'textarea', required: true }
+      ]
+    },
+    {
+      id: 'motivacao',
+      title: 'Motivacao, Objetivos e Expectativas',
+      fields: [
+        { key: 'porque_agora', label: 'O que te trouxe ate aqui neste momento da tua vida?', type: 'textarea', required: true },
+        { key: 'mudanca_desejada', label: 'Se este processo correr como imaginas, o que mudaria na tua vida?', type: 'textarea', required: true },
+        { key: 'tentativas_anteriores', label: 'O que ja tentaste antes que nao funcionou? Porquê?', type: 'textarea', required: true },
+        { key: 'auto_sabotagem', label: 'O que te costuma sabotar quando tentas melhorar?', type: 'checkbox-group', required: false, options: ['Falta de consistencia', 'Desmotivacao apos 2-3 semanas', 'Excesso de exigencia/perfeccionismo', 'Falta de apoio', 'Nao saber o que fazer', 'Falta de paciencia com resultados', 'Vontade de fazer tudo ao mesmo tempo'] },
+        { key: 'falo_comigo_dificil', label: 'Como e que falas contigo proprio(a) nos momentos dificeis?', type: 'checkbox-group', required: false, options: ['Sou duro(a) demais comigo', 'Tenho pensamentos negativos que me bloqueiam', 'Tento ser positivo(a), mas as vezes nao acredito', 'Sou otimista e resiliente na maioria dos dias'] },
+        { key: 'gatilho_dias_dificeis', label: 'Nos dias dificeis, o que te faz levantar e agir?', type: 'textarea', required: true },
+        { key: 'frase_motivacao', label: 'Qual e a frase que mais te motiva?', type: 'radio', required: true, options: ['Bora! Tu es capaz! Ja passaste por tanta coisa', 'Duvido que consigas! Nao eras capaz de...', 'E agora ou nunca', 'Aguenta so mais um pouco', 'Outra'] },
+        { key: 'maior_objetivo', label: 'Qual o teu maior objetivo que este acompanhamento te ajudara a atingir?', type: 'textarea', required: true },
+        { key: 'notas_finais', label: 'Existe mais alguma coisa que possas partilhar para estarmos 100% alinhados?', type: 'textarea', required: false }
+      ]
+    }
+  ];
+
   const state = loadState();
+  state.intake = state.intake || { submitted: false };
 
   const steps = [
     { id: 'welcome', title: 'Boas‑vindas', render: renderWelcome, canSkip: true },
@@ -17,6 +120,11 @@
   ];
 
   let currentIndex = clampIndex(steps.findIndex(s => s.id === state.current) >= 0 ? steps.findIndex(s => s.id === state.current) : 0);
+  let supabaseClient = null;
+  let currentUser = null;
+  let accessToken = '';
+  let intakeDraft = null;
+  let loadingIntake = false;
 
   function clampIndex(i){ if(i < 0) return 0; if(i >= steps.length) return steps.length-1; return i; }
 
@@ -41,6 +149,75 @@
     });
     const pct = Math.round((currentIndex / (steps.length-1)) * 100); // exclude finish
     el.setAttribute('aria-valuenow', String(pct));
+  }
+
+  async function initializeAuth(){
+    let attempts = 0;
+    while(!window.supabase && attempts < 50){
+      await new Promise(resolve => setTimeout(resolve, 100));
+      attempts++;
+    }
+    if(!window.supabase) return;
+
+    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    setSession(session || null);
+
+    supabaseClient.auth.onAuthStateChange((_event, sessionState) => {
+      setSession(sessionState || null);
+    });
+  }
+
+  function setSession(session){
+    currentUser = session && session.user ? session.user : null;
+    accessToken = session && session.access_token ? session.access_token : '';
+    if(currentUser && !loadingIntake && intakeDraft === null){
+      loadIntakeDraft();
+    }
+    render();
+  }
+
+  async function signInGoogle(){
+    if(!supabaseClient) return;
+    const { error } = await supabaseClient.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: window.location.origin + '/onboarding' }
+    });
+    if(error) alert(error.message || 'Erro ao iniciar login Google.');
+  }
+
+  async function signOutGoogle(){
+    if(!supabaseClient) return;
+    await supabaseClient.auth.signOut({ scope: 'local' });
+    setSession(null);
+  }
+
+  async function loadIntakeDraft(){
+    if(!accessToken) return;
+    loadingIntake = true;
+    try {
+      const response = await fetch('/.netlify/functions/onboarding-intake', {
+        method: 'GET',
+        headers: { Authorization: 'Bearer ' + accessToken }
+      });
+      if(response.ok){
+        const payload = await response.json();
+        intakeDraft = payload && payload.answers ? payload.answers : {};
+        if(payload && payload.submittedAt){
+          state.intake.submitted = true;
+          state.done.condicao = true;
+          saveState();
+        }
+      } else {
+        intakeDraft = {};
+      }
+    } catch {
+      intakeDraft = {};
+    } finally {
+      loadingIntake = false;
+      render();
+    }
   }
 
   function goto(index){
@@ -70,7 +247,7 @@
     // skip
     // removed
     // next
-    if(currentIndex < steps.length-1){
+    if(currentIndex < steps.length-1 && step.id !== 'condicao'){
       const label = currentIndex === 0 ? 'Começar onboarding' : 'Continuar';
       const next = button(label, ()=> goto(currentIndex+1)); actions.appendChild(next);
     }
@@ -139,11 +316,257 @@
 
 
   function renderCondicao(container){
-    const p = document.createElement('p'); p.textContent = 'Preenche o formulário para registar a tua condição física atual. Isto ajuda-nos a personalizar o teu plano.'; container.appendChild(p);
-    const actions = document.createElement('div'); actions.className = 'actions';
-    const form = button('Preencher questionário', ()=>{ markDone('condicao'); track('condicao_fisica'); }, FORM_CONDICAO);
-    actions.appendChild(form);
-    container.appendChild(actions);
+    const p = document.createElement('p');
+    p.textContent = 'Este questionario e guardado na tua ficha para personalizar o plano e o acompanhamento.';
+    container.appendChild(p);
+
+    const authBox = document.createElement('div');
+    authBox.className = 'auth-box';
+    const authMeta = document.createElement('div');
+    authMeta.className = 'auth-meta';
+
+    const authChip = document.createElement('span');
+    authChip.className = 'auth-chip';
+    authChip.textContent = currentUser ? ('Ligado: ' + (currentUser.email || currentUser.id)) : 'Nao autenticado';
+    authMeta.appendChild(authChip);
+
+    const authButton = button(currentUser ? 'Terminar sessao' : 'Entrar com Google', async ()=>{
+      if(currentUser) await signOutGoogle();
+      else await signInGoogle();
+    });
+    authMeta.appendChild(authButton);
+    authBox.appendChild(authMeta);
+    container.appendChild(authBox);
+
+    if(!currentUser){
+      const note = document.createElement('p');
+      note.className = 'mut';
+      note.textContent = 'Para submeter e guardar o formulario na base de dados, tens de entrar com Google.';
+      container.appendChild(note);
+      return;
+    }
+
+    if(loadingIntake){
+      const loading = document.createElement('p');
+      loading.className = 'mut';
+      loading.textContent = 'A carregar respostas guardadas...';
+      container.appendChild(loading);
+      return;
+    }
+
+    const form = document.createElement('form');
+    form.className = 'intake-form';
+    renderIntakeForm(form);
+
+    const status = document.createElement('div');
+    status.className = 'status';
+    status.hidden = true;
+    form.appendChild(status);
+
+    const actions = document.createElement('div');
+    actions.className = 'actions';
+    const submit = document.createElement('button');
+    submit.className = 'btn';
+    submit.type = 'submit';
+    submit.textContent = state.intake.submitted ? 'Atualizar respostas' : 'Guardar questionario';
+    actions.appendChild(submit);
+
+    const next = button('Continuar', ()=> goto(currentIndex+1));
+    next.disabled = !state.done.condicao;
+    next.style.opacity = state.done.condicao ? '1' : '.6';
+    next.style.pointerEvents = state.done.condicao ? 'auto' : 'none';
+    actions.appendChild(next);
+    form.appendChild(actions);
+
+    form.addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      status.hidden = true;
+      const { answers, errors } = collectIntakeAnswers(form);
+      if(errors.length){
+        status.hidden = false;
+        status.className = 'status error';
+        status.textContent = errors[0];
+        return;
+      }
+
+      submit.disabled = true;
+      try {
+        const response = await fetch('/.netlify/functions/onboarding-intake', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: 'Bearer ' + accessToken
+          },
+          body: JSON.stringify({ answers })
+        });
+
+        const payload = await response.json();
+        if(!response.ok){
+          throw new Error((payload && payload.error) ? payload.error : 'Nao foi possivel guardar o questionario.');
+        }
+
+        intakeDraft = answers;
+        state.intake.submitted = true;
+        state.done.condicao = true;
+        saveState();
+        track('condicao_fisica');
+
+        next.disabled = false;
+        next.style.opacity = '1';
+        next.style.pointerEvents = 'auto';
+
+        status.hidden = false;
+        status.className = 'status ok';
+        status.textContent = 'Questionario guardado com sucesso.';
+      } catch (err) {
+        status.hidden = false;
+        status.className = 'status error';
+        status.textContent = err.message || 'Erro inesperado ao guardar o questionario.';
+      } finally {
+        submit.disabled = false;
+      }
+    });
+
+    container.appendChild(form);
+  }
+
+  function renderIntakeForm(form){
+    INTAKE_SCHEMA.forEach(section => {
+      const sec = document.createElement('section');
+      sec.className = 'intake-section';
+      const title = document.createElement('h4');
+      title.textContent = section.title;
+      sec.appendChild(title);
+
+      const grid = document.createElement('div');
+      grid.className = 'intake-grid';
+      section.fields.forEach(field => {
+        grid.appendChild(renderField(field));
+      });
+      sec.appendChild(grid);
+      form.appendChild(sec);
+    });
+  }
+
+  function renderField(field){
+    const wrap = document.createElement('div');
+    wrap.className = 'field';
+
+    const label = document.createElement('label');
+    label.setAttribute('for', field.key);
+    label.textContent = field.label + (field.required ? ' *' : '');
+    wrap.appendChild(label);
+
+    if(field.hint){
+      const hint = document.createElement('div');
+      hint.className = 'hint';
+      hint.textContent = field.hint;
+      wrap.appendChild(hint);
+    }
+
+    const value = getInitialValue(field.key);
+
+    if(field.type === 'radio' || field.type === 'checkbox-group'){
+      const options = document.createElement('div');
+      options.className = 'options';
+      const currentValues = Array.isArray(value) ? value : [value].filter(Boolean);
+      field.options.forEach((opt, idx) => {
+        const row = document.createElement('label');
+        row.className = 'option-row';
+        const input = document.createElement('input');
+        input.type = field.type === 'radio' ? 'radio' : 'checkbox';
+        input.name = field.key;
+        input.value = opt;
+        input.id = field.key + '_' + idx;
+        if(field.type === 'radio' && value === opt) input.checked = true;
+        if(field.type === 'checkbox-group' && currentValues.includes(opt)) input.checked = true;
+        row.appendChild(input);
+        const txt = document.createElement('span');
+        txt.textContent = opt;
+        row.appendChild(txt);
+        options.appendChild(row);
+      });
+      wrap.appendChild(options);
+      return wrap;
+    }
+
+    if(field.type === 'rating'){
+      const rating = document.createElement('div');
+      rating.className = 'rating';
+      for(let i=1;i<=5;i++){
+        const row = document.createElement('label');
+        const input = document.createElement('input');
+        input.type = 'radio';
+        input.name = field.key;
+        input.value = String(i);
+        if(String(value) === String(i)) input.checked = true;
+        row.appendChild(input);
+        const txt = document.createElement('span'); txt.textContent = String(i);
+        row.appendChild(txt);
+        rating.appendChild(row);
+      }
+      wrap.appendChild(rating);
+      return wrap;
+    }
+
+    const input = document.createElement(field.type === 'textarea' ? 'textarea' : 'input');
+    input.id = field.key;
+    input.name = field.key;
+    if(field.type !== 'textarea') input.type = field.type;
+    if(field.step && field.type === 'number') input.step = field.step;
+    input.placeholder = 'A tua resposta';
+    if(value !== undefined && value !== null) input.value = value;
+    if(field.key === 'email' && currentUser && currentUser.email){
+      input.value = currentUser.email;
+    }
+    wrap.appendChild(input);
+
+    return wrap;
+  }
+
+  function getInitialValue(key){
+    if(intakeDraft && Object.prototype.hasOwnProperty.call(intakeDraft, key)) return intakeDraft[key];
+    if(key === 'email' && currentUser && currentUser.email) return currentUser.email;
+    if(key === 'nome_completo' && currentUser && currentUser.user_metadata && currentUser.user_metadata.full_name) {
+      return currentUser.user_metadata.full_name;
+    }
+    return '';
+  }
+
+  function collectIntakeAnswers(form){
+    const answers = {};
+    const errors = [];
+
+    INTAKE_SCHEMA.forEach(section => {
+      section.fields.forEach(field => {
+        let value;
+        if(field.type === 'radio' || field.type === 'rating'){
+          const checked = form.querySelector('input[name="' + field.key + '"]:checked');
+          value = checked ? checked.value : '';
+        } else if(field.type === 'checkbox-group'){
+          const checked = form.querySelectorAll('input[name="' + field.key + '"]:checked');
+          value = Array.from(checked).map(i => i.value);
+        } else {
+          const input = form.querySelector('[name="' + field.key + '"]');
+          value = input ? String(input.value || '').trim() : '';
+          if(field.type === 'number' && value !== ''){
+            const numeric = Number(value);
+            value = Number.isFinite(numeric) ? numeric : '';
+          }
+        }
+
+        if(field.required){
+          const isEmptyArray = Array.isArray(value) && value.length === 0;
+          const isEmptyScalar = !Array.isArray(value) && (value === '' || value === null || value === undefined);
+          if(isEmptyArray || isEmptyScalar){
+            errors.push('Campo obrigatorio por preencher: ' + field.label);
+          }
+        }
+        answers[field.key] = value;
+      });
+    });
+
+    return { answers, errors };
   }
 
   function calcZonesHR(lthr){
@@ -188,6 +611,6 @@
 
   // Mount
   if(document.readyState === 'loading'){
-    document.addEventListener('DOMContentLoaded', ()=>{ render(); });
-  } else { render(); }
+    document.addEventListener('DOMContentLoaded', ()=>{ render(); initializeAuth(); });
+  } else { render(); initializeAuth(); }
 })();

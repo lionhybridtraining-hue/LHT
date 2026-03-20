@@ -41,7 +41,7 @@
   background:
     radial-gradient(circle at 20% 0, rgba(212, 165, 79, 0.14), transparent 35%),
     radial-gradient(circle at 80% 10%, rgba(22, 102, 216, 0.16), transparent 30%),
-    radial-gradient(circle at 50% 0, #262626 0%, #151515 80%);
+    radial-gradient(circle at 50% 0, #1d1d1d 0%, #080808 82%);
 }
 
 .challenge-card,
@@ -50,7 +50,7 @@
   overflow: hidden;
   border-radius: 22px;
   padding: clamp(24px, 4vw, 36px);
-  background: linear-gradient(180deg, rgba(36, 36, 36, 0.86), rgba(20, 20, 20, 0.94));
+  background: linear-gradient(180deg, rgba(24, 24, 24, 0.92), rgba(10, 10, 10, 0.97));
   border: 1px solid rgba(212, 165, 79, 0.16);
   box-shadow: 0 22px 54px rgba(0, 0, 0, 0.36), inset 0 0 0 1px rgba(255, 255, 255, 0.03);
 }
@@ -155,7 +155,7 @@
 .calendar-access {
   background:
     radial-gradient(circle at 50% 0, rgba(212, 165, 79, 0.16), transparent 28%),
-    radial-gradient(circle at 50% 0, #303030 0%, #191919 82%);
+    radial-gradient(circle at 50% 0, #202020 0%, #090909 84%);
 }
 
 .calendar-layout {
@@ -286,7 +286,7 @@
 .aer-benefits {
   background:
     radial-gradient(circle at 20% 0, rgba(212, 165, 79, 0.15), transparent 22%),
-    radial-gradient(circle at 50% 0, #2d2d2d 0%, #151515 82%);
+    radial-gradient(circle at 50% 0, #1f1f1f 0%, #090909 84%);
 }
 
 .benefits-layout {

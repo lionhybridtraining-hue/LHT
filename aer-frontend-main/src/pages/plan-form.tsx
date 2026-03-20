@@ -1,427 +1,603 @@
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import getFollowUpQuestions, {
-  FollowUpQuestion,
-  IntakeAnswers,
-} from "@/services/plan-intake/get-follow-up-questions";
+import ButtonGroup from "@/components/button-group";
+import {
+  AthleteLevel,
+  calculateVDOT,
+  formatMinPerKm,
+  LEVEL_LABELS,
+  paceFromVdot,
+  progressionOptions,
+  syntheticRaceTimeForVdot,
+  vdotFromEasyPace,
+  vdotFromThresholdPace,
+  vdotToLevel,
+  VDOT_TIERS,
+} from "@/utils/vdot";
 
-type ExtraAnswers = Record<string, string>;
+const COMMUNITY_URL = "https://chat.whatsapp.com/JVsqO05fm4kLhbSaSiKL8n";
 
-function parseRaceTimeToSeconds(raceTime: string): number | undefined {
-  const normalized = raceTime.trim();
-  if (!normalized) return undefined;
+type VdotPath = "race" | "pace" | "level";
+type PaceType = "easy" | "threshold";
 
-  const hhmmss = normalized.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
-  if (!hhmmss) return undefined;
+const PROGRAM_DISTANCES = [
+  { label: "5K",      value: 5    },
+  { label: "10K",     value: 10   },
+  { label: "Meia",    value: 21.1 },
+  { label: "Maratona",value: 42.2 },
+];
 
-  const hours = Number(hhmmss[1]);
-  const minutes = Number(hhmmss[2]);
-  const seconds = Number(hhmmss[3] || 0);
+const TRAINING_FREQS = [
+  { label: "2x", value: 2 },
+  { label: "3x", value: 3 },
+  { label: "4x", value: 4 },
+  { label: "5x", value: 5 },
+];
 
-  if (!Number.isFinite(hours) || !Number.isFinite(minutes) || !Number.isFinite(seconds)) {
-    return undefined;
-  }
+const PHASE_DURATIONS = [
+  { label: "4 semanas", value: 4, sublabel: "total 12 sem (3 fases)" },
+  { label: "5 semanas", value: 5, sublabel: "total 15 sem (3 fases)" },
+  { label: "6 semanas", value: 6, sublabel: "total 18 sem (3 fases)" },
+];
 
-  if (minutes > 59 || seconds > 59) return undefined;
+const RACE_DIST_OPTIONS = [
+  { label: "5K",    value: 5    },
+  { label: "10K",   value: 10   },
+  { label: "21.1K", value: 21.1 },
+  { label: "42.2K", value: 42.2 },
+];
 
-  return hours * 3600 + minutes * 60 + seconds;
+/** "H:MM:SS" or "MM:SS" → decimal minutes. Returns undefined if invalid. */
+function parseRaceTimeToMinutes(t: string): number | undefined {
+  const match = t.trim().match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+  if (!match) return undefined;
+  const h = Number(match[1]);
+  const m = Number(match[2]);
+  const s = Number(match[3] ?? 0);
+  if (m > 59 || s > 59) return undefined;
+  return h * 60 + m + s / 60;
+}
+
+/** "M:SS" → decimal min/km. Returns undefined if invalid. */
+function parsePaceInput(pace: string): number | undefined {
+  const match = pace.trim().match(/^(\d{1,2}):(\d{2})$/);
+  if (!match) return undefined;
+  const m = Number(match[1]);
+  const s = Number(match[2]);
+  if (!Number.isFinite(m) || s > 59) return undefined;
+  return m + s / 60;
 }
 
 function PlanForm() {
   const navigate = useNavigate();
 
-  const [name, setName] = useState("");
+  // ── Secção 1: Objetivo ──────────────────────────────────────────────────────
   const [programDistance, setProgramDistance] = useState(10);
-  const [phaseDuration, setPhaseDuration] = useState(6);
   const [trainingFrequency, setTrainingFrequency] = useState(3);
-  const [progressionRate, setProgressionRate] = useState(1.06);
+
+  // ── Secção 2: VDOT ─────────────────────────────────────────────────────────
+  const [vdotPath, setVdotPath] = useState<VdotPath>("race");
+  // Path A — prova
+  const [raceDist, setRaceDist] = useState<number>(5);
+  const [raceTimeStr, setRaceTimeStr] = useState("");
+  // Path B — pace
+  const [paceType, setPaceType] = useState<PaceType>("easy");
+  const [paceStr, setPaceStr] = useState("");
+  // Path C — patamar descritivo
+  const [selectedTier, setSelectedTier] = useState<number | null>(null);
+
+  // ── Secção 3: Progressão ────────────────────────────────────────────────────
+  const [progressionRate, setProgressionRate] = useState<number | null>(null);
+
+  // ── Secção 4: Duração ───────────────────────────────────────────────────────
+  const [phaseDuration, setPhaseDuration] = useState(12);
+
+  // ── Secção 5: Volume + meta ─────────────────────────────────────────────────
   const [initialVolume, setInitialVolume] = useState<number | "">("");
-  const [maxAvailableMinutes, setMaxAvailableMinutes] = useState<number | "">("");
-
-  const [hasRaceGoal, setHasRaceGoal] = useState(false);
-  const [raceDistance, setRaceDistance] = useState<number | "">("");
-  const [raceTime, setRaceTime] = useState("");
-
-  const [experienceLevel, setExperienceLevel] = useState<
-    "beginner" | "intermediate" | "advanced"
-  >("beginner");
-  const [injuriesLastMonths, setInjuriesLastMonths] = useState(false);
-
-  const [useAiFollowUps, setUseAiFollowUps] = useState(true);
-  const [followUpQuestions, setFollowUpQuestions] = useState<FollowUpQuestion[]>([]);
-  const [extraAnswers, setExtraAnswers] = useState<ExtraAnswers>({});
+  const [name, setName] = useState("");
+  const [weeklyCommitment, setWeeklyCommitment] = useState(false);
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [isLoadingAi, setIsLoadingAi] = useState(false);
 
-  const hasAiEndpoint = Boolean(import.meta.env.VITE_PLAN_FORM_AI_ENDPOINT);
-
-  const intakeAnswers = useMemo<IntakeAnswers>(
-    () => ({
-      name,
-      programDistance,
-      phaseDuration,
-      trainingFrequency,
-      initialVolume: typeof initialVolume === "number" ? initialVolume : undefined,
-      raceDistance: hasRaceGoal && typeof raceDistance === "number" ? raceDistance : undefined,
-      raceTimeSeconds: hasRaceGoal ? parseRaceTimeToSeconds(raceTime) : undefined,
-      experienceLevel,
-      injuriesLastMonths,
-      maxAvailableMinutes:
-        typeof maxAvailableMinutes === "number" ? maxAvailableMinutes : undefined,
-    }),
-    [
-      experienceLevel,
-      hasRaceGoal,
-      injuriesLastMonths,
-      initialVolume,
-      maxAvailableMinutes,
-      name,
-      phaseDuration,
-      programDistance,
-      raceDistance,
-      raceTime,
-      trainingFrequency,
-    ]
-  );
-
-  async function handleGenerateQuestions() {
-    setErrorMessage(null);
-    setIsLoadingAi(true);
-
-    const questions = await getFollowUpQuestions(intakeAnswers, useAiFollowUps);
-    setFollowUpQuestions(questions);
-    setIsLoadingAi(false);
-  }
-
-  function validateBaseForm(): string | null {
-    if (!programDistance || !phaseDuration || !trainingFrequency || !progressionRate) {
-      return "Preenche os campos obrigatorios para gerar o plano.";
+  // ── VDOT derivado ───────────────────────────────────────────────────────────
+  const estimatedVdot = useMemo<number | null>(() => {
+    if (vdotPath === "race") {
+      const t = parseRaceTimeToMinutes(raceTimeStr);
+      if (!t || !raceDist) return null;
+      const v = calculateVDOT(raceDist, t);
+      return v > 10 ? v : null;
     }
-
-    if (hasRaceGoal && !raceDistance) {
-      return "Indica a distancia da prova-alvo.";
+    if (vdotPath === "pace") {
+      const p = parsePaceInput(paceStr);
+      if (!p) return null;
+      const v =
+        paceType === "threshold"
+          ? vdotFromThresholdPace(p)
+          : vdotFromEasyPace(p);
+      return v > 10 ? v : null;
     }
-
-    if (hasRaceGoal && raceTime.trim() && !parseRaceTimeToSeconds(raceTime)) {
-      return "Formato de tempo de prova invalido. Usa HH:MM ou HH:MM:SS.";
+    if (vdotPath === "level") {
+      return selectedTier;
     }
+    return null;
+  }, [vdotPath, raceDist, raceTimeStr, paceType, paceStr, selectedTier]);
 
-    for (const question of followUpQuestions) {
-      if (!question.required) continue;
-      const answer = extraAnswers[question.id];
-      if (!answer || !answer.trim()) {
-        return "Responde a todas as perguntas de acompanhamento obrigatorias.";
+  const estimatedLevel = useMemo<AthleteLevel | null>(() => {
+    if (estimatedVdot === null) return null;
+    return vdotToLevel(estimatedVdot);
+  }, [estimatedVdot]);
+
+  const currentProgressionOptions = useMemo(() => {
+    if (!estimatedLevel) return null;
+    return progressionOptions(estimatedLevel);
+  }, [estimatedLevel]);
+
+  const estimatedPaces = useMemo(() => {
+    if (estimatedVdot === null) return null;
+    return {
+      threshold: formatMinPerKm(paceFromVdot(estimatedVdot, 0.88)),
+      easy: formatMinPerKm(paceFromVdot(estimatedVdot, 0.62)),
+    };
+  }, [estimatedVdot]);
+
+  // Reset progression when the inferred level changes
+  useEffect(() => {
+    setProgressionRate(null);
+  }, [estimatedLevel]);
+
+  // ── Validação ───────────────────────────────────────────────────────────────
+  function validateForm(): string | null {
+    if (!programDistance || !trainingFrequency || !phaseDuration) {
+      return "Preenche os campos de objetivo e duracao.";
+    }
+    if (vdotPath === "race") {
+      if (!parseRaceTimeToMinutes(raceTimeStr)) {
+        return "Insere o tempo da prova no formato HH:MM:SS (ex.: 00:25:30).";
       }
     }
-
+    if (vdotPath === "pace") {
+      if (!parsePaceInput(paceStr)) {
+        return "Insere o pace no formato MM:SS (ex.: 05:30).";
+      }
+    }
+    if (vdotPath === "level" && selectedTier === null) {
+      return "Seleciona o teu nivel de experiencia.";
+    }
+    if (estimatedVdot === null) {
+      return "Nao foi possivel estimar o teu nivel. Verifica os dados inseridos.";
+    }
+    if (progressionRate === null) {
+      return "Seleciona o ritmo de progressao semanal.";
+    }
+    if (!weeklyCommitment) {
+      return "Para continuar, confirma o teu compromisso semanal.";
+    }
     return null;
   }
 
+  // ── Submit ──────────────────────────────────────────────────────────────────
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setErrorMessage(null);
 
-    const validationError = validateBaseForm();
-    if (validationError) {
-      setErrorMessage(validationError);
+    const error = validateForm();
+    if (error) {
+      setErrorMessage(error);
       return;
     }
 
     const params = new URLSearchParams();
-    params.set("progression_rate", String(progressionRate));
-    params.set("phase_duration", String(phaseDuration));
+    params.set("program_distance",   String(programDistance));
     params.set("training_frequency", String(trainingFrequency));
-    params.set("program_distance", String(programDistance));
+    params.set("phase_duration",     String(phaseDuration));
+    params.set("progression_rate",   String(progressionRate!));
 
-    if (name.trim()) {
-      params.set("name", name.trim());
+    // race_dist + race_time in MINUTES (as expected by the API)
+    if (vdotPath === "race") {
+      params.set("race_dist", String(raceDist));
+      params.set("race_time", String(
+        Math.round(parseRaceTimeToMinutes(raceTimeStr)! * 1000) / 1000
+      ));
+    } else {
+      // Path B / C: derive synthetic 5 km race time from estimated VDOT
+      params.set("race_dist", "5");
+      params.set("race_time", String(syntheticRaceTimeForVdot(estimatedVdot!)));
     }
 
     if (typeof initialVolume === "number") {
       params.set("initial_volume", String(initialVolume));
     }
-
-    if (hasRaceGoal && typeof raceDistance === "number") {
-      params.set("race_dist", String(raceDistance));
-      const raceTimeSeconds = parseRaceTimeToSeconds(raceTime);
-      if (typeof raceTimeSeconds === "number") {
-        params.set("race_time", String(raceTimeSeconds));
-      }
-    }
-
-    // Keep extra answers in query so backend can evolve without breaking old contract.
-    for (const [key, value] of Object.entries(extraAnswers)) {
-      if (!value.trim()) continue;
-      params.set(`intake_${key}`, value.trim());
-    }
+    if (name.trim()) params.set("name", name.trim());
 
     navigate(`/?${params.toString()}`);
   }
 
+  // ── JSX ─────────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-100 via-white to-slate-50 py-10 px-4">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(212,165,79,0.16)_0%,rgba(26,26,26,1)_48%,rgba(10,10,10,1)_100%)] py-10 px-4 text-[#e4e8ef]">
       <div className="max-w-3xl mx-auto">
+
+        {/* ── Header ── */}
         <div className="mb-6 flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold">Gerador de Plano de Corrida</h1>
-            <p className="text-slate-600 mt-1">
-              Preenche os dados abaixo para gerar um plano inicial personalizado.
+            <p className="text-[#d4a54f] text-xs font-semibold uppercase tracking-[0.18em] mb-1">
+              Lion Hybrid Training
+            </p>
+            <h1 className="text-3xl font-bold text-[#f4f6fa]">Plano de Corrida LHT</h1>
+            <p className="text-[#c9ced9] mt-1">
+              Estrutura, consistencia e progressao com proposito.
             </p>
           </div>
-          <Link
-            to="/"
-            className="text-sm font-semibold text-blue-700 hover:text-blue-800"
-          >
+          <Link to="/" className="text-sm font-semibold text-[#d4a54f] hover:text-[#e6bc70]">
             Voltar ao plano
           </Link>
         </div>
 
-        <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-6">
+        {/* ── Social proof ── */}
+        <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+          <div className="rounded-xl border border-[#d4a54f33] bg-[#141414cc] p-3">
+            <p className="text-[#d4a54f] font-semibold">+120 atletas</p>
+            <p className="text-[#c9ced9]">ja iniciaram o metodo LHT</p>
+          </div>
+          <div className="rounded-xl border border-[#d4a54f33] bg-[#141414cc] p-3">
+            <p className="text-[#d4a54f] font-semibold">Metodo aplicado</p>
+            <p className="text-[#c9ced9]">fisiologia, progressao e consistencia</p>
+          </div>
+          <div className="rounded-xl border border-[#d4a54f33] bg-[#141414cc] p-3">
+            <p className="text-[#d4a54f] font-semibold">Comunidade ativa</p>
+            <a
+              href={COMMUNITY_URL}
+              target="_blank"
+              rel="noopener"
+              className="text-[#c9ced9] hover:text-[#f4f6fa]"
+            >
+              suporte e accountability no WhatsApp
+            </a>
+          </div>
+        </div>
+
+        <form
+          onSubmit={handleSubmit}
+          className="bg-[#1f1f1ff2] rounded-2xl border border-[#d4a54f33] p-6 shadow-[0_0_30px_rgba(0,0,0,0.35)] space-y-8"
+        >
+
+          {/* ════════════════════════════════════════════════════════════════
+              SECÇÃO 1 — Objetivo
+          ════════════════════════════════════════════════════════════════ */}
+          <section className="space-y-5">
+            <div>
+              <h2 className="text-lg font-semibold text-[#f4f6fa]">
+                1. Qual é o teu objetivo?
+              </h2>
+              <p className="text-sm text-[#c9ced9]">
+                A corrida é sobre definir objetivos e alcancá-los.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-[#d9dde6]">Distancia objetivo</p>
+              <ButtonGroup
+                options={PROGRAM_DISTANCES}
+                value={programDistance}
+                onChange={setProgramDistance}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-[#d9dde6]">
+                Quantas vezes por semana te comprometes a treinar?
+              </p>
+              <p className="text-xs text-[#8a94a8]">
+                Uma maior frequencia permite uma evolucao mais rapida e segura.
+              </p>
+              <ButtonGroup
+                options={TRAINING_FREQS}
+                value={trainingFrequency}
+                onChange={setTrainingFrequency}
+              />
+            </div>
+          </section>
+
+          {/* ════════════════════════════════════════════════════════════════
+              SECÇÃO 2 — Nivel / VDOT
+          ════════════════════════════════════════════════════════════════ */}
+          <section className="space-y-5">
+            <div>
+              <h2 className="text-lg font-semibold text-[#f4f6fa]">
+                2. Qual é o teu nivel atual?
+              </h2>
+              <p className="text-sm text-[#c9ced9]">
+                Usamos isto para calcular os teus ritmos de treino individualizados (VDOT).
+              </p>
+            </div>
+
+            {/* Seletor de caminho */}
+            <div className="space-y-2">
+              {(
+                [
+                  {
+                    key: "race" as VdotPath,
+                    emoji: "✅",
+                    label:
+                      "Tenho uma prova recente (tempo e distancia) ou ja sei estimar.",
+                  },
+                  {
+                    key: "pace" as VdotPath,
+                    emoji: "🎯",
+                    label: "Prefiro usar os meus paces (easy ou threshold).",
+                  },
+                  {
+                    key: "level" as VdotPath,
+                    emoji: "❌",
+                    label: "Nao tenho dados → escolho um nivel pre-definido.",
+                  },
+                ] as const
+              ).map((opt) => (
+                <label
+                  key={opt.key}
+                  className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
+                    vdotPath === opt.key
+                      ? "border-[#d4a54f] bg-[#252015]"
+                      : "border-[#d4a54f33] bg-[#1a1a1a] hover:border-[#d4a54f66]"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="vdotPath"
+                    className="mt-0.5 accent-[#d4a54f]"
+                    checked={vdotPath === opt.key}
+                    onChange={() => setVdotPath(opt.key)}
+                  />
+                  <span className="text-sm text-[#d9dde6]">
+                    {opt.emoji} {opt.label}
+                  </span>
+                </label>
+              ))}
+            </div>
+
+            {/* Path A — Prova */}
+            {vdotPath === "race" && (
+              <div className="space-y-4 pl-1">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-[#d9dde6]">Distancia da prova</p>
+                  <ButtonGroup
+                    options={RACE_DIST_OPTIONS}
+                    value={raceDist}
+                    onChange={setRaceDist}
+                  />
+                </div>
+                <label className="flex flex-col gap-1">
+                  <span className="text-sm font-medium text-[#d9dde6]">
+                    Tempo da prova (HH:MM:SS)
+                  </span>
+                  <span className="text-xs text-[#8a94a8]">
+                    Prova mais recente ou com melhor score dos ultimos 2/3 meses.
+                  </span>
+                  <input
+                    className="border border-[#d4a54f44] bg-[#2a2a2a] rounded-md px-3 py-2 text-[#f4f6fa] w-40"
+                    value={raceTimeStr}
+                    onChange={(e) => setRaceTimeStr(e.target.value)}
+                    placeholder="00:25:30"
+                  />
+                </label>
+              </div>
+            )}
+
+            {/* Path B — Pace */}
+            {vdotPath === "pace" && (
+              <div className="space-y-4 pl-1">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-[#d9dde6]">Tipo de pace</p>
+                  <div className="flex gap-4">
+                    {(["easy", "threshold"] as PaceType[]).map((pt) => (
+                      <label
+                        key={pt}
+                        className="inline-flex items-center gap-2 text-sm text-[#d9dde6] cursor-pointer"
+                      >
+                        <input
+                          type="radio"
+                          name="paceType"
+                          className="accent-[#d4a54f]"
+                          checked={paceType === pt}
+                          onChange={() => setPaceType(pt)}
+                        />
+                        {pt === "easy" ? "Easy (confortavel)" : "Threshold (limiar)"}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                <label className="flex flex-col gap-1">
+                  <span className="text-sm font-medium text-[#d9dde6]">
+                    Pace (MM:SS /km)
+                  </span>
+                  <input
+                    className="border border-[#d4a54f44] bg-[#2a2a2a] rounded-md px-3 py-2 text-[#f4f6fa] w-32"
+                    value={paceStr}
+                    onChange={(e) => setPaceStr(e.target.value)}
+                    placeholder="05:30"
+                  />
+                </label>
+              </div>
+            )}
+
+            {/* Path C — Patamares */}
+            {vdotPath === "level" && (
+              <div className="space-y-2 pl-1">
+                <p className="text-sm text-[#c9ced9]">
+                  Seleciona o perfil que melhor te descreve:
+                </p>
+                <div className="grid grid-cols-1 gap-2">
+                  {VDOT_TIERS.map((tier) => (
+                    <button
+                      key={tier.vdot}
+                      type="button"
+                      onClick={() => setSelectedTier(tier.vdot)}
+                      className={`text-left p-3 rounded-lg border transition-all ${
+                        selectedTier === tier.vdot
+                          ? "border-[#d4a54f] bg-[#252015]"
+                          : "border-[#d4a54f33] bg-[#1a1a1a] hover:border-[#d4a54f66]"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold text-[#d4a54f] uppercase tracking-wide">
+                          {tier.level} · VDOT {tier.vdot}
+                        </span>
+                        <span className="text-xs text-[#8a94a8]">
+                          Easy ~{tier.easyPace}/km
+                        </span>
+                      </div>
+                      <p className="text-sm text-[#c9ced9] mt-0.5">
+                        {tier.description}
+                      </p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Badge nivel estimado */}
+            {estimatedLevel && estimatedVdot && estimatedPaces && (
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-[#18250f] border border-[#4a7a2a]">
+                <span className="text-[#8fd45f] text-lg leading-none mt-0.5">✓</span>
+                <div>
+                  <p className="text-sm font-semibold text-[#8fd45f]">
+                    Nivel estimado: {LEVEL_LABELS[estimatedLevel]}
+                  </p>
+                  <p className="text-xs text-[#92b870] mt-0.5">
+                    VDOT ≈ {estimatedVdot.toFixed(1)} · Threshold ~{estimatedPaces.threshold}/km · Easy ~{estimatedPaces.easy}/km
+                  </p>
+                </div>
+              </div>
+            )}
+          </section>
+
+          {/* ════════════════════════════════════════════════════════════════
+              SECÇÃO 3 — Progressão (aparece após nivel inferido)
+          ════════════════════════════════════════════════════════════════ */}
+          {estimatedLevel && currentProgressionOptions && (
+            <section className="space-y-4">
+              <div>
+                <h2 className="text-lg font-semibold text-[#f4f6fa]">
+                  3. Com que intensidade queres progredir?
+                </h2>
+                <p className="text-sm text-[#c9ced9]">
+                  O volume semanal tem de aumentar gradualmente. Iniciantes com boa
+                  aptidao fisica podem progredir mais rapido; atletas experientes devem
+                  ser mais conservadores.
+                </p>
+              </div>
+              <ButtonGroup
+                options={currentProgressionOptions}
+                value={progressionRate}
+                onChange={setProgressionRate}
+              />
+            </section>
+          )}
+
+          {/* ════════════════════════════════════════════════════════════════
+              SECÇÃO 4 — Duração
+          ════════════════════════════════════════════════════════════════ */}
           <section className="space-y-4">
-            <h2 className="text-lg font-semibold">Perfil do atleta</h2>
+            <div>
+              <h2 className="text-lg font-semibold text-[#f4f6fa]">
+                4. Em quanto tempo tens para atingir o teu objetivo?
+              </h2>
+              <p className="text-sm text-[#c9ced9]">
+                Quanto maior a duracao, mais consistentes serao os resultados.
+              </p>
+            </div>
+            <ButtonGroup
+              options={PHASE_DURATIONS}
+              value={phaseDuration}
+              onChange={setPhaseDuration}
+            />
+          </section>
+
+          {/* ════════════════════════════════════════════════════════════════
+              SECÇÃO 5 — Volume + meta
+          ════════════════════════════════════════════════════════════════ */}
+          <section className="space-y-4">
+            <h2 className="text-lg font-semibold text-[#f4f6fa]">
+              5. Ultimos detalhes
+            </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <label className="flex flex-col gap-1">
-                <span className="text-sm font-medium">Nome</span>
+                <span className="text-sm font-medium text-[#d9dde6]">
+                  Nome (opcional)
+                </span>
                 <input
-                  className="border border-slate-300 rounded-md px-3 py-2"
+                  className="border border-[#d4a54f44] bg-[#2a2a2a] rounded-md px-3 py-2 text-[#f4f6fa]"
                   value={name}
-                  onChange={(event) => setName(event.target.value)}
+                  onChange={(e) => setName(e.target.value)}
                   placeholder="Ex.: Joao"
                 />
               </label>
-
               <label className="flex flex-col gap-1">
-                <span className="text-sm font-medium">Nivel de experiencia</span>
-                <select
-                  className="border border-slate-300 rounded-md px-3 py-2"
-                  value={experienceLevel}
-                  onChange={(event) =>
-                    setExperienceLevel(
-                      event.target.value as "beginner" | "intermediate" | "advanced"
-                    )
-                  }
-                >
-                  <option value="beginner">Iniciante</option>
-                  <option value="intermediate">Intermedio</option>
-                  <option value="advanced">Avancado</option>
-                </select>
-              </label>
-
-              <label className="flex flex-col gap-1">
-                <span className="text-sm font-medium">Volume semanal atual (km)</span>
+                <span className="text-sm font-medium text-[#d9dde6]">
+                  Volume semanal atual km (opcional)
+                </span>
+                <span className="text-xs text-[#8a94a8]">
+                  O volume com que ja dominas e consegues fazer sem acumular fadiga.
+                </span>
                 <input
                   type="number"
                   min={0}
-                  step="0.1"
-                  className="border border-slate-300 rounded-md px-3 py-2"
+                  step="0.5"
+                  className="border border-[#d4a54f44] bg-[#2a2a2a] rounded-md px-3 py-2 text-[#f4f6fa]"
                   value={initialVolume}
-                  onChange={(event) =>
-                    setInitialVolume(event.target.value ? Number(event.target.value) : "")
+                  onChange={(e) =>
+                    setInitialVolume(e.target.value ? Number(e.target.value) : "")
                   }
                   placeholder="Ex.: 28"
                 />
               </label>
-
-              <label className="flex flex-col gap-1">
-                <span className="text-sm font-medium">Tempo maximo por sessao (min)</span>
-                <input
-                  type="number"
-                  min={20}
-                  max={300}
-                  step="5"
-                  className="border border-slate-300 rounded-md px-3 py-2"
-                  value={maxAvailableMinutes}
-                  onChange={(event) =>
-                    setMaxAvailableMinutes(
-                      event.target.value ? Number(event.target.value) : ""
-                    )
-                  }
-                  placeholder="Ex.: 75"
-                />
-              </label>
             </div>
 
-            <label className="inline-flex items-center gap-2 text-sm">
+            <label className="inline-flex items-start gap-2 text-sm text-[#d9dde6] cursor-pointer">
               <input
                 type="checkbox"
-                checked={injuriesLastMonths}
-                onChange={(event) => setInjuriesLastMonths(event.target.checked)}
+                className="mt-0.5 accent-[#d4a54f]"
+                checked={weeklyCommitment}
+                onChange={(e) => setWeeklyCommitment(e.target.checked)}
               />
-              Tive lesao/dor relevante nos ultimos 6 meses
+              <span>
+                Comprometo-me com consistencia minima de{" "}
+                <strong className="text-[#f4f6fa]">
+                  {trainingFrequency} treinos por semana
+                </strong>.
+              </span>
             </label>
           </section>
 
-          <section className="space-y-4">
-            <h2 className="text-lg font-semibold">Plano pretendido</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <label className="flex flex-col gap-1">
-                <span className="text-sm font-medium">Distancia objetivo (km)</span>
-                <select
-                  className="border border-slate-300 rounded-md px-3 py-2"
-                  value={programDistance}
-                  onChange={(event) => setProgramDistance(Number(event.target.value))}
-                >
-                  <option value={5}>5 km</option>
-                  <option value={10}>10 km</option>
-                  <option value={21.1}>21.1 km</option>
-                  <option value={42.2}>42.2 km</option>
-                </select>
-              </label>
-
-              <label className="flex flex-col gap-1">
-                <span className="text-sm font-medium">Duracao por fase (semanas)</span>
-                <input
-                  type="number"
-                  min={4}
-                  max={12}
-                  step={1}
-                  className="border border-slate-300 rounded-md px-3 py-2"
-                  value={phaseDuration}
-                  onChange={(event) => setPhaseDuration(Number(event.target.value))}
-                />
-              </label>
-
-              <label className="flex flex-col gap-1">
-                <span className="text-sm font-medium">Frequencia semanal (treinos)</span>
-                <input
-                  type="number"
-                  min={2}
-                  max={6}
-                  step={1}
-                  className="border border-slate-300 rounded-md px-3 py-2"
-                  value={trainingFrequency}
-                  onChange={(event) => setTrainingFrequency(Number(event.target.value))}
-                />
-              </label>
-
-              <label className="flex flex-col gap-1">
-                <span className="text-sm font-medium">Progressao semanal</span>
-                <input
-                  type="number"
-                  min={1.01}
-                  max={1.2}
-                  step="0.01"
-                  className="border border-slate-300 rounded-md px-3 py-2"
-                  value={progressionRate}
-                  onChange={(event) => setProgressionRate(Number(event.target.value))}
-                />
-              </label>
-            </div>
-
-            <label className="inline-flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={hasRaceGoal}
-                onChange={(event) => setHasRaceGoal(event.target.checked)}
-              />
-              Tenho prova-alvo definida
-            </label>
-
-            {hasRaceGoal ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <label className="flex flex-col gap-1">
-                  <span className="text-sm font-medium">Distancia da prova (km)</span>
-                  <input
-                    type="number"
-                    min={5}
-                    step="0.1"
-                    className="border border-slate-300 rounded-md px-3 py-2"
-                    value={raceDistance}
-                    onChange={(event) =>
-                      setRaceDistance(event.target.value ? Number(event.target.value) : "")
-                    }
-                    placeholder="Ex.: 10"
-                  />
-                </label>
-
-                <label className="flex flex-col gap-1">
-                  <span className="text-sm font-medium">Tempo alvo (HH:MM ou HH:MM:SS)</span>
-                  <input
-                    className="border border-slate-300 rounded-md px-3 py-2"
-                    value={raceTime}
-                    onChange={(event) => setRaceTime(event.target.value)}
-                    placeholder="Ex.: 00:45:00"
-                  />
-                </label>
-              </div>
-            ) : null}
-          </section>
-
-          <section className="space-y-4 border border-slate-200 rounded-xl p-4 bg-slate-50">
-            <div className="flex items-center justify-between gap-3 flex-wrap">
-              <div>
-                <h2 className="text-lg font-semibold">Perguntas inteligentes</h2>
-                <p className="text-sm text-slate-600">
-                  Ativa perguntas de acompanhamento para melhorar a personalizacao do plano.
-                </p>
-              </div>
-              <label className="inline-flex items-center gap-2 text-sm font-medium">
-                <input
-                  type="checkbox"
-                  checked={useAiFollowUps}
-                  onChange={(event) => setUseAiFollowUps(event.target.checked)}
-                />
-                Ativar modo inteligente
-              </label>
-            </div>
-
-            {!hasAiEndpoint ? (
-              <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
-                Endpoint AI ainda nao configurado. A app esta a usar regras locais como fallback.
-              </p>
-            ) : null}
-
-            <button
-              type="button"
-              onClick={handleGenerateQuestions}
-              disabled={isLoadingAi}
-              className="px-4 py-2 rounded-md bg-slate-900 text-white text-sm font-semibold hover:bg-slate-800 disabled:opacity-70"
-            >
-              {isLoadingAi ? "A gerar perguntas..." : "Gerar perguntas de acompanhamento"}
-            </button>
-
-            {followUpQuestions.length > 0 ? (
-              <div className="space-y-3">
-                {followUpQuestions.map((question) => (
-                  <label key={question.id} className="flex flex-col gap-1">
-                    <span className="text-sm font-medium">{question.label}</span>
-                    <textarea
-                      className="border border-slate-300 rounded-md px-3 py-2 min-h-20"
-                      placeholder={question.placeholder || "Resposta"}
-                      value={extraAnswers[question.id] || ""}
-                      onChange={(event) =>
-                        setExtraAnswers((current) => ({
-                          ...current,
-                          [question.id]: event.target.value,
-                        }))
-                      }
-                    />
-                  </label>
-                ))}
-              </div>
-            ) : null}
-          </section>
-
+          {/* Error */}
           {errorMessage ? (
-            <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-md px-3 py-2">
+            <p className="text-sm text-[#ffd4d4] bg-[#3a1a1a] border border-[#8a3c3c] rounded-md px-3 py-2">
               {errorMessage}
             </p>
           ) : null}
 
+          {/* Actions */}
           <div className="flex gap-3 flex-wrap">
             <button
               type="submit"
-              className="px-5 py-3 rounded-md bg-blue-600 text-white font-semibold hover:bg-blue-700"
+              className="px-5 py-3 rounded-md bg-[#d4a54f] text-[#111111] font-semibold hover:bg-[#c29740]"
             >
-              Gerar plano
+              Gerar o meu Plano LHT
             </button>
             <Link
               to="/"
-              className="px-5 py-3 rounded-md border border-slate-300 text-slate-700 font-semibold hover:bg-slate-100"
+              className="px-5 py-3 rounded-md border border-[#d4a54f66] text-[#e4e8ef] font-semibold hover:bg-[#2a2a2a]"
             >
               Cancelar
             </Link>
+            <a
+              href={COMMUNITY_URL}
+              target="_blank"
+              rel="noopener"
+              className="px-5 py-3 rounded-md border border-[#3a7c59] text-[#bde8d0] font-semibold hover:bg-[#143726]"
+            >
+              Entrar na Comunidade LHT
+            </a>
           </div>
         </form>
       </div>

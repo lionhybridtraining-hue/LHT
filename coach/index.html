@@ -828,6 +828,7 @@
 
     const SUPABASE_URL = 'https://rlivxjarqpqmvjtgmxhh.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJsaXZ4amFycXBxbXZqdGdteGhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MDk3NzcsImV4cCI6MjA4OTE4NTc3N30.MHwkQnytSCOBleYVOF5hJHWiV8d_-2V9UGIqsLTgjIY';
+    const DEV_LOCAL_AUTH_BYPASS = ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname);
     
     let supabaseClient = null;
 
@@ -854,6 +855,10 @@
     }
 
     async function apiRequest(method, url, body) {
+      if (DEV_LOCAL_AUTH_BYPASS && !state.user) {
+        throw new Error('Modo teste local: autenticacao desativada. Faz login real para usar a API.');
+      }
+
       if (!state.user) {
         throw new Error("Sessão expirada. Faz login novamente.");
       }
@@ -879,24 +884,32 @@
     }
 
     function setAuthUI() {
-      const loggedIn = Boolean(state.user);
-      authGate.hidden = loggedIn;
-      protectedContent.hidden = !loggedIn;
-      document.body.classList.toggle("auth-locked", !loggedIn);
-      authStatus.textContent = loggedIn
-        ? `Autenticado: ${state.user.email || state.user.id}`
-        : "Não autenticado";
-      loginBtn.disabled = loggedIn;
-      logoutBtn.disabled = !loggedIn;
-      athleteSelect.disabled = !loggedIn;
-      athleteSearchInput.disabled = !loggedIn;
-      openAddAthleteModalButton.disabled = !loggedIn;
+      const viewingAllowed = DEV_LOCAL_AUTH_BYPASS || Boolean(state.user);
+      const canUseApi = Boolean(state.user);
+
+      authGate.hidden = viewingAllowed;
+      protectedContent.hidden = !viewingAllowed;
+      document.body.classList.toggle("auth-locked", !viewingAllowed);
+
+      if (state.user) {
+        authStatus.textContent = `Autenticado: ${state.user.email || state.user.id}`;
+      } else if (DEV_LOCAL_AUTH_BYPASS) {
+        authStatus.textContent = 'Modo teste local (sem login)';
+      } else {
+        authStatus.textContent = "Não autenticado";
+      }
+
+      loginBtn.disabled = DEV_LOCAL_AUTH_BYPASS || canUseApi;
+      logoutBtn.disabled = DEV_LOCAL_AUTH_BYPASS || !canUseApi;
+      athleteSelect.disabled = !canUseApi;
+      athleteSearchInput.disabled = !canUseApi;
+      openAddAthleteModalButton.disabled = !canUseApi;
       
       // Desabilitar inputs individuais dentro do form (form.disabled não funciona em HTML)
       const formInputs = form.querySelectorAll('input, select, textarea, button');
-      formInputs.forEach(input => input.disabled = !loggedIn);
+      formInputs.forEach(input => input.disabled = !canUseApi);
       
-      submitButton.disabled = !loggedIn;
+      submitButton.disabled = !canUseApi;
     }
 
     async function handleAuthChange(supabaseUser, session) {
@@ -1579,6 +1592,12 @@
     }
 
     async function initializeAuth() {
+      if (DEV_LOCAL_AUTH_BYPASS) {
+        setAuthUI();
+        showResult('Modo teste local ativo: login Google ignorado em localhost.', '');
+        return;
+      }
+
       // Espera que o Supabase script carregue
       let attempts = 0;
       while (!window.supabase && attempts < 50) {

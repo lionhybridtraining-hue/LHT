@@ -12,9 +12,9 @@
   --text:#e4e8ef;
   --text-soft:#d7d9de;
   --muted:#b8bcc6;
-  --black:#1a1a1a;
-  --ink:#2a2a2a;
-  --panel:#2d2d2d;
+  --black:#090909;
+  --ink:#121212;
+  --panel:#1a1a1a;
   --maxw: 1100px;
   --py: clamp(36px, 6vw, 64px);
   --hero-img: url('../img/tua-imagem.png');
@@ -141,7 +141,7 @@ header.hero{
 
 /* -------- Secções Internas -------- */
 /* Default section styling - medium gray gradient */
-section{background:radial-gradient(circle at 50% 0, #2a2a2a 0%, #1a1a1a 80%); padding:var(--py) 0}
+section{background:radial-gradient(circle at 50% 0, #1e1e1e 0%, #0b0b0b 82%); padding:var(--py) 0}
 
 /* Darker sections for depth alternation */
 #como-funciona,
@@ -169,7 +169,7 @@ section{background:radial-gradient(circle at 50% 0, #2a2a2a 0%, #1a1a1a 80%); pa
 /* Lighter sections with gold accents for contrast */
 #filosofia,
 #metrics-faq {
-  background: radial-gradient(circle at 50% 0, #323232 0%, #252525 80%);
+  background: radial-gradient(circle at 50% 0, #222222 0%, #121212 82%);
   position: relative;
 }
 

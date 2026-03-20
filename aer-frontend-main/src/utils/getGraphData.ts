@@ -6,12 +6,13 @@ interface PaceData {
 }
 
 function convertPace(paceStr: string): number {
-  const [minutes, seconds] = paceStr.split(":").map(Number);
+  const normalizedPace = paceStr.trim().replace(/min$/i, "");
+  const [minutes, seconds] = normalizedPace.split(":").map(Number);
   return minutes * 60 + seconds;
 }
 
 export function processData(inputStr: string): PaceData[] {
-  const pattern = /(\d+(\.\d+)?)km-(\d{2}:\d{2})/g;
+  const pattern = /(\d+(?:\.\d+)?)km-(\d{1,2}:\d{2}(?:min)?)/gi;
 
   let totalKm = 0;
   const data: PaceData[] = [];
@@ -21,9 +22,13 @@ export function processData(inputStr: string): PaceData[] {
 
   while ((match = pattern.exec(inputStr)) !== null) {
     const km = parseFloat(match[1]);
-    const paceStr = match[3];
+    const paceStr = match[2].replace(/min$/i, "");
 
     const pace_s = convertPace(paceStr);
+
+    if (!Number.isFinite(pace_s) || pace_s <= 0) {
+      continue;
+    }
 
     // If it's the second item, store its pace
     if (!firstItemProcessed) {
