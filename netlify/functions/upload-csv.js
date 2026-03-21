@@ -152,12 +152,20 @@ exports.handler = async (event) => {
       sourceFileName: payload.sourceFileName,
       uploadBatchId: payload.uploadBatchId
     });
-    const sessions = deduplicateSessions(parsed.records
+    const mappedSessions = parsed.records
       .map((record) => {
         const session = mapTrainingPeaksRecord(record, athleteId);
         return session ? { ...session, upload_batch_id: uploadBatchId } : null;
       })
-      .filter(Boolean));
+      .filter(Boolean);
+
+    const sessions = deduplicateSessions(mappedSessions);
+    const diagnostics = {
+      rawRecords: parsed.records.length,
+      mappedRecords: mappedSessions.length,
+      invalidOrUnmappedRecords: Math.max(0, parsed.records.length - mappedSessions.length),
+      deduplicatedRecords: Math.max(0, mappedSessions.length - sessions.length)
+    };
 
     if (!sessions.length) {
       return json(400, { error: "Nenhuma linha com data valida foi encontrada no CSV" });
@@ -321,6 +329,7 @@ exports.handler = async (event) => {
         : strengthPlannedNotDoneCount,
       trainingLoadSummary,
       executionSummary,
+      diagnostics,
       checkinId: checkin ? checkin.id : null,
       checkinUrl: checkin && checkin.token
         ? `${config.siteUrl.replace(/\/$/, "")}/check-in/?token=${checkin.token}`

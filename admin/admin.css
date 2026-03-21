@@ -959,6 +959,18 @@ body.auth-locked {
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 12px;
 }
+.operations-toolbar {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.operations-toolbar button {
+  align-self: end;
+}
+
+.operations-kpis {
+  margin-bottom: 14px;
+}
 
 .module-card {
   border: 1px solid var(--line);

@@ -457,6 +457,78 @@
             <p>Area preparada para monitorizacao de cargas, check-ins, onboarding e qualidade de dados.</p>
           </div>
         </div>
+
+        <p id="operations-message" class="message" role="status"></p>
+
+        <div class="athletes-toolbar operations-toolbar">
+          <div class="field field-wide">
+            <label for="audit-athlete-select">Selecao rapida de atleta</label>
+            <select id="audit-athlete-select">
+              <option value="">A carregar atletas...</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="audit-identity-id">Identity ID (Supabase UUID)</label>
+            <input id="audit-identity-id" type="text" placeholder="Ex.: a99b2131-..." />
+          </div>
+          <div class="field">
+            <label for="audit-athlete-id">Athlete ID</label>
+            <input id="audit-athlete-id" type="text" placeholder="Ex.: f21c2f1e-..." />
+          </div>
+          <div class="field">
+            <label for="audit-email">Email</label>
+            <input id="audit-email" type="email" placeholder="Ex.: atleta@email.com" />
+          </div>
+          <button id="refresh-audit-athletes-btn" type="button">Atualizar lista atletas</button>
+          <button id="run-data-audit-btn" type="button">Auditar dados</button>
+          <button id="clear-data-audit-btn" type="button">Limpar</button>
+        </div>
+
+        <div class="module-grid operations-kpis">
+          <article class="module-card">
+            <h3>Onboarding Intake</h3>
+            <p id="audit-intake-kpi">Sem auditoria.</p>
+          </article>
+          <article class="module-card">
+            <h3>Onboarding Legacy</h3>
+            <p id="audit-legacy-kpi">Sem auditoria.</p>
+          </article>
+          <article class="module-card">
+            <h3>Atletas Encontrados</h3>
+            <p id="audit-athletes-kpi">Sem auditoria.</p>
+          </article>
+        </div>
+
+        <div id="audit-issues-empty" class="athletes-empty" hidden>
+          <p>Sem alertas para os filtros usados.</p>
+          <span>Quando houver inconsistencias, aparecem aqui.</span>
+        </div>
+
+        <div class="athletes-list-wrap">
+          <table class="athletes-table">
+            <thead>
+              <tr>
+                <th>Alertas</th>
+              </tr>
+            </thead>
+            <tbody id="audit-issues-body"></tbody>
+          </table>
+        </div>
+
+        <div class="athletes-list-wrap">
+          <table class="athletes-table">
+            <thead>
+              <tr>
+                <th>Athlete ID</th>
+                <th>Assignments</th>
+                <th>Ultimo treino</th>
+                <th>Ultimo check-in</th>
+              </tr>
+            </thead>
+            <tbody id="audit-athlete-data-body"></tbody>
+          </table>
+        </div>
+
         <div class="module-grid">
           <article class="module-card">
             <h3>Acompanhamento de atletas</h3>
@@ -652,6 +724,8 @@
     const leadsApiBase = '/.netlify/functions/admin-leads';
     const aiPromptsApiBase = '/.netlify/functions/admin-ai-prompts';
     const aiLogsApiBase = '/.netlify/functions/admin-ai-logs';
+    const dataAuditApiBase = '/.netlify/functions/admin-athlete-data-audit';
+    const adminAthletesListApiBase = '/.netlify/functions/admin-athletes-list';
     const state = {
       user: null,
       token: null,
@@ -666,7 +740,9 @@
       selectedAiPromptId: null,
       aiLogs: [],
       selectedAiLogId: null,
-      activeAiSubtab: 'prompts'
+      activeAiSubtab: 'prompts',
+      dataAudit: null,
+      athletesCatalog: []
     };
 
     const SITE_METADATA_PRESETS = [
@@ -895,7 +971,21 @@
       aiLogsTo: document.getElementById('ai-logs-to'),
       aiRefreshLogsBtn: document.getElementById('ai-refresh-logs-btn'),
       aiLogsBody: document.getElementById('ai-logs-body'),
-      aiLogDetail: document.getElementById('ai-log-detail')
+      aiLogDetail: document.getElementById('ai-log-detail'),
+      operationsMessage: document.getElementById('operations-message'),
+      auditAthleteSelect: document.getElementById('audit-athlete-select'),
+      auditIdentityId: document.getElementById('audit-identity-id'),
+      auditAthleteId: document.getElementById('audit-athlete-id'),
+      auditEmail: document.getElementById('audit-email'),
+      refreshAuditAthletesBtn: document.getElementById('refresh-audit-athletes-btn'),
+      runDataAuditBtn: document.getElementById('run-data-audit-btn'),
+      clearDataAuditBtn: document.getElementById('clear-data-audit-btn'),
+      auditIntakeKpi: document.getElementById('audit-intake-kpi'),
+      auditLegacyKpi: document.getElementById('audit-legacy-kpi'),
+      auditAthletesKpi: document.getElementById('audit-athletes-kpi'),
+      auditIssuesEmpty: document.getElementById('audit-issues-empty'),
+      auditIssuesBody: document.getElementById('audit-issues-body'),
+      auditAthleteDataBody: document.getElementById('audit-athlete-data-body')
     };
 
     const tabConfig = {
@@ -966,6 +1056,11 @@
         if (state.activeAiSubtab === 'logs') {
           refreshAiLogsData().catch((err) => showAiMessage(err.message, true));
         }
+      }
+
+      if (activeTab === 'operations' && state.user) {
+        refreshAuditAthletesCatalog().catch((err) => showOperationsMessage(err.message, true));
+        showOperationsMessage('Preenche pelo menos um filtro e clica em "Auditar dados".', false);
       }
     }
 
@@ -1727,6 +1822,153 @@
       els.athletesMessage.classList.toggle('success', !isError && Boolean(text));
     }
 
+    function showOperationsMessage(text, isError) {
+      els.operationsMessage.textContent = text || '';
+      els.operationsMessage.classList.toggle('error', Boolean(isError));
+      els.operationsMessage.classList.toggle('success', !isError && Boolean(text));
+    }
+
+    function renderAuditAthleteOptions() {
+      els.auditAthleteSelect.innerHTML = '';
+      const placeholder = document.createElement('option');
+      placeholder.value = '';
+      placeholder.textContent = state.athletesCatalog.length ? 'Seleciona um atleta' : 'Sem atletas disponiveis';
+      els.auditAthleteSelect.appendChild(placeholder);
+
+      state.athletesCatalog.forEach((athlete) => {
+        const option = document.createElement('option');
+        option.value = athlete.id;
+        option.textContent = `${athlete.name || athlete.email || athlete.id} (${athlete.email || '-'})`;
+        option.dataset.email = athlete.email || '';
+        els.auditAthleteSelect.appendChild(option);
+      });
+    }
+
+    async function refreshAuditAthletesCatalog() {
+      if (!state.user) return;
+      const data = await apiRequest('GET', adminAthletesListApiBase);
+      state.athletesCatalog = Array.isArray(data.athletes) ? data.athletes : [];
+      renderAuditAthleteOptions();
+    }
+
+    function applySelectedAthleteToAuditFilters() {
+      const selectedAthleteId = (els.auditAthleteSelect.value || '').trim();
+      els.auditAthleteId.value = selectedAthleteId;
+
+      if (!selectedAthleteId) {
+        return;
+      }
+
+      const athlete = state.athletesCatalog.find((item) => item.id === selectedAthleteId);
+      if (athlete && athlete.email) {
+        els.auditEmail.value = athlete.email;
+      }
+    }
+
+    function summarizeCoverage(coverage) {
+      const total = Number(coverage && coverage.totalFieldsTracked) || 0;
+      const filled = Number(coverage && coverage.filledFields) || 0;
+      if (!total) return '0/0 campos preenchidos';
+      return `${filled}/${total} campos preenchidos`;
+    }
+
+    function renderDataAuditResult() {
+      const data = state.dataAudit;
+      if (!data) {
+        els.auditIntakeKpi.textContent = 'Sem auditoria.';
+        els.auditLegacyKpi.textContent = 'Sem auditoria.';
+        els.auditAthletesKpi.textContent = 'Sem auditoria.';
+        els.auditIssuesBody.innerHTML = '';
+        els.auditAthleteDataBody.innerHTML = '';
+        els.auditIssuesEmpty.hidden = true;
+        return;
+      }
+
+      const intakeCoverage = data.onboardingCoverage && data.onboardingCoverage.onboardingIntake
+        ? data.onboardingCoverage.onboardingIntake
+        : null;
+      const legacyCoverage = data.onboardingCoverage && data.onboardingCoverage.onboardingLegacy
+        ? data.onboardingCoverage.onboardingLegacy
+        : null;
+
+      els.auditIntakeKpi.textContent = summarizeCoverage(intakeCoverage);
+      els.auditLegacyKpi.textContent = summarizeCoverage(legacyCoverage);
+      els.auditAthletesKpi.textContent = `${Array.isArray(data.athletes) ? data.athletes.length : 0} encontrados`;
+
+      const issues = Array.isArray(data.issues) ? data.issues : [];
+      els.auditIssuesBody.innerHTML = '';
+      if (!issues.length) {
+        els.auditIssuesEmpty.hidden = false;
+      } else {
+        els.auditIssuesEmpty.hidden = true;
+        const issueFragment = document.createDocumentFragment();
+        issues.forEach((issue) => {
+          const row = document.createElement('tr');
+          row.innerHTML = `<td>${escapeHtml(issue)}</td>`;
+          issueFragment.appendChild(row);
+        });
+        els.auditIssuesBody.appendChild(issueFragment);
+      }
+
+      const rows = Array.isArray(data.athlete_data) ? data.athlete_data : [];
+      els.auditAthleteDataBody.innerHTML = '';
+      const athleteFragment = document.createDocumentFragment();
+      rows.forEach((item) => {
+        const latestTrainingDate = item.latestTrainingSession && item.latestTrainingSession.session_date
+          ? item.latestTrainingSession.session_date
+          : '-';
+        const latestCheckinDate = item.latestWeeklyCheckin && item.latestWeeklyCheckin.week_start
+          ? item.latestWeeklyCheckin.week_start
+          : '-';
+        const assignmentsCount = Array.isArray(item.assignments) ? item.assignments.length : 0;
+
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${escapeHtml(item.athleteId || '-')}</td>
+          <td>${assignmentsCount}</td>
+          <td>${escapeHtml(latestTrainingDate)}</td>
+          <td>${escapeHtml(latestCheckinDate)}</td>
+        `;
+        athleteFragment.appendChild(row);
+      });
+      els.auditAthleteDataBody.appendChild(athleteFragment);
+    }
+
+    function buildAuditQuery() {
+      const identityId = (els.auditIdentityId.value || '').trim();
+      const athleteId = (els.auditAthleteId.value || '').trim();
+      const email = (els.auditEmail.value || '').trim().toLowerCase();
+
+      if (!identityId && !athleteId && !email) {
+        throw new Error('Preenche pelo menos identity_id, athlete_id ou email.');
+      }
+
+      const params = new URLSearchParams();
+      if (identityId) params.set('identity_id', identityId);
+      if (athleteId) params.set('athlete_id', athleteId);
+      if (email) params.set('email', email);
+      return params.toString();
+    }
+
+    async function runDataAudit() {
+      if (!state.user) return;
+      showOperationsMessage('A correr auditoria de dados...', false);
+      const queryString = buildAuditQuery();
+      const data = await apiRequest('GET', `${dataAuditApiBase}?${queryString}`);
+      state.dataAudit = data;
+      renderDataAuditResult();
+      showOperationsMessage('Auditoria concluida.', false);
+    }
+
+    function clearDataAudit() {
+      state.dataAudit = null;
+      els.auditIdentityId.value = '';
+      els.auditAthleteId.value = '';
+      els.auditEmail.value = '';
+      renderDataAuditResult();
+      showOperationsMessage('Filtros e resultados limpos.', false);
+    }
+
     function renderCoachOptions(selectedIdentityId) {
       els.coachSelect.innerHTML = '';
       const placeholder = document.createElement('option');
@@ -2072,6 +2314,13 @@
       els.aiLogsTo.disabled = !canUseApi;
       els.aiRefreshLogsBtn.disabled = !canUseApi;
       els.aiLogDetail.disabled = !canUseApi;
+      els.auditIdentityId.disabled = !canUseApi;
+      els.auditAthleteSelect.disabled = !canUseApi;
+      els.auditAthleteId.disabled = !canUseApi;
+      els.auditEmail.disabled = !canUseApi;
+      els.refreshAuditAthletesBtn.disabled = !canUseApi;
+      els.runDataAuditBtn.disabled = !canUseApi;
+      els.clearDataAuditBtn.disabled = !canUseApi;
 
       // Desabilitar todos os inputs/textareas dentro do form do blog
       const formInputs = els.form.querySelectorAll('input, select, textarea');
@@ -2276,12 +2525,16 @@
         state.aiLogs = [];
         state.selectedAiPromptId = null;
         state.selectedAiLogId = null;
+        state.dataAudit = null;
+        state.athletesCatalog = [];
         renderList();
         renderUnassignedAthletes();
         renderCoachOptions();
         renderLeads();
         renderAiPrompts();
         renderAiLogs();
+        renderAuditAthleteOptions();
+        renderDataAuditResult();
         resetAiPromptEditor();
         setAiSubtab('prompts');
         setSiteContentEditors(null);
@@ -2290,6 +2543,7 @@
         showAthletesMessage('Faz login para gerir atletas.', false);
         showLeadsMessage('Faz login para ver as leads Meta.', false);
         showAiMessage('Faz login para gerir prompts e logs de IA.', false);
+        showOperationsMessage('Faz login para usar a auditoria de dados.', false);
       }
     }
 
@@ -2628,6 +2882,31 @@
       selectAiLog(logId);
     });
 
+    els.runDataAuditBtn.addEventListener('click', async () => {
+      try {
+        await runDataAudit();
+      } catch (err) {
+        showOperationsMessage(err.message, true);
+      }
+    });
+
+    els.refreshAuditAthletesBtn.addEventListener('click', async () => {
+      try {
+        await refreshAuditAthletesCatalog();
+        showOperationsMessage(`Lista de atletas atualizada (${state.athletesCatalog.length}).`, false);
+      } catch (err) {
+        showOperationsMessage(err.message, true);
+      }
+    });
+
+    els.auditAthleteSelect.addEventListener('change', () => {
+      applySelectedAthleteToAuditFilters();
+    });
+
+    els.clearDataAuditBtn.addEventListener('click', () => {
+      clearDataAudit();
+    });
+
     els.tabBlog.addEventListener('click', () => setActiveTab('blog'));
     els.tabSiteContent.addEventListener('click', () => setActiveTab('siteContent'));
     els.tabAthletes.addEventListener('click', () => setActiveTab('athletes'));
@@ -2646,7 +2925,10 @@
     showAthletesMessage('Faz login para gerir atletas.', false);
     showLeadsMessage('Faz login para ver as leads Meta.', false);
     showAiMessage('Faz login para gerir prompts e logs de IA.', false);
+    showOperationsMessage('Faz login para usar a auditoria de dados.', false);
+    renderAuditAthleteOptions();
     setAiSubtab('prompts');
+    renderDataAuditResult();
     resetForm();
   </script>
 </body>
