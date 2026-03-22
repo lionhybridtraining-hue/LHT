@@ -125,53 +125,99 @@ exports.handler = async (event) => {
     const payload = parseJsonBody(event);
 
     if (method === "POST") {
+      // Novo fluxo: modo explícito
+      const mode = safeString(payload.mode || "").toLowerCase();
       const articleId = safeString(payload.articleId);
       const briefing = normalizeBriefing(payload.briefing);
-      const articleSeed = await getArticleSeed(config, articleId, payload.article);
       const regenerateOnPublish = parseBoolean(payload.regenerateOnPublish, true);
+      // Inputs extras para ABC WhatsApp
+      const abcInstructions = safeString(payload.abcInstructions);
+      const abcCta = safeString(payload.abcCta);
 
-      const generated = await generateBlogWhatsappPack({
-        config,
-        apiKey: config.geminiApiKey,
-        modelName: config.geminiModel,
-        article: articleSeed,
-        briefing,
-        articleId: articleId || null
-      });
+      let articleSeed = null;
+      let result = null;
 
-      if (!articleId) {
+      if (mode === "article" && articleId) {
+        // Geração baseada em artigo selecionado
+        articleSeed = await getArticleSeed(config, articleId, payload.article);
+        result = await generateBlogWhatsappPack({
+          config,
+          apiKey: config.geminiApiKey,
+          modelName: config.geminiModel,
+          article: articleSeed,
+          briefing: { ...briefing, cta: abcCta, instructions: abcInstructions },
+          articleId
+        });
+        const saved = await upsertBlogContentProduction(config, {
+          article_id: articleId,
+          status: result.generationSource === "fallback" ? "failed_generation" : "generated",
+          briefing_data: { ...briefing, cta: abcCta, instructions: abcInstructions },
+          generated_blog: result.blog,
+          whatsapp_variants: normalizeVariants(result.whatsappVariants),
+          regenerate_on_publish: regenerateOnPublish,
+          generation_error: result.generationSource === "fallback" ? "Fallback generation used" : null,
+          selected_variant: null,
+          manual_shared_at: null,
+          updated_at: new Date().toISOString()
+        });
+        return json(200, { production: mapProduction(saved) });
+      } else if (mode === "idea") {
+        // Criação de draft de artigo a partir de uma ideia
+        articleSeed = normalizeArticleSeed(payload.article);
+        result = await generateBlogWhatsappPack({
+          config,
+          apiKey: config.geminiApiKey,
+          modelName: config.geminiModel,
+          article: articleSeed,
+          briefing: { ...briefing, cta: abcCta, instructions: abcInstructions },
+          articleId: null
+        });
         return json(200, {
           production: {
             id: null,
             articleId: null,
-            status: generated.generationSource === "fallback" ? "failed_generation" : "generated",
-            briefing,
-            generatedBlog: generated.blog,
-            whatsappVariants: normalizeVariants(generated.whatsappVariants),
+            status: result.generationSource === "fallback" ? "failed_generation" : "generated",
+            briefing: { ...briefing, cta: abcCta, instructions: abcInstructions },
+            generatedBlog: result.blog,
+            whatsappVariants: normalizeVariants(result.whatsappVariants),
             selectedVariant: null,
             regenerateOnPublish,
             manualSharedAt: null,
-            generationError: generated.generationSource === "fallback" ? "Fallback generation used" : null,
+            generationError: result.generationSource === "fallback" ? "Fallback generation used" : null,
             updatedAt: new Date().toISOString(),
             createdAt: null
           }
         });
+      } else if (mode === "abc") {
+        // Criação de ABC WhatsApp sem dependência de artigo
+        // Permite inputs livres para briefing/cta/instruções
+        result = await generateBlogWhatsappPack({
+          config,
+          apiKey: config.geminiApiKey,
+          modelName: config.geminiModel,
+          article: {},
+          briefing: { ...briefing, cta: abcCta, instructions: abcInstructions },
+          articleId: null
+        });
+        return json(200, {
+          production: {
+            id: null,
+            articleId: null,
+            status: result.generationSource === "fallback" ? "failed_generation" : "generated",
+            briefing: { ...briefing, cta: abcCta, instructions: abcInstructions },
+            generatedBlog: {},
+            whatsappVariants: normalizeVariants(result.whatsappVariants),
+            selectedVariant: null,
+            regenerateOnPublish,
+            manualSharedAt: null,
+            generationError: result.generationSource === "fallback" ? "Fallback generation used" : null,
+            updatedAt: new Date().toISOString(),
+            createdAt: null
+          }
+        });
+      } else {
+        throw new ValidationError("Modo de produção inválido ou parâmetros insuficientes");
       }
-
-      const saved = await upsertBlogContentProduction(config, {
-        article_id: articleId,
-        status: generated.generationSource === "fallback" ? "failed_generation" : "generated",
-        briefing_data: briefing,
-        generated_blog: generated.blog,
-        whatsapp_variants: normalizeVariants(generated.whatsappVariants),
-        regenerate_on_publish: regenerateOnPublish,
-        generation_error: generated.generationSource === "fallback" ? "Fallback generation used" : null,
-        selected_variant: null,
-        manual_shared_at: null,
-        updated_at: new Date().toISOString()
-      });
-
-      return json(200, { production: mapProduction(saved) });
     }
 
     const articleId = safeString(payload.articleId);
