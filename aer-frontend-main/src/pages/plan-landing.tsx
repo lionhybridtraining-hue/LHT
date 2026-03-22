@@ -1,8 +1,9 @@
 import { FormEvent, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { mergeOnboardingAnswers } from "@/lib/onboarding-intake";
+import { fetchOnboardingIntake, mergeOnboardingAnswers } from "@/lib/onboarding-intake";
 import {
   isValidPhone,
+  loadPlanLandingDraft,
   normalizePhone,
   savePlanLandingDraft,
   type PlanLandingDraft,
@@ -72,6 +73,7 @@ export default function PlanLanding() {
   const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [sessionChecked, setSessionChecked] = useState(false);
+  const [prefillChecked, setPrefillChecked] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -103,18 +105,89 @@ export default function PlanLanding() {
     };
   }, []);
 
+  useEffect(() => {
+    const draft = loadPlanLandingDraft();
+    if (!draft) return;
+
+    setName(draft.name);
+    setPhone(draft.phone);
+    setExperienceLevel(draft.experienceLevel || "building");
+    setCurrentConsistency(draft.currentConsistency || "medium");
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    if (!sessionChecked) return;
+
+    if (!isAuthenticated) {
+      setPrefillChecked(true);
+      return;
+    }
+
+    const hydrateExistingIntake = async () => {
+      try {
+        const accessToken = await getAccessToken();
+        if (!accessToken) return;
+
+        const intake = await fetchOnboardingIntake(accessToken);
+        if (!isMounted) return;
+
+        const prefill = extractLandingPrefill(intake);
+
+        if (prefill.name) {
+          setName((current) => (current.trim() ? current : prefill.name || ""));
+        }
+
+        if (prefill.phone) {
+          setPhone((current) => {
+            if (isValidPhone(current)) return current;
+            return prefill.phone || current;
+          });
+        }
+
+        if (intake.profile?.experienceLevel) {
+          setExperienceLevel((current) =>
+            current === "building" ? intake.profile?.experienceLevel || current : current
+          );
+        }
+
+        if (intake.profile?.consistencyLevel) {
+          setCurrentConsistency((current) =>
+            current === "medium" ? intake.profile?.consistencyLevel || current : current
+          );
+        }
+      } catch (error) {
+        console.warn("Nao foi possivel carregar os dados guardados da landing:", error);
+      } finally {
+        if (isMounted) {
+          setPrefillChecked(true);
+        }
+      }
+    };
+
+    hydrateExistingIntake();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isAuthenticated, sessionChecked]);
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setErrorMessage(null);
 
-    if (!isValidPhone(phone)) {
+    const normalizedName = name.trim();
+    const normalizedPhone = normalizePhone(phone);
+
+    if (!isValidPhone(normalizedPhone)) {
       setErrorMessage("Introduz um numero de telemovel valido para continuar.");
       return;
     }
 
     const draft: PlanLandingDraft = {
-      name: name.trim(),
-      phone: normalizePhone(phone),
+      name: normalizedName,
+      phone: normalizedPhone,
       goalDistance: DEFAULT_GOAL_DISTANCE,
       weeklyFrequency: DEFAULT_WEEKLY_FREQUENCY,
       experienceLevel,
@@ -197,7 +270,11 @@ export default function PlanLanding() {
               <p className="text-sm font-semibold text-[#f7f1e8]">Comeca agora</p>
               <p className="text-xs text-[#98a3b6]">
                 {sessionChecked && isAuthenticated
-                  ? "Sessao ativa. Segues direto para o formulario final."
+                  ? prefillChecked
+                    ? isValidPhone(phone)
+                      ? "Sessao ativa. Os teus dados ja estao prontos para seguir."
+                      : "Sessao ativa. Se ja tivermos os teus dados, pre-preenchemos automaticamente."
+                    : "Sessao ativa. A carregar os teus dados guardados."
                   : "Guardamos e retomamos apos o login."}
               </p>
             </div>
@@ -283,7 +360,7 @@ export default function PlanLanding() {
 
             <button
               type="submit"
-              disabled={submitting || !sessionChecked}
+              disabled={submitting || !sessionChecked || (isAuthenticated && !prefillChecked)}
               className="w-full rounded-2xl bg-[#d4a54f] px-5 py-3.5 text-sm font-semibold text-[#111111] transition hover:bg-[#c29740] disabled:cursor-not-allowed disabled:opacity-70"
             >
               {submitting
@@ -301,6 +378,49 @@ export default function PlanLanding() {
       </div>
     </div>
   );
+}
+
+function extractLandingPrefill(intake: Awaited<ReturnType<typeof fetchOnboardingIntake>>) {
+  const answers = asRecord(intake.answers);
+  const landing = asRecord(answers.planocorrida_landing);
+
+  return {
+    name: firstNonEmptyString(
+      intake.profile?.fullName,
+      asString(landing.name),
+      asString(answers.nome_completo),
+      asString(answers.full_name),
+      asString(answers.fullName)
+    ),
+    phone: firstNonEmptyString(
+      intake.profile?.phone,
+      asString(landing.phone),
+      asString(answers.telemovel),
+      asString(answers.phone)
+    ),
+  };
+}
+
+function asRecord(value: unknown) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {} as Record<string, unknown>;
+  }
+
+  return value as Record<string, unknown>;
+}
+
+function asString(value: unknown) {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function firstNonEmptyString(...values: Array<string | null | undefined>) {
+  for (const value of values) {
+    if (typeof value !== "string") continue;
+    const trimmed = value.trim();
+    if (trimmed) return trimmed;
+  }
+
+  return "";
 }
 
 function buildLandingPayload(draft: PlanLandingDraft) {

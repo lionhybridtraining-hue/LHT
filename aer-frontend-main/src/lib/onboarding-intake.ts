@@ -2,7 +2,26 @@ type AnswersPayload = Record<string, unknown>;
 
 const ENDPOINT = "/.netlify/functions/onboarding-intake";
 
-export async function fetchOnboardingAnswers(accessToken: string) {
+export type OnboardingIntakePayload = {
+  ok: boolean;
+  profile: {
+    athleteId: string | null;
+    phone: string | null;
+    fullName: string | null;
+    goalDistance: number | null;
+    weeklyFrequency: number | null;
+    experienceLevel: string | null;
+    consistencyLevel: string | null;
+    funnelStage: string | null;
+    planGeneratedAt: string | null;
+    planStorage: string | null;
+  } | null;
+  answers: AnswersPayload;
+  submittedAt: string | null;
+  updatedAt: string | null;
+};
+
+export async function fetchOnboardingIntake(accessToken: string) {
   const response = await fetch(ENDPOINT, {
     method: "GET",
     headers: {
@@ -14,7 +33,11 @@ export async function fetchOnboardingAnswers(accessToken: string) {
     throw new Error("Nao foi possivel carregar os dados do onboarding.");
   }
 
-  const payload = await response.json();
+  return (await response.json()) as OnboardingIntakePayload;
+}
+
+export async function fetchOnboardingAnswers(accessToken: string) {
+  const payload = await fetchOnboardingIntake(accessToken);
   return payload && payload.answers ? payload.answers : {};
 }
 
