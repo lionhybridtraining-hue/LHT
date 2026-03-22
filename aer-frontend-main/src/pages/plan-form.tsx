@@ -34,6 +34,24 @@ import {
 
 const COMMUNITY_URL = "https://chat.whatsapp.com/JVsqO05fm4kLhbSaSiKL8n";
 
+const FORM_SOCIAL_CARDS = [
+  {
+    title: "+120 atletas",
+    body: "ja iniciaram o metodo LHT",
+    image: "/assets/img/DSC00702.jpg",
+  },
+  {
+    title: "Metodo aplicado",
+    body: "fisiologia, progressao e consistencia",
+    image: "/assets/img/TP_Coach.jpg",
+  },
+  {
+    title: "Comunidade ativa",
+    body: "suporte no WhatsApp",
+    image: "/assets/img/DSC00791.jpg",
+  },
+];
+
 type VdotPath = "race" | "pace" | "level";
 type PaceType = "easy" | "threshold";
 
@@ -529,7 +547,14 @@ function PlanForm() {
           className="mb-6 flex flex-col gap-4 rounded-[24px] border border-[#d4a54f29] p-5 shadow-[0_22px_54px_rgba(0,0,0,0.36)] md:flex-row md:items-center md:justify-between"
           style={planocorridaPanelStyle}
         >
-          <div>
+          <div className="flex items-center gap-4">
+            <img
+              src="/assets/img/logo-lht.png"
+              alt="Lion Hybrid Training"
+              className="h-[56px] w-auto"
+              loading="lazy"
+            />
+            <div>
             <p className="text-[#d4a54f] text-xs font-semibold uppercase tracking-[0.18em] mb-1">
               Lion Hybrid Training
             </p>
@@ -537,8 +562,9 @@ function PlanForm() {
               Plano de Corrida LHT
             </h1>
             <p className="text-[#c9ced9] mt-1">
-              Estrutura, consistencia e progressao com proposito.
+              Define o objetivo e gera o plano.
             </p>
+            </div>
           </div>
           <Link
             to="/"
@@ -550,40 +576,38 @@ function PlanForm() {
 
         {syncingLanding ? (
           <div className="mb-4 rounded-lg border border-[#2f855a66] bg-[#112017] px-3 py-2 text-xs text-[#8fe3b8]">
-            A sincronizar os teus dados iniciais antes de gerar o plano.
+            A sincronizar os teus dados iniciais.
           </div>
         ) : null}
 
         {/* ── Social proof ── */}
         <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
-          <div
-            className="rounded-[20px] border border-[#d4a54f29] p-4 shadow-[0_18px_40px_rgba(0,0,0,0.28)]"
-            style={planocorridaSoftPanelStyle}
-          >
-            <p className="text-[#d4a54f] font-semibold">+120 atletas</p>
-            <p className="text-[#c9ced9]">ja iniciaram o metodo LHT</p>
-          </div>
-          <div
-            className="rounded-[20px] border border-[#d4a54f29] p-4 shadow-[0_18px_40px_rgba(0,0,0,0.28)]"
-            style={planocorridaSoftPanelStyle}
-          >
-            <p className="text-[#d4a54f] font-semibold">Metodo aplicado</p>
-            <p className="text-[#c9ced9]">fisiologia, progressao e consistencia</p>
-          </div>
-          <div
-            className="rounded-[20px] border border-[#d4a54f29] p-4 shadow-[0_18px_40px_rgba(0,0,0,0.28)]"
-            style={planocorridaSoftPanelStyle}
-          >
-            <p className="text-[#d4a54f] font-semibold">Comunidade ativa</p>
-            <a
-              href={COMMUNITY_URL}
-              target="_blank"
-              rel="noopener"
-              className="text-[#c9ced9] hover:text-[#f4f6fa]"
+          {FORM_SOCIAL_CARDS.map((card, index) => (
+            <div
+              key={card.title}
+              className="rounded-[20px] border border-[#d4a54f29] p-4 shadow-[0_18px_40px_rgba(0,0,0,0.28)]"
+              style={{
+                ...planocorridaSoftPanelStyle,
+                backgroundImage: `linear-gradient(180deg, rgba(10,10,10,0.66), rgba(7,7,7,0.86)), url('${card.image}')`,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+              }}
             >
-              suporte e accountability no WhatsApp
-            </a>
-          </div>
+              <p className="text-[#d4a54f] font-semibold">{card.title}</p>
+              {index === 2 ? (
+                <a
+                  href={COMMUNITY_URL}
+                  target="_blank"
+                  rel="noopener"
+                  className="text-[#e4e8ef] hover:text-[#f4f6fa]"
+                >
+                  {card.body}
+                </a>
+              ) : (
+                <p className="text-[#e4e8ef]">{card.body}</p>
+              )}
+            </div>
+          ))}
         </div>
 
         <form

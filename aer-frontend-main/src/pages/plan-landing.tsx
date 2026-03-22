@@ -20,33 +20,51 @@ const DEFAULT_WEEKLY_FREQUENCY = 3;
 const EXPERIENCE_OPTIONS = [
   {
     value: "starter",
-    title: "Estou a recomeçar",
-    body: "Quero estrutura simples e progressiva para ganhar consistencia.",
+    title: "Recomeçar",
+    body: "Estrutura simples.",
   },
   {
     value: "building",
-    title: "Ja corro com regularidade",
-    body: "Procuro um plano mais afinado para evoluir com criterio.",
+    title: "Evoluir",
+    body: "Plano mais afinado.",
   },
   {
     value: "performance",
-    title: "Quero performance",
-    body: "Tenho base e quero atacar um objetivo especifico com ritmos certos.",
+    title: "Performance",
+    body: "Ritmos para competir.",
   },
 ];
 
 const CONSISTENCY_OPTIONS = [
   {
     value: "low",
-    title: "Preciso de voltar ao ritmo",
+    title: "Voltar ao ritmo",
   },
   {
     value: "medium",
-    title: "Ja treino, mas sem estrutura",
+    title: "Treinar com estrutura",
   },
   {
     value: "high",
-    title: "Treino bem e quero otimizar",
+    title: "Otimizar",
+  },
+];
+
+const LANDING_STEPS = [
+  {
+    id: "1",
+    text: "Respondes rapido ao essencial.",
+    image: "/assets/img/DSC00702.jpg",
+  },
+  {
+    id: "2",
+    text: "Fazes login sem perder nada.",
+    image: "/assets/img/TP_Coach.jpg",
+  },
+  {
+    id: "3",
+    text: "Segues para gerar o plano final.",
+    image: "/assets/img/DSC00791.jpg",
   },
 ];
 
@@ -135,39 +153,38 @@ export default function PlanLanding() {
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(7,7,7,0.42),rgba(7,7,7,0.78)),radial-gradient(circle_at_20%_0,rgba(212,165,79,0.14),transparent_35%),radial-gradient(circle_at_80%_10,rgba(22,102,216,0.16),transparent_30%),radial-gradient(circle_at_50%_100%,rgba(212,165,79,0.08),transparent_28%)]" />
       <div className="relative mx-auto grid min-h-screen max-w-6xl items-center gap-10 px-4 py-10 lg:grid-cols-[1.05fr_0.95fr]">
         <section>
+          <img
+            src="/assets/img/logo-lht.png"
+            alt="Lion Hybrid Training"
+            className="mb-4 h-[72px] w-auto"
+            loading="eager"
+          />
           <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[#d4a54f]">
             Lion Hybrid Training
           </p>
           <h1 className="mt-4 max-w-2xl font-serif text-5xl font-semibold uppercase leading-[0.98] tracking-[0.03em] text-[#f7f1e8] md:text-6xl">
-            Cria o teu plano de corrida com login feito desde o primeiro passo.
+            Plano de corrida personalizado em poucos passos.
           </h1>
           <p className="mt-5 max-w-xl text-base leading-7 text-[#c8cfda] md:text-lg">
-            Faz um aquecimento rapido com algumas respostas, valida o teu numero de telemovel,
-            entra com Google e segue direto para o formulario final com os teus dados ja preparados.
+            Responde, entra com Google e avanca para o teu plano.
           </p>
 
           <div className="mt-8 grid gap-4 sm:grid-cols-3">
-            <div
-              className="rounded-2xl border border-[#d4a54f29] p-4 shadow-[0_18px_40px_rgba(0,0,0,0.28)]"
-              style={planocorridaSoftPanelStyle}
-            >
-              <p className="text-2xl font-semibold text-[#f7f1e8]">1</p>
-              <p className="mt-2 text-sm text-[#c8cfda]">Respondes a 4 perguntas-chave.</p>
-            </div>
-            <div
-              className="rounded-2xl border border-[#d4a54f29] p-4 shadow-[0_18px_40px_rgba(0,0,0,0.28)]"
-              style={planocorridaSoftPanelStyle}
-            >
-              <p className="text-2xl font-semibold text-[#f7f1e8]">2</p>
-              <p className="mt-2 text-sm text-[#c8cfda]">Fazes login Google sem perder o progresso.</p>
-            </div>
-            <div
-              className="rounded-2xl border border-[#d4a54f29] p-4 shadow-[0_18px_40px_rgba(0,0,0,0.28)]"
-              style={planocorridaSoftPanelStyle}
-            >
-              <p className="text-2xl font-semibold text-[#f7f1e8]">3</p>
-              <p className="mt-2 text-sm text-[#c8cfda]">Acabas o plano e guardamos os teus dados.</p>
-            </div>
+            {LANDING_STEPS.map((step) => (
+              <div
+                key={step.id}
+                className="relative overflow-hidden rounded-2xl border border-[#d4a54f29] p-4 shadow-[0_18px_40px_rgba(0,0,0,0.28)]"
+                style={{
+                  ...planocorridaSoftPanelStyle,
+                  backgroundImage: `linear-gradient(180deg, rgba(10,10,10,0.66), rgba(7,7,7,0.86)), url('${step.image}')`,
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
+                }}
+              >
+                <p className="text-2xl font-semibold text-[#f7f1e8]">{step.id}</p>
+                <p className="mt-2 text-sm text-[#e4e8ef]">{step.text}</p>
+              </div>
+            ))}
           </div>
         </section>
 
@@ -177,11 +194,11 @@ export default function PlanLanding() {
         >
           <div className="mb-5 flex items-center justify-between gap-3">
             <div>
-              <p className="text-sm font-semibold text-[#f7f1e8]">Primeiro passo</p>
+              <p className="text-sm font-semibold text-[#f7f1e8]">Comeca agora</p>
               <p className="text-xs text-[#98a3b6]">
                 {sessionChecked && isAuthenticated
-                  ? "Sessao ativa. Vais seguir diretamente para o formulario final."
-                  : "Guardamos este aquecimento e retomamos apos o login."}
+                  ? "Sessao ativa. Segues direto para o formulario final."
+                  : "Guardamos e retomamos apos o login."}
               </p>
             </div>
             <div className="rounded-full border border-[#d4a54f33] px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-[#d4a54f]">
@@ -270,14 +287,14 @@ export default function PlanLanding() {
               className="w-full rounded-2xl bg-[#d4a54f] px-5 py-3.5 text-sm font-semibold text-[#111111] transition hover:bg-[#c29740] disabled:cursor-not-allowed disabled:opacity-70"
             >
               {submitting
-                ? "A continuar..."
+                ? "A abrir..."
                 : isAuthenticated
-                  ? "Continuar para o formulario final"
-                  : "Continuar com Google"}
+                  ? "Ir para o formulario final"
+                  : "Entrar com Google e gerar plano"}
             </button>
 
             <p className="text-center text-xs leading-5 text-[#8f99a8]">
-              Ao continuar, guardamos estas respostas para que o teu plano fique associado a tua conta.
+              Guardamos para continuares sem perder nada.
             </p>
           </form>
         </section>
