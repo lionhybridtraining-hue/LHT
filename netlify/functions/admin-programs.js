@@ -1,7 +1,8 @@
 const { parseJsonBody, json } = require("./_lib/http");
 const { getConfig } = require("./_lib/config");
 const { requireRole } = require("./_lib/authz");
-const { listTrainingPrograms, createTrainingProgram } = require("./_lib/supabase");
+const { listTrainingPrograms, createTrainingProgram, updateTrainingProgram } = require("./_lib/supabase");
+const { createStripeProductAndPrice, getStripeClient, syncStripeStatus } = require("./_lib/stripe");
 
 function normalizeProgramPayload(payload) {
   const name = (payload.name || "").toString().trim();
@@ -64,25 +65,88 @@ function mapProgram(row) {
 
 exports.handler = async (event) => {
   const method = event.httpMethod;
-  if (!["GET", "POST"].includes(method)) {
-    return json(405, { error: "Method not allowed" });
-  }
-
   try {
     const config = getConfig();
     const auth = await requireRole(event, config, "admin");
     if (auth.error) return auth.error;
 
     if (method === "GET") {
+      const qs = event.queryStringParameters || {};
+
+      // Sync-stripe: verifica estado de products/prices no Stripe
+      if (qs.action === "sync-stripe") {
+        const stripe = getStripeClient(config);
+        const rows = await listTrainingPrograms(config);
+        const programs = Array.isArray(rows) ? rows : [];
+        const results = [];
+        for (const p of programs) {
+          if (!p.stripe_product_id && !p.stripe_price_id) {
+            results.push({ id: p.id, name: p.name, sync: "no_stripe" });
+            continue;
+          }
+          const status = await syncStripeStatus({ productId: p.stripe_product_id, priceId: p.stripe_price_id });
+          const synced = status.productActive && status.priceActive;
+          const warning = (p.status === "active" && !synced);
+          results.push({
+            id: p.id,
+            name: p.name,
+            programStatus: p.status,
+            sync: synced ? "synced" : "out_of_sync",
+            warning,
+            stripe: status
+          });
+        }
+        return json(200, { syncResults: results });
+      }
+
       const rows = await listTrainingPrograms(config);
       return json(200, { programs: Array.isArray(rows) ? rows.map(mapProgram) : [] });
     }
 
-    const payload = parseJsonBody(event);
-    const normalized = normalizeProgramPayload(payload);
-    const created = await createTrainingProgram(config, normalized);
 
-    return json(201, { program: mapProgram(created) });
+    if (method === "POST") {
+      const payload = parseJsonBody(event);
+      let normalized = normalizeProgramPayload(payload);
+
+      // Se solicitado, criar produto/preço no Stripe
+      if (payload.createStripeProductAndPrice) {
+        if (!normalized.name || !normalized.price_cents || !normalized.currency) {
+          return json(400, { error: "Nome, preço e moeda são obrigatórios para criar produto Stripe" });
+        }
+        try {
+          const recurring = normalized.billing_type === "recurring";
+          const { productId, priceId } = await createStripeProductAndPrice({
+            name: normalized.name,
+            description: normalized.description,
+            priceCents: normalized.price_cents,
+            currency: normalized.currency,
+            recurring
+          });
+          normalized.stripe_product_id = productId;
+          normalized.stripe_price_id = priceId;
+        } catch (err) {
+          return json(500, { error: "Erro ao criar produto/preço no Stripe: " + (err.message || err) });
+        }
+      }
+      const created = await createTrainingProgram(config, normalized);
+      return json(201, { program: mapProgram(created) });
+    }
+
+    if (method === "PATCH") {
+      // PATCH /admin-programs/:id
+      const id = event.path.split("/").pop();
+      if (!id) return json(400, { error: "Missing program id in path" });
+      const patch = parseJsonBody(event);
+      // Validação básica para status
+      if (patch.status && !["draft", "active", "archived"].includes(patch.status)) {
+        return json(400, { error: "Invalid status value" });
+      }
+      const updated = await updateTrainingProgram(config, id, patch);
+      if (!updated) return json(404, { error: "Program not found" });
+      return json(200, { program: mapProgram(updated) });
+    }
+
+    return json(405, { error: "Method not allowed" });
   } catch (err) {
     return json(500, { error: err.message || "Erro ao gerir programas" });
   }

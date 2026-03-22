@@ -619,6 +619,18 @@ async function createTrainingProgram(config, payload) {
   return Array.isArray(rows) ? rows[0] || null : null;
 }
 
+async function updateTrainingProgram(config, id, patch) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `training_programs?id=eq.${encodeURIComponent(id)}`,
+    method: "PATCH",
+    body: patch,
+    prefer: "return=representation"
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
 async function getTrainingProgramById(config, id) {
   const rows = await supabaseRequest({
     url: config.supabaseUrl,
@@ -746,6 +758,25 @@ async function updateStripePurchasesByPaymentIntentId(config, paymentIntentId, p
     method: "PATCH",
     body: patch,
     prefer: "return=representation"
+  });
+  return Array.isArray(rows) ? rows : [];
+}
+
+async function listStripePurchases(config, { status, programId, email, source, from, to, limit, offset } = {}) {
+  const filters = ["select=*,training_programs(name)"];
+  if (status) filters.push(`status=eq.${encodeURIComponent(status)}`);
+  if (programId) filters.push(`program_id=eq.${encodeURIComponent(programId)}`);
+  if (email) filters.push(`email=ilike.*${encodeURIComponent(email)}*`);
+  if (source) filters.push(`source=eq.${encodeURIComponent(source)}`);
+  if (from) filters.push(`created_at=gte.${encodeURIComponent(from)}`);
+  if (to) filters.push(`created_at=lte.${encodeURIComponent(to)}`);
+  filters.push("order=created_at.desc");
+  if (Number.isFinite(limit) && limit > 0) filters.push(`limit=${limit}`);
+  if (Number.isFinite(offset) && offset > 0) filters.push(`offset=${offset}`);
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `stripe_purchases?${filters.join("&")}`
   });
   return Array.isArray(rows) ? rows : [];
 }
@@ -1022,6 +1053,7 @@ module.exports = {
   deleteWeeklyCheckinsByBatch,
   getAthleteById,
   getAthleteByIdentity,
+  getAthleteByEmail,
   listAthletes,
   createAthlete,
   upsertAthleteByIdentity,
@@ -1036,6 +1068,7 @@ module.exports = {
   assignRoleToIdentity,
   listTrainingPrograms,
   createTrainingProgram,
+  updateTrainingProgram,
   getTrainingProgramById,
   getTrainingProgramByExternalId,
   listPublicTrainingPrograms,
@@ -1049,6 +1082,7 @@ module.exports = {
   getActiveStripePurchaseForIdentity,
   updateStripePurchasesBySubscriptionId,
   updateStripePurchasesByPaymentIntentId,
+  listStripePurchases,
   listSiteMetadata,
   listSiteMetrics,
   listSiteReviews,

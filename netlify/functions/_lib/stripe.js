@@ -72,9 +72,154 @@ function toStripePurchaseRecord({
   };
 }
 
+// Cria produto e preço no Stripe
+async function createStripeProductAndPrice({ name, description, priceCents, currency = 'EUR', recurring = false }) {
+  const stripe = cachedClient;
+  if (!stripe) throw new Error('Stripe client not initialized');
+  const product = await stripe.products.create({ name, description });
+  const price = await stripe.prices.create({
+    unit_amount: priceCents,
+    currency,
+    product: product.id,
+    ...(recurring ? { recurring: { interval: 'month' } } : {})
+  });
+  return { productId: product.id, priceId: price.id };
+}
+
+// Reembolso via Stripe
+async function refundPayment({ paymentIntentId, amountCents }) {
+  const stripe = cachedClient;
+  if (!stripe) throw new Error('Stripe client not initialized');
+  const params = { payment_intent: paymentIntentId };
+  if (Number.isFinite(amountCents) && amountCents > 0) {
+    params.amount = amountCents;
+  }
+  return stripe.refunds.create(params);
+}
+
+// Cancelar subscrição
+async function cancelSubscription({ subscriptionId, cancelAtPeriodEnd = false }) {
+  const stripe = cachedClient;
+  if (!stripe) throw new Error('Stripe client not initialized');
+  if (cancelAtPeriodEnd) {
+    return stripe.subscriptions.update(subscriptionId, { cancel_at_period_end: true });
+  }
+  return stripe.subscriptions.cancel(subscriptionId);
+}
+
+// Listar cupões
+async function listCoupons({ limit = 100 } = {}) {
+  const stripe = cachedClient;
+  if (!stripe) throw new Error('Stripe client not initialized');
+  const result = await stripe.coupons.list({ limit });
+  return result.data || [];
+}
+
+// Criar cupão
+async function createCoupon({ name, percentOff, amountOff, currency, duration, durationInMonths, maxRedemptions }) {
+  const stripe = cachedClient;
+  if (!stripe) throw new Error('Stripe client not initialized');
+  const params = { name, duration: duration || 'once' };
+  if (percentOff) {
+    params.percent_off = percentOff;
+  } else if (amountOff) {
+    params.amount_off = amountOff;
+    params.currency = (currency || 'EUR').toLowerCase();
+  }
+  if (duration === 'repeating' && durationInMonths) {
+    params.duration_in_months = durationInMonths;
+  }
+  if (Number.isFinite(maxRedemptions) && maxRedemptions > 0) {
+    params.max_redemptions = maxRedemptions;
+  }
+  return stripe.coupons.create(params);
+}
+
+// Desativar cupão
+async function deleteCoupon(couponId) {
+  const stripe = cachedClient;
+  if (!stripe) throw new Error('Stripe client not initialized');
+  return stripe.coupons.del(couponId);
+}
+
+// Listar preços por produto
+async function listPricesForProduct(productId) {
+  const stripe = cachedClient;
+  if (!stripe) throw new Error('Stripe client not initialized');
+  const result = await stripe.prices.list({ product: productId, limit: 50 });
+  return result.data || [];
+}
+
+// Criar preço para produto existente
+async function createPriceForProduct({ productId, priceCents, currency = 'EUR', recurring = false }) {
+  const stripe = cachedClient;
+  if (!stripe) throw new Error('Stripe client not initialized');
+  return stripe.prices.create({
+    unit_amount: priceCents,
+    currency: currency.toLowerCase(),
+    product: productId,
+    ...(recurring ? { recurring: { interval: 'month' } } : {})
+  });
+}
+
+// Arquivar preço
+async function archivePrice(priceId) {
+  const stripe = cachedClient;
+  if (!stripe) throw new Error('Stripe client not initialized');
+  return stripe.prices.update(priceId, { active: false });
+}
+
+// Verificar se produto e preço existem e estão activos
+async function syncStripeStatus({ productId, priceId }) {
+  const stripe = cachedClient;
+  if (!stripe) throw new Error('Stripe client not initialized');
+  const result = { productExists: false, productActive: false, priceExists: false, priceActive: false };
+  if (productId) {
+    try {
+      const product = await stripe.products.retrieve(productId);
+      result.productExists = true;
+      result.productActive = Boolean(product.active);
+    } catch (e) {
+      if (e.code !== 'resource_missing') throw e;
+    }
+  }
+  if (priceId) {
+    try {
+      const price = await stripe.prices.retrieve(priceId);
+      result.priceExists = true;
+      result.priceActive = Boolean(price.active);
+    } catch (e) {
+      if (e.code !== 'resource_missing') throw e;
+    }
+  }
+  return result;
+}
+
+// Gerar Payment Link
+async function createPaymentLink({ priceId, metadata }) {
+  const stripe = cachedClient;
+  if (!stripe) throw new Error('Stripe client not initialized');
+  return stripe.paymentLinks.create({
+    line_items: [{ price: priceId, quantity: 1 }],
+    allow_promotion_codes: true,
+    metadata: metadata || {}
+  });
+}
+
 module.exports = {
   getStripeClient,
   normalizeStripeError,
   toIsoFromUnix,
-  toStripePurchaseRecord
+  toStripePurchaseRecord,
+  createStripeProductAndPrice,
+  refundPayment,
+  cancelSubscription,
+  listCoupons,
+  createCoupon,
+  deleteCoupon,
+  listPricesForProduct,
+  createPriceForProduct,
+  archivePrice,
+  syncStripeStatus,
+  createPaymentLink
 };

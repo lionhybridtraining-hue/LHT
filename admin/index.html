@@ -40,6 +40,7 @@
           <button id="tab-site-content" class="admin-tab" type="button" role="tab" aria-selected="false" aria-controls="site-content-panel">Conteudo do site</button>
           <button id="tab-athletes" class="admin-tab" type="button" role="tab" aria-selected="false" aria-controls="athletes-panel">Gerir atletas</button>
           <button id="tab-programs" class="admin-tab" type="button" role="tab" aria-selected="false" aria-controls="programs-panel">Programas</button>
+          <button id="tab-vendas" class="admin-tab" type="button" role="tab" aria-selected="false" aria-controls="vendas-panel">Vendas</button>
           <button id="tab-coaches" class="admin-tab" type="button" role="tab" aria-selected="false" aria-controls="coaches-panel">Coaches</button>
           <button id="tab-leads" class="admin-tab" type="button" role="tab" aria-selected="false" aria-controls="leads-panel">Leads Meta</button>
           <button id="tab-ai" class="admin-tab" type="button" role="tab" aria-selected="false" aria-controls="ai-panel">IA</button>
@@ -477,8 +478,8 @@
             <input id="program-duration-weeks" type="number" min="1" value="8" />
           </div>
           <div class="field">
-            <label for="program-price-cents">Preco (centimos)</label>
-            <input id="program-price-cents" type="number" min="0" value="0" />
+            <label for="program-price-cents">Preço (euros)</label>
+            <input id="program-price-cents" type="number" min="0" step="0.01" value="0" />
           </div>
           <div class="field">
             <label for="program-currency">Moeda</label>
@@ -514,6 +515,9 @@
           <div class="field">
             <label for="program-scheduled-template">Template agendado</label>
             <input id="program-scheduled-template" type="checkbox" />
+          </div>
+          <div class="field">
+            <label><input type="checkbox" id="program-create-stripe" /> Criar produto/preço no Stripe automaticamente</label>
           </div>
           <div class="form-actions">
             <button id="create-program-btn" type="button">Criar programa</button>
@@ -575,6 +579,292 @@
           </div>
           <div class="form-actions">
             <button id="grant-access-btn" type="button">Conceder acesso</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- VENDAS PANEL -->
+      <section id="vendas-panel" class="admin-athletes" hidden>
+        <div class="editor-top">
+          <div>
+            <p class="section-eyebrow">Stripe Ops</p>
+            <h2>Vendas e Controlo Stripe</h2>
+            <p>Dashboard de vendas, reembolsos, cupoes, gestao de precos e payment links.</p>
+          </div>
+        </div>
+
+        <p id="vendas-message" class="message" role="status"></p>
+
+        <!-- KPI Cards -->
+        <div class="vendas-kpis" id="vendas-kpis">
+          <div class="kpi-card">
+            <span class="kpi-label">Total vendas</span>
+            <span class="kpi-value" id="kpi-total-sales">-</span>
+          </div>
+          <div class="kpi-card kpi-ok">
+            <span class="kpi-label">Pagas</span>
+            <span class="kpi-value" id="kpi-paid">-</span>
+          </div>
+          <div class="kpi-card kpi-ok">
+            <span class="kpi-label">Receita total</span>
+            <span class="kpi-value" id="kpi-revenue">-</span>
+          </div>
+          <div class="kpi-card kpi-warn">
+            <span class="kpi-label">Pendentes</span>
+            <span class="kpi-value" id="kpi-pending">-</span>
+          </div>
+          <div class="kpi-card kpi-danger">
+            <span class="kpi-label">Reembolsadas</span>
+            <span class="kpi-value" id="kpi-refunded">-</span>
+          </div>
+          <div class="kpi-card kpi-danger">
+            <span class="kpi-label">Canceladas</span>
+            <span class="kpi-value" id="kpi-cancelled">-</span>
+          </div>
+        </div>
+
+        <!-- Subtabs -->
+        <div class="vendas-subtabs">
+          <button id="vendas-subtab-purchases" class="vendas-subtab is-active" type="button">Compras</button>
+          <button id="vendas-subtab-coupons" class="vendas-subtab" type="button">Cupoes</button>
+          <button id="vendas-subtab-prices" class="vendas-subtab" type="button">Precos</button>
+          <button id="vendas-subtab-sync" class="vendas-subtab" type="button">Sync Stripe</button>
+          <button id="vendas-subtab-links" class="vendas-subtab" type="button">Payment Links</button>
+        </div>
+
+        <!-- SUBTAB: Compras -->
+        <div id="vendas-purchases-view" class="vendas-view">
+          <div class="admin-inline-form vendas-filters">
+            <div class="field">
+              <label for="vendas-filter-status">Estado</label>
+              <select id="vendas-filter-status">
+                <option value="">Todos</option>
+                <option value="paid">paid</option>
+                <option value="pending">pending</option>
+                <option value="refunded">refunded</option>
+                <option value="cancelled">cancelled</option>
+                <option value="payment_failed">payment_failed</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="vendas-filter-program">Programa</label>
+              <select id="vendas-filter-program">
+                <option value="">Todos</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="vendas-filter-email">Email</label>
+              <input id="vendas-filter-email" type="text" placeholder="Pesquisar email..." />
+            </div>
+            <div class="field">
+              <label for="vendas-filter-source">Source</label>
+              <select id="vendas-filter-source">
+                <option value="">Todas</option>
+                <option value="stripe">stripe</option>
+                <option value="admin_override">admin_override</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="vendas-filter-from">Desde</label>
+              <input id="vendas-filter-from" type="date" />
+            </div>
+            <div class="field">
+              <label for="vendas-filter-to">Ate</label>
+              <input id="vendas-filter-to" type="date" />
+            </div>
+            <div class="form-actions">
+              <button id="vendas-refresh-btn" type="button">Atualizar vendas</button>
+            </div>
+          </div>
+
+          <div class="athletes-list-wrap">
+            <table class="athletes-table vendas-table">
+              <thead>
+                <tr>
+                  <th>Email</th>
+                  <th>Programa</th>
+                  <th>Valor</th>
+                  <th>Estado</th>
+                  <th>Tipo</th>
+                  <th>Source</th>
+                  <th>Pago em</th>
+                  <th>Expira</th>
+                  <th>Acoes</th>
+                </tr>
+              </thead>
+              <tbody id="vendas-body"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- SUBTAB: Cupoes -->
+        <div id="vendas-coupons-view" class="vendas-view" hidden>
+          <div class="admin-inline-form">
+            <div class="field">
+              <label for="coupon-name">Nome do cupao</label>
+              <input id="coupon-name" type="text" placeholder="Ex.: DESCONTO20" />
+            </div>
+            <div class="field">
+              <label for="coupon-type">Tipo de desconto</label>
+              <select id="coupon-type">
+                <option value="percent">Percentagem (%)</option>
+                <option value="amount">Valor fixo</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="coupon-value">Valor</label>
+              <input id="coupon-value" type="number" min="0" step="1" placeholder="20" />
+            </div>
+            <div class="field">
+              <label for="coupon-currency">Moeda (se fixo)</label>
+              <input id="coupon-currency" type="text" value="EUR" maxlength="3" />
+            </div>
+            <div class="field">
+              <label for="coupon-duration">Duracao</label>
+              <select id="coupon-duration">
+                <option value="once">Uma vez</option>
+                <option value="repeating">Repetitivo</option>
+                <option value="forever">Sempre</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="coupon-duration-months">Meses (se repetitivo)</label>
+              <input id="coupon-duration-months" type="number" min="1" placeholder="3" />
+            </div>
+            <div class="field">
+              <label for="coupon-max-redemptions">Usos maximos</label>
+              <input id="coupon-max-redemptions" type="number" min="0" placeholder="Ilimitado" />
+            </div>
+            <div class="form-actions">
+              <button id="coupon-create-btn" type="button">Criar cupao</button>
+            </div>
+          </div>
+
+          <div class="athletes-list-wrap">
+            <table class="athletes-table">
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>Desconto</th>
+                  <th>Duracao</th>
+                  <th>Usos</th>
+                  <th>Valido</th>
+                  <th>Criado</th>
+                  <th>Acoes</th>
+                </tr>
+              </thead>
+              <tbody id="coupons-body"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- SUBTAB: Precos -->
+        <div id="vendas-prices-view" class="vendas-view" hidden>
+          <div class="admin-inline-form">
+            <div class="field">
+              <label for="price-program-select">Programa</label>
+              <select id="price-program-select">
+                <option value="">Seleciona um programa...</option>
+              </select>
+            </div>
+            <div class="form-actions">
+              <button id="price-load-btn" type="button">Carregar precos</button>
+            </div>
+          </div>
+
+          <div class="athletes-list-wrap">
+            <table class="athletes-table">
+              <thead>
+                <tr>
+                  <th>Price ID</th>
+                  <th>Valor</th>
+                  <th>Moeda</th>
+                  <th>Recorrencia</th>
+                  <th>Activo</th>
+                  <th>Criado</th>
+                  <th>Acoes</th>
+                </tr>
+              </thead>
+              <tbody id="prices-body"></tbody>
+            </table>
+          </div>
+
+          <div class="editor-top" style="margin-top: 14px;">
+            <div>
+              <p class="section-eyebrow">Novo Preco</p>
+              <h3>Criar preco para produto existente</h3>
+            </div>
+          </div>
+
+          <div class="admin-inline-form">
+            <div class="field">
+              <label for="new-price-product-id">Stripe Product ID</label>
+              <input id="new-price-product-id" type="text" placeholder="prod_..." />
+            </div>
+            <div class="field">
+              <label for="new-price-cents">Valor (euros)</label>
+              <input id="new-price-cents" type="number" min="0" step="0.01" placeholder="97.00" />
+            </div>
+            <div class="field">
+              <label for="new-price-currency">Moeda</label>
+              <input id="new-price-currency" type="text" value="EUR" maxlength="3" />
+            </div>
+            <div class="field">
+              <label><input id="new-price-recurring" type="checkbox" /> Recorrente (mensal)</label>
+            </div>
+            <div class="form-actions">
+              <button id="new-price-create-btn" type="button">Criar preco</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- SUBTAB: Sync Stripe -->
+        <div id="vendas-sync-view" class="vendas-view" hidden>
+          <div class="athletes-toolbar">
+            <button id="sync-stripe-btn" type="button">Verificar sincronizacao Stripe</button>
+          </div>
+
+          <p id="sync-message" class="message" role="status"></p>
+
+          <div class="athletes-list-wrap">
+            <table class="athletes-table">
+              <thead>
+                <tr>
+                  <th>Programa</th>
+                  <th>Estado programa</th>
+                  <th>Sync</th>
+                  <th>Produto activo</th>
+                  <th>Preco activo</th>
+                  <th>Alerta</th>
+                </tr>
+              </thead>
+              <tbody id="sync-body"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- SUBTAB: Payment Links -->
+        <div id="vendas-links-view" class="vendas-view" hidden>
+          <div class="admin-inline-form">
+            <div class="field field-wide">
+              <label for="link-program-select">Programa</label>
+              <select id="link-program-select">
+                <option value="">Seleciona um programa...</option>
+              </select>
+            </div>
+            <div class="form-actions">
+              <button id="generate-link-btn" type="button">Gerar Payment Link</button>
+            </div>
+          </div>
+
+          <p id="link-message" class="message" role="status"></p>
+
+          <div id="link-result" class="link-result-box" hidden>
+            <label>Payment Link gerado:</label>
+            <div class="link-result-row">
+              <input id="link-result-url" type="text" readonly />
+              <button id="link-copy-btn" type="button">Copiar</button>
+            </div>
           </div>
         </div>
       </section>
@@ -922,6 +1212,12 @@
     const adminAthletesListApiBase = '/.netlify/functions/admin-athletes-list';
     const adminProgramsApiBase = '/.netlify/functions/admin-programs';
     const adminGrantAccessApiBase = '/.netlify/functions/admin-grant-access';
+    const adminStripePurchasesApiBase = '/.netlify/functions/admin-stripe-purchases';
+    const adminStripeRefundApiBase = '/.netlify/functions/admin-stripe-refund';
+    const adminStripeCancelApiBase = '/.netlify/functions/admin-stripe-cancel';
+    const adminStripeCouponsApiBase = '/.netlify/functions/admin-stripe-coupons';
+    const adminStripePricesApiBase = '/.netlify/functions/admin-stripe-prices';
+    const adminStripeLinksApiBase = '/.netlify/functions/admin-stripe-links';
     const state = {
       user: null,
       token: null,
@@ -940,7 +1236,13 @@
       blogProduction: null,
       dataAudit: null,
       athletesCatalog: [],
-      programs: []
+      programs: [],
+      purchases: [],
+      purchaseKpis: null,
+      coupons: [],
+      stripePrices: [],
+      syncResults: [],
+      activeVendasSubtab: 'purchases'
     };
 
     const SITE_METADATA_PRESETS = [
@@ -1183,6 +1485,61 @@
       grantCurrency: document.getElementById('grant-currency'),
       grantExpiresAt: document.getElementById('grant-expires-at'),
       grantAccessBtn: document.getElementById('grant-access-btn'),
+      // Vendas tab
+      tabVendas: document.getElementById('tab-vendas'),
+      vendasPanel: document.getElementById('vendas-panel'),
+      vendasMessage: document.getElementById('vendas-message'),
+      vendasKpis: document.getElementById('vendas-kpis'),
+      kpiTotalSales: document.getElementById('kpi-total-sales'),
+      kpiPaid: document.getElementById('kpi-paid'),
+      kpiRevenue: document.getElementById('kpi-revenue'),
+      kpiPending: document.getElementById('kpi-pending'),
+      kpiRefunded: document.getElementById('kpi-refunded'),
+      kpiCancelled: document.getElementById('kpi-cancelled'),
+      vendasSubtabPurchases: document.getElementById('vendas-subtab-purchases'),
+      vendasSubtabCoupons: document.getElementById('vendas-subtab-coupons'),
+      vendasSubtabPrices: document.getElementById('vendas-subtab-prices'),
+      vendasSubtabSync: document.getElementById('vendas-subtab-sync'),
+      vendasSubtabLinks: document.getElementById('vendas-subtab-links'),
+      vendasPurchasesView: document.getElementById('vendas-purchases-view'),
+      vendasCouponsView: document.getElementById('vendas-coupons-view'),
+      vendasPricesView: document.getElementById('vendas-prices-view'),
+      vendasSyncView: document.getElementById('vendas-sync-view'),
+      vendasLinksView: document.getElementById('vendas-links-view'),
+      vendasFilterStatus: document.getElementById('vendas-filter-status'),
+      vendasFilterProgram: document.getElementById('vendas-filter-program'),
+      vendasFilterEmail: document.getElementById('vendas-filter-email'),
+      vendasFilterSource: document.getElementById('vendas-filter-source'),
+      vendasFilterFrom: document.getElementById('vendas-filter-from'),
+      vendasFilterTo: document.getElementById('vendas-filter-to'),
+      vendasRefreshBtn: document.getElementById('vendas-refresh-btn'),
+      vendasBody: document.getElementById('vendas-body'),
+      couponName: document.getElementById('coupon-name'),
+      couponType: document.getElementById('coupon-type'),
+      couponValue: document.getElementById('coupon-value'),
+      couponCurrency: document.getElementById('coupon-currency'),
+      couponDuration: document.getElementById('coupon-duration'),
+      couponDurationMonths: document.getElementById('coupon-duration-months'),
+      couponMaxRedemptions: document.getElementById('coupon-max-redemptions'),
+      couponCreateBtn: document.getElementById('coupon-create-btn'),
+      couponsBody: document.getElementById('coupons-body'),
+      priceProgramSelect: document.getElementById('price-program-select'),
+      priceLoadBtn: document.getElementById('price-load-btn'),
+      pricesBody: document.getElementById('prices-body'),
+      newPriceProductId: document.getElementById('new-price-product-id'),
+      newPriceCents: document.getElementById('new-price-cents'),
+      newPriceCurrency: document.getElementById('new-price-currency'),
+      newPriceRecurring: document.getElementById('new-price-recurring'),
+      newPriceCreateBtn: document.getElementById('new-price-create-btn'),
+      syncStripeBtn: document.getElementById('sync-stripe-btn'),
+      syncMessage: document.getElementById('sync-message'),
+      syncBody: document.getElementById('sync-body'),
+      linkProgramSelect: document.getElementById('link-program-select'),
+      generateLinkBtn: document.getElementById('generate-link-btn'),
+      linkMessage: document.getElementById('link-message'),
+      linkResult: document.getElementById('link-result'),
+      linkResultUrl: document.getElementById('link-result-url'),
+      linkCopyBtn: document.getElementById('link-copy-btn'),
       tabAi: document.getElementById('tab-ai'),
       aiPanel: document.getElementById('ai-panel'),
       aiMessage: document.getElementById('ai-message'),
@@ -1245,6 +1602,10 @@
         tabEl: () => els.tabPrograms,
         panels: () => [els.programsPanel]
       },
+      vendas: {
+        tabEl: () => els.tabVendas,
+        panels: () => [els.vendasPanel]
+      },
       coaches: {
         tabEl: () => els.tabCoaches,
         panels: () => [els.coachesPanel]
@@ -1294,6 +1655,11 @@
       if (activeTab === 'programs' && state.user) {
         refreshProgramsData().catch((err) => showProgramsMessage(err.message, true));
         refreshAuditAthletesCatalog().catch(() => {});
+      }
+
+      if (activeTab === 'vendas' && state.user) {
+        refreshVendasData().catch((err) => showVendasMessage(err.message, true));
+        refreshProgramsData().catch(() => {});
       }
 
       if (activeTab === 'ai' && state.user) {
@@ -2666,9 +3032,34 @@
           <td>${escapeHtml(program.externalSource || '-')}/${escapeHtml(program.externalId || '-')}</td>
           <td>${escapeHtml(program.billingType || 'one_time')}</td>
           <td>${escapeHtml(formatCurrencyCents(program.priceCents, program.currency))}</td>
-          <td>${escapeHtml(program.status || '-')}</td>
+          <td></td>
           <td>${escapeHtml(program.stripePriceId || '-')}</td>
         `;
+        // Adiciona select editável de status
+        const statusCell = row.children[4];
+        const statusSelect = document.createElement('select');
+        ['draft','active','archived'].forEach(opt => {
+          const option = document.createElement('option');
+          option.value = opt;
+          option.textContent = opt;
+          if (program.status === opt) option.selected = true;
+          statusSelect.appendChild(option);
+        });
+        statusSelect.addEventListener('change', async (e) => {
+          const newStatus = statusSelect.value;
+          statusSelect.disabled = true;
+          try {
+            await apiRequest('PATCH', `${adminProgramsApiBase}/${program.id}`, { status: newStatus });
+            program.status = newStatus;
+            showProgramsMessage('Estado atualizado.', false);
+            await refreshProgramsData();
+          } catch (err) {
+            showProgramsMessage('Erro ao atualizar estado: ' + (err.message || err), true);
+          } finally {
+            statusSelect.disabled = false;
+          }
+        });
+        statusCell.appendChild(statusSelect);
         fragment.appendChild(row);
       });
       els.programsBody.appendChild(fragment);
@@ -2680,7 +3071,8 @@
       const externalId = (els.programExternalId.value || '').trim() || null;
       const description = (els.programDescription.value || '').trim() || null;
       const durationWeeks = Number(els.programDurationWeeks.value);
-      const priceCents = Number(els.programPriceCents.value);
+      // Converte euros para centavos antes de salvar
+      const priceCents = Math.round(Number(els.programPriceCents.value.replace(',', '.')) * 100);
       const currency = (els.programCurrency.value || 'EUR').trim().toUpperCase() || 'EUR';
       const stripeProductId = (els.programStripeProductId.value || '').trim() || null;
       const stripePriceId = (els.programStripePriceId.value || '').trim() || null;
@@ -2694,9 +3086,10 @@
         throw new Error('Duracao deve ser um inteiro positivo.');
       }
       if (!Number.isInteger(priceCents) || priceCents < 0) {
-        throw new Error('Preco deve ser um inteiro >= 0 (centimos).');
+        throw new Error('Preço deve ser um número válido em euros (>= 0).');
       }
 
+      const createStripe = document.getElementById('program-create-stripe');
       return {
         name,
         externalSource,
@@ -2710,7 +3103,8 @@
         billingType,
         followupType,
         status,
-        isScheduledTemplate
+        isScheduledTemplate,
+        createStripeProductAndPrice: createStripe && createStripe.checked ? true : undefined
       };
     }
 
@@ -3141,6 +3535,13 @@
             showProgramsMessage(err.message, true);
           }
         }
+        if (activeTab === 'vendas') {
+          try {
+            await refreshVendasData();
+          } catch (err) {
+            showVendasMessage(err.message, true);
+          }
+        }
         if (activeTab === 'ai') {
           try {
             await refreshAiPromptsData();
@@ -3166,6 +3567,11 @@
         state.dataAudit = null;
         state.athletesCatalog = [];
         state.programs = [];
+        state.purchases = [];
+        state.purchaseKpis = null;
+        state.coupons = [];
+        state.stripePrices = [];
+        state.syncResults = [];
         renderList();
         renderUnassignedAthletes();
         renderCoachOptions();
@@ -3444,6 +3850,419 @@
       }
     });
 
+    // ======================= VENDAS FUNCTIONS =======================
+
+    function showVendasMessage(text, isError) {
+      els.vendasMessage.textContent = text || '';
+      els.vendasMessage.classList.toggle('error', Boolean(isError));
+      els.vendasMessage.classList.toggle('success', !isError && Boolean(text));
+    }
+
+    function setVendasSubtab(subtab) {
+      state.activeVendasSubtab = subtab;
+      const subtabConfig = {
+        purchases: { btn: els.vendasSubtabPurchases, view: els.vendasPurchasesView },
+        coupons: { btn: els.vendasSubtabCoupons, view: els.vendasCouponsView },
+        prices: { btn: els.vendasSubtabPrices, view: els.vendasPricesView },
+        sync: { btn: els.vendasSubtabSync, view: els.vendasSyncView },
+        links: { btn: els.vendasSubtabLinks, view: els.vendasLinksView }
+      };
+      Object.keys(subtabConfig).forEach((key) => {
+        const cfg = subtabConfig[key];
+        const active = key === subtab;
+        cfg.btn.classList.toggle('is-active', active);
+        cfg.view.hidden = !active;
+      });
+    }
+
+    function renderVendasKpis() {
+      const k = state.purchaseKpis;
+      if (!k) return;
+      els.kpiTotalSales.textContent = k.totalSales;
+      els.kpiPaid.textContent = k.paidCount;
+      els.kpiRevenue.textContent = formatCurrencyCents(k.totalRevenueCents, 'EUR');
+      els.kpiPending.textContent = k.pendingCount;
+      els.kpiRefunded.textContent = k.refundedCount;
+      els.kpiCancelled.textContent = k.cancelledCount;
+    }
+
+    function statusBadge(status) {
+      const map = { paid: 'badge-ok', pending: 'badge-warn', refunded: 'badge-danger', cancelled: 'badge-danger', payment_failed: 'badge-danger' };
+      return '<span class="status-badge ' + (map[status] || '') + '">' + escapeHtml(status || '-') + '</span>';
+    }
+
+    function formatDate(iso) {
+      if (!iso) return '-';
+      try { return new Date(iso).toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric' }); } catch (e) { return iso; }
+    }
+
+    function renderVendasTable() {
+      els.vendasBody.innerHTML = '';
+      if (!state.purchases.length) {
+        els.vendasBody.innerHTML = '<tr><td colspan="9">Sem compras registadas.</td></tr>';
+        return;
+      }
+      const frag = document.createDocumentFragment();
+      state.purchases.forEach((p) => {
+        const tr = document.createElement('tr');
+        const hasPaymentIntent = p.stripePaymentIntentId && p.status === 'paid';
+        const hasSubscription = p.stripeSubscriptionId && p.status === 'paid' && p.billingType === 'recurring';
+        let actions = '';
+        if (hasPaymentIntent) {
+          actions += '<button class="btn-sm btn-danger refund-btn" data-pi="' + escapeHtml(p.stripePaymentIntentId) + '" data-email="' + escapeHtml(p.email || '') + '" data-amount="' + (p.amountCents || 0) + '">Reembolsar</button> ';
+        }
+        if (hasSubscription) {
+          actions += '<button class="btn-sm btn-warn cancel-sub-btn" data-sub="' + escapeHtml(p.stripeSubscriptionId) + '" data-email="' + escapeHtml(p.email || '') + '">Cancelar sub</button>';
+        }
+        if (!actions) actions = '-';
+        tr.innerHTML =
+          '<td>' + escapeHtml(p.email || '-') + '</td>' +
+          '<td>' + escapeHtml(p.programName || '-') + '</td>' +
+          '<td>' + escapeHtml(formatCurrencyCents(p.amountCents, p.currency)) + '</td>' +
+          '<td>' + statusBadge(p.status) + '</td>' +
+          '<td>' + escapeHtml(p.billingType || '-') + '</td>' +
+          '<td>' + escapeHtml(p.source || '-') + '</td>' +
+          '<td>' + formatDate(p.paidAt) + '</td>' +
+          '<td>' + formatDate(p.expiresAt) + '</td>' +
+          '<td>' + actions + '</td>';
+        frag.appendChild(tr);
+      });
+      els.vendasBody.appendChild(frag);
+    }
+
+    function renderVendasProgramFilter() {
+      const selected = els.vendasFilterProgram.value;
+      els.vendasFilterProgram.innerHTML = '<option value="">Todos</option>';
+      state.programs.forEach((p) => {
+        const opt = document.createElement('option');
+        opt.value = p.id;
+        opt.textContent = p.name;
+        if (selected === p.id) opt.selected = true;
+        els.vendasFilterProgram.appendChild(opt);
+      });
+    }
+
+    async function refreshVendasData() {
+      if (!state.user) return;
+      showVendasMessage('A carregar vendas...', false);
+      const filters = new URLSearchParams();
+      const st = els.vendasFilterStatus.value;
+      const prog = els.vendasFilterProgram.value;
+      const em = els.vendasFilterEmail.value.trim();
+      const src = els.vendasFilterSource.value;
+      const from = els.vendasFilterFrom.value;
+      const to = els.vendasFilterTo.value;
+      if (st) filters.set('status', st);
+      if (prog) filters.set('program_id', prog);
+      if (em) filters.set('email', em);
+      if (src) filters.set('source', src);
+      if (from) filters.set('from', from + 'T00:00:00Z');
+      if (to) filters.set('to', to + 'T23:59:59Z');
+      const qs = filters.toString();
+      const data = await apiRequest('GET', adminStripePurchasesApiBase + (qs ? '?' + qs : ''));
+      state.purchases = Array.isArray(data.purchases) ? data.purchases : [];
+      state.purchaseKpis = data.kpis || null;
+      renderVendasTable();
+      renderVendasKpis();
+      renderVendasProgramFilter();
+      showVendasMessage('Vendas carregadas: ' + state.purchases.length + '.', false);
+    }
+
+    // Refund action
+    async function refundPurchase(paymentIntentId, email, amountCents) {
+      const msg = 'Confirmar reembolso de ' + formatCurrencyCents(amountCents, 'EUR') + ' para ' + (email || 'desconhecido') + '?';
+      if (!confirm(msg)) return;
+      showVendasMessage('A processar reembolso...', false);
+      await apiRequest('POST', adminStripeRefundApiBase, { payment_intent_id: paymentIntentId });
+      showVendasMessage('Reembolso processado com sucesso.', false);
+      await refreshVendasData();
+    }
+
+    // Cancel subscription action
+    async function cancelSubscriptionAction(subscriptionId, email) {
+      const atEnd = confirm('Cancelar no fim do periodo atual? (OK = fim periodo, Cancelar = imediato)');
+      const msg2 = 'Confirmar cancelamento de subscricao para ' + (email || 'desconhecido') + '?';
+      if (!confirm(msg2)) return;
+      showVendasMessage('A cancelar subscricao...', false);
+      await apiRequest('POST', adminStripeCancelApiBase, { subscription_id: subscriptionId, cancel_at_period_end: atEnd });
+      showVendasMessage('Subscricao cancelada com sucesso.', false);
+      await refreshVendasData();
+    }
+
+    // Coupons
+    function renderCouponsTable() {
+      els.couponsBody.innerHTML = '';
+      if (!state.coupons.length) {
+        els.couponsBody.innerHTML = '<tr><td colspan="7">Sem cupoes registados.</td></tr>';
+        return;
+      }
+      const frag = document.createDocumentFragment();
+      state.coupons.forEach((c) => {
+        const tr = document.createElement('tr');
+        const discount = c.percentOff ? c.percentOff + '%' : formatCurrencyCents(c.amountOff, c.currency || 'EUR');
+        tr.innerHTML =
+          '<td>' + escapeHtml(c.name || c.id) + '</td>' +
+          '<td>' + escapeHtml(discount) + '</td>' +
+          '<td>' + escapeHtml(c.duration || '-') + (c.durationInMonths ? ' (' + c.durationInMonths + ' meses)' : '') + '</td>' +
+          '<td>' + (c.timesRedeemed || 0) + '/' + (c.maxRedemptions || '∞') + '</td>' +
+          '<td>' + statusBadge(c.valid ? 'paid' : 'cancelled') + '</td>' +
+          '<td>' + formatDate(c.createdAt) + '</td>' +
+          '<td>' + (c.valid ? '<button class="btn-sm btn-danger delete-coupon-btn" data-coupon-id="' + escapeHtml(c.id) + '">Desativar</button>' : '-') + '</td>';
+        frag.appendChild(tr);
+      });
+      els.couponsBody.appendChild(frag);
+    }
+
+    async function refreshCouponsData() {
+      showVendasMessage('A carregar cupoes...', false);
+      const data = await apiRequest('GET', adminStripeCouponsApiBase);
+      state.coupons = Array.isArray(data.coupons) ? data.coupons : [];
+      renderCouponsTable();
+      showVendasMessage('Cupoes carregados: ' + state.coupons.length + '.', false);
+    }
+
+    async function createCouponFromAdmin() {
+      const name = els.couponName.value.trim();
+      if (!name) throw new Error('Nome do cupao e obrigatorio.');
+      const type = els.couponType.value;
+      const val = Number(els.couponValue.value);
+      if (!val || val <= 0) throw new Error('Valor do desconto e obrigatorio.');
+      const payload = {
+        name,
+        duration: els.couponDuration.value,
+        duration_in_months: els.couponDurationMonths.value ? Number(els.couponDurationMonths.value) : undefined,
+        max_redemptions: els.couponMaxRedemptions.value ? Number(els.couponMaxRedemptions.value) : undefined,
+        currency: els.couponCurrency.value.trim().toUpperCase() || 'EUR'
+      };
+      if (type === 'percent') {
+        payload.percent_off = val;
+      } else {
+        payload.amount_off = Math.round(val * 100);
+      }
+      showVendasMessage('A criar cupao...', false);
+      await apiRequest('POST', adminStripeCouponsApiBase, payload);
+      showVendasMessage('Cupao criado com sucesso.', false);
+      els.couponName.value = '';
+      els.couponValue.value = '';
+      await refreshCouponsData();
+    }
+
+    async function deleteCouponFromAdmin(couponId) {
+      if (!confirm('Desativar este cupao? Esta acao nao pode ser revertida.')) return;
+      showVendasMessage('A desativar cupao...', false);
+      await apiRequest('DELETE', adminStripeCouponsApiBase, { coupon_id: couponId });
+      showVendasMessage('Cupao desativado.', false);
+      await refreshCouponsData();
+    }
+
+    // Prices
+    function renderPriceProgramSelect() {
+      const selected = els.priceProgramSelect.value;
+      els.priceProgramSelect.innerHTML = '<option value="">Seleciona um programa...</option>';
+      els.linkProgramSelect.innerHTML = '<option value="">Seleciona um programa...</option>';
+      state.programs.forEach((p) => {
+        if (!p.stripeProductId) return;
+        const opt1 = document.createElement('option');
+        opt1.value = p.stripeProductId;
+        opt1.textContent = p.name + ' (' + (p.stripeProductId || '-') + ')';
+        if (selected === p.stripeProductId) opt1.selected = true;
+        els.priceProgramSelect.appendChild(opt1);
+        const opt2 = document.createElement('option');
+        opt2.value = p.id;
+        opt2.textContent = p.name;
+        els.linkProgramSelect.appendChild(opt2);
+      });
+    }
+
+    function renderPricesTable() {
+      els.pricesBody.innerHTML = '';
+      if (!state.stripePrices.length) {
+        els.pricesBody.innerHTML = '<tr><td colspan="7">Nenhum preco carregado.</td></tr>';
+        return;
+      }
+      const frag = document.createDocumentFragment();
+      state.stripePrices.forEach((p) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML =
+          '<td>' + escapeHtml(p.id) + '</td>' +
+          '<td>' + formatCurrencyCents(p.unitAmount, p.currency || 'EUR') + '</td>' +
+          '<td>' + escapeHtml((p.currency || 'EUR').toUpperCase()) + '</td>' +
+          '<td>' + (p.recurring ? escapeHtml(p.recurring.interval) : 'one_time') + '</td>' +
+          '<td>' + statusBadge(p.active ? 'paid' : 'cancelled') + '</td>' +
+          '<td>' + formatDate(p.createdAt) + '</td>' +
+          '<td>' + (p.active ? '<button class="btn-sm btn-warn archive-price-btn" data-price-id="' + escapeHtml(p.id) + '">Arquivar</button>' : '-') + '</td>';
+        frag.appendChild(tr);
+      });
+      els.pricesBody.appendChild(frag);
+    }
+
+    async function loadPricesForProduct(productId) {
+      if (!productId) throw new Error('Seleciona um programa com produto Stripe.');
+      showVendasMessage('A carregar precos...', false);
+      const data = await apiRequest('GET', adminStripePricesApiBase + '?product_id=' + encodeURIComponent(productId));
+      state.stripePrices = Array.isArray(data.prices) ? data.prices : [];
+      renderPricesTable();
+      showVendasMessage('Precos carregados: ' + state.stripePrices.length + '.', false);
+    }
+
+    async function createNewPrice() {
+      const productId = els.newPriceProductId.value.trim();
+      if (!productId) throw new Error('Stripe Product ID e obrigatorio.');
+      const euros = Number(els.newPriceCents.value.replace(',', '.'));
+      const priceCents = Math.round(euros * 100);
+      if (!priceCents || priceCents <= 0) throw new Error('Valor deve ser positivo.');
+      const currency = els.newPriceCurrency.value.trim().toUpperCase() || 'EUR';
+      const recurring = els.newPriceRecurring.checked;
+      showVendasMessage('A criar preco...', false);
+      await apiRequest('POST', adminStripePricesApiBase, { product_id: productId, price_cents: priceCents, currency, recurring });
+      showVendasMessage('Preco criado com sucesso.', false);
+      els.newPriceCents.value = '';
+      await loadPricesForProduct(productId);
+    }
+
+    async function archivePriceFromAdmin(priceId) {
+      if (!confirm('Arquivar este preco? Nao sera possivel usa-lo em novos checkouts.')) return;
+      showVendasMessage('A arquivar preco...', false);
+      await apiRequest('PATCH', adminStripePricesApiBase, { price_id: priceId });
+      showVendasMessage('Preco arquivado.', false);
+      // Reload current prices
+      const productId = els.priceProgramSelect.value;
+      if (productId) await loadPricesForProduct(productId);
+    }
+
+    // Sync Stripe
+    function renderSyncTable() {
+      els.syncBody.innerHTML = '';
+      if (!state.syncResults.length) {
+        els.syncBody.innerHTML = '<tr><td colspan="6">Clica em "Verificar" para iniciar.</td></tr>';
+        return;
+      }
+      const frag = document.createDocumentFragment();
+      state.syncResults.forEach((r) => {
+        const tr = document.createElement('tr');
+        const syncIcon = r.sync === 'synced' ? '✅' : r.sync === 'no_stripe' ? '❌' : '⚠️';
+        tr.innerHTML =
+          '<td>' + escapeHtml(r.name || '-') + '</td>' +
+          '<td>' + escapeHtml(r.programStatus || '-') + '</td>' +
+          '<td>' + syncIcon + ' ' + escapeHtml(r.sync) + '</td>' +
+          '<td>' + (r.stripe ? (r.stripe.productActive ? '✅' : '❌') : '-') + '</td>' +
+          '<td>' + (r.stripe ? (r.stripe.priceActive ? '✅' : '❌') : '-') + '</td>' +
+          '<td>' + (r.warning ? '<span class="status-badge badge-danger">Programa activo sem Stripe valido!</span>' : '-') + '</td>';
+        frag.appendChild(tr);
+      });
+      els.syncBody.appendChild(frag);
+    }
+
+    async function runStripeSync() {
+      els.syncMessage.textContent = 'A verificar...';
+      els.syncMessage.classList.remove('error', 'success');
+      const data = await apiRequest('GET', adminProgramsApiBase + '?action=sync-stripe');
+      state.syncResults = Array.isArray(data.syncResults) ? data.syncResults : [];
+      renderSyncTable();
+      const warnings = state.syncResults.filter((r) => r.warning).length;
+      els.syncMessage.textContent = 'Verificacao completa. ' + (warnings ? warnings + ' alertas encontrados.' : 'Tudo sincronizado.');
+      els.syncMessage.classList.toggle('error', warnings > 0);
+      els.syncMessage.classList.toggle('success', warnings === 0);
+    }
+
+    // Payment Links
+    async function generatePaymentLink() {
+      const programId = els.linkProgramSelect.value;
+      if (!programId) throw new Error('Seleciona um programa.');
+      els.linkMessage.textContent = 'A gerar link...';
+      els.linkMessage.classList.remove('error', 'success');
+      els.linkResult.hidden = true;
+      const data = await apiRequest('POST', adminStripeLinksApiBase, { program_id: programId });
+      if (data.paymentLink && data.paymentLink.url) {
+        els.linkResultUrl.value = data.paymentLink.url;
+        els.linkResult.hidden = false;
+        els.linkMessage.textContent = 'Payment Link gerado com sucesso!';
+        els.linkMessage.classList.add('success');
+      }
+    }
+
+    // Vendas event listeners
+    els.vendasRefreshBtn.addEventListener('click', async () => {
+      try { await refreshVendasData(); } catch (err) { showVendasMessage(err.message, true); }
+    });
+
+    els.vendasSubtabPurchases.addEventListener('click', () => setVendasSubtab('purchases'));
+    els.vendasSubtabCoupons.addEventListener('click', async () => {
+      setVendasSubtab('coupons');
+      try { await refreshCouponsData(); } catch (err) { showVendasMessage(err.message, true); }
+    });
+    els.vendasSubtabPrices.addEventListener('click', () => {
+      setVendasSubtab('prices');
+      renderPriceProgramSelect();
+    });
+    els.vendasSubtabSync.addEventListener('click', () => setVendasSubtab('sync'));
+    els.vendasSubtabLinks.addEventListener('click', () => {
+      setVendasSubtab('links');
+      renderPriceProgramSelect();
+    });
+
+    els.vendasBody.addEventListener('click', async (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLButtonElement)) return;
+      try {
+        if (target.classList.contains('refund-btn')) {
+          await refundPurchase(target.dataset.pi, target.dataset.email, Number(target.dataset.amount || 0));
+        }
+        if (target.classList.contains('cancel-sub-btn')) {
+          await cancelSubscriptionAction(target.dataset.sub, target.dataset.email);
+        }
+      } catch (err) { showVendasMessage(err.message, true); }
+    });
+
+    els.couponCreateBtn.addEventListener('click', async () => {
+      try { await createCouponFromAdmin(); } catch (err) { showVendasMessage(err.message, true); }
+    });
+
+    els.couponsBody.addEventListener('click', async (event) => {
+      const target = event.target;
+      if (target instanceof HTMLButtonElement && target.classList.contains('delete-coupon-btn')) {
+        try { await deleteCouponFromAdmin(target.dataset.couponId); } catch (err) { showVendasMessage(err.message, true); }
+      }
+    });
+
+    els.priceLoadBtn.addEventListener('click', async () => {
+      try { await loadPricesForProduct(els.priceProgramSelect.value); } catch (err) { showVendasMessage(err.message, true); }
+    });
+
+    els.newPriceCreateBtn.addEventListener('click', async () => {
+      try { await createNewPrice(); } catch (err) { showVendasMessage(err.message, true); }
+    });
+
+    els.pricesBody.addEventListener('click', async (event) => {
+      const target = event.target;
+      if (target instanceof HTMLButtonElement && target.classList.contains('archive-price-btn')) {
+        try { await archivePriceFromAdmin(target.dataset.priceId); } catch (err) { showVendasMessage(err.message, true); }
+      }
+    });
+
+    els.syncStripeBtn.addEventListener('click', async () => {
+      try { await runStripeSync(); } catch (err) { showVendasMessage(err.message, true); }
+    });
+
+    els.generateLinkBtn.addEventListener('click', async () => {
+      try { await generatePaymentLink(); } catch (err) {
+        els.linkMessage.textContent = err.message;
+        els.linkMessage.classList.add('error');
+      }
+    });
+
+    els.linkCopyBtn.addEventListener('click', () => {
+      const url = els.linkResultUrl.value;
+      if (url) {
+        navigator.clipboard.writeText(url).then(() => {
+          els.linkCopyBtn.textContent = 'Copiado!';
+          setTimeout(() => { els.linkCopyBtn.textContent = 'Copiar'; }, 1500);
+        });
+      }
+    });
+
+    // ======================= END VENDAS =======================
+
     els.leadsBody.addEventListener('click', async (event) => {
       const target = event.target;
       if (!(target instanceof HTMLButtonElement)) return;
@@ -3644,6 +4463,7 @@
     els.tabSiteContent.addEventListener('click', () => setActiveTab('siteContent'));
     els.tabAthletes.addEventListener('click', () => setActiveTab('athletes'));
     els.tabPrograms.addEventListener('click', () => setActiveTab('programs'));
+    els.tabVendas.addEventListener('click', () => setActiveTab('vendas'));
     els.tabCoaches.addEventListener('click', () => setActiveTab('coaches'));
     els.tabLeads.addEventListener('click', () => setActiveTab('leads'));
     els.tabAi.addEventListener('click', () => setActiveTab('ai'));
@@ -3661,6 +4481,7 @@
     showLeadsMessage('Faz login para ver as leads Meta.', false);
     showProgramsMessage('Faz login para gerir programas.', false);
     showProgramGrantsMessage('Faz login para conceder acessos manuais.', false);
+    showVendasMessage('Faz login para ver vendas e controlo Stripe.', false);
     showAiMessage('Faz login para gerir prompts e logs de IA.', false);
     showOperationsMessage('Faz login para usar a auditoria de dados.', false);
     renderAuditAthleteOptions();

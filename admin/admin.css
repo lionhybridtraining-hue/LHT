@@ -1673,3 +1673,225 @@ details[open] .sc-ess-summary::before {
 .sc-avancado-details .sc-sections {
   padding: 0 20px 20px;
 }
+
+/* ===== VENDAS / STRIPE OPS ===== */
+
+.vendas-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.kpi-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 14px 16px;
+  text-align: center;
+}
+
+.kpi-card .kpi-label {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.kpi-card .kpi-value {
+  display: block;
+  font-family: "Oswald", sans-serif;
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.kpi-card.kpi-ok { border-color: rgba(36, 107, 82, 0.5); }
+.kpi-card.kpi-ok .kpi-value { color: #4ecb91; }
+
+.kpi-card.kpi-warn { border-color: rgba(200, 154, 60, 0.5); }
+.kpi-card.kpi-warn .kpi-value { color: var(--accent-strong); }
+
+.kpi-card.kpi-danger { border-color: rgba(182, 70, 51, 0.5); }
+.kpi-card.kpi-danger .kpi-value { color: #e36b56; }
+
+/* Vendas subtabs */
+.vendas-subtabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+
+.vendas-subtab {
+  font-family: "Oswald", sans-serif;
+  font-size: 0.8rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 7px 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.vendas-subtab:hover {
+  border-color: var(--line-strong);
+  color: var(--ink);
+}
+
+.vendas-subtab.is-active {
+  border-color: var(--accent);
+  background: rgba(200, 154, 60, 0.12);
+  color: var(--accent-strong);
+}
+
+/* Status badges */
+.status-badge {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--muted);
+}
+
+.status-badge.badge-ok {
+  background: rgba(36, 107, 82, 0.2);
+  color: #4ecb91;
+}
+
+.status-badge.badge-warn {
+  background: rgba(200, 154, 60, 0.2);
+  color: var(--accent-strong);
+}
+
+.status-badge.badge-danger {
+  background: rgba(182, 70, 51, 0.2);
+  color: #e36b56;
+}
+
+/* Small action buttons */
+.btn-sm {
+  font-family: "Oswald", sans-serif;
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.btn-sm:hover {
+  border-color: var(--line-strong);
+}
+
+.btn-sm.btn-danger {
+  border-color: rgba(182, 70, 51, 0.5);
+  color: #e36b56;
+}
+
+.btn-sm.btn-danger:hover {
+  background: rgba(182, 70, 51, 0.15);
+}
+
+.btn-sm.btn-warn {
+  border-color: rgba(200, 154, 60, 0.5);
+  color: var(--accent-strong);
+}
+
+.btn-sm.btn-warn:hover {
+  background: rgba(200, 154, 60, 0.15);
+}
+
+/* Vendas table */
+.vendas-table {
+  min-width: 1100px;
+}
+
+/* Vendas filters */
+.vendas-filters {
+  margin-bottom: 14px;
+}
+
+/* Link result box */
+.link-result-box {
+  background: var(--panel);
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-top: 14px;
+}
+
+.link-result-box label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+.link-result-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.link-result-row input {
+  flex: 1;
+  font-family: inherit;
+  font-size: 0.85rem;
+  padding: 8px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--ink);
+}
+
+.link-result-row button {
+  font-family: "Oswald", sans-serif;
+  font-size: 0.82rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--accent-deep);
+  background: rgba(200, 154, 60, 0.12);
+  color: var(--ink);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.link-result-row button:hover {
+  background: rgba(200, 154, 60, 0.24);
+}
+
+@media (max-width: 700px) {
+  .vendas-kpis {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .vendas-subtabs {
+    gap: 6px;
+  }
+  
+  .vendas-subtab {
+    font-size: 0.72rem;
+    padding: 5px 10px;
+  }
+}
