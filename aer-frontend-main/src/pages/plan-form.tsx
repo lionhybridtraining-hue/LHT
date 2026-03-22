@@ -26,6 +26,11 @@ import {
   vdotToLevel,
   VDOT_TIERS,
 } from "@/utils/vdot";
+import {
+  planocorridaPageStyle,
+  planocorridaPanelStyle,
+  planocorridaSoftPanelStyle,
+} from "@/lib/planocorrida-theme";
 
 const COMMUNITY_URL = "https://chat.whatsapp.com/JVsqO05fm4kLhbSaSiKL8n";
 
@@ -461,9 +466,15 @@ function PlanForm() {
 
   if (!authChecked) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4 text-[#e4e8ef]">
-        <div className="rounded-2xl border border-[#d4a54f33] bg-[#161616] px-5 py-4">
-          A validar a tua sessao...
+      <div className="relative min-h-screen px-4 text-[#e4e8ef]" style={planocorridaPageStyle}>
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(7,7,7,0.46),rgba(7,7,7,0.82)),radial-gradient(circle_at_20%_0,rgba(212,165,79,0.14),transparent_35%),radial-gradient(circle_at_80%_10%,rgba(22,102,216,0.16),transparent_30%)]" />
+        <div className="relative flex min-h-screen items-center justify-center">
+          <div
+            className="rounded-[24px] border border-[#d4a54f29] px-5 py-4 shadow-[0_22px_54px_rgba(0,0,0,0.36)]"
+            style={planocorridaPanelStyle}
+          >
+            A validar a tua sessao...
+          </div>
         </div>
       </div>
     );
@@ -471,12 +482,16 @@ function PlanForm() {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(212,165,79,0.16)_0%,rgba(26,26,26,1)_48%,rgba(10,10,10,1)_100%)] px-4 py-10 text-[#e4e8ef]">
-        <div className="mx-auto max-w-xl rounded-[28px] border border-[#d4a54f33] bg-[#121212f2] p-7 shadow-[0_30px_80px_rgba(0,0,0,0.45)]">
+      <div className="relative min-h-screen px-4 py-10 text-[#e4e8ef]" style={planocorridaPageStyle}>
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(7,7,7,0.46),rgba(7,7,7,0.82)),radial-gradient(circle_at_20%_0,rgba(212,165,79,0.14),transparent_35%),radial-gradient(circle_at_80%_10%,rgba(22,102,216,0.16),transparent_30%),radial-gradient(circle_at_50%_100%,rgba(212,165,79,0.08),transparent_28%)]" />
+        <div
+          className="relative mx-auto max-w-xl rounded-[28px] border border-[#d4a54f29] p-7 shadow-[0_22px_54px_rgba(0,0,0,0.36)]"
+          style={planocorridaPanelStyle}
+        >
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#d4a54f]">
             Plano de Corrida LHT
           </p>
-          <h1 className="mt-2 text-3xl font-bold text-[#f4f6fa]">
+          <h1 className="mt-2 font-serif text-3xl font-semibold uppercase tracking-[0.03em] text-[#f4f6fa]">
             Falta entrares com Google para guardar o teu plano.
           </h1>
           <p className="mt-3 text-sm leading-relaxed text-[#c9ced9]">
@@ -505,21 +520,30 @@ function PlanForm() {
 
   // ── JSX ─────────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(212,165,79,0.16)_0%,rgba(26,26,26,1)_48%,rgba(10,10,10,1)_100%)] py-10 px-4 text-[#e4e8ef]">
-      <div className="max-w-3xl mx-auto">
+    <div className="relative min-h-screen py-10 px-4 text-[#e4e8ef]" style={planocorridaPageStyle}>
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(7,7,7,0.46),rgba(7,7,7,0.82)),radial-gradient(circle_at_20%_0,rgba(212,165,79,0.14),transparent_35%),radial-gradient(circle_at_80%_10%,rgba(22,102,216,0.16),transparent_30%),radial-gradient(circle_at_50%_100%,rgba(212,165,79,0.08),transparent_28%)]" />
+      <div className="relative max-w-4xl mx-auto">
 
         {/* ── Header ── */}
-        <div className="mb-6 flex items-center justify-between">
+        <div
+          className="mb-6 flex flex-col gap-4 rounded-[24px] border border-[#d4a54f29] p-5 shadow-[0_22px_54px_rgba(0,0,0,0.36)] md:flex-row md:items-center md:justify-between"
+          style={planocorridaPanelStyle}
+        >
           <div>
             <p className="text-[#d4a54f] text-xs font-semibold uppercase tracking-[0.18em] mb-1">
               Lion Hybrid Training
             </p>
-            <h1 className="text-3xl font-bold text-[#f4f6fa]">Plano de Corrida LHT</h1>
+            <h1 className="font-serif text-3xl font-semibold uppercase tracking-[0.03em] text-[#f4f6fa]">
+              Plano de Corrida LHT
+            </h1>
             <p className="text-[#c9ced9] mt-1">
               Estrutura, consistencia e progressao com proposito.
             </p>
           </div>
-          <Link to="/" className="text-sm font-semibold text-[#d4a54f] hover:text-[#e6bc70]">
+          <Link
+            to="/"
+            className="inline-flex w-fit items-center rounded-full border border-[#d4a54f55] px-4 py-2 text-sm font-semibold text-[#f7f1e8] hover:bg-[rgba(255,255,255,0.05)]"
+          >
             Voltar ao inicio
           </Link>
         </div>
@@ -532,15 +556,24 @@ function PlanForm() {
 
         {/* ── Social proof ── */}
         <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
-          <div className="rounded-xl border border-[#d4a54f33] bg-[#141414cc] p-3">
+          <div
+            className="rounded-[20px] border border-[#d4a54f29] p-4 shadow-[0_18px_40px_rgba(0,0,0,0.28)]"
+            style={planocorridaSoftPanelStyle}
+          >
             <p className="text-[#d4a54f] font-semibold">+120 atletas</p>
             <p className="text-[#c9ced9]">ja iniciaram o metodo LHT</p>
           </div>
-          <div className="rounded-xl border border-[#d4a54f33] bg-[#141414cc] p-3">
+          <div
+            className="rounded-[20px] border border-[#d4a54f29] p-4 shadow-[0_18px_40px_rgba(0,0,0,0.28)]"
+            style={planocorridaSoftPanelStyle}
+          >
             <p className="text-[#d4a54f] font-semibold">Metodo aplicado</p>
             <p className="text-[#c9ced9]">fisiologia, progressao e consistencia</p>
           </div>
-          <div className="rounded-xl border border-[#d4a54f33] bg-[#141414cc] p-3">
+          <div
+            className="rounded-[20px] border border-[#d4a54f29] p-4 shadow-[0_18px_40px_rgba(0,0,0,0.28)]"
+            style={planocorridaSoftPanelStyle}
+          >
             <p className="text-[#d4a54f] font-semibold">Comunidade ativa</p>
             <a
               href={COMMUNITY_URL}
@@ -558,7 +591,8 @@ function PlanForm() {
             e.preventDefault();
             handleNext();
           }}
-          className="bg-[#1f1f1ff2] rounded-2xl border border-[#d4a54f33] p-6 shadow-[0_0_30px_rgba(0,0,0,0.35)] space-y-8"
+          className="rounded-[28px] border border-[#d4a54f29] p-6 shadow-[0_22px_54px_rgba(0,0,0,0.36)] space-y-8"
+          style={planocorridaPanelStyle}
         >
           {/* Step Indicator */}
           <StepIndicator
@@ -652,8 +686,8 @@ function PlanForm() {
                   key={opt.key}
                   className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
                     vdotPath === opt.key
-                      ? "border-[#d4a54f] bg-[#252015]"
-                      : "border-[#d4a54f33] bg-[#1a1a1a] hover:border-[#d4a54f66]"
+                      ? "border-[#d4a54f] bg-[linear-gradient(180deg,rgba(46,34,13,0.96),rgba(24,18,8,0.96))]"
+                      : "border-[#d4a54f29] bg-[linear-gradient(180deg,rgba(24,24,24,0.92),rgba(10,10,10,0.97))] hover:border-[#d4a54f66]"
                   }`}
                 >
                   <input
@@ -689,7 +723,7 @@ function PlanForm() {
                     Prova mais recente ou com melhor score dos ultimos 2/3 meses.
                   </span>
                   <input
-                    className="border border-[#d4a54f44] bg-[#2a2a2a] rounded-md px-3 py-2 text-[#f4f6fa] w-40"
+                    className="border border-[#d4a54f44] bg-[rgba(255,255,255,0.04)] rounded-md px-3 py-2 text-[#f4f6fa] w-40"
                     value={raceTimeStr}
                     onChange={(e) => setRaceTimeStr(e.target.value)}
                     placeholder="00:25:30"
@@ -726,7 +760,7 @@ function PlanForm() {
                     Pace (MM:SS /km)
                   </span>
                   <input
-                    className="border border-[#d4a54f44] bg-[#2a2a2a] rounded-md px-3 py-2 text-[#f4f6fa] w-32"
+                    className="border border-[#d4a54f44] bg-[rgba(255,255,255,0.04)] rounded-md px-3 py-2 text-[#f4f6fa] w-32"
                     value={paceStr}
                     onChange={(e) => setPaceStr(e.target.value)}
                     placeholder="05:30"
@@ -749,8 +783,8 @@ function PlanForm() {
                       onClick={() => setSelectedTier(tier.vdot)}
                       className={`text-left p-3 rounded-lg border transition-all ${
                         selectedTier === tier.vdot
-                          ? "border-[#d4a54f] bg-[#252015]"
-                          : "border-[#d4a54f33] bg-[#1a1a1a] hover:border-[#d4a54f66]"
+                          ? "border-[#d4a54f] bg-[linear-gradient(180deg,rgba(46,34,13,0.96),rgba(24,18,8,0.96))]"
+                          : "border-[#d4a54f29] bg-[linear-gradient(180deg,rgba(24,24,24,0.92),rgba(10,10,10,0.97))] hover:border-[#d4a54f66]"
                       }`}
                     >
                       <div className="flex items-center justify-between">
@@ -845,7 +879,7 @@ function PlanForm() {
                   Nome (opcional)
                 </span>
                 <input
-                  className="border border-[#d4a54f44] bg-[#2a2a2a] rounded-md px-3 py-2 text-[#f4f6fa]"
+                  className="border border-[#d4a54f44] bg-[rgba(255,255,255,0.04)] rounded-md px-3 py-2 text-[#f4f6fa]"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Ex.: Joao"
@@ -862,7 +896,7 @@ function PlanForm() {
                   type="number"
                   min={0}
                   step="0.5"
-                  className="border border-[#d4a54f44] bg-[#2a2a2a] rounded-md px-3 py-2 text-[#f4f6fa]"
+                  className="border border-[#d4a54f44] bg-[rgba(255,255,255,0.04)] rounded-md px-3 py-2 text-[#f4f6fa]"
                   value={initialVolume}
                   onChange={(e) =>
                     setInitialVolume(e.target.value ? Number(e.target.value) : "")

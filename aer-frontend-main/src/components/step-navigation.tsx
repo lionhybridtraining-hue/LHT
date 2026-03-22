@@ -25,7 +25,7 @@ export default function StepNavigation({
           type="button"
           disabled={isLoading}
           onClick={onPrev}
-          className="px-5 py-3 rounded-md border border-[#d4a54f66] text-[#e4e8ef] font-semibold hover:bg-[#2a2a2a] disabled:opacity-50 disabled:cursor-not-allowed"
+          className="px-5 py-3 rounded-md border border-[#d4a54f66] bg-[rgba(255,255,255,0.03)] text-[#e4e8ef] font-semibold hover:bg-[rgba(255,255,255,0.06)] disabled:opacity-50 disabled:cursor-not-allowed"
         >
           ← Anterior
         </button>

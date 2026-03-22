@@ -2,6 +2,14 @@
   publish = "."
   command = "npm run build"
 
+[dev]
+  command = "node scripts/dev-planocorrida.mjs"
+  targetPort = 5173
+  port = 8888
+  publish = "."
+  autoLaunch = false
+  framework = "#custom"
+
 [functions]
   directory = "netlify/functions"
 
@@ -39,12 +47,12 @@
 
 [[redirects]]
   from = "/planocorrida"
-  to = "/index.html"
+  to = "/planocorrida/index.html"
   status = 200
 
 [[redirects]]
   from = "/planocorrida/*"
-  to = "/index.html"
+  to = "/planocorrida/index.html"
   status = 200
 
 # Ensure posts index is not captured by the slug rewrite

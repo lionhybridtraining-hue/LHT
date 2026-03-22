@@ -1,6 +1,5 @@
 import { FormEvent, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import ButtonGroup from "@/components/button-group";
 import { mergeOnboardingAnswers } from "@/lib/onboarding-intake";
 import {
   isValidPhone,
@@ -8,21 +7,15 @@ import {
   savePlanLandingDraft,
   type PlanLandingDraft,
 } from "@/lib/planocorrida-draft";
+import {
+  planocorridaPageStyle,
+  planocorridaPanelStyle,
+  planocorridaSoftPanelStyle,
+} from "@/lib/planocorrida-theme";
 import { getAccessToken, signInWithGoogle, supabase } from "@/lib/supabase";
 
-const GOAL_OPTIONS = [
-  { label: "5K", value: 5 },
-  { label: "10K", value: 10 },
-  { label: "Meia", value: 21.1 },
-  { label: "Maratona", value: 42.2 },
-];
-
-const FREQUENCY_OPTIONS = [
-  { label: "2x / semana", value: 2 },
-  { label: "3x / semana", value: 3 },
-  { label: "4x / semana", value: 4 },
-  { label: "5x / semana", value: 5 },
-];
+const DEFAULT_GOAL_DISTANCE = 10;
+const DEFAULT_WEEKLY_FREQUENCY = 3;
 
 const EXPERIENCE_OPTIONS = [
   {
@@ -66,8 +59,6 @@ export default function PlanLanding() {
 
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [goalDistance, setGoalDistance] = useState(10);
-  const [weeklyFrequency, setWeeklyFrequency] = useState(3);
   const [experienceLevel, setExperienceLevel] = useState("building");
   const [currentConsistency, setCurrentConsistency] = useState("medium");
 
@@ -106,8 +97,8 @@ export default function PlanLanding() {
     const draft: PlanLandingDraft = {
       name: name.trim(),
       phone: normalizePhone(phone),
-      goalDistance,
-      weeklyFrequency,
+      goalDistance: DEFAULT_GOAL_DISTANCE,
+      weeklyFrequency: DEFAULT_WEEKLY_FREQUENCY,
       experienceLevel,
       currentConsistency,
       createdAt: new Date().toISOString(),
@@ -140,14 +131,14 @@ export default function PlanLanding() {
   }
 
   return (
-    <div className="min-h-screen overflow-hidden bg-[linear-gradient(180deg,#090909_0%,#131313_40%,#0b0b0b_100%)] text-[#edf1f7]">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_10%,rgba(212,165,79,0.22),transparent_28%),radial-gradient(circle_at_85%_20%,rgba(164,96,42,0.18),transparent_24%),radial-gradient(circle_at_55%_100%,rgba(212,165,79,0.12),transparent_30%)]" />
+    <div className="relative min-h-screen overflow-hidden text-[#edf1f7]" style={planocorridaPageStyle}>
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(7,7,7,0.42),rgba(7,7,7,0.78)),radial-gradient(circle_at_20%_0,rgba(212,165,79,0.14),transparent_35%),radial-gradient(circle_at_80%_10,rgba(22,102,216,0.16),transparent_30%),radial-gradient(circle_at_50%_100%,rgba(212,165,79,0.08),transparent_28%)]" />
       <div className="relative mx-auto grid min-h-screen max-w-6xl items-center gap-10 px-4 py-10 lg:grid-cols-[1.05fr_0.95fr]">
         <section>
           <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[#d4a54f]">
             Lion Hybrid Training
           </p>
-          <h1 className="mt-4 max-w-2xl font-serif text-5xl font-semibold leading-[0.98] text-[#f7f1e8] md:text-6xl">
+          <h1 className="mt-4 max-w-2xl font-serif text-5xl font-semibold uppercase leading-[0.98] tracking-[0.03em] text-[#f7f1e8] md:text-6xl">
             Cria o teu plano de corrida com login feito desde o primeiro passo.
           </h1>
           <p className="mt-5 max-w-xl text-base leading-7 text-[#c8cfda] md:text-lg">
@@ -156,22 +147,34 @@ export default function PlanLanding() {
           </p>
 
           <div className="mt-8 grid gap-4 sm:grid-cols-3">
-            <div className="rounded-2xl border border-[#d4a54f22] bg-[#151515] p-4">
+            <div
+              className="rounded-2xl border border-[#d4a54f29] p-4 shadow-[0_18px_40px_rgba(0,0,0,0.28)]"
+              style={planocorridaSoftPanelStyle}
+            >
               <p className="text-2xl font-semibold text-[#f7f1e8]">1</p>
               <p className="mt-2 text-sm text-[#c8cfda]">Respondes a 4 perguntas-chave.</p>
             </div>
-            <div className="rounded-2xl border border-[#d4a54f22] bg-[#151515] p-4">
+            <div
+              className="rounded-2xl border border-[#d4a54f29] p-4 shadow-[0_18px_40px_rgba(0,0,0,0.28)]"
+              style={planocorridaSoftPanelStyle}
+            >
               <p className="text-2xl font-semibold text-[#f7f1e8]">2</p>
               <p className="mt-2 text-sm text-[#c8cfda]">Fazes login Google sem perder o progresso.</p>
             </div>
-            <div className="rounded-2xl border border-[#d4a54f22] bg-[#151515] p-4">
+            <div
+              className="rounded-2xl border border-[#d4a54f29] p-4 shadow-[0_18px_40px_rgba(0,0,0,0.28)]"
+              style={planocorridaSoftPanelStyle}
+            >
               <p className="text-2xl font-semibold text-[#f7f1e8]">3</p>
               <p className="mt-2 text-sm text-[#c8cfda]">Acabas o plano e guardamos os teus dados.</p>
             </div>
           </div>
         </section>
 
-        <section className="rounded-[30px] border border-[#d4a54f33] bg-[#111111e8] p-6 shadow-[0_35px_90px_rgba(0,0,0,0.5)] backdrop-blur-sm md:p-7">
+        <section
+          className="rounded-[30px] border border-[#d4a54f29] p-6 shadow-[0_22px_54px_rgba(0,0,0,0.36)] backdrop-blur-[2px] md:p-7"
+          style={planocorridaPanelStyle}
+        >
           <div className="mb-5 flex items-center justify-between gap-3">
             <div>
               <p className="text-sm font-semibold text-[#f7f1e8]">Primeiro passo</p>
@@ -194,7 +197,7 @@ export default function PlanLanding() {
                   value={name}
                   onChange={(event) => setName(event.target.value)}
                   placeholder="Ex.: Joao"
-                  className="rounded-xl border border-[#d4a54f3d] bg-[#1a1a1a] px-3 py-3 text-sm text-[#f7f1e8] outline-none transition focus:border-[#d4a54f]"
+                  className="rounded-xl border border-[#d4a54f3d] bg-[rgba(255,255,255,0.04)] px-3 py-3 text-sm text-[#f7f1e8] outline-none transition focus:border-[#d4a54f]"
                 />
               </label>
               <label className="flex flex-col gap-1.5">
@@ -203,23 +206,9 @@ export default function PlanLanding() {
                   value={phone}
                   onChange={(event) => setPhone(normalizePhone(event.target.value))}
                   placeholder="Ex.: +351 912 345 678"
-                  className="rounded-xl border border-[#d4a54f3d] bg-[#1a1a1a] px-3 py-3 text-sm text-[#f7f1e8] outline-none transition focus:border-[#d4a54f]"
+                  className="rounded-xl border border-[#d4a54f3d] bg-[rgba(255,255,255,0.04)] px-3 py-3 text-sm text-[#f7f1e8] outline-none transition focus:border-[#d4a54f]"
                 />
               </label>
-            </div>
-
-            <div className="space-y-2">
-              <p className="text-sm font-medium text-[#dce3ef]">Qual o teu objetivo principal?</p>
-              <ButtonGroup options={GOAL_OPTIONS} value={goalDistance} onChange={setGoalDistance} />
-            </div>
-
-            <div className="space-y-2">
-              <p className="text-sm font-medium text-[#dce3ef]">Quantas vezes consegues treinar por semana?</p>
-              <ButtonGroup
-                options={FREQUENCY_OPTIONS}
-                value={weeklyFrequency}
-                onChange={setWeeklyFrequency}
-              />
             </div>
 
             <div className="space-y-2">
@@ -234,8 +223,8 @@ export default function PlanLanding() {
                       onClick={() => setExperienceLevel(option.value)}
                       className={`rounded-2xl border px-4 py-3 text-left transition ${
                         active
-                          ? "border-[#d4a54f] bg-[#241d12]"
-                          : "border-[#d4a54f22] bg-[#161616] hover:border-[#d4a54f66]"
+                          ? "border-[#d4a54f] bg-[linear-gradient(180deg,rgba(46,34,13,0.96),rgba(24,18,8,0.96))]"
+                          : "border-[#d4a54f29] bg-[linear-gradient(180deg,rgba(24,24,24,0.92),rgba(10,10,10,0.97))] hover:border-[#d4a54f66]"
                       }`}
                     >
                       <p className="text-sm font-semibold text-[#f7f1e8]">{option.title}</p>
@@ -258,8 +247,8 @@ export default function PlanLanding() {
                       onClick={() => setCurrentConsistency(option.value)}
                       className={`rounded-2xl border px-3 py-3 text-sm transition ${
                         active
-                          ? "border-[#d4a54f] bg-[#241d12] text-[#f7f1e8]"
-                          : "border-[#d4a54f22] bg-[#161616] text-[#c8cfda] hover:border-[#d4a54f66]"
+                          ? "border-[#d4a54f] bg-[linear-gradient(180deg,rgba(46,34,13,0.96),rgba(24,18,8,0.96))] text-[#f7f1e8]"
+                          : "border-[#d4a54f29] bg-[linear-gradient(180deg,rgba(24,24,24,0.92),rgba(10,10,10,0.97))] text-[#c8cfda] hover:border-[#d4a54f66]"
                       }`}
                     >
                       {option.title}

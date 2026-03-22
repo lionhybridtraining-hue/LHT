@@ -14,7 +14,7 @@ export default function StepIndicator({
   return (
     <div className="mb-8 space-y-3">
       {/* Progress bar */}
-      <div className="h-1 bg-[#2a2a2a] rounded-full overflow-hidden">
+      <div className="h-1 rounded-full overflow-hidden bg-[rgba(255,255,255,0.08)]">
         <div
           className="h-full bg-[#d4a54f] transition-all duration-300"
           style={{ width: `${progressPercent}%` }}
