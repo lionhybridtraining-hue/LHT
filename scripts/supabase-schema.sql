@@ -374,13 +374,14 @@ create table if not exists training_programs (
   stripe_product_id text,
   stripe_price_id text,
   billing_type text not null default 'one_time' check (billing_type in ('one_time', 'recurring')),
-  followup_type text not null default 'standard',
   status text not null default 'draft' check (status in ('draft', 'active', 'archived')),
-  is_scheduled_template boolean not null default false,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   deleted_at timestamptz
 );
+
+alter table training_programs drop column if exists followup_type;
+alter table training_programs drop column if exists is_scheduled_template;
 
 create unique index if not exists training_programs_external_uidx
 on training_programs (external_source, external_id)

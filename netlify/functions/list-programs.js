@@ -21,7 +21,6 @@ exports.handler = async (event) => {
             durationWeeks: program.duration_weeks,
             priceCents: program.price_cents,
             currency: program.currency,
-            followupType: program.followup_type,
             billingType: program.billing_type || "one_time"
           }))
         : []

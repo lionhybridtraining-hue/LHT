@@ -114,6 +114,7 @@ exports.handler = async (event) => {
           return json(400, { error: "Nome, preço e moeda são obrigatórios para criar produto Stripe" });
         }
         try {
+          getStripeClient(config);
           const recurring = normalized.billing_type === "recurring";
           const { productId, priceId } = await createStripeProductAndPrice({
             name: normalized.name,
