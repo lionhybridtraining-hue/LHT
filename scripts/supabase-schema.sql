@@ -617,6 +617,193 @@ before update on ai_prompts
 for each row
 execute function set_updated_at();
 
+-- ============================================================
+-- Strength Training Planning & Tracking (Phase 1)
+-- ============================================================
+
+-- 1. exercises — Master exercise catalog
+create table if not exists exercises (
+  id uuid primary key default gen_random_uuid(),
+  name text not null unique,
+  category text not null check (category in (
+    'main_movements', 'core', 'hypertrophy', 'rfd', 'mobility_activation'
+  )),
+  subcategory text not null,
+  video_url text,
+  description text,
+  default_weight_per_side boolean not null default false,
+  default_each_side boolean not null default false,
+  default_tempo text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists exercises_category_subcategory_idx
+on exercises (category, subcategory);
+
+drop trigger if exists set_exercises_updated_at on exercises;
+create trigger set_exercises_updated_at
+before update on exercises
+for each row
+execute function set_updated_at();
+
+-- 2. strength_plans — Mesocycle plan per athlete
+create table if not exists strength_plans (
+  id uuid primary key default gen_random_uuid(),
+  athlete_id uuid not null references athletes(id) on delete cascade,
+  name text not null,
+  total_weeks integer not null check (total_weeks >= 1),
+  load_round numeric(4,2) not null default 2.5,
+  start_date date,
+  status text not null default 'draft' check (status in ('draft', 'active', 'completed', 'archived')),
+  created_by text not null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists strength_plans_athlete_status_idx
+on strength_plans (athlete_id, status)
+where status in ('draft', 'active');
+
+create unique index if not exists strength_plans_single_active_uidx
+on strength_plans (athlete_id)
+where status = 'active';
+
+drop trigger if exists set_strength_plans_updated_at on strength_plans;
+create trigger set_strength_plans_updated_at
+before update on strength_plans
+for each row
+execute function set_updated_at();
+
+-- 3. strength_plan_exercises — Exercise slot per day/section
+create table if not exists strength_plan_exercises (
+  id uuid primary key default gen_random_uuid(),
+  plan_id uuid not null references strength_plans(id) on delete cascade,
+  day_number integer not null check (day_number between 1 and 7),
+  section text not null check (section in (
+    'warm_up', 'plyos_speed', 'main', 'conditioning', 'observations'
+  )),
+  superset_group text,
+  exercise_order integer not null,
+  exercise_id uuid not null references exercises(id) on delete restrict,
+  each_side boolean not null default false,
+  weight_per_side boolean not null default false,
+  plyo_mechanical_load text check (plyo_mechanical_load in ('high', 'medium', 'low') or plyo_mechanical_load is null),
+  rm_percent_increase_per_week numeric(5,4),
+  created_at timestamptz not null default now()
+);
+
+create unique index if not exists strength_plan_exercises_slot_uidx
+on strength_plan_exercises (plan_id, day_number, section, exercise_order);
+
+create index if not exists strength_plan_exercises_plan_day_idx
+on strength_plan_exercises (plan_id, day_number);
+
+-- 4. strength_prescriptions — Per exercise per week
+create table if not exists strength_prescriptions (
+  id uuid primary key default gen_random_uuid(),
+  plan_exercise_id uuid not null references strength_plan_exercises(id) on delete cascade,
+  week_number integer not null check (week_number >= 1),
+  prescription_type text not null default 'reps' check (prescription_type in ('reps', 'duration')),
+  sets integer not null default 1,
+  reps integer,
+  duration_seconds integer,
+  rest_seconds integer,
+  rir integer,
+  tempo text,
+  gct text check (gct in ('altura', 'rápido', 'intermédio') or gct is null),
+  method text not null default 'standard' check (method in (
+    'standard', 'amrap', 'drop_set', 'rest_pause', 'cluster', 'myo_reps', 'isometric'
+  )),
+  rm_percent_override numeric(5,4),
+  load_override_kg numeric(7,2),
+  coach_notes text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create unique index if not exists strength_prescriptions_exercise_week_uidx
+on strength_prescriptions (plan_exercise_id, week_number);
+
+drop trigger if exists set_strength_prescriptions_updated_at on strength_prescriptions;
+create trigger set_strength_prescriptions_updated_at
+before update on strength_prescriptions
+for each row
+execute function set_updated_at();
+
+-- 5. strength_plan_phase_notes — Coach notes per section per week
+create table if not exists strength_plan_phase_notes (
+  id uuid primary key default gen_random_uuid(),
+  plan_id uuid not null references strength_plans(id) on delete cascade,
+  day_number integer not null,
+  section text not null,
+  week_number integer not null,
+  notes text not null default '',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create unique index if not exists strength_plan_phase_notes_slot_uidx
+on strength_plan_phase_notes (plan_id, day_number, section, week_number);
+
+drop trigger if exists set_strength_plan_phase_notes_updated_at on strength_plan_phase_notes;
+create trigger set_strength_plan_phase_notes_updated_at
+before update on strength_plan_phase_notes
+for each row
+execute function set_updated_at();
+
+-- 6. athlete_exercise_1rm — 1RM history (latest = current)
+create table if not exists athlete_exercise_1rm (
+  id uuid primary key default gen_random_uuid(),
+  athlete_id uuid not null references athletes(id) on delete cascade,
+  exercise_id uuid not null references exercises(id) on delete cascade,
+  value_kg numeric(7,2) not null,
+  method text not null default 'manual' check (method in ('tested', 'estimated_epley', 'manual')),
+  source text not null default 'coach_entry' check (source in ('coach_entry', 'auto_from_log')),
+  source_log_id uuid,
+  tested_at date not null default current_date,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists athlete_exercise_1rm_lookup_idx
+on athlete_exercise_1rm (athlete_id, exercise_id, created_at desc);
+
+-- 7. strength_log_sets — Athlete execution per set
+create table if not exists strength_log_sets (
+  id uuid primary key default gen_random_uuid(),
+  athlete_id uuid not null references athletes(id) on delete cascade,
+  plan_exercise_id uuid references strength_plan_exercises(id) on delete set null,
+  plan_id uuid not null references strength_plans(id) on delete cascade,
+  week_number integer not null,
+  day_number integer not null,
+  session_date date not null default current_date,
+  set_number integer not null default 1,
+  reps integer,
+  load_kg numeric(7,2),
+  rir integer,
+  duration_seconds integer,
+  method text not null default 'standard' check (method in (
+    'standard', 'amrap', 'drop_set', 'rest_pause', 'cluster', 'myo_reps', 'isometric'
+  )),
+  notes text,
+  submitted_at timestamptz not null default now(),
+  submitted_by_identity_id text not null
+);
+
+create unique index if not exists strength_log_sets_entry_uidx
+on strength_log_sets (plan_exercise_id, week_number, session_date, set_number)
+where plan_exercise_id is not null;
+
+create index if not exists strength_log_sets_athlete_plan_idx
+on strength_log_sets (athlete_id, plan_id, week_number);
+
+create index if not exists strength_log_sets_session_date_idx
+on strength_log_sets (athlete_id, session_date desc);
+
+-- 8. ALTER athletes — add strength log detail preference
+alter table athletes add column if not exists strength_log_detail text
+  default 'exercise' check (strength_log_detail in ('exercise', 'set'));
+
 create table if not exists ai_prompt_versions (
   id uuid primary key default gen_random_uuid(),
   prompt_id uuid not null references ai_prompts(id) on delete cascade,

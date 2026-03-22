@@ -673,7 +673,7 @@ async function listTrainingPrograms(config) {
   return supabaseRequest({
     url: config.supabaseUrl,
     serviceRoleKey: config.supabaseServiceRoleKey,
-    path: "training_programs?deleted_at=is.null&select=id,external_source,external_id,name,description,duration_weeks,price_cents,currency,stripe_product_id,stripe_price_id,billing_type,followup_type,status,is_scheduled_template,created_at,updated_at&order=created_at.desc"
+    path: "training_programs?deleted_at=is.null&select=id,external_source,external_id,name,description,duration_weeks,price_cents,currency,stripe_product_id,stripe_price_id,billing_type,status,is_scheduled_template,created_at,updated_at&order=created_at.desc"
   });
 }
 
@@ -705,7 +705,7 @@ async function getTrainingProgramById(config, id) {
   const rows = await supabaseRequest({
     url: config.supabaseUrl,
     serviceRoleKey: config.supabaseServiceRoleKey,
-    path: `training_programs?id=eq.${encodeURIComponent(id)}&deleted_at=is.null&select=id,external_source,external_id,name,description,duration_weeks,price_cents,currency,followup_type,status,is_scheduled_template,stripe_product_id,stripe_price_id,billing_type,created_at,updated_at&limit=1`
+    path: `training_programs?id=eq.${encodeURIComponent(id)}&deleted_at=is.null&select=id,external_source,external_id,name,description,duration_weeks,price_cents,currency,status,is_scheduled_template,stripe_product_id,stripe_price_id,billing_type,created_at,updated_at&limit=1`
   });
   return Array.isArray(rows) ? rows[0] || null : null;
 }
@@ -714,7 +714,7 @@ async function getTrainingProgramByExternalId(config, externalId) {
   const rows = await supabaseRequest({
     url: config.supabaseUrl,
     serviceRoleKey: config.supabaseServiceRoleKey,
-    path: `training_programs?external_id=eq.${encodeURIComponent(externalId)}&deleted_at=is.null&select=id,external_source,external_id,name,description,duration_weeks,price_cents,currency,followup_type,status,is_scheduled_template,stripe_product_id,stripe_price_id,billing_type,created_at,updated_at&limit=1`
+    path: `training_programs?external_id=eq.${encodeURIComponent(externalId)}&deleted_at=is.null&select=id,external_source,external_id,name,description,duration_weeks,price_cents,currency,status,is_scheduled_template,stripe_product_id,stripe_price_id,billing_type,created_at,updated_at&limit=1`
   });
   return Array.isArray(rows) ? rows[0] || null : null;
 }
@@ -723,7 +723,7 @@ async function listPublicTrainingPrograms(config) {
   return supabaseRequest({
     url: config.supabaseUrl,
     serviceRoleKey: config.supabaseServiceRoleKey,
-    path: "training_programs?deleted_at=is.null&status=eq.active&select=id,external_id,name,description,duration_weeks,price_cents,currency,followup_type,billing_type,is_scheduled_template,created_at,updated_at&order=price_cents.asc,created_at.asc"
+    path: "training_programs?deleted_at=is.null&status=eq.active&select=id,external_id,name,description,duration_weeks,price_cents,currency,billing_type,is_scheduled_template,created_at,updated_at&order=price_cents.asc,created_at.asc"
   });
 }
 
@@ -1114,6 +1114,242 @@ async function listAiLogs(config, { feature, athleteId, success, from, to, limit
   });
 }
 
+// ── Strength Training helpers ──
+
+async function listExercises(config) {
+  return supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: "exercises?select=id,name,category,subcategory,video_url,description,default_weight_per_side,default_each_side,default_tempo,created_at,updated_at&order=category.asc,subcategory.asc,name.asc"
+  });
+}
+
+async function createExercise(config, payload) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: "exercises",
+    method: "POST",
+    body: [payload],
+    prefer: "return=representation"
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function updateExercise(config, id, patch) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `exercises?id=eq.${encodeURIComponent(id)}`,
+    method: "PATCH",
+    body: patch,
+    prefer: "return=representation"
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function listStrengthPlansForAthlete(config, athleteId) {
+  return supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `strength_plans?athlete_id=eq.${encodeURIComponent(athleteId)}&select=id,athlete_id,name,total_weeks,load_round,start_date,status,created_by,created_at,updated_at&order=created_at.desc`
+  });
+}
+
+async function getActivePlanForAthlete(config, athleteId) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `strength_plans?athlete_id=eq.${encodeURIComponent(athleteId)}&status=eq.active&select=*&limit=1`
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function getStrengthPlanById(config, planId) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `strength_plans?id=eq.${encodeURIComponent(planId)}&select=*&limit=1`
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function getStrengthPlanFull(config, planId) {
+  const plan = await getStrengthPlanById(config, planId);
+  if (!plan) return null;
+
+  const exercises = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `strength_plan_exercises?plan_id=eq.${encodeURIComponent(planId)}&select=*,exercise:exercises(id,name,category,subcategory,video_url,description,default_weight_per_side,default_each_side,default_tempo)&order=day_number.asc,exercise_order.asc`
+  });
+
+  const exerciseIds = (exercises || []).map(e => e.id);
+  let prescriptions = [];
+  if (exerciseIds.length > 0) {
+    prescriptions = await supabaseRequest({
+      url: config.supabaseUrl,
+      serviceRoleKey: config.supabaseServiceRoleKey,
+      path: `strength_prescriptions?plan_exercise_id=in.(${exerciseIds.join(",")})&select=*&order=week_number.asc`
+    });
+  }
+
+  const phaseNotes = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `strength_plan_phase_notes?plan_id=eq.${encodeURIComponent(planId)}&select=*&order=day_number.asc,week_number.asc`
+  });
+
+  return { plan, exercises: exercises || [], prescriptions: prescriptions || [], phaseNotes: phaseNotes || [] };
+}
+
+async function createStrengthPlan(config, payload) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: "strength_plans",
+    method: "POST",
+    body: [payload],
+    prefer: "return=representation"
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function updateStrengthPlan(config, planId, patch) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `strength_plans?id=eq.${encodeURIComponent(planId)}`,
+    method: "PATCH",
+    body: patch,
+    prefer: "return=representation"
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function upsertStrengthPlanExercises(config, exercises) {
+  if (!exercises.length) return [];
+  return supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: "strength_plan_exercises",
+    method: "POST",
+    body: exercises,
+    prefer: "return=representation,resolution=merge-duplicates"
+  });
+}
+
+async function deleteStrengthPlanExercises(config, exerciseIds) {
+  if (!exerciseIds.length) return;
+  return supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `strength_plan_exercises?id=in.(${exerciseIds.join(",")})`,
+    method: "DELETE"
+  });
+}
+
+async function upsertStrengthPrescriptions(config, prescriptions) {
+  if (!prescriptions.length) return [];
+  return supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: "strength_prescriptions",
+    method: "POST",
+    body: prescriptions,
+    prefer: "return=representation,resolution=merge-duplicates"
+  });
+}
+
+async function upsertStrengthPlanPhaseNotes(config, notes) {
+  if (!notes.length) return [];
+  return supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: "strength_plan_phase_notes",
+    method: "POST",
+    body: notes,
+    prefer: "return=representation,resolution=merge-duplicates"
+  });
+}
+
+async function getAthlete1rms(config, athleteId) {
+  return supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `athlete_exercise_1rm?athlete_id=eq.${encodeURIComponent(athleteId)}&select=*&order=exercise_id.asc,created_at.desc`
+  });
+}
+
+async function getAthlete1rmLatest(config, athleteId) {
+  // Supabase doesn't support DISTINCT ON, so we get all and dedupe in JS
+  const all = await getAthlete1rms(config, athleteId);
+  const latest = {};
+  for (const row of (all || [])) {
+    if (!latest[row.exercise_id]) {
+      latest[row.exercise_id] = row;
+    }
+  }
+  return Object.values(latest);
+}
+
+async function get1rmHistory(config, athleteId, exerciseId) {
+  return supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `athlete_exercise_1rm?athlete_id=eq.${encodeURIComponent(athleteId)}&exercise_id=eq.${encodeURIComponent(exerciseId)}&select=*&order=created_at.desc`
+  });
+}
+
+async function insertAthlete1rm(config, payload) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: "athlete_exercise_1rm",
+    method: "POST",
+    body: [payload],
+    prefer: "return=representation"
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function insertStrengthLogSets(config, sets) {
+  if (!sets.length) return [];
+  return supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: "strength_log_sets",
+    method: "POST",
+    body: sets,
+    prefer: "return=representation,resolution=merge-duplicates"
+  });
+}
+
+async function getStrengthLogs(config, athleteId, planId, weekNumber) {
+  const params = [
+    `athlete_id=eq.${encodeURIComponent(athleteId)}`,
+    `plan_id=eq.${encodeURIComponent(planId)}`,
+    "select=*",
+    "order=day_number.asc,set_number.asc"
+  ];
+  if (weekNumber != null) {
+    params.push(`week_number=eq.${encodeURIComponent(weekNumber)}`);
+  }
+  return supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `strength_log_sets?${params.join("&")}`
+  });
+}
+
+async function getStrengthLogsByDateRange(config, athleteId, from, to) {
+  return supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `strength_log_sets?athlete_id=eq.${encodeURIComponent(athleteId)}&session_date=gte.${encodeURIComponent(from)}&session_date=lte.${encodeURIComponent(to)}&select=*&order=session_date.asc,set_number.asc`
+  });
+}
+
 module.exports = {
   insertTrainingSessions,
   findExistingSessions,
@@ -1200,5 +1436,26 @@ module.exports = {
   createAiPromptVersion,
   listAiPromptVersions,
   insertAiLog,
-  listAiLogs
+  listAiLogs,
+  // Strength Training
+  listExercises,
+  createExercise,
+  updateExercise,
+  listStrengthPlansForAthlete,
+  getActivePlanForAthlete,
+  getStrengthPlanById,
+  getStrengthPlanFull,
+  createStrengthPlan,
+  updateStrengthPlan,
+  upsertStrengthPlanExercises,
+  deleteStrengthPlanExercises,
+  upsertStrengthPrescriptions,
+  upsertStrengthPlanPhaseNotes,
+  getAthlete1rms,
+  getAthlete1rmLatest,
+  get1rmHistory,
+  insertAthlete1rm,
+  insertStrengthLogSets,
+  getStrengthLogs,
+  getStrengthLogsByDateRange
 };

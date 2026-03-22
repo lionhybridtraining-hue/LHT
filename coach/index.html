@@ -577,6 +577,71 @@
 
       .btn { min-width: 0; }
     }
+
+    /* ── Strength Planning ── */
+    .btn-small { padding:4px 10px; font-size:12px; border-radius:8px; }
+    .btn-ghost { background:transparent; border:1px solid var(--line-strong); color:var(--text-soft); }
+    .btn-ghost:hover { background:var(--gold-faint); }
+
+    .day-tab, .week-tab {
+      padding:4px 12px; border-radius:8px; border:1px solid var(--line);
+      background:transparent; color:var(--text-soft); cursor:pointer; font-size:13px; font-family:inherit;
+    }
+    .day-tab.active, .week-tab.active {
+      background:var(--gold); color:#111; border-color:var(--gold); font-weight:600;
+    }
+
+    .str-section-block { margin-bottom:16px; }
+    .str-section-header {
+      display:flex; justify-content:space-between; align-items:center;
+      padding:6px 10px; background:var(--gold-faint); border-radius:var(--radius-md) var(--radius-md) 0 0;
+      border:1px solid var(--line-strong); border-bottom:none;
+    }
+    .str-section-header h4 { margin:0; font-size:14px; font-family:"Oswald",sans-serif; text-transform:uppercase; color:var(--gold); }
+    .str-section-header .phase-note { font-size:11px; color:var(--muted); max-width:400px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+    .str-table-wrap {
+      overflow-x:auto; border:1px solid var(--line-strong);
+      border-radius:0 0 var(--radius-md) var(--radius-md);
+    }
+    .str-table {
+      width:100%; border-collapse:collapse; font-size:12px;
+    }
+    .str-table th {
+      padding:5px 6px; text-align:left; font-weight:600; color:var(--gold);
+      border-bottom:1px solid var(--line-strong); white-space:nowrap; font-size:11px;
+    }
+    .str-table td {
+      padding:4px 6px; border-bottom:1px solid var(--line); vertical-align:middle;
+    }
+    .str-table tr:last-child td { border-bottom:none; }
+    .str-table input, .str-table select {
+      padding:2px 4px; font-size:12px; border:1px solid var(--line);
+      border-radius:4px; background:rgba(255,255,255,0.06); color:var(--text); width:100%;
+      font-family:inherit;
+    }
+    .str-table input:focus, .str-table select:focus { border-color:var(--gold); outline:none; }
+    .str-table input[type=number] { width:56px; }
+
+    .superset-A { border-left:3px solid #6fc; }
+    .superset-B { border-left:3px solid #f9c; }
+    .superset-C { border-left:3px solid #9cf; }
+    .superset-D { border-left:3px solid #fc9; }
+
+    .vol-metric { display:flex; flex-direction:column; align-items:center; }
+    .vol-label { font-size:10px; color:var(--muted); text-transform:uppercase; }
+    .vol-value { font-size:18px; font-weight:600; color:var(--gold); }
+
+    .str-add-btn { padding:2px 8px; font-size:11px; border-radius:6px; cursor:pointer; }
+    .str-rm-btn { background:none; border:none; color:var(--error); cursor:pointer; font-size:14px; padding:0 4px; }
+
+    .status-badge {
+      display:inline-block; padding:2px 8px; border-radius:8px; font-size:11px; font-weight:600; text-transform:uppercase;
+    }
+    .status-badge.draft { background:rgba(255,255,255,0.1); color:var(--muted); }
+    .status-badge.active { background:rgba(124,199,141,0.2); color:var(--success); }
+    .status-badge.completed { background:rgba(212,165,79,0.2); color:var(--gold); }
+    .status-badge.archived { background:rgba(255,255,255,0.06); color:var(--muted); }
   </style>
 </head>
 <body>
@@ -775,6 +840,54 @@
           <div id="checkinsContainer" class="microcopy">Seleciona um atleta para ver os check-ins.</div>
         </section>
 
+        <!-- ── Planos de Força ── -->
+        <section class="section-card" id="strengthSection">
+          <div style="display:flex; justify-content:space-between; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:10px;">
+            <h3 class="section-title" style="margin:0;">Planos de Força</h3>
+            <div style="display:flex; gap:8px; align-items:center;">
+              <select id="strengthPlanSelect" style="min-width:200px;">
+                <option value="">— Selecionar plano —</option>
+              </select>
+              <button class="btn btn-small" id="newStrengthPlanBtn">+ Novo Plano</button>
+            </div>
+          </div>
+
+          <div id="strengthNoPlan" class="microcopy">Seleciona um atleta para gerir planos de força.</div>
+
+          <!-- Plan header (hidden until plan selected) -->
+          <div id="strengthPlanHeader" hidden style="margin-bottom:12px;">
+            <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:8px;">
+              <span id="strengthPlanName" style="font-weight:600;"></span>
+              <span id="strengthPlanStatus" class="status-badge"></span>
+              <span id="strengthPlanWeeks" class="microcopy"></span>
+              <button class="btn btn-small btn-ghost" id="editPlanMetaBtn" title="Editar plano">✏</button>
+              <button class="btn btn-small" id="activatePlanBtn" hidden>Ativar</button>
+              <button class="btn btn-small btn-ghost" id="archivePlanBtn" hidden>Arquivar</button>
+            </div>
+
+            <!-- Day tabs -->
+            <div id="strengthDayTabs" style="display:flex; gap:4px; flex-wrap:wrap; margin-bottom:8px;"></div>
+
+            <!-- Week tabs -->
+            <div id="strengthWeekTabs" style="display:flex; gap:4px; flex-wrap:wrap; margin-bottom:12px;"></div>
+          </div>
+
+          <!-- Day view container (5 sections) -->
+          <div id="strengthDayView" hidden>
+            <div id="strengthSections"></div>
+
+            <!-- Volume summary panel -->
+            <div id="strengthVolumeSummary" style="margin-top:16px; padding:12px; border:1px solid var(--line); border-radius:var(--radius-md); display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:8px;">
+              <div class="vol-metric"><span class="vol-label">Total Reps</span><span id="volTotalReps" class="vol-value">—</span></div>
+              <div class="vol-metric"><span class="vol-label">Stim Reps</span><span id="volStimReps" class="vol-value">—</span></div>
+              <div class="vol-metric"><span class="vol-label">Reps×%RM</span><span id="volRepsRm" class="vol-value">—</span></div>
+              <div class="vol-metric"><span class="vol-label">Total Kg</span><span id="volTotalKg" class="vol-value">—</span></div>
+              <div class="vol-metric"><span class="vol-label">TUT (s)</span><span id="volTUT" class="vol-value">—</span></div>
+              <div class="vol-metric"><span class="vol-label">Plyo Load</span><span id="volPlyoLoad" class="vol-value">—</span></div>
+            </div>
+          </div>
+        </section>
+
         <div id="result" class="result" hidden></div>
       </section>
     </main>
@@ -800,6 +913,65 @@
           <button id="cancelAddAthlete" class="btn btn-secondary" type="button">Cancelar</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- Strength Plan Modal -->
+  <div id="strengthPlanModal" class="modal-backdrop hidden" role="dialog" aria-modal="true">
+    <div class="modal">
+      <h3 id="strengthPlanModalTitle">Novo Plano de Força</h3>
+      <form id="strengthPlanForm">
+        <input type="hidden" id="spEditId" value="" />
+        <div class="form-grid">
+          <div class="field">
+            <label for="spName">Nome do plano</label>
+            <input id="spName" placeholder="Ex.: Mesociclo Base" required />
+          </div>
+          <div class="field">
+            <label for="spWeeks">Semanas</label>
+            <input id="spWeeks" type="number" min="1" max="52" value="4" required />
+          </div>
+          <div class="field">
+            <label for="spLoadRound">Arredondamento carga (kg)</label>
+            <input id="spLoadRound" type="number" min="0.5" step="0.5" value="2.5" />
+          </div>
+          <div class="field">
+            <label for="spStartDate">Data início (opcional)</label>
+            <input id="spStartDate" type="date" />
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-primary" type="submit" id="spSaveBtn">Criar plano</button>
+          <button class="btn btn-secondary" type="button" id="spCancelBtn">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Add Exercise to Section Modal -->
+  <div id="addExerciseModal" class="modal-backdrop hidden" role="dialog" aria-modal="true">
+    <div class="modal" style="max-width:640px;">
+      <h3>Adicionar Exercício</h3>
+      <div class="field" style="margin-bottom:8px;">
+        <input id="exerciseSearchInput" placeholder="Pesquisar exercício..." style="width:100%;" />
+      </div>
+      <div class="field" style="margin-bottom:8px; display:flex; gap:8px;">
+        <select id="exerciseCatFilter" style="flex:1;">
+          <option value="">Todas categorias</option>
+          <option value="main_movements">Main Movements</option>
+          <option value="core">Core</option>
+          <option value="hypertrophy">Hypertrophy</option>
+          <option value="rfd">RFD</option>
+          <option value="mobility_activation">Mobility/Activation</option>
+        </select>
+        <select id="exerciseSubcatFilter" style="flex:1;">
+          <option value="">Todas subcategorias</option>
+        </select>
+      </div>
+      <div id="exercisePickerList" style="max-height:300px; overflow-y:auto; border:1px solid var(--line); border-radius:var(--radius-md); padding:4px;"></div>
+      <div class="modal-actions" style="margin-top:8px;">
+        <button class="btn btn-secondary" type="button" id="cancelAddExerciseBtn">Cancelar</button>
+      </div>
     </div>
   </div>
 
@@ -1376,6 +1548,7 @@
         setSelectedTrainingLoadWeekStart("");
         syncTrainingLoadWeekControls();
         renderTrainingLoadSummary(null, "Sem dados calculados ainda.");
+        resetStrengthUI();
         return;
       }
       const athlete = athletes.find((item) => item.id === selectedAthleteId);
@@ -1388,6 +1561,7 @@
         ? `${athlete.name} (${athlete.email || athlete.id})`
         : (athlete.email || athlete.id);
       syncTrainingLoadWeekControls();
+      loadStrengthPlans();
     }
 
     async function loadAthletes(preselectId) {
@@ -1776,6 +1950,668 @@
 
     syncTrainingLoadWeekControls();
     syncCheckinMode();
+
+    // ══════════════════════════════════════════════════════════
+    // Strength Planning Module
+    // ══════════════════════════════════════════════════════════
+
+    const RM_TABLE = {
+      1:1.00,2:0.97,3:0.94,4:0.92,5:0.89,6:0.86,7:0.83,8:0.81,9:0.78,10:0.75,
+      11:0.73,12:0.71,13:0.70,14:0.68,15:0.67,16:0.65,17:0.64,18:0.63,19:0.61,20:0.60,
+      21:0.59,22:0.58,23:0.57,24:0.56,25:0.55,26:0.54,27:0.53,28:0.52,29:0.51,30:0.50,
+      31:0.49,32:0.48,33:0.47,34:0.46,35:0.45
+    };
+    const GCT_CONTACT = {"rápido":0.2,"intermédio":0.5,"altura":1.0};
+    const MLOAD_RECOVERY = {low:1.5,medium:2.5,high:4.0};
+    const MLOAD_WEIGHT = {high:1,medium:2/3,low:1/3};
+
+    const SECTIONS = ["warm_up","plyos_speed","main","conditioning","observations"];
+    const SECTION_LABELS = {warm_up:"Warm Up",plyos_speed:"Plyos / Speed",main:"Main",conditioning:"Conditioning",observations:"Observations"};
+    const METHOD_OPTIONS = ["standard","amrap","drop_set","rest_pause","cluster","myo_reps","isometric"];
+    const SUPERSET_LETTERS = ["","A","B","C","D"];
+
+    // Strength state
+    let strExercises = [];
+    let strPlans = [];
+    let strCurrentPlan = null;  // full plan data {plan, exercises, prescriptions, phaseNotes}
+    let strSelectedDay = 1;
+    let strSelectedWeek = 1;
+    let strOneRms = {};  // exerciseId → value_kg
+
+    // DOM refs
+    const strengthPlanSelect = document.getElementById("strengthPlanSelect");
+    const strengthNoPlan = document.getElementById("strengthNoPlan");
+    const strengthPlanHeader = document.getElementById("strengthPlanHeader");
+    const strengthDayView = document.getElementById("strengthDayView");
+    const strengthSections = document.getElementById("strengthSections");
+    const strengthDayTabs = document.getElementById("strengthDayTabs");
+    const strengthWeekTabs = document.getElementById("strengthWeekTabs");
+    const strengthPlanModal = document.getElementById("strengthPlanModal");
+    const strengthPlanForm = document.getElementById("strengthPlanForm");
+    const addExerciseModal = document.getElementById("addExerciseModal");
+    let addExerciseTargetSection = "";
+
+    // ── Client-side engine functions ──
+    function parseTempo(s) {
+      if (!s) return null;
+      const p = s.split("-");
+      if (p.length !== 4) return null;
+      const v = p.map(x => { const t = x.trim().toUpperCase(); return t === "X" ? 1 : parseInt(t, 10); });
+      if (v.some(x => isNaN(x) || x < 0)) return null;
+      return { ecc:v[0], pauseBot:v[1], con:v[2], pauseTop:v[3], totalSeconds:v[0]+v[1]+v[2]+v[3] };
+    }
+    function calcRmPercent(reps, rir) {
+      if (!reps || reps < 1) return null;
+      return RM_TABLE[reps + (rir||0)] || null;
+    }
+    function roundToPlates(kg, round) {
+      if (!round || round <= 0) return kg;
+      return Math.floor(kg / round) * round;
+    }
+    function calcStimReps(reps, rir) {
+      if (!reps || reps < 1) return 0;
+      return Math.max(0, reps - Math.max(0, reps + (rir||0) - 5));
+    }
+    function calcTUT(reps, tempoStr) {
+      if (!reps) return 0;
+      const t = parseTempo(tempoStr);
+      return t ? reps * t.totalSeconds : 0;
+    }
+    function calcPlyoLoad(sets, reps, eachSide, ml) {
+      if (!sets || !reps) return 0;
+      return sets * reps * (eachSide ? 2 : 1) * (MLOAD_WEIGHT[ml] || 1);
+    }
+    function estimateRepsFromDuration(dur, tempoStr) {
+      if (!dur) return null;
+      const t = parseTempo(tempoStr);
+      if (!t || t.totalSeconds <= 0) return null;
+      return Math.floor(dur / t.totalSeconds);
+    }
+    function estimatePlyoReps(dur, gct, ml) {
+      if (!dur) return null;
+      const c = GCT_CONTACT[gct], r = MLOAD_RECOVERY[ml];
+      if (c == null || r == null) return null;
+      const ct = c * r;
+      return ct > 0 ? Math.floor(dur / ct) : null;
+    }
+    function resolveReps(rx, section, pe) {
+      if (rx.prescription_type === "duration") {
+        if (section === "plyos_speed") return estimatePlyoReps(rx.duration_seconds, rx.gct, pe.plyo_mechanical_load) || 0;
+        return estimateRepsFromDuration(rx.duration_seconds, rx.tempo) || 0;
+      }
+      return rx.reps || 0;
+    }
+    function resolveLoad(rx, pe, oneRm, loadRound, week) {
+      if (rx.load_override_kg != null && rx.load_override_kg !== "") return { rmPercent:null, loadKg:Number(rx.load_override_kg) };
+      const inc = pe.rm_percent_increase_per_week || 0;
+      const w = week || 1;
+      const round = loadRound || 2.5;
+      if (rx.rm_percent_override != null && rx.rm_percent_override !== "") {
+        const rm = Number(rx.rm_percent_override) + (w-1)*inc;
+        return { rmPercent:rm, loadKg: oneRm ? roundToPlates(oneRm*rm, round) : null };
+      }
+      const base = calcRmPercent(rx.reps, rx.rir);
+      if (!base) return { rmPercent:null, loadKg:null };
+      const rm = base + (w-1)*inc;
+      return { rmPercent:rm, loadKg: oneRm ? roundToPlates(oneRm*rm, round) : null };
+    }
+
+    // ── UI helpers ──
+    function resetStrengthUI() {
+      strengthPlanSelect.innerHTML = '<option value="">— Selecionar plano —</option>';
+      strengthNoPlan.textContent = "Seleciona um atleta para gerir planos de força.";
+      strengthNoPlan.hidden = false;
+      strengthPlanHeader.hidden = true;
+      strengthDayView.hidden = true;
+      strCurrentPlan = null;
+      strPlans = [];
+    }
+
+    async function loadExerciseCatalog() {
+      if (strExercises.length > 0) return;
+      try {
+        const data = await apiRequest("GET", "/.netlify/functions/exercises");
+        strExercises = data.exercises || [];
+      } catch (e) { console.error("Failed to load exercises", e); }
+    }
+
+    async function loadStrengthPlans() {
+      if (!selectedAthleteId) { resetStrengthUI(); return; }
+      await loadExerciseCatalog();
+      try {
+        const data = await apiRequest("GET", `/.netlify/functions/strength-plan?athleteId=${selectedAthleteId}`);
+        strPlans = data.plans || [];
+        strengthPlanSelect.innerHTML = '<option value="">— Selecionar plano —</option>';
+        for (const p of strPlans) {
+          const opt = document.createElement("option");
+          opt.value = p.id;
+          opt.textContent = `${p.name} (${p.status})`;
+          strengthPlanSelect.appendChild(opt);
+        }
+        strengthNoPlan.textContent = strPlans.length ? "Seleciona um plano acima." : "Nenhum plano criado. Clica '+ Novo Plano'.";
+        strengthNoPlan.hidden = false;
+        strengthPlanHeader.hidden = true;
+        strengthDayView.hidden = true;
+
+        // Load 1RMs
+        try {
+          const rmData = await apiRequest("GET", `/.netlify/functions/athlete-1rm?athleteId=${selectedAthleteId}`);
+          strOneRms = {};
+          for (const r of (rmData.records || [])) { strOneRms[r.exercise_id] = r.value_kg; }
+        } catch (e) { console.error("1RM load failed", e); }
+      } catch (e) {
+        strengthNoPlan.textContent = "Erro ao carregar planos.";
+        console.error(e);
+      }
+    }
+
+    async function loadStrengthPlanFull(planId) {
+      if (!planId || !selectedAthleteId) return;
+      try {
+        const data = await apiRequest("GET", `/.netlify/functions/strength-plan?athleteId=${selectedAthleteId}&planId=${planId}`);
+        strCurrentPlan = data;
+        strengthNoPlan.hidden = true;
+        strengthPlanHeader.hidden = false;
+        strengthDayView.hidden = false;
+        renderPlanHeader();
+        renderDayTabs();
+        renderWeekTabs();
+        renderDayView();
+      } catch (e) {
+        console.error("Failed to load plan", e);
+        strengthNoPlan.textContent = "Erro ao carregar plano.";
+      }
+    }
+
+    function renderPlanHeader() {
+      const p = strCurrentPlan.plan;
+      document.getElementById("strengthPlanName").textContent = p.name;
+      const badge = document.getElementById("strengthPlanStatus");
+      badge.textContent = p.status;
+      badge.className = "status-badge " + p.status;
+      document.getElementById("strengthPlanWeeks").textContent = `${p.total_weeks} semanas · Carga arred. ${p.load_round}kg`;
+      document.getElementById("activatePlanBtn").hidden = p.status !== "draft";
+      document.getElementById("archivePlanBtn").hidden = (p.status === "archived");
+    }
+
+    function renderDayTabs() {
+      strengthDayTabs.innerHTML = "";
+      for (let d = 1; d <= 7; d++) {
+        const btn = document.createElement("button");
+        btn.className = "day-tab" + (d === strSelectedDay ? " active" : "");
+        btn.textContent = "Dia " + d;
+        btn.addEventListener("click", () => { strSelectedDay = d; renderDayTabs(); renderDayView(); });
+        strengthDayTabs.appendChild(btn);
+      }
+    }
+
+    function renderWeekTabs() {
+      strengthWeekTabs.innerHTML = "";
+      const totalWeeks = strCurrentPlan.plan.total_weeks;
+      for (let w = 1; w <= totalWeeks; w++) {
+        const btn = document.createElement("button");
+        btn.className = "week-tab" + (w === strSelectedWeek ? " active" : "");
+        btn.textContent = "W" + w;
+        btn.addEventListener("click", () => { strSelectedWeek = w; renderWeekTabs(); renderDayView(); });
+        strengthWeekTabs.appendChild(btn);
+      }
+    }
+
+    function getExercisesForDaySection(day, section) {
+      return (strCurrentPlan.exercises || [])
+        .filter(e => e.day_number === day && e.section === section)
+        .sort((a, b) => a.exercise_order - b.exercise_order);
+    }
+
+    function getPrescription(planExerciseId, week) {
+      return (strCurrentPlan.prescriptions || []).find(
+        p => p.plan_exercise_id === planExerciseId && p.week_number === week
+      ) || null;
+    }
+
+    function getPhaseNote(day, section, week) {
+      return (strCurrentPlan.phaseNotes || []).find(
+        n => n.day_number === day && n.section === section && n.week_number === week
+      );
+    }
+
+    function renderDayView() {
+      strengthSections.innerHTML = "";
+      const day = strSelectedDay;
+      const week = strSelectedWeek;
+
+      for (const sec of SECTIONS) {
+        const block = document.createElement("div");
+        block.className = "str-section-block";
+
+        // Section header
+        const header = document.createElement("div");
+        header.className = "str-section-header";
+        const phaseNote = getPhaseNote(day, sec, week);
+        header.innerHTML = `
+          <h4>${SECTION_LABELS[sec]}</h4>
+          <span class="phase-note" title="${phaseNote ? phaseNote.notes : ''}">${phaseNote ? phaseNote.notes : ''}</span>
+          <button class="btn-small str-add-btn" data-section="${sec}">+ Exercício</button>
+        `;
+        header.querySelector(".str-add-btn").addEventListener("click", () => openAddExerciseModal(sec));
+        block.appendChild(header);
+
+        // Exercise table
+        const exercises = getExercisesForDaySection(day, sec);
+        const wrap = document.createElement("div");
+        wrap.className = "str-table-wrap";
+
+        if (exercises.length === 0) {
+          wrap.innerHTML = `<div class="microcopy" style="padding:8px 12px;">Sem exercícios nesta secção.</div>`;
+        } else {
+          const table = buildSectionTable(exercises, sec, week);
+          wrap.appendChild(table);
+        }
+
+        block.appendChild(wrap);
+        strengthSections.appendChild(block);
+      }
+
+      updateVolumeSummary(day, week);
+    }
+
+    function buildSectionTable(exercises, section, week) {
+      const table = document.createElement("table");
+      table.className = "str-table";
+
+      // Header
+      const thead = document.createElement("thead");
+      let cols;
+      if (section === "warm_up" || section === "conditioning") {
+        cols = ["#","SS","Exercício","Sets","Reps","Rest","",""];
+      } else if (section === "plyos_speed") {
+        cols = ["#","SS","Exercício","Sets","Reps","Rest","GCT","M.Load","",""];
+      } else if (section === "main") {
+        cols = ["#","SS","Exercício","Sets","Reps","Rest","RIR","Method","Tempo","%RM","Load","Notes","",""];
+      } else {
+        cols = ["#","Exercício","Notes",""];
+      }
+
+      const tr = document.createElement("tr");
+      for (const c of cols) {
+        const th = document.createElement("th");
+        th.textContent = c;
+        tr.appendChild(th);
+      }
+      thead.appendChild(tr);
+      table.appendChild(thead);
+
+      // Body
+      const tbody = document.createElement("tbody");
+      for (const pe of exercises) {
+        const rx = getPrescription(pe.id, week) || {};
+        const exName = pe.exercise ? pe.exercise.name : "??";
+        const exId = pe.exercise ? pe.exercise.id : pe.exercise_id;
+        const oneRm = strOneRms[exId];
+        const loadRound = strCurrentPlan.plan.load_round || 2.5;
+        const row = document.createElement("tr");
+        const ss = pe.superset_group || "";
+        if (ss) row.className = "superset-" + ss;
+
+        if (section === "observations") {
+          row.innerHTML = `
+            <td>${pe.exercise_order}</td>
+            <td title="${exName}">${exName}</td>
+            <td><input value="${rx.coach_notes || ''}" data-field="coach_notes" data-peid="${pe.id}" data-week="${week}" /></td>
+            <td><button class="str-rm-btn" data-rmpe="${pe.id}" title="Remover">✕</button></td>
+          `;
+        } else if (section === "warm_up" || section === "conditioning") {
+          row.innerHTML = `
+            <td>${pe.exercise_order}</td>
+            <td><select data-field="superset_group" data-peid="${pe.id}" style="width:36px;">${SUPERSET_LETTERS.map(l => `<option value="${l}" ${l===ss?"selected":""}>${l||"-"}</option>`).join("")}</select></td>
+            <td title="${exName}">${exName}</td>
+            <td><input type="number" value="${rx.sets||''}" data-field="sets" data-peid="${pe.id}" data-week="${week}" min="1" /></td>
+            <td><input type="number" value="${rx.reps||''}" data-field="reps" data-peid="${pe.id}" data-week="${week}" min="0" /></td>
+            <td><input type="number" value="${rx.rest_seconds||''}" data-field="rest_seconds" data-peid="${pe.id}" data-week="${week}" min="0" placeholder="s" /></td>
+            <td></td>
+            <td><button class="str-rm-btn" data-rmpe="${pe.id}" title="Remover">✕</button></td>
+          `;
+        } else if (section === "plyos_speed") {
+          row.innerHTML = `
+            <td>${pe.exercise_order}</td>
+            <td><select data-field="superset_group" data-peid="${pe.id}" style="width:36px;">${SUPERSET_LETTERS.map(l => `<option value="${l}" ${l===ss?"selected":""}>${l||"-"}</option>`).join("")}</select></td>
+            <td title="${exName}">${exName}</td>
+            <td><input type="number" value="${rx.sets||''}" data-field="sets" data-peid="${pe.id}" data-week="${week}" min="1" /></td>
+            <td><input type="number" value="${rx.reps||''}" data-field="reps" data-peid="${pe.id}" data-week="${week}" min="0" /></td>
+            <td><input type="number" value="${rx.rest_seconds||''}" data-field="rest_seconds" data-peid="${pe.id}" data-week="${week}" min="0" placeholder="s" /></td>
+            <td><select data-field="gct" data-peid="${pe.id}" data-week="${week}" style="width:76px;">
+              <option value="">—</option>
+              <option value="rápido" ${rx.gct==="rápido"?"selected":""}>Rápido</option>
+              <option value="intermédio" ${rx.gct==="intermédio"?"selected":""}>Intermédio</option>
+              <option value="altura" ${rx.gct==="altura"?"selected":""}>Altura</option>
+            </select></td>
+            <td><select data-field="plyo_mechanical_load" data-peid="${pe.id}" style="width:64px;">
+              <option value="">—</option>
+              <option value="high" ${pe.plyo_mechanical_load==="high"?"selected":""}>High</option>
+              <option value="medium" ${pe.plyo_mechanical_load==="medium"?"selected":""}>Medium</option>
+              <option value="low" ${pe.plyo_mechanical_load==="low"?"selected":""}>Low</option>
+            </select></td>
+            <td></td>
+            <td><button class="str-rm-btn" data-rmpe="${pe.id}" title="Remover">✕</button></td>
+          `;
+        } else if (section === "main") {
+          const { rmPercent, loadKg } = resolveLoad(rx, pe, oneRm, loadRound, week);
+          const displayRm = rmPercent != null ? (rmPercent * 100).toFixed(1) + "%" : "—";
+          const displayLoad = loadKg != null ? loadKg.toFixed(1) + "kg" : (oneRm ? "—" : "sem 1RM");
+          row.innerHTML = `
+            <td>${pe.exercise_order}</td>
+            <td><select data-field="superset_group" data-peid="${pe.id}" style="width:36px;">${SUPERSET_LETTERS.map(l => `<option value="${l}" ${l===ss?"selected":""}>${l||"-"}</option>`).join("")}</select></td>
+            <td title="${exName}${oneRm ? ' · 1RM: '+oneRm+'kg' : ''}">${exName}</td>
+            <td><input type="number" value="${rx.sets||''}" data-field="sets" data-peid="${pe.id}" data-week="${week}" min="1" /></td>
+            <td><input type="number" value="${rx.reps||''}" data-field="reps" data-peid="${pe.id}" data-week="${week}" min="0" /></td>
+            <td><input type="number" value="${rx.rest_seconds||''}" data-field="rest_seconds" data-peid="${pe.id}" data-week="${week}" min="0" placeholder="s" /></td>
+            <td><input type="number" value="${rx.rir!=null?rx.rir:''}" data-field="rir" data-peid="${pe.id}" data-week="${week}" min="0" max="10" /></td>
+            <td><select data-field="method" data-peid="${pe.id}" data-week="${week}" style="width:76px;">
+              ${METHOD_OPTIONS.map(m => `<option value="${m}" ${rx.method===m?"selected":""}>${m}</option>`).join("")}
+            </select></td>
+            <td><input value="${rx.tempo||''}" data-field="tempo" data-peid="${pe.id}" data-week="${week}" placeholder="3-1-X-0" style="width:72px;" /></td>
+            <td style="text-align:center;" title="Auto: ${displayRm}">${displayRm}</td>
+            <td style="text-align:center;" title="Auto: ${displayLoad}">${displayLoad}</td>
+            <td><input value="${rx.coach_notes||''}" data-field="coach_notes" data-peid="${pe.id}" data-week="${week}" style="width:80px;" /></td>
+            <td></td>
+            <td><button class="str-rm-btn" data-rmpe="${pe.id}" title="Remover">✕</button></td>
+          `;
+        }
+
+        tbody.appendChild(row);
+      }
+      table.appendChild(tbody);
+
+      // Event delegation for inputs
+      table.addEventListener("change", handleTableChange);
+      table.addEventListener("click", handleTableClick);
+
+      return table;
+    }
+
+    function updateVolumeSummary(day, week) {
+      const exercises = [];
+      for (const sec of SECTIONS) {
+        const pes = getExercisesForDaySection(day, sec);
+        for (const pe of pes) {
+          const rx = getPrescription(pe.id, week) || {};
+          exercises.push({ pe, rx, sec });
+        }
+      }
+
+      let totalReps = 0, stimReps = 0, repsRm = 0, totalKg = 0, tut = 0, plyoLd = 0;
+      const loadRound = strCurrentPlan ? strCurrentPlan.plan.load_round || 2.5 : 2.5;
+
+      for (const { pe, rx, sec } of exercises) {
+        const sets = rx.sets || 0;
+        const reps = resolveReps(rx, sec, pe);
+        const sides = pe.each_side ? 2 : 1;
+        const exId = pe.exercise ? pe.exercise.id : pe.exercise_id;
+        const oneRm = strOneRms[exId];
+
+        if (sec === "plyos_speed") {
+          plyoLd += calcPlyoLoad(sets, reps, pe.each_side, pe.plyo_mechanical_load);
+        } else if (sec !== "observations") {
+          totalReps += sets * reps * sides;
+          stimReps += sets * calcStimReps(reps, rx.rir) * sides;
+          const { rmPercent, loadKg: lkg } = resolveLoad(rx, pe, oneRm, loadRound, week);
+          if (rmPercent != null) repsRm += sets * reps * sides * rmPercent;
+          if (lkg != null) totalKg += sets * reps * sides * lkg;
+          tut += sets * calcTUT(reps, rx.tempo) * sides;
+        }
+      }
+
+      document.getElementById("volTotalReps").textContent = totalReps || "—";
+      document.getElementById("volStimReps").textContent = stimReps || "—";
+      document.getElementById("volRepsRm").textContent = repsRm ? repsRm.toFixed(1) : "—";
+      document.getElementById("volTotalKg").textContent = totalKg ? totalKg.toFixed(0) : "—";
+      document.getElementById("volTUT").textContent = tut || "—";
+      document.getElementById("volPlyoLoad").textContent = plyoLd ? plyoLd.toFixed(1) : "—";
+    }
+
+    // ── Save helpers — debounced auto-save ──
+    let saveTimer = null;
+    let pendingPrescriptionChanges = {};
+    let pendingExerciseChanges = {};
+
+    function queuePrescriptionChange(peId, week, field, value) {
+      const key = `${peId}_${week}`;
+      if (!pendingPrescriptionChanges[key]) pendingPrescriptionChanges[key] = { plan_exercise_id: peId, week_number: week };
+      pendingPrescriptionChanges[key][field] = value === "" ? null : (["sets","reps","rest_seconds","rir","duration_seconds"].includes(field) ? Number(value) : value);
+      scheduleSave();
+    }
+
+    function queueExerciseChange(peId, field, value) {
+      if (!pendingExerciseChanges[peId]) pendingExerciseChanges[peId] = { id: peId, plan_id: strCurrentPlan.plan.id };
+      pendingExerciseChanges[peId][field] = value === "" ? null : value;
+      scheduleSave();
+    }
+
+    function scheduleSave() {
+      if (saveTimer) clearTimeout(saveTimer);
+      saveTimer = setTimeout(flushSave, 1200);
+    }
+
+    async function flushSave() {
+      if (!strCurrentPlan) return;
+      const rxList = Object.values(pendingPrescriptionChanges);
+      const exList = Object.values(pendingExerciseChanges);
+      pendingPrescriptionChanges = {};
+      pendingExerciseChanges = {};
+      if (rxList.length === 0 && exList.length === 0) return;
+
+      try {
+        const body = { plan_id: strCurrentPlan.plan.id };
+        if (exList.length > 0) body.exercises = exList;
+        if (rxList.length > 0) body.prescriptions = rxList;
+        const data = await apiRequest("PUT", "/.netlify/functions/strength-plan", body);
+        strCurrentPlan = data;
+        // Soft re-render volume only (avoid full re-render during editing)
+        updateVolumeSummary(strSelectedDay, strSelectedWeek);
+      } catch (e) {
+        console.error("Auto-save failed", e);
+      }
+    }
+
+    function handleTableChange(e) {
+      const el = e.target;
+      const field = el.getAttribute("data-field");
+      const peId = el.getAttribute("data-peid");
+      const week = el.getAttribute("data-week");
+      if (!field || !peId) return;
+
+      if (field === "superset_group" || field === "plyo_mechanical_load") {
+        queueExerciseChange(peId, field, el.value);
+      } else if (week) {
+        queuePrescriptionChange(peId, parseInt(week, 10), field, el.value);
+      }
+    }
+
+    async function handleTableClick(e) {
+      const btn = e.target.closest("[data-rmpe]");
+      if (!btn) return;
+      const peId = btn.getAttribute("data-rmpe");
+      if (!peId || !strCurrentPlan) return;
+      try {
+        await apiRequest("PUT", "/.netlify/functions/strength-plan", {
+          plan_id: strCurrentPlan.plan.id,
+          delete_exercise_ids: [peId]
+        });
+        await loadStrengthPlanFull(strCurrentPlan.plan.id);
+      } catch (e) { console.error("Remove exercise failed", e); }
+    }
+
+    // ── Add exercise modal ──
+    function openAddExerciseModal(section) {
+      addExerciseTargetSection = section;
+      addExerciseModal.classList.remove("hidden");
+      document.getElementById("exerciseSearchInput").value = "";
+      document.getElementById("exerciseCatFilter").value = "";
+      document.getElementById("exerciseSubcatFilter").innerHTML = '<option value="">Todas subcategorias</option>';
+      renderExercisePicker();
+      document.getElementById("exerciseSearchInput").focus();
+    }
+
+    function renderExercisePicker() {
+      const search = (document.getElementById("exerciseSearchInput").value || "").toLowerCase();
+      const cat = document.getElementById("exerciseCatFilter").value;
+      const subcat = document.getElementById("exerciseSubcatFilter").value;
+      let filtered = strExercises;
+      if (cat) filtered = filtered.filter(e => e.category === cat);
+      if (subcat) filtered = filtered.filter(e => e.subcategory === subcat);
+      if (search) filtered = filtered.filter(e => e.name.toLowerCase().includes(search));
+
+      const list = document.getElementById("exercisePickerList");
+      list.innerHTML = filtered.slice(0, 50).map(e =>
+        `<div style="padding:4px 8px; cursor:pointer; border-bottom:1px solid var(--line);" data-exid="${e.id}" class="exercise-pick-item">
+          <strong>${e.name}</strong> <span style="font-size:11px; color:var(--muted);">${e.category} / ${e.subcategory}</span>
+        </div>`
+      ).join("");
+    }
+
+    document.getElementById("exerciseSearchInput").addEventListener("input", renderExercisePicker);
+    document.getElementById("exerciseCatFilter").addEventListener("change", () => {
+      // Update subcategory options
+      const cat = document.getElementById("exerciseCatFilter").value;
+      const subcats = [...new Set(strExercises.filter(e => !cat || e.category === cat).map(e => e.subcategory))].sort();
+      const sel = document.getElementById("exerciseSubcatFilter");
+      sel.innerHTML = '<option value="">Todas subcategorias</option>' + subcats.map(s => `<option value="${s}">${s}</option>`).join("");
+      renderExercisePicker();
+    });
+    document.getElementById("exerciseSubcatFilter").addEventListener("change", renderExercisePicker);
+
+    document.getElementById("exercisePickerList").addEventListener("click", async (e) => {
+      const item = e.target.closest("[data-exid]");
+      if (!item || !strCurrentPlan) return;
+      const exId = item.getAttribute("data-exid");
+      const exercise = strExercises.find(ex => ex.id === exId);
+      if (!exercise) return;
+
+      const existing = getExercisesForDaySection(strSelectedDay, addExerciseTargetSection);
+      const nextOrder = existing.length > 0 ? Math.max(...existing.map(e => e.exercise_order)) + 1 : 1;
+
+      try {
+        const body = {
+          plan_id: strCurrentPlan.plan.id,
+          exercises: [{
+            plan_id: strCurrentPlan.plan.id,
+            day_number: strSelectedDay,
+            section: addExerciseTargetSection,
+            exercise_order: nextOrder,
+            exercise_id: exId,
+            each_side: exercise.default_each_side || false,
+            weight_per_side: exercise.default_weight_per_side || false,
+            plyo_mechanical_load: addExerciseTargetSection === "plyos_speed" ? "medium" : null
+          }]
+        };
+        await apiRequest("PUT", "/.netlify/functions/strength-plan", body);
+        addExerciseModal.classList.add("hidden");
+        await loadStrengthPlanFull(strCurrentPlan.plan.id);
+      } catch (e) { console.error("Add exercise failed", e); }
+    });
+
+    document.getElementById("cancelAddExerciseBtn").addEventListener("click", () => {
+      addExerciseModal.classList.add("hidden");
+    });
+
+    // ── Plan CRUD ──
+    document.getElementById("newStrengthPlanBtn").addEventListener("click", () => {
+      if (!selectedAthleteId) { alert("Seleciona primeiro um atleta."); return; }
+      document.getElementById("spEditId").value = "";
+      document.getElementById("strengthPlanModalTitle").textContent = "Novo Plano de Força";
+      document.getElementById("spSaveBtn").textContent = "Criar plano";
+      document.getElementById("spName").value = "";
+      document.getElementById("spWeeks").value = "4";
+      document.getElementById("spLoadRound").value = "2.5";
+      document.getElementById("spStartDate").value = "";
+      strengthPlanModal.classList.remove("hidden");
+      document.getElementById("spName").focus();
+    });
+
+    document.getElementById("editPlanMetaBtn").addEventListener("click", () => {
+      if (!strCurrentPlan) return;
+      const p = strCurrentPlan.plan;
+      document.getElementById("spEditId").value = p.id;
+      document.getElementById("strengthPlanModalTitle").textContent = "Editar Plano";
+      document.getElementById("spSaveBtn").textContent = "Guardar";
+      document.getElementById("spName").value = p.name;
+      document.getElementById("spWeeks").value = p.total_weeks;
+      document.getElementById("spLoadRound").value = p.load_round;
+      document.getElementById("spStartDate").value = p.start_date || "";
+      strengthPlanModal.classList.remove("hidden");
+    });
+
+    document.getElementById("spCancelBtn").addEventListener("click", () => {
+      strengthPlanModal.classList.add("hidden");
+    });
+
+    strengthPlanForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const editId = document.getElementById("spEditId").value;
+      const name = document.getElementById("spName").value.trim();
+      const totalWeeks = parseInt(document.getElementById("spWeeks").value, 10);
+      const loadRound = parseFloat(document.getElementById("spLoadRound").value) || 2.5;
+      const startDate = document.getElementById("spStartDate").value || null;
+
+      if (!name || !totalWeeks) return;
+
+      try {
+        if (editId) {
+          await apiRequest("PATCH", "/.netlify/functions/strength-plan", {
+            plan_id: editId, name, total_weeks: totalWeeks, load_round: loadRound, start_date: startDate
+          });
+          strengthPlanModal.classList.add("hidden");
+          await loadStrengthPlanFull(editId);
+        } else {
+          const data = await apiRequest("POST", "/.netlify/functions/strength-plan", {
+            athlete_id: selectedAthleteId, name, total_weeks: totalWeeks, load_round: loadRound, start_date: startDate
+          });
+          strengthPlanModal.classList.add("hidden");
+          await loadStrengthPlans();
+          if (data.plan) {
+            strengthPlanSelect.value = data.plan.id;
+            await loadStrengthPlanFull(data.plan.id);
+          }
+        }
+      } catch (e) {
+        console.error("Save plan failed", e);
+        alert("Erro ao guardar plano: " + (e.message || ""));
+      }
+    });
+
+    strengthPlanSelect.addEventListener("change", () => {
+      const planId = strengthPlanSelect.value;
+      if (planId) {
+        strSelectedDay = 1;
+        strSelectedWeek = 1;
+        loadStrengthPlanFull(planId);
+      } else {
+        strengthPlanHeader.hidden = true;
+        strengthDayView.hidden = true;
+        strengthNoPlan.hidden = false;
+      }
+    });
+
+    document.getElementById("activatePlanBtn").addEventListener("click", async () => {
+      if (!strCurrentPlan) return;
+      try {
+        await apiRequest("PATCH", "/.netlify/functions/strength-plan", {
+          plan_id: strCurrentPlan.plan.id, status: "active"
+        });
+        await loadStrengthPlanFull(strCurrentPlan.plan.id);
+      } catch (e) { alert("Erro: " + (e.message || "")); }
+    });
+
+    document.getElementById("archivePlanBtn").addEventListener("click", async () => {
+      if (!strCurrentPlan) return;
+      try {
+        await apiRequest("PATCH", "/.netlify/functions/strength-plan", {
+          plan_id: strCurrentPlan.plan.id, status: "archived"
+        });
+        await loadStrengthPlans();
+      } catch (e) { alert("Erro: " + (e.message || "")); }
+    });
+
   </script>
 </body>
 </html>

@@ -15,7 +15,6 @@ function normalizeProgramPayload(payload) {
   const stripeProductId = payload.stripeProductId == null ? null : payload.stripeProductId.toString().trim() || null;
   const stripePriceId = payload.stripePriceId == null ? null : payload.stripePriceId.toString().trim() || null;
   const billingType = (payload.billingType || "one_time").toString().trim().toLowerCase() || "one_time";
-  const followupType = (payload.followupType || "standard").toString().trim() || "standard";
   const status = (payload.status || "draft").toString().trim().toLowerCase();
   const isScheduledTemplate = Boolean(payload.isScheduledTemplate);
 
@@ -36,7 +35,6 @@ function normalizeProgramPayload(payload) {
     stripe_product_id: stripeProductId,
     stripe_price_id: stripePriceId,
     billing_type: billingType,
-    followup_type: followupType,
     status,
     is_scheduled_template: isScheduledTemplate
   };
@@ -55,7 +53,7 @@ function mapProgram(row) {
     stripeProductId: row.stripe_product_id || null,
     stripePriceId: row.stripe_price_id || null,
     billingType: row.billing_type || "one_time",
-    followupType: row.followup_type,
+    followupType: row.followup_type || "standard",
     status: row.status,
     isScheduledTemplate: row.is_scheduled_template,
     createdAt: row.created_at || null,

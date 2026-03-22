@@ -1,0 +1,427 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>LHT — Treino de Força</title>
+  <meta name="description" content="Registo de treino de força Lion Hybrid Training." />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --gold:#d4a54f; --gold-strong:#b88a3c; --gold-faint:rgba(212,165,79,.16);
+      --line:rgba(255,255,255,.1); --line-strong:rgba(212,165,79,.24);
+      --text:#ece7dc; --text-soft:#cfc7ba; --muted:#9f988b;
+      --success:#7cc78d; --error:#ff9384;
+      --radius-xl:28px; --radius-lg:20px; --radius-md:14px;
+      --shadow:0 20px 60px rgba(0,0,0,.45);
+    }
+    *{box-sizing:border-box;}
+    body{margin:0;min-height:100vh;font-family:"Poppins",system-ui,sans-serif;color:var(--text);
+      background:radial-gradient(circle at top left,rgba(212,165,79,.14),transparent 28%),
+      radial-gradient(circle at bottom right,rgba(212,165,79,.12),transparent 24%),
+      linear-gradient(180deg,#151515,#080808);padding:24px 16px 40px;}
+    .shell{width:min(700px,100%);margin:0 auto;}
+    h1{font-family:"Oswald",sans-serif;font-size:28px;text-transform:uppercase;color:var(--gold);margin:0 0 4px;}
+    .subtitle{color:var(--muted);font-size:14px;margin-bottom:20px;}
+    .card{border:1px solid var(--line-strong);border-radius:var(--radius-lg);padding:20px;
+      background:linear-gradient(180deg,rgba(24,24,24,.95),rgba(10,10,10,.98));box-shadow:var(--shadow);margin-bottom:16px;}
+    .auth-card{text-align:center;padding:40px 20px;}
+    .btn{display:inline-flex;align-items:center;justify-content:center;border:none;border-radius:var(--radius-md);
+      padding:10px 20px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .2s;}
+    .btn-primary{background:var(--gold);color:#111;}.btn-primary:hover{background:var(--gold-strong);}
+    .btn-secondary{background:rgba(255,255,255,.08);color:var(--text-soft);border:1px solid var(--line-strong);}
+    .btn-small{padding:4px 10px;font-size:12px;}
+    .exercise-block{margin-bottom:14px;border:1px solid var(--line);border-radius:var(--radius-md);padding:12px;}
+    .exercise-block h3{margin:0 0 4px;font-size:15px;font-family:"Oswald",sans-serif;color:var(--gold);}
+    .exercise-meta{font-size:12px;color:var(--muted);margin-bottom:8px;}
+    .exercise-meta .method-badge{background:var(--gold-faint);color:var(--gold);padding:1px 6px;border-radius:6px;font-weight:600;font-size:11px;}
+    .set-row{display:grid;grid-template-columns:40px 1fr 1fr 1fr;gap:6px;align-items:center;margin-bottom:4px;}
+    .set-row.header{font-size:11px;color:var(--muted);font-weight:600;}
+    .set-row input{padding:6px 8px;font-size:13px;border:1px solid var(--line);border-radius:6px;
+      background:rgba(255,255,255,.06);color:var(--text);font-family:inherit;width:100%;}
+    .set-row input:focus{border-color:var(--gold);outline:none;}
+    .set-label{text-align:center;font-size:13px;color:var(--muted);}
+    .superset-tag{display:inline-block;padding:1px 6px;border-radius:6px;font-size:11px;font-weight:700;margin-right:6px;}
+    .superset-tag.A{background:rgba(102,255,204,.15);color:#6fc;}
+    .superset-tag.B{background:rgba(255,153,204,.15);color:#f9c;}
+    .superset-tag.C{background:rgba(153,204,255,.15);color:#9cf;}
+    .notes-hint{font-size:11px;color:var(--muted);font-style:italic;margin-top:2px;}
+    .section-title{font-family:"Oswald",sans-serif;font-size:16px;color:var(--gold);text-transform:uppercase;margin:16px 0 8px;
+      padding-bottom:4px;border-bottom:1px solid var(--line-strong);}
+    .submit-bar{position:sticky;bottom:0;background:rgba(8,8,8,.95);padding:12px 0;border-top:1px solid var(--line-strong);
+      display:flex;justify-content:center;gap:12px;z-index:10;}
+    .result-msg{text-align:center;padding:12px;border-radius:var(--radius-md);margin-top:12px;font-size:14px;}
+    .result-msg.success{background:rgba(124,199,141,.15);color:var(--success);}
+    .result-msg.error{background:rgba(255,147,132,.15);color:var(--error);}
+    #loading{text-align:center;color:var(--muted);padding:40px;}
+    .video-link{font-size:11px;color:var(--gold);text-decoration:none;margin-left:8px;}
+    .video-link:hover{text-decoration:underline;}
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <h1>Treino de Força</h1>
+    <p class="subtitle">Regista o teu treino de hoje</p>
+
+    <!-- Auth gate -->
+    <div id="authGate" class="card auth-card">
+      <p>Faz login para aceder ao teu plano de treino.</p>
+      <button class="btn btn-primary" id="loginBtn">Login com Google</button>
+    </div>
+
+    <!-- Loading -->
+    <div id="loading" hidden>A carregar o plano de hoje...</div>
+
+    <!-- Session view -->
+    <div id="sessionView" hidden>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <div>
+          <strong id="sessionDayLabel"></strong>
+          <span id="sessionWeekLabel" style="color:var(--muted);font-size:13px;margin-left:8px;"></span>
+        </div>
+        <div style="display:flex;gap:4px;">
+          <button class="btn btn-small btn-secondary" id="prevDayBtn">◀ Anterior</button>
+          <button class="btn btn-small btn-secondary" id="nextDayBtn">Seguinte ▶</button>
+        </div>
+      </div>
+      <div id="exerciseList"></div>
+      <div class="submit-bar">
+        <button class="btn btn-primary" id="submitLogBtn">Submeter Treino</button>
+      </div>
+      <div id="resultMsg" hidden></div>
+    </div>
+
+    <!-- No plan -->
+    <div id="noPlan" class="card" hidden>
+      <p style="text-align:center;color:var(--muted);">Não tens nenhum plano de força ativo. Contacta o teu coach.</p>
+    </div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = 'https://rlivxjarqpqmvjtgmxhh.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJsaXZ4amFycXBxbXZqdGdteGhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MDk3NzcsImV4cCI6MjA4OTE4NTc3N30.MHwkQnytSCOBleYVOF5hJHWiV8d_-2V9UGIqsLTgjIY';
+
+    const SECTIONS = ["warm_up","plyos_speed","main","conditioning","observations"];
+    const SECTION_LABELS = {warm_up:"Warm Up",plyos_speed:"Plyos / Speed",main:"Main",conditioning:"Conditioning",observations:"Observations"};
+
+    let supabaseClient = null;
+    let currentSession = null;
+    let plan = null;
+    let planFull = null;
+    let logDetail = "exercise"; // 'exercise' or 'set'
+    let viewDay = 1;
+    let viewWeek = 1;
+
+    async function getToken() {
+      if (!supabaseClient) return null;
+      const { data } = await supabaseClient.auth.getSession();
+      return data?.session?.access_token || null;
+    }
+
+    async function apiRequest(method, path, body) {
+      const token = await getToken();
+      const opts = {
+        method,
+        headers: { "Content-Type": "application/json" }
+      };
+      if (token) opts.headers["Authorization"] = `Bearer ${token}`;
+      if (body) opts.body = JSON.stringify(body);
+      const res = await fetch(path, opts);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      return data;
+    }
+
+    // Determine which day/week to show based on plan start_date
+    function computeTodayDayWeek(startDate, totalWeeks) {
+      if (!startDate) return { day: 1, week: 1 };
+      const start = new Date(startDate);
+      const today = new Date();
+      today.setHours(0,0,0,0);
+      start.setHours(0,0,0,0);
+      const diffDays = Math.floor((today - start) / 86400000);
+      if (diffDays < 0) return { day: 1, week: 1 };
+      const week = Math.min(Math.floor(diffDays / 7) + 1, totalWeeks);
+      const day = (diffDays % 7) + 1;
+      return { day: Math.min(day, 7), week };
+    }
+
+    function getExercisesForDay(day, section) {
+      return (planFull.exercises || [])
+        .filter(e => e.day_number === day && e.section === section)
+        .sort((a, b) => a.exercise_order - b.exercise_order);
+    }
+
+    function getPrescription(peId, week) {
+      return (planFull.prescriptions || []).find(p => p.plan_exercise_id === peId && p.week_number === week) || {};
+    }
+
+    function renderSession() {
+      const day = viewDay;
+      const week = viewWeek;
+      document.getElementById("sessionDayLabel").textContent = `Dia ${day}`;
+      document.getElementById("sessionWeekLabel").textContent = `Semana ${week}`;
+
+      const container = document.getElementById("exerciseList");
+      container.innerHTML = "";
+
+      for (const sec of SECTIONS) {
+        const exercises = getExercisesForDay(day, sec);
+        if (exercises.length === 0) continue;
+
+        const title = document.createElement("div");
+        title.className = "section-title";
+        title.textContent = SECTION_LABELS[sec];
+        container.appendChild(title);
+
+        for (const pe of exercises) {
+          const rx = getPrescription(pe.id, week);
+          const exName = pe.exercise ? pe.exercise.name : "Exercício";
+          const videoUrl = pe.exercise ? pe.exercise.video_url : null;
+          const ss = pe.superset_group;
+
+          const block = document.createElement("div");
+          block.className = "exercise-block";
+          block.setAttribute("data-peid", pe.id);
+          block.setAttribute("data-section", sec);
+
+          let headerHtml = "";
+          if (ss) headerHtml += `<span class="superset-tag ${ss}">${ss}</span>`;
+          headerHtml += `<span>${exName}</span>`;
+          if (videoUrl) headerHtml += `<a href="${videoUrl}" target="_blank" rel="noopener" class="video-link">📹 vídeo</a>`;
+
+          const sets = rx.sets || 1;
+          const targetReps = rx.reps || "";
+          const method = rx.method || "standard";
+          const rir = rx.rir != null ? rx.rir : "";
+          const tempo = rx.tempo || "";
+          const notes = rx.coach_notes || "";
+
+          let metaHtml = `${sets} sets`;
+          if (targetReps) metaHtml += ` × ${targetReps} reps`;
+          if (rir !== "") metaHtml += ` · RIR ${rir}`;
+          if (tempo) metaHtml += ` · Tempo ${tempo}`;
+          if (method !== "standard") metaHtml += ` <span class="method-badge">${method}</span>`;
+
+          let setsHtml = "";
+          if (sec === "observations") {
+            setsHtml = `<div class="notes-hint">${notes || "Sem notas"}</div>`;
+          } else if (logDetail === "set") {
+            // Per-set logging
+            setsHtml += `<div class="set-row header"><div>#</div><div>Reps</div><div>Carga (kg)</div><div>RIR</div></div>`;
+            for (let s = 1; s <= sets; s++) {
+              setsHtml += `
+                <div class="set-row">
+                  <div class="set-label">${s}</div>
+                  <input type="number" data-set="${s}" data-field="reps" value="${targetReps}" min="0" />
+                  <input type="number" data-set="${s}" data-field="load_kg" value="" min="0" step="0.5" placeholder="kg" />
+                  <input type="number" data-set="${s}" data-field="rir" value="${rir}" min="0" max="10" />
+                </div>`;
+            }
+          } else {
+            // Per-exercise summary logging
+            setsHtml += `<div class="set-row header"><div></div><div>Reps</div><div>Carga (kg)</div><div>RIR</div></div>`;
+            setsHtml += `
+              <div class="set-row">
+                <div class="set-label">Avg</div>
+                <input type="number" data-set="avg" data-field="reps" value="${targetReps}" min="0" />
+                <input type="number" data-set="avg" data-field="load_kg" value="" min="0" step="0.5" placeholder="kg" />
+                <input type="number" data-set="avg" data-field="rir" value="${rir}" min="0" max="10" />
+              </div>`;
+          }
+
+          if (notes && sec !== "observations") {
+            setsHtml += `<div class="notes-hint">💡 ${notes}</div>`;
+          }
+
+          block.innerHTML = `<h3>${headerHtml}</h3><div class="exercise-meta">${metaHtml}</div>${setsHtml}`;
+          container.appendChild(block);
+        }
+      }
+    }
+
+    async function submitLog() {
+      const sets = [];
+      const blocks = document.querySelectorAll(".exercise-block[data-peid]");
+      const sessionDate = new Date().toISOString().slice(0, 10);
+
+      for (const block of blocks) {
+        const peId = block.getAttribute("data-peid");
+        const sec = block.getAttribute("data-section");
+        if (sec === "observations") continue;
+
+        const pe = (planFull.exercises || []).find(e => e.id === peId);
+        const rx = pe ? getPrescription(pe.id, viewWeek) : {};
+
+        if (logDetail === "set") {
+          const inputs = block.querySelectorAll(".set-row:not(.header)");
+          inputs.forEach((row) => {
+            const setNum = parseInt(row.querySelector("[data-set]").getAttribute("data-set"), 10);
+            const repsInput = row.querySelector('[data-field="reps"]');
+            const loadInput = row.querySelector('[data-field="load_kg"]');
+            const rirInput = row.querySelector('[data-field="rir"]');
+            sets.push({
+              plan_exercise_id: peId,
+              week_number: viewWeek,
+              day_number: viewDay,
+              session_date: sessionDate,
+              set_number: setNum,
+              reps: repsInput.value ? parseInt(repsInput.value, 10) : null,
+              load_kg: loadInput.value ? parseFloat(loadInput.value) : null,
+              rir: rirInput.value !== "" ? parseInt(rirInput.value, 10) : null,
+              method: rx.method || "standard"
+            });
+          });
+        } else {
+          // Per-exercise: create N identical sets
+          const repsInput = block.querySelector('[data-field="reps"]');
+          const loadInput = block.querySelector('[data-field="load_kg"]');
+          const rirInput = block.querySelector('[data-field="rir"]');
+          const numSets = rx.sets || 1;
+          for (let s = 1; s <= numSets; s++) {
+            sets.push({
+              plan_exercise_id: peId,
+              week_number: viewWeek,
+              day_number: viewDay,
+              session_date: sessionDate,
+              set_number: s,
+              reps: repsInput.value ? parseInt(repsInput.value, 10) : null,
+              load_kg: loadInput.value ? parseFloat(loadInput.value) : null,
+              rir: rirInput.value !== "" ? parseInt(rirInput.value, 10) : null,
+              method: rx.method || "standard"
+            });
+          }
+        }
+      }
+
+      if (sets.length === 0) {
+        showMsg("Nenhum dado para submeter.", "error");
+        return;
+      }
+
+      document.getElementById("submitLogBtn").disabled = true;
+      try {
+        const result = await apiRequest("POST", "/.netlify/functions/strength-log", {
+          plan_id: plan.id,
+          sets
+        });
+        showMsg(`Treino registado! ${result.sets.length} sets guardados.`, "success");
+      } catch (e) {
+        showMsg("Erro: " + (e.message || "Falha ao submeter"), "error");
+      }
+      document.getElementById("submitLogBtn").disabled = false;
+    }
+
+    function showMsg(text, type) {
+      const el = document.getElementById("resultMsg");
+      el.hidden = false;
+      el.className = "result-msg " + type;
+      el.textContent = text;
+    }
+
+    // Navigation
+    document.getElementById("prevDayBtn").addEventListener("click", () => {
+      if (viewDay > 1) { viewDay--; renderSession(); }
+    });
+    document.getElementById("nextDayBtn").addEventListener("click", () => {
+      if (viewDay < 7) { viewDay++; renderSession(); }
+    });
+    document.getElementById("submitLogBtn").addEventListener("click", submitLog);
+
+    // Auth + init
+    async function init() {
+      if (typeof window.supabase === "undefined") {
+        setTimeout(init, 100);
+        return;
+      }
+      supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+      supabaseClient.auth.onAuthStateChange(async (event, session) => {
+        if (session?.user) {
+          document.getElementById("authGate").hidden = true;
+          document.getElementById("loading").hidden = false;
+          await loadPlan();
+        } else {
+          document.getElementById("authGate").hidden = false;
+          document.getElementById("loading").hidden = true;
+          document.getElementById("sessionView").hidden = true;
+          document.getElementById("noPlan").hidden = true;
+        }
+      });
+
+      document.getElementById("loginBtn").addEventListener("click", async () => {
+        await supabaseClient.auth.signInWithOAuth({
+          provider: "google",
+          options: { redirectTo: window.location.origin + "/strength/" }
+        });
+      });
+
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      if (session?.user) {
+        document.getElementById("authGate").hidden = true;
+        document.getElementById("loading").hidden = false;
+        await loadPlan();
+      }
+    }
+
+    async function loadPlan() {
+      try {
+        // Get athlete's strength log detail preference from the plan endpoint
+        // The strength-log GET fetches logs, but we need the plan first
+        // We use the strength-plan endpoint which only works for coaches
+        // For athletes, we use strength-log GET which returns their logs
+        // Instead, the active plan is fetched via a simpler endpoint
+        
+        // Fetch active plan — for athlete access, the strength-log endpoint 
+        // requires plan_id. We need a way to discover the active plan.
+        // For now, use the athlete-facing logs endpoint to get plan context.
+        
+        // Athlete: fetch all plans to find active one
+        // This requires the exercises endpoint to work for athletes too
+        // Simplified: athlete hits strength-log?planId=X but doesn't know planId
+        
+        // The simplest approach: add an athlete-facing plan discovery.
+        // For MVP, we'll embed the plan data in the logs response or 
+        // use a query param on the URL.
+        
+        const urlParams = new URLSearchParams(window.location.search);
+        const planId = urlParams.get("planId");
+        
+        if (!planId) {
+          document.getElementById("loading").hidden = true;
+          document.getElementById("noPlan").hidden = false;
+          document.getElementById("noPlan").querySelector("p").textContent = 
+            "Nenhum plano especificado. Usa o link enviado pelo teu coach.";
+          return;
+        }
+
+        // Fetch plan data (this will need an athlete-facing endpoint later)
+        // For MVP, use the logs endpoint to verify access and get plan data
+        const logsData = await apiRequest("GET", `/.netlify/functions/strength-log?planId=${planId}`);
+        
+        // We need full plan data — for now, store planId and show basic session
+        plan = { id: planId };
+        
+        // Since athletes can't call strength-plan GET (coach-only), 
+        // we'd need to either: make it work for athletes, or create a separate endpoint.
+        // For now, show a simplified view using just the planId.
+        
+        document.getElementById("loading").hidden = true;
+        document.getElementById("noPlan").hidden = false;
+        document.getElementById("noPlan").querySelector("p").textContent = 
+          "O plano de força está disponível. O teu coach vai partilhar os detalhes da sessão.";
+          
+      } catch (e) {
+        console.error("Load plan failed", e);
+        document.getElementById("loading").hidden = true;
+        document.getElementById("noPlan").hidden = false;
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>
