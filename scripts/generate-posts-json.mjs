@@ -1,76 +1,72 @@
-import { readdir, readFile, mkdir, writeFile } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-function parseFrontMatter(markdown) {
-  // Strip potential UTF-8 BOM and support both LF/CRLF newlines
-  const src = markdown.replace(/^\uFEFF/, "");
-  const fmMatch = src.match(/^---\s*[\s\S]*?\r?\n---\s*\r?\n?/);
-  if (!fmMatch) return { meta: {}, body: markdown };
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  const fmBlock = fmMatch[0];
-  const body = src.slice(fmBlock.length);
-  const fm = fmBlock.replace(/^---\s*/, "").replace(/\s*---\s*$/, "");
-
-  const meta = {};
-  const cleanFm = fm.replace(/\r\n/g, "\n");
-  for (const line of cleanFm.split(/\n+/)) {
-    const match = line.match(/^([A-Za-z_][A-Za-z0-9_-]*):\s*(.*)$/);
-    if (!match) continue;
-    const key = match[1].trim();
-    const value = match[2].trim().replace(/^"|"$/g, "");
-    if (key) meta[key] = value;
-  }
-  return { meta, body };
+if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+  console.error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
+  process.exit(1);
 }
 
-function normalizePost({ slug, title, date, category, excerpt }) {
+function isoDate(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toISOString().slice(0, 10);
+}
+
+function normalizePost(row) {
   return {
-    slug,
-    title: title || slug,
-    date: date || "",
-    category: category || "Artigo",
-    excerpt: excerpt || "",
+    slug: row.slug,
+    title: row.title || row.slug,
+    date: isoDate(row.published_at),
+    category: row.category || "Artigo",
+    excerpt: row.excerpt || ""
   };
 }
 
-const postsDir = path.join(process.cwd(), "blog", "posts");
-const outDir = path.join(process.cwd(), "blog");
-const outFile = path.join(outDir, "posts.json");
+async function supabaseRequest(pathAndQuery) {
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/${pathAndQuery}`, {
+    method: "GET",
+    headers: {
+      apikey: SUPABASE_SERVICE_ROLE_KEY,
+      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
+    }
+  });
 
-const entries = await readdir(postsDir, { withFileTypes: true });
-const items = [];
+  const text = await response.text();
+  let payload;
+  try {
+    payload = text ? JSON.parse(text) : [];
+  } catch {
+    payload = [];
+  }
 
-for (const entry of entries) {
-  if (!entry.isFile() || !entry.name.endsWith(".md")) continue;
-  const slug = entry.name.replace(/\.md$/, "");
-  const md = await readFile(path.join(postsDir, entry.name), "utf8");
-  const { meta } = parseFrontMatter(md);
+  if (!response.ok) {
+    throw new Error(payload?.message || `Supabase error ${response.status}`);
+  }
 
-  items.push(
-    normalizePost({
-      slug,
-      title: meta.title,
-      date: meta.date,
-      category: meta.category,
-      excerpt: meta.excerpt,
-    })
-  );
+  return Array.isArray(payload) ? payload : [];
 }
 
-items.sort((a, b) => (a.date > b.date ? -1 : a.date < b.date ? 1 : 0));
+function urlEntry(loc, lastmod, changefreq, priority) {
+  return `  <url>\n    <loc>${loc}</loc>\n    <lastmod>${lastmod}</lastmod>\n    <changefreq>${changefreq}</changefreq>\n    <priority>${priority}</priority>\n  </url>`;
+}
+
+const rows = await supabaseRequest("blog_articles?deleted_at=is.null&status=eq.published&select=slug,title,excerpt,category,published_at&order=published_at.desc");
+const items = rows.map(normalizePost);
+
+const outDir = path.join(process.cwd(), "blog");
+const outFile = path.join(outDir, "posts.json");
 
 await mkdir(outDir, { recursive: true });
 await writeFile(outFile, JSON.stringify({ items }, null, 2), "utf8");
 
-console.log(`✅ Gerado: ${outFile} (${items.length} posts)`);
+console.log(`Generated: ${outFile} (${items.length} posts from Supabase)`);
 
-// ==== Sitemap generation ====
-const siteUrl = process.env.URL || "https://lionhybridtraining.com";
+const siteUrl = process.env.URL || process.env.SITE_URL || "https://lionhybridtraining.com";
 const today = new Date().toISOString().slice(0, 10);
-
-function urlEntry(loc, lastmod, changefreq, priority){
-  return `  <url>\n    <loc>${loc}</loc>\n    <lastmod>${lastmod}</lastmod>\n    <changefreq>${changefreq}</changefreq>\n    <priority>${priority}</priority>\n  </url>`;
-}
 
 const staticPages = [
   { path: "/", changefreq: "weekly", priority: "1.0" },
@@ -78,18 +74,18 @@ const staticPages = [
   { path: "/sobre", changefreq: "monthly", priority: "0.7" },
   { path: "/blog", changefreq: "weekly", priority: "0.8" },
   { path: "/termos", changefreq: "yearly", priority: "0.4" },
-  { path: "/politica-privacidade", changefreq: "yearly", priority: "0.4" },
+  { path: "/politica-privacidade", changefreq: "yearly", priority: "0.4" }
 ];
 
 const staticXml = staticPages
-  .map(p => urlEntry(`${siteUrl}${p.path}`, today, p.changefreq, p.priority))
+  .map((page) => urlEntry(`${siteUrl}${page.path}`, today, page.changefreq, page.priority))
   .join("\n");
 
 const postsXml = items
-  .map(p => urlEntry(`${siteUrl}/blog/${p.slug}`, p.date || today, "monthly", "0.6"))
+  .map((post) => urlEntry(`${siteUrl}/blog/${post.slug}`, post.date || today, "monthly", "0.6"))
   .join("\n");
 
 const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${staticXml}\n${postsXml}\n</urlset>\n`;
 
 await writeFile(path.join(process.cwd(), "sitemap.xml"), sitemapXml, "utf8");
-console.log(`✅ Atualizado: sitemap.xml (${items.length} URLs de posts)`);
+console.log(`Updated: sitemap.xml (${items.length} post URLs from Supabase)`);

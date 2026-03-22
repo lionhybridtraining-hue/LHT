@@ -127,6 +127,80 @@
             <button id="publish-now-btn" type="button">Publicar agora</button>
             <button id="delete-btn" type="button">Eliminar</button>
           </div>
+
+          <section class="blog-ai-panel" aria-labelledby="blog-ai-title">
+            <div class="blog-ai-header">
+              <div>
+                <p class="section-eyebrow">IA Editorial</p>
+                <h3 id="blog-ai-title">Linha de producao para Blog + WhatsApp</h3>
+                <p>Gera um draft do artigo e 3 mensagens prontas para copiar/colar na comunidade.</p>
+              </div>
+              <label class="blog-ai-toggle" for="blog-ai-regenerate-on-publish">
+                <input id="blog-ai-regenerate-on-publish" type="checkbox" checked />
+                <span>Regenerar ao publicar</span>
+              </label>
+            </div>
+
+            <p id="blog-ai-message" class="message" role="status"></p>
+
+            <div class="form-grid blog-ai-grid">
+              <div class="field">
+                <label for="blog-ai-topic">Tema</label>
+                <input id="blog-ai-topic" type="text" placeholder="Ex.: Base aerobia para corredores hibridos" />
+              </div>
+              <div class="field">
+                <label for="blog-ai-objective">Objetivo</label>
+                <input id="blog-ai-objective" type="text" placeholder="Ex.: Levar atletas a agir esta semana" />
+              </div>
+              <div class="field">
+                <label for="blog-ai-tone">Tom</label>
+                <input id="blog-ai-tone" type="text" placeholder="Ex.: direto, energico e pratico" />
+              </div>
+              <div class="field field-wide">
+                <label for="blog-ai-cta">CTA</label>
+                <input id="blog-ai-cta" type="text" placeholder="Ex.: Le o artigo e diz no grupo qual ponto vais aplicar hoje" />
+              </div>
+            </div>
+
+            <div class="blog-ai-actions">
+              <button id="blog-ai-generate-btn" type="button">Gerar com IA</button>
+              <button id="blog-ai-apply-btn" type="button">Aplicar draft no editor</button>
+              <button id="blog-ai-mark-shared-btn" type="button">Marcar como partilhado</button>
+              <label for="blog-ai-selected-variant">Variação escolhida</label>
+              <select id="blog-ai-selected-variant">
+                <option value="">Sem escolha</option>
+                <option value="A">A</option>
+                <option value="B">B</option>
+                <option value="C">C</option>
+              </select>
+            </div>
+
+            <div class="blog-ai-variants">
+              <div class="blog-ai-variant-card">
+                <div class="blog-ai-variant-head">
+                  <strong>Variação A</strong>
+                  <button id="blog-ai-copy-a-btn" type="button">Copiar A</button>
+                </div>
+                <textarea id="blog-ai-variant-a" rows="4" placeholder="Mensagem A para WhatsApp"></textarea>
+              </div>
+              <div class="blog-ai-variant-card">
+                <div class="blog-ai-variant-head">
+                  <strong>Variação B</strong>
+                  <button id="blog-ai-copy-b-btn" type="button">Copiar B</button>
+                </div>
+                <textarea id="blog-ai-variant-b" rows="4" placeholder="Mensagem B para WhatsApp"></textarea>
+              </div>
+              <div class="blog-ai-variant-card">
+                <div class="blog-ai-variant-head">
+                  <strong>Variação C</strong>
+                  <button id="blog-ai-copy-c-btn" type="button">Copiar C</button>
+                </div>
+                <textarea id="blog-ai-variant-c" rows="4" placeholder="Mensagem C para WhatsApp"></textarea>
+              </div>
+            </div>
+
+            <p id="blog-ai-status" class="blog-ai-status">Sem geracao ainda.</p>
+          </section>
         </form>
       </section>
 
@@ -370,19 +444,138 @@
         <div class="editor-top">
           <div>
             <p class="section-eyebrow">Program Ops</p>
-            <h2>Programas</h2>
-            <p>Area preparada para catalogo de programas, precos, duracao e apresentacao no site.</p>
+            <h2>Programas e Acesso</h2>
+            <p>Catalogo de programas Stripe, configuracao comercial e concessao manual de acesso.</p>
           </div>
         </div>
-        <div class="module-grid">
-          <article class="module-card">
-            <h3>Catalogo de programas</h3>
-            <p>Gestao de programas com origem no TrainingPeaks, metadata comercial e formato de acompanhamento.</p>
-          </article>
-          <article class="module-card">
-            <h3>Calendario e lifecycle</h3>
-            <p>Preparado para inicio imediato/agendado, duracao em semanas e data de fim automatica.</p>
-          </article>
+
+        <p id="programs-message" class="message" role="status"></p>
+
+        <div class="athletes-toolbar">
+          <button id="refresh-programs-btn" type="button">Atualizar catalogo</button>
+        </div>
+
+        <div class="admin-inline-form">
+          <div class="field field-wide">
+            <label for="program-name">Nome</label>
+            <input id="program-name" type="text" placeholder="Ex.: AER - Athletic Endurance Runner" />
+          </div>
+          <div class="field">
+            <label for="program-external-source">Origem externa</label>
+            <input id="program-external-source" type="text" value="trainingpeaks" />
+          </div>
+          <div class="field">
+            <label for="program-external-id">ID externo</label>
+            <input id="program-external-id" type="text" placeholder="Ex.: AER" />
+          </div>
+          <div class="field field-wide">
+            <label for="program-description">Descricao</label>
+            <textarea id="program-description" rows="2" placeholder="Resumo comercial e operacional do programa"></textarea>
+          </div>
+          <div class="field">
+            <label for="program-duration-weeks">Duracao (semanas)</label>
+            <input id="program-duration-weeks" type="number" min="1" value="8" />
+          </div>
+          <div class="field">
+            <label for="program-price-cents">Preco (centimos)</label>
+            <input id="program-price-cents" type="number" min="0" value="0" />
+          </div>
+          <div class="field">
+            <label for="program-currency">Moeda</label>
+            <input id="program-currency" type="text" value="EUR" maxlength="3" />
+          </div>
+          <div class="field">
+            <label for="program-stripe-product-id">Stripe Product ID</label>
+            <input id="program-stripe-product-id" type="text" placeholder="prod_..." />
+          </div>
+          <div class="field">
+            <label for="program-stripe-price-id">Stripe Price ID</label>
+            <input id="program-stripe-price-id" type="text" placeholder="price_..." />
+          </div>
+          <div class="field">
+            <label for="program-billing-type">Tipo de faturacao</label>
+            <select id="program-billing-type">
+              <option value="one_time">one_time</option>
+              <option value="recurring">recurring</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="program-followup-type">Follow-up</label>
+            <input id="program-followup-type" type="text" value="standard" />
+          </div>
+          <div class="field">
+            <label for="program-status">Estado</label>
+            <select id="program-status">
+              <option value="draft">draft</option>
+              <option value="active">active</option>
+              <option value="archived">archived</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="program-scheduled-template">Template agendado</label>
+            <input id="program-scheduled-template" type="checkbox" />
+          </div>
+          <div class="form-actions">
+            <button id="create-program-btn" type="button">Criar programa</button>
+          </div>
+        </div>
+
+        <div class="athletes-list-wrap">
+          <table class="athletes-table">
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>Externo</th>
+                <th>Billing</th>
+                <th>Preco</th>
+                <th>Estado</th>
+                <th>Stripe Price</th>
+              </tr>
+            </thead>
+            <tbody id="programs-body"></tbody>
+          </table>
+        </div>
+
+        <div class="editor-top" style="margin-top: 18px;">
+          <div>
+            <p class="section-eyebrow">Manual Override</p>
+            <h3>Conceder acesso manual</h3>
+            <p>Usa este formulario para desbloquear onboarding para atletas existentes.</p>
+          </div>
+        </div>
+
+        <p id="program-grants-message" class="message" role="status"></p>
+
+        <div class="admin-inline-form">
+          <div class="field">
+            <label for="grant-athlete-email">Email do atleta (opcional)</label>
+            <input id="grant-athlete-email" type="email" placeholder="Ex.: atleta@email.com" />
+          </div>
+          <div class="field">
+            <label for="grant-identity-id">Identity ID (opcional)</label>
+            <input id="grant-identity-id" type="text" placeholder="Ex.: a99b2131-..." />
+          </div>
+          <div class="field field-wide">
+            <label for="grant-program-id">Programa</label>
+            <select id="grant-program-id">
+              <option value="">A carregar programas...</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="grant-amount-cents">Valor (centimos, opcional)</label>
+            <input id="grant-amount-cents" type="number" min="0" placeholder="Ex.: 9700" />
+          </div>
+          <div class="field">
+            <label for="grant-currency">Moeda</label>
+            <input id="grant-currency" type="text" value="EUR" maxlength="3" />
+          </div>
+          <div class="field">
+            <label for="grant-expires-at">Expira em (opcional)</label>
+            <input id="grant-expires-at" type="datetime-local" />
+          </div>
+          <div class="form-actions">
+            <button id="grant-access-btn" type="button">Conceder acesso</button>
+          </div>
         </div>
       </section>
 
@@ -724,8 +917,11 @@
     const leadsApiBase = '/.netlify/functions/admin-leads';
     const aiPromptsApiBase = '/.netlify/functions/admin-ai-prompts';
     const aiLogsApiBase = '/.netlify/functions/admin-ai-logs';
+    const blogProductionApiBase = '/.netlify/functions/admin-blog-production';
     const dataAuditApiBase = '/.netlify/functions/admin-athlete-data-audit';
     const adminAthletesListApiBase = '/.netlify/functions/admin-athletes-list';
+    const adminProgramsApiBase = '/.netlify/functions/admin-programs';
+    const adminGrantAccessApiBase = '/.netlify/functions/admin-grant-access';
     const state = {
       user: null,
       token: null,
@@ -741,8 +937,10 @@
       aiLogs: [],
       selectedAiLogId: null,
       activeAiSubtab: 'prompts',
+      blogProduction: null,
       dataAudit: null,
-      athletesCatalog: []
+      athletesCatalog: [],
+      programs: []
     };
 
     const SITE_METADATA_PRESETS = [
@@ -895,7 +1093,24 @@
       content: document.getElementById('content'),
       saveBtn: document.getElementById('save-btn'),
       publishNowBtn: document.getElementById('publish-now-btn'),
-      deleteBtn: document.getElementById('delete-btn')
+      deleteBtn: document.getElementById('delete-btn'),
+      blogAiMessage: document.getElementById('blog-ai-message'),
+      blogAiTopic: document.getElementById('blog-ai-topic'),
+      blogAiObjective: document.getElementById('blog-ai-objective'),
+      blogAiTone: document.getElementById('blog-ai-tone'),
+      blogAiCta: document.getElementById('blog-ai-cta'),
+      blogAiGenerateBtn: document.getElementById('blog-ai-generate-btn'),
+      blogAiApplyBtn: document.getElementById('blog-ai-apply-btn'),
+      blogAiMarkSharedBtn: document.getElementById('blog-ai-mark-shared-btn'),
+      blogAiSelectedVariant: document.getElementById('blog-ai-selected-variant'),
+      blogAiVariantA: document.getElementById('blog-ai-variant-a'),
+      blogAiVariantB: document.getElementById('blog-ai-variant-b'),
+      blogAiVariantC: document.getElementById('blog-ai-variant-c'),
+      blogAiCopyABtn: document.getElementById('blog-ai-copy-a-btn'),
+      blogAiCopyBBtn: document.getElementById('blog-ai-copy-b-btn'),
+      blogAiCopyCBtn: document.getElementById('blog-ai-copy-c-btn'),
+      blogAiStatus: document.getElementById('blog-ai-status'),
+      blogAiRegenerateOnPublish: document.getElementById('blog-ai-regenerate-on-publish')
       ,
       tabBlog: document.getElementById('tab-blog'),
       tabSiteContent: document.getElementById('tab-site-content'),
@@ -943,6 +1158,31 @@
       refreshLeadsBtn: document.getElementById('refresh-leads-btn'),
       leadsEmpty: document.getElementById('leads-empty'),
       leadsBody: document.getElementById('leads-body'),
+      programsMessage: document.getElementById('programs-message'),
+      refreshProgramsBtn: document.getElementById('refresh-programs-btn'),
+      programsBody: document.getElementById('programs-body'),
+      programName: document.getElementById('program-name'),
+      programExternalSource: document.getElementById('program-external-source'),
+      programExternalId: document.getElementById('program-external-id'),
+      programDescription: document.getElementById('program-description'),
+      programDurationWeeks: document.getElementById('program-duration-weeks'),
+      programPriceCents: document.getElementById('program-price-cents'),
+      programCurrency: document.getElementById('program-currency'),
+      programStripeProductId: document.getElementById('program-stripe-product-id'),
+      programStripePriceId: document.getElementById('program-stripe-price-id'),
+      programBillingType: document.getElementById('program-billing-type'),
+      programFollowupType: document.getElementById('program-followup-type'),
+      programStatus: document.getElementById('program-status'),
+      programScheduledTemplate: document.getElementById('program-scheduled-template'),
+      createProgramBtn: document.getElementById('create-program-btn'),
+      programGrantsMessage: document.getElementById('program-grants-message'),
+      grantAthleteEmail: document.getElementById('grant-athlete-email'),
+      grantIdentityId: document.getElementById('grant-identity-id'),
+      grantProgramId: document.getElementById('grant-program-id'),
+      grantAmountCents: document.getElementById('grant-amount-cents'),
+      grantCurrency: document.getElementById('grant-currency'),
+      grantExpiresAt: document.getElementById('grant-expires-at'),
+      grantAccessBtn: document.getElementById('grant-access-btn'),
       tabAi: document.getElementById('tab-ai'),
       aiPanel: document.getElementById('ai-panel'),
       aiMessage: document.getElementById('ai-message'),
@@ -1049,6 +1289,11 @@
 
       if (activeTab === 'leads' && state.user) {
         refreshLeadsData().catch((err) => showLeadsMessage(err.message, true));
+      }
+
+      if (activeTab === 'programs' && state.user) {
+        refreshProgramsData().catch((err) => showProgramsMessage(err.message, true));
+        refreshAuditAthletesCatalog().catch(() => {});
       }
 
       if (activeTab === 'ai' && state.user) {
@@ -2097,6 +2342,176 @@
       els.message.classList.toggle('success', !isError && Boolean(text));
     }
 
+    function showBlogAiMessage(text, isError) {
+      els.blogAiMessage.textContent = text || '';
+      els.blogAiMessage.classList.toggle('error', Boolean(isError));
+      els.blogAiMessage.classList.toggle('success', !isError && Boolean(text));
+    }
+
+    function collectBlogAiBriefing() {
+      return {
+        topic: (els.blogAiTopic.value || '').trim(),
+        objective: (els.blogAiObjective.value || '').trim(),
+        tone: (els.blogAiTone.value || '').trim(),
+        cta: (els.blogAiCta.value || '').trim(),
+        category: (els.category.value || '').trim(),
+        targetAudience: 'comunidade_whatsapp',
+        lengthHint: 'medium'
+      };
+    }
+
+    function collectBlogAiArticleSeed() {
+      return {
+        title: (els.title.value || '').trim(),
+        excerpt: (els.excerpt.value || '').trim(),
+        category: (els.category.value || 'Artigo').trim() || 'Artigo',
+        content: els.content.value || ''
+      };
+    }
+
+    function getVariantText(label) {
+      if (label === 'A') return els.blogAiVariantA.value || '';
+      if (label === 'B') return els.blogAiVariantB.value || '';
+      if (label === 'C') return els.blogAiVariantC.value || '';
+      return '';
+    }
+
+    function setVariantText(label, value) {
+      if (label === 'A') els.blogAiVariantA.value = value || '';
+      if (label === 'B') els.blogAiVariantB.value = value || '';
+      if (label === 'C') els.blogAiVariantC.value = value || '';
+    }
+
+    function buildVariantArrayFromEditor() {
+      return ['A', 'B', 'C'].map((label) => ({
+        label,
+        text: getVariantText(label).trim()
+      }));
+    }
+
+    function renderBlogProduction(production) {
+      state.blogProduction = production || null;
+      if (!production) {
+        els.blogAiStatus.textContent = 'Sem geracao ainda.';
+        els.blogAiSelectedVariant.value = '';
+        setVariantText('A', '');
+        setVariantText('B', '');
+        setVariantText('C', '');
+        return;
+      }
+
+      const briefing = production.briefing || {};
+      if (!els.blogAiTopic.value) els.blogAiTopic.value = briefing.topic || '';
+      if (!els.blogAiObjective.value) els.blogAiObjective.value = briefing.objective || '';
+      if (!els.blogAiTone.value) els.blogAiTone.value = briefing.tone || '';
+      if (!els.blogAiCta.value) els.blogAiCta.value = briefing.cta || '';
+      els.blogAiSelectedVariant.value = production.selectedVariant || '';
+      els.blogAiRegenerateOnPublish.checked = production.regenerateOnPublish !== false;
+
+      const variants = Array.isArray(production.whatsappVariants) ? production.whatsappVariants : [];
+      ['A', 'B', 'C'].forEach((label) => {
+        const row = variants.find((item) => item && item.label === label) || {};
+        setVariantText(label, row.text || '');
+      });
+
+      const shared = production.manualSharedAt
+        ? ` | Partilhado manualmente em ${new Date(production.manualSharedAt).toLocaleString('pt-PT')}`
+        : '';
+      els.blogAiStatus.textContent = `Estado: ${production.status || 'not_generated'}${shared}`;
+    }
+
+    function resetBlogProductionPanel() {
+      state.blogProduction = null;
+      els.blogAiTopic.value = '';
+      els.blogAiObjective.value = '';
+      els.blogAiTone.value = '';
+      els.blogAiCta.value = '';
+      els.blogAiSelectedVariant.value = '';
+      els.blogAiRegenerateOnPublish.checked = true;
+      setVariantText('A', '');
+      setVariantText('B', '');
+      setVariantText('C', '');
+      els.blogAiStatus.textContent = 'Sem geracao ainda.';
+      showBlogAiMessage('', false);
+    }
+
+    async function refreshBlogProductionForCurrentArticle() {
+      const articleId = (els.id.value || '').trim();
+      if (!articleId || !state.user) {
+        renderBlogProduction(null);
+        return;
+      }
+
+      const data = await apiRequest('GET', `${blogProductionApiBase}?articleId=${encodeURIComponent(articleId)}`);
+      renderBlogProduction(data.production || null);
+    }
+
+    async function generateBlogProduction() {
+      if (!state.user) throw new Error('Faz login para gerar conteudo com IA.');
+
+      const articleId = (els.id.value || '').trim();
+      const payload = {
+        briefing: collectBlogAiBriefing(),
+        article: collectBlogAiArticleSeed(),
+        regenerateOnPublish: Boolean(els.blogAiRegenerateOnPublish.checked)
+      };
+      if (articleId) payload.articleId = articleId;
+
+      showBlogAiMessage('A gerar blog + WhatsApp com IA...', false);
+      const data = await apiRequest('POST', blogProductionApiBase, payload);
+      renderBlogProduction(data.production || null);
+      showBlogAiMessage('Conteudo gerado. Escolhe variacao e copia para o WhatsApp.', false);
+    }
+
+    function applyGeneratedBlogToEditor() {
+      const generated = state.blogProduction && state.blogProduction.generatedBlog;
+      if (!generated) throw new Error('Gera conteudo primeiro.');
+      if (generated.title) els.title.value = generated.title;
+      if (generated.excerpt) els.excerpt.value = generated.excerpt;
+      if (generated.category) els.category.value = generated.category;
+      if (generated.content) els.content.value = generated.content;
+      showBlogAiMessage('Draft aplicado no editor.', false);
+    }
+
+    async function copyBlogVariant(label) {
+      const text = getVariantText(label).trim();
+      if (!text) throw new Error(`Variacao ${label} vazia.`);
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.left = '-9999px';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+      }
+
+      els.blogAiSelectedVariant.value = label;
+      showBlogAiMessage(`Variacao ${label} copiada.`, false);
+    }
+
+    async function saveBlogProductionManualShare() {
+      const articleId = (els.id.value || '').trim();
+      if (!articleId) throw new Error('Guarda o artigo antes de marcar partilha manual.');
+
+      const selectedVariant = (els.blogAiSelectedVariant.value || '').trim();
+      const payload = {
+        articleId,
+        selectedVariant: selectedVariant || undefined,
+        regenerateOnPublish: Boolean(els.blogAiRegenerateOnPublish.checked),
+        whatsappVariants: buildVariantArrayFromEditor(),
+        markShared: true
+      };
+
+      const data = await apiRequest('PATCH', blogProductionApiBase, payload);
+      renderBlogProduction(data.production || null);
+      showBlogAiMessage('Partilha manual registada.', false);
+    }
+
     function showLeadsMessage(text, isError) {
       els.leadsMessage.textContent = text || '';
       els.leadsMessage.classList.toggle('error', Boolean(isError));
@@ -2192,6 +2607,172 @@
       showLeadsMessage(`Leads carregadas: ${state.leads.length}.`, false);
     }
 
+    function showProgramsMessage(text, isError) {
+      els.programsMessage.textContent = text || '';
+      els.programsMessage.classList.toggle('error', Boolean(isError));
+      els.programsMessage.classList.toggle('success', !isError && Boolean(text));
+    }
+
+    function showProgramGrantsMessage(text, isError) {
+      els.programGrantsMessage.textContent = text || '';
+      els.programGrantsMessage.classList.toggle('error', Boolean(isError));
+      els.programGrantsMessage.classList.toggle('success', !isError && Boolean(text));
+    }
+
+    function formatCurrencyCents(value, currency) {
+      const cents = Number(value);
+      if (!Number.isFinite(cents)) return '-';
+      return new Intl.NumberFormat('pt-PT', {
+        style: 'currency',
+        currency: (currency || 'EUR').toUpperCase()
+      }).format(cents / 100);
+    }
+
+    function renderProgramOptions() {
+      const selected = (els.grantProgramId.value || '').trim();
+      els.grantProgramId.innerHTML = '';
+
+      const placeholder = document.createElement('option');
+      placeholder.value = '';
+      placeholder.textContent = state.programs.length ? 'Seleciona um programa' : 'Sem programas disponiveis';
+      els.grantProgramId.appendChild(placeholder);
+
+      state.programs.forEach((program) => {
+        const option = document.createElement('option');
+        option.value = program.id;
+        option.textContent = `${program.name} (${formatCurrencyCents(program.priceCents, program.currency)})`;
+        if (selected && selected === program.id) {
+          option.selected = true;
+        }
+        els.grantProgramId.appendChild(option);
+      });
+    }
+
+    function renderProgramsTable() {
+      els.programsBody.innerHTML = '';
+
+      if (!state.programs.length) {
+        const row = document.createElement('tr');
+        row.innerHTML = '<td colspan="6">Sem programas registados.</td>';
+        els.programsBody.appendChild(row);
+        return;
+      }
+
+      const fragment = document.createDocumentFragment();
+      state.programs.forEach((program) => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${escapeHtml(program.name || '-')}</td>
+          <td>${escapeHtml(program.externalSource || '-')}/${escapeHtml(program.externalId || '-')}</td>
+          <td>${escapeHtml(program.billingType || 'one_time')}</td>
+          <td>${escapeHtml(formatCurrencyCents(program.priceCents, program.currency))}</td>
+          <td>${escapeHtml(program.status || '-')}</td>
+          <td>${escapeHtml(program.stripePriceId || '-')}</td>
+        `;
+        fragment.appendChild(row);
+      });
+      els.programsBody.appendChild(fragment);
+    }
+
+    function collectProgramPayload() {
+      const name = (els.programName.value || '').trim();
+      const externalSource = (els.programExternalSource.value || '').trim() || 'trainingpeaks';
+      const externalId = (els.programExternalId.value || '').trim() || null;
+      const description = (els.programDescription.value || '').trim() || null;
+      const durationWeeks = Number(els.programDurationWeeks.value);
+      const priceCents = Number(els.programPriceCents.value);
+      const currency = (els.programCurrency.value || 'EUR').trim().toUpperCase() || 'EUR';
+      const stripeProductId = (els.programStripeProductId.value || '').trim() || null;
+      const stripePriceId = (els.programStripePriceId.value || '').trim() || null;
+      const billingType = (els.programBillingType.value || 'one_time').trim();
+      const followupType = (els.programFollowupType.value || 'standard').trim() || 'standard';
+      const status = (els.programStatus.value || 'draft').trim();
+      const isScheduledTemplate = Boolean(els.programScheduledTemplate.checked);
+
+      if (!name) throw new Error('Nome do programa e obrigatorio.');
+      if (!Number.isInteger(durationWeeks) || durationWeeks <= 0) {
+        throw new Error('Duracao deve ser um inteiro positivo.');
+      }
+      if (!Number.isInteger(priceCents) || priceCents < 0) {
+        throw new Error('Preco deve ser um inteiro >= 0 (centimos).');
+      }
+
+      return {
+        name,
+        externalSource,
+        externalId,
+        description,
+        durationWeeks,
+        priceCents,
+        currency,
+        stripeProductId,
+        stripePriceId,
+        billingType,
+        followupType,
+        status,
+        isScheduledTemplate
+      };
+    }
+
+    async function refreshProgramsData() {
+      if (!state.user) return;
+      showProgramsMessage('A carregar programas...', false);
+      const data = await apiRequest('GET', adminProgramsApiBase);
+      state.programs = Array.isArray(data.programs) ? data.programs : [];
+      renderProgramsTable();
+      renderProgramOptions();
+      showProgramsMessage(`Programas carregados: ${state.programs.length}.`, false);
+    }
+
+    async function createProgramFromAdmin() {
+      const payload = collectProgramPayload();
+      showProgramsMessage('A criar programa...', false);
+      await apiRequest('POST', adminProgramsApiBase, payload);
+      showProgramsMessage('Programa criado com sucesso.', false);
+      await refreshProgramsData();
+    }
+
+    function collectGrantPayload() {
+      const email = (els.grantAthleteEmail.value || '').trim().toLowerCase();
+      const identityId = (els.grantIdentityId.value || '').trim();
+      const programId = (els.grantProgramId.value || '').trim();
+      const amountRaw = (els.grantAmountCents.value || '').trim();
+      const amountCents = amountRaw === '' ? null : Number(amountRaw);
+      const currency = (els.grantCurrency.value || 'EUR').trim().toUpperCase() || 'EUR';
+      const expiresRaw = (els.grantExpiresAt.value || '').trim();
+      const expiresAt = expiresRaw ? new Date(expiresRaw).toISOString() : null;
+
+      if (!email && !identityId) {
+        throw new Error('Indica email ou identity_id.');
+      }
+      if (!programId) {
+        throw new Error('Seleciona um programa.');
+      }
+      if (amountCents !== null && (!Number.isInteger(amountCents) || amountCents < 0)) {
+        throw new Error('Valor invalido (centimos).');
+      }
+
+      return {
+        email: email || undefined,
+        identity_id: identityId || undefined,
+        program_id: programId,
+        amount_cents: amountCents == null ? undefined : amountCents,
+        currency,
+        expires_at: expiresAt || undefined
+      };
+    }
+
+    async function grantProgramAccessFromAdmin() {
+      const payload = collectGrantPayload();
+      showProgramGrantsMessage('A conceder acesso...', false);
+      await apiRequest('POST', adminGrantAccessApiBase, payload);
+      showProgramGrantsMessage('Acesso concedido com sucesso.', false);
+      els.grantIdentityId.value = '';
+      els.grantAthleteEmail.value = '';
+      els.grantAmountCents.value = '';
+      els.grantExpiresAt.value = '';
+    }
+
     async function saveLeadUpdate(leadId) {
       const row = els.leadsBody.querySelector(`tr[data-lead-id="${CSS.escape(leadId)}"]`);
       if (!row) return;
@@ -2285,6 +2866,21 @@
       els.saveBtn.disabled = !canUseApi;
       els.publishNowBtn.disabled = !canUseApi;
       els.deleteBtn.disabled = !canUseApi;
+      els.blogAiTopic.disabled = !canUseApi;
+      els.blogAiObjective.disabled = !canUseApi;
+      els.blogAiTone.disabled = !canUseApi;
+      els.blogAiCta.disabled = !canUseApi;
+      els.blogAiGenerateBtn.disabled = !canUseApi;
+      els.blogAiApplyBtn.disabled = !canUseApi;
+      els.blogAiMarkSharedBtn.disabled = !canUseApi;
+      els.blogAiSelectedVariant.disabled = !canUseApi;
+      els.blogAiVariantA.disabled = !canUseApi;
+      els.blogAiVariantB.disabled = !canUseApi;
+      els.blogAiVariantC.disabled = !canUseApi;
+      els.blogAiCopyABtn.disabled = !canUseApi;
+      els.blogAiCopyBBtn.disabled = !canUseApi;
+      els.blogAiCopyCBtn.disabled = !canUseApi;
+      els.blogAiRegenerateOnPublish.disabled = !canUseApi;
       els.refreshSiteContentBtn.disabled = !canUseApi;
       els.saveSiteContentBtn.disabled = !canUseApi;
       els.addMetadataBtn.disabled = !canUseApi;
@@ -2292,6 +2888,28 @@
       els.addMetricBtn.disabled = !canUseApi;
       els.addReviewBtn.disabled = !canUseApi;
       els.refreshLeadsBtn.disabled = !canUseApi;
+      els.refreshProgramsBtn.disabled = !canUseApi;
+      els.createProgramBtn.disabled = !canUseApi;
+      els.grantAthleteEmail.disabled = !canUseApi;
+      els.grantIdentityId.disabled = !canUseApi;
+      els.grantProgramId.disabled = !canUseApi;
+      els.grantAmountCents.disabled = !canUseApi;
+      els.grantCurrency.disabled = !canUseApi;
+      els.grantExpiresAt.disabled = !canUseApi;
+      els.grantAccessBtn.disabled = !canUseApi;
+      els.programName.disabled = !canUseApi;
+      els.programExternalSource.disabled = !canUseApi;
+      els.programExternalId.disabled = !canUseApi;
+      els.programDescription.disabled = !canUseApi;
+      els.programDurationWeeks.disabled = !canUseApi;
+      els.programPriceCents.disabled = !canUseApi;
+      els.programCurrency.disabled = !canUseApi;
+      els.programStripeProductId.disabled = !canUseApi;
+      els.programStripePriceId.disabled = !canUseApi;
+      els.programBillingType.disabled = !canUseApi;
+      els.programFollowupType.disabled = !canUseApi;
+      els.programStatus.disabled = !canUseApi;
+      els.programScheduledTemplate.disabled = !canUseApi;
       els.aiSubtabPrompts.disabled = !canUseApi;
       els.aiSubtabLogs.disabled = !canUseApi;
       els.aiPromptsFilterFeature.disabled = !canUseApi;
@@ -2336,6 +2954,7 @@
       els.excerpt.value = '';
       els.status.value = 'draft';
       els.content.value = '';
+      resetBlogProductionPanel();
       showMessage('Novo artigo pronto para edicao.', false);
       renderList();
     }
@@ -2350,6 +2969,8 @@
       els.excerpt.value = article.excerpt || '';
       els.status.value = article.status || 'draft';
       els.content.value = article.content || '';
+      resetBlogProductionPanel();
+      refreshBlogProductionForCurrentArticle().catch((err) => showBlogAiMessage(err.message, true));
       renderList();
     }
 
@@ -2448,6 +3069,15 @@
       showMessage('Artigo publicado.', false);
       await refreshList();
       fillForm(data.article);
+
+      if (els.blogAiRegenerateOnPublish.checked) {
+        try {
+          await generateBlogProduction();
+          showBlogAiMessage('Conteudo IA regenerado apos publicacao.', false);
+        } catch (err) {
+          showBlogAiMessage(`Publicado, mas houve falha a regenerar IA: ${err.message}`, true);
+        }
+      }
     }
 
     async function deleteArticle() {
@@ -2504,6 +3134,13 @@
             showLeadsMessage(err.message, true);
           }
         }
+        if (activeTab === 'programs') {
+          try {
+            await refreshProgramsData();
+          } catch (err) {
+            showProgramsMessage(err.message, true);
+          }
+        }
         if (activeTab === 'ai') {
           try {
             await refreshAiPromptsData();
@@ -2525,12 +3162,16 @@
         state.aiLogs = [];
         state.selectedAiPromptId = null;
         state.selectedAiLogId = null;
+        state.blogProduction = null;
         state.dataAudit = null;
         state.athletesCatalog = [];
+        state.programs = [];
         renderList();
         renderUnassignedAthletes();
         renderCoachOptions();
         renderLeads();
+        renderProgramsTable();
+        renderProgramOptions();
         renderAiPrompts();
         renderAiLogs();
         renderAuditAthleteOptions();
@@ -2542,8 +3183,11 @@
         resetForm();
         showAthletesMessage('Faz login para gerir atletas.', false);
         showLeadsMessage('Faz login para ver as leads Meta.', false);
+        showProgramsMessage('Faz login para gerir programas.', false);
+        showProgramGrantsMessage('Faz login para conceder acessos manuais.', false);
         showAiMessage('Faz login para gerir prompts e logs de IA.', false);
         showOperationsMessage('Faz login para usar a auditoria de dados.', false);
+        resetBlogProductionPanel();
       }
     }
 
@@ -2695,6 +3339,71 @@
       }
     });
 
+    els.blogAiGenerateBtn.addEventListener('click', async () => {
+      try {
+        await generateBlogProduction();
+      } catch (err) {
+        showBlogAiMessage(err.message, true);
+      }
+    });
+
+    els.blogAiApplyBtn.addEventListener('click', () => {
+      try {
+        applyGeneratedBlogToEditor();
+      } catch (err) {
+        showBlogAiMessage(err.message, true);
+      }
+    });
+
+    els.blogAiCopyABtn.addEventListener('click', async () => {
+      try {
+        await copyBlogVariant('A');
+      } catch (err) {
+        showBlogAiMessage(err.message, true);
+      }
+    });
+
+    els.blogAiCopyBBtn.addEventListener('click', async () => {
+      try {
+        await copyBlogVariant('B');
+      } catch (err) {
+        showBlogAiMessage(err.message, true);
+      }
+    });
+
+    els.blogAiCopyCBtn.addEventListener('click', async () => {
+      try {
+        await copyBlogVariant('C');
+      } catch (err) {
+        showBlogAiMessage(err.message, true);
+      }
+    });
+
+    els.blogAiMarkSharedBtn.addEventListener('click', async () => {
+      try {
+        await saveBlogProductionManualShare();
+      } catch (err) {
+        showBlogAiMessage(err.message, true);
+      }
+    });
+
+    els.blogAiSelectedVariant.addEventListener('change', async () => {
+      const articleId = (els.id.value || '').trim();
+      if (!articleId || !state.user) return;
+
+      try {
+        const data = await apiRequest('PATCH', blogProductionApiBase, {
+          articleId,
+          selectedVariant: (els.blogAiSelectedVariant.value || '').trim() || undefined,
+          regenerateOnPublish: Boolean(els.blogAiRegenerateOnPublish.checked),
+          whatsappVariants: buildVariantArrayFromEditor()
+        });
+        renderBlogProduction(data.production || null);
+      } catch (err) {
+        showBlogAiMessage(err.message, true);
+      }
+    });
+
     els.refreshAthletesBtn.addEventListener('click', async () => {
       try {
         await refreshAthletesData();
@@ -2708,6 +3417,30 @@
         await refreshLeadsData();
       } catch (err) {
         showLeadsMessage(err.message, true);
+      }
+    });
+
+    els.refreshProgramsBtn.addEventListener('click', async () => {
+      try {
+        await refreshProgramsData();
+      } catch (err) {
+        showProgramsMessage(err.message, true);
+      }
+    });
+
+    els.createProgramBtn.addEventListener('click', async () => {
+      try {
+        await createProgramFromAdmin();
+      } catch (err) {
+        showProgramsMessage(err.message, true);
+      }
+    });
+
+    els.grantAccessBtn.addEventListener('click', async () => {
+      try {
+        await grantProgramAccessFromAdmin();
+      } catch (err) {
+        showProgramGrantsMessage(err.message, true);
       }
     });
 
@@ -2920,10 +3653,14 @@
     setActiveTab('blog');
     renderUnassignedAthletes();
     renderLeads();
+    renderProgramsTable();
+    renderProgramOptions();
     setSiteContentEditors(null);
     showSiteContentMessage('Faz login para gerir o conteudo do site.', false);
     showAthletesMessage('Faz login para gerir atletas.', false);
     showLeadsMessage('Faz login para ver as leads Meta.', false);
+    showProgramsMessage('Faz login para gerir programas.', false);
+    showProgramGrantsMessage('Faz login para conceder acessos manuais.', false);
     showAiMessage('Faz login para gerir prompts e logs de IA.', false);
     showOperationsMessage('Faz login para usar a auditoria de dados.', false);
     renderAuditAthleteOptions();

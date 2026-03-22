@@ -20,7 +20,10 @@ async function supabaseRequest({ url, serviceRoleKey, path, method = "GET", body
 
   if (!response.ok) {
     const message = payload && payload.message ? payload.message : `Supabase error ${response.status}`;
-    throw new Error(message);
+    const error = new Error(message);
+    error.status = response.status;
+    error.payload = payload;
+    throw error;
   }
 
   return payload;
@@ -118,6 +121,115 @@ async function getAthleteById(config, athleteId) {
     path: `athletes?id=eq.${encodeURIComponent(athleteId)}&select=*`
   });
   return Array.isArray(result) ? result[0] || null : null;
+}
+
+async function getAthleteByIdentity(config, identityId) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `athletes?identity_id=eq.${encodeURIComponent(identityId)}&select=*&limit=1`
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function getAthleteByEmail(config, email) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `athletes?email=eq.${encodeURIComponent(email)}&select=*&limit=1`
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function updateAthlete(config, athleteId, patch) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `athletes?id=eq.${encodeURIComponent(athleteId)}`,
+    method: "PATCH",
+    body: patch,
+    prefer: "return=representation"
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function upsertAthleteByIdentity(config, { identityId, email, name }) {
+  const normalizedIdentityId = typeof identityId === "string" ? identityId.trim() : "";
+  const normalizedEmail = typeof email === "string" ? email.trim().toLowerCase() : "";
+  const normalizedName = typeof name === "string" && name.trim() ? name.trim() : null;
+
+  if (!normalizedIdentityId) {
+    throw new Error("identityId is required");
+  }
+
+  if (!normalizedEmail) {
+    throw new Error("email is required");
+  }
+
+  const existingByIdentity = await getAthleteByIdentity(config, normalizedIdentityId);
+  if (existingByIdentity) {
+    const patch = {};
+    if (existingByIdentity.email !== normalizedEmail) {
+      patch.email = normalizedEmail;
+    }
+    if (normalizedName && existingByIdentity.name !== normalizedName) {
+      patch.name = normalizedName;
+    }
+    return Object.keys(patch).length
+      ? updateAthlete(config, existingByIdentity.id, patch)
+      : existingByIdentity;
+  }
+
+  const existingByEmail = await getAthleteByEmail(config, normalizedEmail);
+  if (existingByEmail) {
+    if (existingByEmail.identity_id && existingByEmail.identity_id !== normalizedIdentityId) {
+      const conflictError = new Error("Athlete email already linked to another identity");
+      conflictError.status = 409;
+      conflictError.code = "athlete_identity_conflict";
+      throw conflictError;
+    }
+
+    const patch = {
+      identity_id: normalizedIdentityId
+    };
+    if (normalizedName && existingByEmail.name !== normalizedName) {
+      patch.name = normalizedName;
+    }
+    if (existingByEmail.email !== normalizedEmail) {
+      patch.email = normalizedEmail;
+    }
+    return updateAthlete(config, existingByEmail.id, patch);
+  }
+
+  try {
+    return await createAthlete(config, {
+      identity_id: normalizedIdentityId,
+      email: normalizedEmail,
+      name: normalizedName || normalizedEmail
+    });
+  } catch (err) {
+    const retryByIdentity = await getAthleteByIdentity(config, normalizedIdentityId);
+    if (retryByIdentity) {
+      return retryByIdentity;
+    }
+
+    const retryByEmail = await getAthleteByEmail(config, normalizedEmail);
+    if (retryByEmail) {
+      if (retryByEmail.identity_id && retryByEmail.identity_id !== normalizedIdentityId) {
+        const conflictError = new Error("Athlete email already linked to another identity");
+        conflictError.status = 409;
+        conflictError.code = "athlete_identity_conflict";
+        throw conflictError;
+      }
+
+      return updateAthlete(config, retryByEmail.id, {
+        identity_id: normalizedIdentityId,
+        ...(normalizedName && retryByEmail.name !== normalizedName ? { name: normalizedName } : {})
+      });
+    }
+
+    throw err;
+  }
 }
 
 async function listAthletes(config) {
@@ -238,6 +350,15 @@ async function getWeeklyCheckinByToken(config, token) {
   return Array.isArray(rows) ? rows[0] || null : null;
 }
 
+async function getWeeklyCheckinById(config, checkinId) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `weekly_checkins?id=eq.${encodeURIComponent(checkinId)}&select=*&limit=1`
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
 async function getWeeklyCheckinByBatch(config, athleteId, uploadBatchId) {
   const rows = await supabaseRequest({
     url: config.supabaseUrl,
@@ -251,7 +372,7 @@ async function listWeeklyCheckinsByAthlete(config, athleteId) {
   return supabaseRequest({
     url: config.supabaseUrl,
     serviceRoleKey: config.supabaseServiceRoleKey,
-    path: `weekly_checkins?athlete_id=eq.${encodeURIComponent(athleteId)}&select=id,token,upload_batch_id,week_start,status,created_at,responded_at,approved_at,training_summary,has_strength_manual_confirmation,strength_planned_done_count,strength_planned_not_done_count,coach_strength_feedback&order=week_start.desc&limit=50`
+    path: `weekly_checkins?athlete_id=eq.${encodeURIComponent(athleteId)}&select=id,token,token_expires_at,submitted_via,submitted_by_identity_id,upload_batch_id,week_start,status,created_at,responded_at,approved_at,training_summary,has_strength_manual_confirmation,strength_planned_done_count,strength_planned_not_done_count,coach_strength_feedback&order=week_start.desc&limit=50`
   });
 }
 
@@ -279,6 +400,15 @@ async function getPublishedBlogArticleBySlug(config, slug) {
     url: config.supabaseUrl,
     serviceRoleKey: config.supabaseServiceRoleKey,
     path: `blog_articles?deleted_at=is.null&status=eq.published&slug=eq.${encodeURIComponent(slug)}&select=id,slug,title,excerpt,category,content,status,published_at,created_at,updated_at&limit=1`
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function getBlogArticleById(config, id) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `blog_articles?id=eq.${encodeURIComponent(id)}&deleted_at=is.null&select=id,slug,title,excerpt,category,content,status,published_at,created_at,updated_at&limit=1`
   });
   return Array.isArray(rows) ? rows[0] || null : null;
 }
@@ -324,6 +454,39 @@ async function softDeleteBlogArticle(config, id) {
     body: {
       deleted_at: new Date().toISOString()
     },
+    prefer: "return=representation"
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function getBlogContentProductionByArticle(config, articleId) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `blog_content_production?article_id=eq.${encodeURIComponent(articleId)}&select=*&limit=1`
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function upsertBlogContentProduction(config, payload) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: "blog_content_production?on_conflict=article_id",
+    method: "POST",
+    body: [payload],
+    prefer: "return=representation,resolution=merge-duplicates"
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function updateBlogContentProductionByArticle(config, articleId, patch) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `blog_content_production?article_id=eq.${encodeURIComponent(articleId)}`,
+    method: "PATCH",
+    body: patch,
     prefer: "return=representation"
   });
   return Array.isArray(rows) ? rows[0] || null : null;
@@ -440,7 +603,7 @@ async function listTrainingPrograms(config) {
   return supabaseRequest({
     url: config.supabaseUrl,
     serviceRoleKey: config.supabaseServiceRoleKey,
-    path: "training_programs?deleted_at=is.null&select=id,external_source,external_id,name,description,duration_weeks,price_cents,currency,followup_type,status,is_scheduled_template,created_at,updated_at&order=created_at.desc"
+    path: "training_programs?deleted_at=is.null&select=id,external_source,external_id,name,description,duration_weeks,price_cents,currency,stripe_product_id,stripe_price_id,billing_type,followup_type,status,is_scheduled_template,created_at,updated_at&order=created_at.desc"
   });
 }
 
@@ -454,6 +617,137 @@ async function createTrainingProgram(config, payload) {
     prefer: "return=representation"
   });
   return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function getTrainingProgramById(config, id) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `training_programs?id=eq.${encodeURIComponent(id)}&deleted_at=is.null&select=id,external_source,external_id,name,description,duration_weeks,price_cents,currency,followup_type,status,is_scheduled_template,stripe_product_id,stripe_price_id,billing_type,created_at,updated_at&limit=1`
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function getTrainingProgramByExternalId(config, externalId) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `training_programs?external_id=eq.${encodeURIComponent(externalId)}&deleted_at=is.null&select=id,external_source,external_id,name,description,duration_weeks,price_cents,currency,followup_type,status,is_scheduled_template,stripe_product_id,stripe_price_id,billing_type,created_at,updated_at&limit=1`
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function listPublicTrainingPrograms(config) {
+  return supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: "training_programs?deleted_at=is.null&status=eq.active&select=id,external_id,name,description,duration_weeks,price_cents,currency,followup_type,billing_type,is_scheduled_template,created_at,updated_at&order=price_cents.asc,created_at.asc"
+  });
+}
+
+async function createStripePurchase(config, payload) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: "stripe_purchases",
+    method: "POST",
+    body: [payload],
+    prefer: "return=representation"
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function upsertStripePurchaseBySessionId(config, payload) {
+  if (!payload || !payload.stripe_session_id) {
+    throw new Error("stripe_session_id is required for session upsert");
+  }
+
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: "stripe_purchases?on_conflict=stripe_session_id",
+    method: "POST",
+    body: [payload],
+    prefer: "resolution=merge-duplicates,return=representation"
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function updateStripePurchaseById(config, id, patch) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `stripe_purchases?id=eq.${encodeURIComponent(id)}`,
+    method: "PATCH",
+    body: patch,
+    prefer: "return=representation"
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function getStripePurchaseBySessionId(config, sessionId) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `stripe_purchases?stripe_session_id=eq.${encodeURIComponent(sessionId)}&select=*&order=created_at.desc&limit=1`
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function getStripePurchaseBySubscriptionId(config, subscriptionId) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `stripe_purchases?stripe_subscription_id=eq.${encodeURIComponent(subscriptionId)}&select=*&order=created_at.desc&limit=1`
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function getStripePurchaseByPaymentIntentId(config, paymentIntentId) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `stripe_purchases?stripe_payment_intent_id=eq.${encodeURIComponent(paymentIntentId)}&select=*&order=created_at.desc&limit=1`
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function getActiveStripePurchaseForIdentity(config, { identityId, programId, atIso } = {}) {
+  if (!identityId || !programId) {
+    return null;
+  }
+
+  const comparisonTime = atIso || new Date().toISOString();
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `stripe_purchases?identity_id=eq.${encodeURIComponent(identityId)}&program_id=eq.${encodeURIComponent(programId)}&status=eq.paid&or=(expires_at.is.null,expires_at.gt.${encodeURIComponent(comparisonTime)})&select=*&order=paid_at.desc.nullslast,created_at.desc&limit=1`
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function updateStripePurchasesBySubscriptionId(config, subscriptionId, patch) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `stripe_purchases?stripe_subscription_id=eq.${encodeURIComponent(subscriptionId)}`,
+    method: "PATCH",
+    body: patch,
+    prefer: "return=representation"
+  });
+  return Array.isArray(rows) ? rows : [];
+}
+
+async function updateStripePurchasesByPaymentIntentId(config, paymentIntentId, patch) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `stripe_purchases?stripe_payment_intent_id=eq.${encodeURIComponent(paymentIntentId)}`,
+    method: "PATCH",
+    body: patch,
+    prefer: "return=representation"
+  });
+  return Array.isArray(rows) ? rows : [];
 }
 
 async function createProgramAssignment(config, payload) {
@@ -727,8 +1021,10 @@ module.exports = {
   deleteTrainingSessionsByBatch,
   deleteWeeklyCheckinsByBatch,
   getAthleteById,
+  getAthleteByIdentity,
   listAthletes,
   createAthlete,
+  upsertAthleteByIdentity,
   listAthletesByCoach,
   createAthleteForCoach,
   verifyCoachOwnsAthlete,
@@ -740,7 +1036,19 @@ module.exports = {
   assignRoleToIdentity,
   listTrainingPrograms,
   createTrainingProgram,
+  getTrainingProgramById,
+  getTrainingProgramByExternalId,
+  listPublicTrainingPrograms,
   createProgramAssignment,
+  createStripePurchase,
+  upsertStripePurchaseBySessionId,
+  updateStripePurchaseById,
+  getStripePurchaseBySessionId,
+  getStripePurchaseBySubscriptionId,
+  getStripePurchaseByPaymentIntentId,
+  getActiveStripePurchaseForIdentity,
+  updateStripePurchasesBySubscriptionId,
+  updateStripePurchasesByPaymentIntentId,
   listSiteMetadata,
   listSiteMetrics,
   listSiteReviews,
@@ -758,15 +1066,20 @@ module.exports = {
   getTrainingLoadMetricsRange,
   createWeeklyCheckin,
   getWeeklyCheckinByToken,
+  getWeeklyCheckinById,
   getWeeklyCheckinByBatch,
   listWeeklyCheckinsByAthlete,
   updateWeeklyCheckin,
   listPublishedBlogArticles,
   getPublishedBlogArticleBySlug,
+  getBlogArticleById,
   listBlogArticlesAdmin,
   createBlogArticle,
   updateBlogArticle,
   softDeleteBlogArticle,
+  getBlogContentProductionByArticle,
+  upsertBlogContentProduction,
+  updateBlogContentProductionByArticle,
   insertMetaLead,
   listMetaLeads,
   updateMetaLead,

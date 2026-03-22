@@ -55,7 +55,7 @@ function normalizeEmail(value) {
 
 async function getOnboardingIntake(config, { identityId, email }) {
   const params = [
-    "select=id,identity_id,email,phone,full_name,goal_distance,weekly_frequency,experience_level,consistency_level,funnel_stage,plan_generated_at,plan_storage,submitted_at,updated_at"
+    "select=id,identity_id,athlete_id,email,phone,full_name,goal_distance,weekly_frequency,experience_level,consistency_level,funnel_stage,plan_generated_at,plan_storage,submitted_at,updated_at"
   ];
 
   if (identityId) params.push(`identity_id=eq.${encodeURIComponent(identityId)}`);
@@ -103,14 +103,15 @@ async function getOnboardingFormResponses(config, { identityId, email }) {
   }
 }
 
-async function getAthletes(config, { athleteId, email }) {
+async function getAthletes(config, { identityId, athleteId, email }) {
   const params = [
-    "select=id,name,email,coach_identity_id,created_at,updated_at",
+    "select=id,identity_id,name,email,coach_identity_id,created_at,updated_at",
     "order=updated_at.desc",
     "limit=20"
   ];
 
   if (athleteId) params.push(`id=eq.${encodeURIComponent(athleteId)}`);
+  if (identityId) params.push(`identity_id=eq.${encodeURIComponent(identityId)}`);
   if (email) params.push(`email=eq.${encodeURIComponent(email)}`);
 
   const rows = await supabaseRequest({
@@ -154,6 +155,21 @@ async function getLatestWeeklyCheckin(config, athleteId) {
 
 function buildIssues({ onboardingIntakeRows, onboardingFormRows, onboardingFormAvailable, athleteRows, query }) {
   const issues = [];
+  const linkedAthleteIds = new Set(
+    onboardingIntakeRows
+      .map((row) => row && row.athlete_id)
+      .filter((value) => typeof value === "string" && value.length > 0)
+  );
+  const athleteIds = new Set(
+    athleteRows
+      .map((row) => row && row.id)
+      .filter((value) => typeof value === "string" && value.length > 0)
+  );
+  const athleteIdentityIds = new Set(
+    athleteRows
+      .map((row) => row && row.identity_id)
+      .filter((value) => typeof value === "string" && value.length > 0)
+  );
 
   if (!onboardingFormAvailable) {
     issues.push("Tabela onboarding_form_responses indisponivel neste ambiente");
@@ -169,6 +185,25 @@ function buildIssues({ onboardingIntakeRows, onboardingFormRows, onboardingFormA
 
   if (query.identityId && athleteRows.some((athlete) => athlete.id === query.identityId)) {
     issues.push("identity_id coincide com athletes.id; validar se esta associacao e intencional em todos os fluxos");
+  }
+
+  if (query.identityId && athleteRows.length > 0 && !athleteIdentityIds.has(query.identityId)) {
+    issues.push("Existe athlete para os filtros, mas athletes.identity_id nao corresponde ao identity_id pesquisado");
+  }
+
+  if (onboardingIntakeRows.some((row) => !row.athlete_id)) {
+    issues.push("Existe onboarding_intake sem athlete_id associado");
+  }
+
+  if (linkedAthleteIds.size > 0) {
+    const missingAthletes = Array.from(linkedAthleteIds).filter((id) => !athleteIds.has(id));
+    if (missingAthletes.length > 0) {
+      issues.push("onboarding_intake referencia athlete_id inexistente em athletes");
+    }
+  }
+
+  if (query.athleteId && onboardingIntakeRows.length > 0 && !linkedAthleteIds.has(query.athleteId)) {
+    issues.push("Foi encontrado onboarding_intake, mas athlete_id nao corresponde ao athlete_id pesquisado");
   }
 
   if (onboardingFormRows.length > 0 && onboardingIntakeRows.length === 0) {

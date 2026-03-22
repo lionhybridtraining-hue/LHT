@@ -16,6 +16,7 @@ create table if not exists athletes (
   id uuid primary key default gen_random_uuid(),
   name text,
   email text not null unique,
+  identity_id text,
   lthr integer,
   vdot numeric(5,2),
   zones jsonb default '{}'::jsonb,
@@ -24,7 +25,10 @@ create table if not exists athletes (
 );
 
 alter table athletes add column if not exists coach_identity_id text;
+alter table athletes add column if not exists identity_id text;
 create index if not exists athletes_coach_identity_idx on athletes(coach_identity_id);
+create unique index if not exists athletes_identity_uidx on athletes(identity_id) where identity_id is not null;
+create index if not exists athletes_identity_idx on athletes(identity_id) where identity_id is not null;
 
 create table if not exists training_sessions (
   id uuid primary key default gen_random_uuid(),
@@ -112,6 +116,9 @@ create table if not exists weekly_checkins (
   ai_analysis jsonb,
   final_feedback text,
   token uuid not null unique default gen_random_uuid(),
+  token_expires_at timestamptz,
+  submitted_via text,
+  submitted_by_identity_id text,
   created_at timestamptz not null default now(),
   responded_at timestamptz,
   approved_at timestamptz
@@ -121,6 +128,9 @@ alter table weekly_checkins add column if not exists has_strength_manual_confirm
 alter table weekly_checkins add column if not exists strength_planned_done_count integer;
 alter table weekly_checkins add column if not exists strength_planned_not_done_count integer;
 alter table weekly_checkins add column if not exists coach_strength_feedback text;
+alter table weekly_checkins add column if not exists token_expires_at timestamptz;
+alter table weekly_checkins add column if not exists submitted_via text;
+alter table weekly_checkins add column if not exists submitted_by_identity_id text;
 update weekly_checkins set has_strength_manual_confirmation = false where has_strength_manual_confirmation is null;
 alter table weekly_checkins alter column has_strength_manual_confirmation set default false;
 alter table weekly_checkins alter column has_strength_manual_confirmation set not null;
@@ -361,6 +371,9 @@ create table if not exists training_programs (
   duration_weeks integer not null check (duration_weeks > 0),
   price_cents integer not null default 0,
   currency text not null default 'EUR',
+  stripe_product_id text,
+  stripe_price_id text,
+  billing_type text not null default 'one_time' check (billing_type in ('one_time', 'recurring')),
   followup_type text not null default 'standard',
   status text not null default 'draft' check (status in ('draft', 'active', 'archived')),
   is_scheduled_template boolean not null default false,
@@ -376,6 +389,14 @@ where external_id is not null and deleted_at is null;
 create index if not exists training_programs_status_idx
 on training_programs (status)
 where deleted_at is null;
+
+create index if not exists training_programs_billing_type_idx
+on training_programs (billing_type)
+where deleted_at is null;
+
+create unique index if not exists training_programs_stripe_price_uidx
+on training_programs (stripe_price_id)
+where stripe_price_id is not null and deleted_at is null;
 
 drop trigger if exists set_training_programs_updated_at on training_programs;
 create trigger set_training_programs_updated_at
@@ -426,6 +447,46 @@ before update on program_assignments
 for each row
 execute function set_updated_at();
 
+create table if not exists stripe_purchases (
+  id uuid primary key default gen_random_uuid(),
+  stripe_session_id text unique,
+  stripe_customer_id text,
+  stripe_payment_intent_id text,
+  stripe_subscription_id text,
+  identity_id text not null,
+  program_id uuid not null references training_programs(id) on delete restrict,
+  email text,
+  amount_cents integer not null default 0,
+  currency text not null default 'EUR',
+  billing_type text not null default 'one_time' check (billing_type in ('one_time', 'recurring')),
+  status text not null default 'pending' check (status in ('pending', 'paid', 'refunded', 'payment_failed', 'cancelled')),
+  source text not null default 'stripe',
+  paid_at timestamptz,
+  expires_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists stripe_purchases_identity_program_idx
+on stripe_purchases (identity_id, program_id, status, created_at desc);
+
+create index if not exists stripe_purchases_subscription_idx
+on stripe_purchases (stripe_subscription_id)
+where stripe_subscription_id is not null;
+
+create index if not exists stripe_purchases_payment_intent_idx
+on stripe_purchases (stripe_payment_intent_id)
+where stripe_payment_intent_id is not null;
+
+create index if not exists stripe_purchases_program_idx
+on stripe_purchases (program_id, status, created_at desc);
+
+drop trigger if exists set_stripe_purchases_updated_at on stripe_purchases;
+create trigger set_stripe_purchases_updated_at
+before update on stripe_purchases
+for each row
+execute function set_updated_at();
+
 -- Meta Lead Ads integration
 
 create table if not exists meta_leads (
@@ -465,6 +526,7 @@ execute function set_updated_at();
 create table if not exists onboarding_intake (
   id uuid primary key default gen_random_uuid(),
   identity_id text not null unique,
+  athlete_id uuid references athletes(id) on delete set null,
   email text not null,
   phone text,
   full_name text,
@@ -481,6 +543,7 @@ create table if not exists onboarding_intake (
   updated_at timestamptz not null default now()
 );
 
+alter table onboarding_intake add column if not exists athlete_id uuid references athletes(id) on delete set null;
 alter table onboarding_intake add column if not exists phone text;
 alter table onboarding_intake add column if not exists full_name text;
 alter table onboarding_intake add column if not exists goal_distance numeric(6,2);
@@ -500,6 +563,10 @@ alter table onboarding_intake alter column funnel_stage set not null;
 
 create index if not exists onboarding_intake_submitted_idx
 on onboarding_intake (submitted_at desc);
+
+create index if not exists onboarding_intake_athlete_idx
+on onboarding_intake (athlete_id)
+where athlete_id is not null;
 
 create index if not exists onboarding_intake_email_idx
 on onboarding_intake (email);

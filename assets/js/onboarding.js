@@ -125,11 +125,40 @@
   let accessToken = '';
   let intakeDraft = null;
   let loadingIntake = false;
+  let authReady = false;
+  let accessState = { status: 'idle', program: null, purchase: null, message: '' };
 
   function clampIndex(i){ if(i < 0) return 0; if(i >= steps.length) return steps.length-1; return i; }
 
   function loadState(){ try{ return JSON.parse(localStorage.getItem(STORAGE_KEY)) || { done: {}, current: 'welcome' }; } catch{ return { done: {}, current: 'welcome' }; } }
   function saveState(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+
+  function getProgramSelection(){
+    const params = new URLSearchParams(window.location.search);
+    return {
+      programId: params.get('program_id') || '',
+      programExternalId: params.get('program') || params.get('program_external_id') || '',
+      sessionId: params.get('session_id') || ''
+    };
+  }
+
+  function buildProgramQuery(){
+    const selection = getProgramSelection();
+    const params = new URLSearchParams();
+    if(selection.programId) params.set('program_id', selection.programId);
+    if(selection.programExternalId) params.set('program', selection.programExternalId);
+    if(selection.sessionId) params.set('session_id', selection.sessionId);
+    return params.toString();
+  }
+
+  function getProgramsPageUrl(){
+    const params = new URLSearchParams();
+    const selection = getProgramSelection();
+    if(selection.programId) params.set('program_id', selection.programId);
+    if(selection.programExternalId) params.set('program', selection.programExternalId);
+    const query = params.toString();
+    return '/programas.html' + (query ? '?' + query : '');
+  }
 
   function track(name, meta){
     // Respect consent: script.js gates gtag/plausible behind consent, but we can call safely
@@ -157,11 +186,17 @@
       await new Promise(resolve => setTimeout(resolve, 100));
       attempts++;
     }
-    if(!window.supabase) return;
+    if(!window.supabase){
+      authReady = true;
+      accessState = { status: 'error', program: null, purchase: null, message: 'Supabase indisponivel no browser.' };
+      render();
+      return;
+    }
 
     supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     const { data: { session } } = await supabaseClient.auth.getSession();
+    authReady = true;
     setSession(session || null);
 
     supabaseClient.auth.onAuthStateChange((_event, sessionState) => {
@@ -172,9 +207,54 @@
   function setSession(session){
     currentUser = session && session.user ? session.user : null;
     accessToken = session && session.access_token ? session.access_token : '';
-    if(currentUser && !loadingIntake && intakeDraft === null){
-      loadIntakeDraft();
+    if(!currentUser){
+      intakeDraft = null;
+      loadingIntake = false;
+      accessState = { status: 'idle', program: null, purchase: null, message: '' };
     }
+    refreshAccessState();
+    render();
+  }
+
+  async function refreshAccessState(){
+    if(!currentUser || !accessToken){
+      accessState = { status: 'idle', program: null, purchase: null, message: '' };
+      render();
+      return;
+    }
+
+    accessState = { status: 'checking', program: accessState.program, purchase: null, message: '' };
+    render();
+
+    try {
+      const response = await fetch('/.netlify/functions/check-access?' + buildProgramQuery(), {
+        method: 'GET',
+        headers: { Authorization: 'Bearer ' + accessToken }
+      });
+      const payload = await response.json();
+      if(!response.ok){
+        throw new Error((payload && payload.error) ? payload.error : 'Nao foi possivel validar o teu acesso.');
+      }
+
+      accessState = {
+        status: payload.hasAccess ? 'allowed' : 'denied',
+        program: payload.program || null,
+        purchase: payload.purchase || null,
+        message: payload.message || ''
+      };
+
+      if(payload.hasAccess && !loadingIntake && intakeDraft === null){
+        loadIntakeDraft();
+      }
+    } catch (err) {
+      accessState = {
+        status: 'error',
+        program: null,
+        purchase: null,
+        message: err.message || 'Nao foi possivel validar o teu acesso.'
+      };
+    }
+
     render();
   }
 
@@ -182,7 +262,7 @@
     if(!supabaseClient) return;
     const { error } = await supabaseClient.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: window.location.origin + '/onboarding' }
+      options: { redirectTo: window.location.origin + '/onboarding' + window.location.search }
     });
     if(error) alert(error.message || 'Erro ao iniciar login Google.');
   }
@@ -197,7 +277,7 @@
     if(!accessToken) return;
     loadingIntake = true;
     try {
-      const response = await fetch('/.netlify/functions/onboarding-intake', {
+      const response = await fetch('/.netlify/functions/onboarding-intake?' + buildProgramQuery(), {
         method: 'GET',
         headers: { Authorization: 'Bearer ' + accessToken }
       });
@@ -232,6 +312,32 @@
     const root = document.getElementById('onboarding-app');
     if(!root) return;
     root.innerHTML = '';
+
+    if(!authReady){
+      renderGate(root, 'A preparar o acesso', 'Estamos a validar a tua sessão antes de abrir o onboarding.');
+      return;
+    }
+
+    if(!currentUser){
+      renderLoginGate(root);
+      return;
+    }
+
+    if(accessState.status === 'checking' || accessState.status === 'idle'){
+      renderGate(root, 'A validar acesso', 'Estamos a confirmar se este programa esta associado a tua conta.');
+      return;
+    }
+
+    if(accessState.status === 'denied'){
+      renderPaymentGate(root);
+      return;
+    }
+
+    if(accessState.status === 'error'){
+      renderErrorGate(root);
+      return;
+    }
+
     const step = steps[currentIndex];
     const card = document.createElement('div');
     card.className = 'card';
@@ -259,10 +365,94 @@
   function button(label, onClick, href){
     const a = document.createElement(href ? 'a' : 'button');
     a.className = 'btn';
-    if(href){ a.href = href; a.target = '_blank'; a.rel = 'noopener'; }
+    if(href){
+      a.href = href;
+      if(/^https?:\/\//i.test(href)){
+        a.target = '_blank';
+        a.rel = 'noopener';
+      }
+    }
     a.textContent = label;
     a.addEventListener('click', (e)=>{ if(!href) e.preventDefault(); onClick && onClick(e); });
     return a;
+  }
+
+  function renderGate(root, title, message){
+    const card = document.createElement('div');
+    card.className = 'card';
+    const h3 = document.createElement('h3');
+    h3.textContent = title;
+    card.appendChild(h3);
+    const p = document.createElement('p');
+    p.textContent = message;
+    card.appendChild(p);
+    root.appendChild(card);
+  }
+
+  function renderLoginGate(root){
+    const card = document.createElement('div');
+    card.className = 'card';
+    const h3 = document.createElement('h3');
+    h3.textContent = 'Entrar antes de iniciar';
+    card.appendChild(h3);
+
+    const p = document.createElement('p');
+    p.textContent = 'O onboarding esta reservado a atletas com conta autenticada e acesso pago confirmado.';
+    card.appendChild(p);
+
+    const actions = document.createElement('div');
+    actions.className = 'actions';
+    actions.appendChild(button('Entrar com Google', ()=> signInGoogle()));
+    actions.appendChild(button('Ver programas', null, getProgramsPageUrl()));
+    card.appendChild(actions);
+    root.appendChild(card);
+  }
+
+  function renderPaymentGate(root){
+    const card = document.createElement('div');
+    card.className = 'card';
+    const h3 = document.createElement('h3');
+    h3.textContent = 'Pagamento necessario';
+    card.appendChild(h3);
+
+    const p = document.createElement('p');
+    p.textContent = accessState.program
+      ? 'A tua conta esta autenticada, mas ainda nao tem acesso confirmado ao programa ' + accessState.program.name + '.'
+      : 'A tua conta esta autenticada, mas ainda nao tem acesso confirmado ao onboarding.';
+    card.appendChild(p);
+
+    const meta = document.createElement('p');
+    meta.className = 'mut';
+    meta.textContent = 'Assim que o pagamento ficar confirmado, o acesso e libertado automaticamente.';
+    card.appendChild(meta);
+
+    const actions = document.createElement('div');
+    actions.className = 'actions';
+    actions.appendChild(button('Ver programas', null, getProgramsPageUrl()));
+    const logout = button('Terminar sessao', ()=> signOutGoogle());
+    logout.classList.add('secondary');
+    actions.appendChild(logout);
+    card.appendChild(actions);
+    root.appendChild(card);
+  }
+
+  function renderErrorGate(root){
+    const card = document.createElement('div');
+    card.className = 'card';
+    const h3 = document.createElement('h3');
+    h3.textContent = 'Nao foi possivel validar o acesso';
+    card.appendChild(h3);
+
+    const p = document.createElement('p');
+    p.textContent = accessState.message || 'Tenta novamente dentro de instantes.';
+    card.appendChild(p);
+
+    const actions = document.createElement('div');
+    actions.className = 'actions';
+    actions.appendChild(button('Tentar novamente', ()=> refreshAccessState()));
+    actions.appendChild(button('Ver programas', null, getProgramsPageUrl()));
+    card.appendChild(actions);
+    root.appendChild(card);
   }
 
   // Step renders
@@ -330,21 +520,12 @@
     authChip.textContent = currentUser ? ('Ligado: ' + (currentUser.email || currentUser.id)) : 'Nao autenticado';
     authMeta.appendChild(authChip);
 
-    const authButton = button(currentUser ? 'Terminar sessao' : 'Entrar com Google', async ()=>{
-      if(currentUser) await signOutGoogle();
-      else await signInGoogle();
+    const authButton = button('Terminar sessao', async ()=>{
+      await signOutGoogle();
     });
     authMeta.appendChild(authButton);
     authBox.appendChild(authMeta);
     container.appendChild(authBox);
-
-    if(!currentUser){
-      const note = document.createElement('p');
-      note.className = 'mut';
-      note.textContent = 'Para submeter e guardar o formulario na base de dados, tens de entrar com Google.';
-      container.appendChild(note);
-      return;
-    }
 
     if(loadingIntake){
       const loading = document.createElement('p');
@@ -391,7 +572,7 @@
 
       submit.disabled = true;
       try {
-        const response = await fetch('/.netlify/functions/onboarding-intake', {
+        const response = await fetch('/.netlify/functions/onboarding-intake?' + buildProgramQuery(), {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

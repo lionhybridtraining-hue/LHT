@@ -7,17 +7,7 @@ public_folder: "/assets/img/uploads"
 
 publish_mode: editorial_workflow
 
-collections:
-  - name: posts
-    label: Artigos
-    label_singular: Artigo
-    folder: "blog/posts"
-    create: true
-    extension: "md"
-    slug: "{{slug}}"
-    fields:
-      - { label: Título, name: title, widget: string }
-      - { label: Data, name: date, widget: datetime, format: "YYYY-MM-DD" }
-      - { label: Categoria, name: category, widget: string, default: "Artigo" }
-      - { label: Resumo, name: excerpt, widget: text, required: false }
-      - { label: Conteúdo, name: body, widget: markdown }
+# Legacy Decap configuration.
+# Blog source of truth is Supabase via admin/index.html.
+# Keep this file only to avoid accidental Decap bootstrap errors.
+collections: []

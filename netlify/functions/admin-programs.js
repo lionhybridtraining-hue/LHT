@@ -11,6 +11,9 @@ function normalizeProgramPayload(payload) {
   const durationWeeks = Number(payload.durationWeeks);
   const priceCents = Number(payload.priceCents ?? 0);
   const currency = (payload.currency || "EUR").toString().trim().toUpperCase() || "EUR";
+  const stripeProductId = payload.stripeProductId == null ? null : payload.stripeProductId.toString().trim() || null;
+  const stripePriceId = payload.stripePriceId == null ? null : payload.stripePriceId.toString().trim() || null;
+  const billingType = (payload.billingType || "one_time").toString().trim().toLowerCase() || "one_time";
   const followupType = (payload.followupType || "standard").toString().trim() || "standard";
   const status = (payload.status || "draft").toString().trim().toLowerCase();
   const isScheduledTemplate = Boolean(payload.isScheduledTemplate);
@@ -18,6 +21,7 @@ function normalizeProgramPayload(payload) {
   if (!name) throw new Error("name is required");
   if (!Number.isInteger(durationWeeks) || durationWeeks <= 0) throw new Error("durationWeeks must be a positive integer");
   if (!Number.isInteger(priceCents) || priceCents < 0) throw new Error("priceCents must be a non-negative integer");
+  if (!["one_time", "recurring"].includes(billingType)) throw new Error("billingType must be one_time or recurring");
   if (!["draft", "active", "archived"].includes(status)) throw new Error("status must be draft, active or archived");
 
   return {
@@ -28,6 +32,9 @@ function normalizeProgramPayload(payload) {
     duration_weeks: durationWeeks,
     price_cents: priceCents,
     currency,
+    stripe_product_id: stripeProductId,
+    stripe_price_id: stripePriceId,
+    billing_type: billingType,
     followup_type: followupType,
     status,
     is_scheduled_template: isScheduledTemplate
@@ -44,6 +51,9 @@ function mapProgram(row) {
     durationWeeks: row.duration_weeks,
     priceCents: row.price_cents,
     currency: row.currency,
+    stripeProductId: row.stripe_product_id || null,
+    stripePriceId: row.stripe_price_id || null,
+    billingType: row.billing_type || "one_time",
     followupType: row.followup_type,
     status: row.status,
     isScheduledTemplate: row.is_scheduled_template,

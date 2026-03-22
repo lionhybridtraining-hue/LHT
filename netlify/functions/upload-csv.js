@@ -47,6 +47,12 @@ function endOfWeekIso(weekStartIso) {
   return date.toISOString().slice(0, 10);
 }
 
+function addDaysIso(days) {
+  const date = new Date();
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString();
+}
+
 function summarizeExecutionStatuses(sessions) {
   return sessions.reduce((summary, session) => {
     const key = session.execution_status || "unknown";
@@ -289,6 +295,7 @@ exports.handler = async (event) => {
           training_summary: aiResult.summary,
           ai_questions: aiResult.questions,
           token: crypto.randomUUID(),
+          token_expires_at: addDaysIso(7),
           created_at: new Date().toISOString()
         });
       } else {

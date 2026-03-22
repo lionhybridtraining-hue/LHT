@@ -1,133 +1,182 @@
-// Netlify Function: Stripe Webhook → Verify and emit GA4 purchase
-// Env vars (set in Netlify Dashboard):
-// - STRIPE_WEBHOOK_SECRET: your Stripe webhook signing secret
-// - GA_MEASUREMENT_ID: GA4 Measurement ID (e.g., G-K3EJSN5M4Y)
-// - GA_API_SECRET: GA4 API Secret (create under Data Streams → Measurement Protocol)
-
-const crypto = require('crypto');
-
-function parseStripeSignature(header) {
-  // Example: t=1697049600,v1=signature,v0=... (we use v1)
-  const parts = (header || '').split(',').map(p => p.trim());
-  let timestamp = null;
-  const signatures = [];
-  parts.forEach(p => {
-    const [k, v] = p.split('=');
-    if (k === 't') timestamp = v;
-    if (k === 'v1') signatures.push(v);
-  });
-  return { timestamp, signatures };
-}
-
-function computeSignature(secret, timestamp, payload) {
-  const signedPayload = `${timestamp}.${payload}`;
-  return crypto.createHmac('sha256', secret).update(signedPayload, 'utf8').digest('hex');
-}
-
-function safeCompare(a, b) {
-  const bufA = Buffer.from(a);
-  const bufB = Buffer.from(b);
-  if (bufA.length !== bufB.length) return false;
-  return crypto.timingSafeEqual(bufA, bufB);
-}
+const { json } = require("./_lib/http");
+const { getConfig } = require("./_lib/config");
+const { getStripeClient, normalizeStripeError, toIsoFromUnix, toStripePurchaseRecord } = require("./_lib/stripe");
+const {
+  upsertStripePurchaseBySessionId,
+  updateStripePurchasesBySubscriptionId,
+  updateStripePurchasesByPaymentIntentId,
+  getTrainingProgramById
+} = require("./_lib/supabase");
 
 async function sendGaPurchase({ measurementId, apiSecret, transactionId, value, currency, items }) {
-  if (!measurementId || !apiSecret) return { ok: false, reason: 'missing_ga_config' };
-  const endpoint = `https://www.google-analytics.com/mp/collect?measurement_id=${encodeURIComponent(measurementId)}&api_secret=${encodeURIComponent(apiSecret)}`;
+  if (!measurementId || !apiSecret) return { ok: false, reason: "missing_ga_config" };
 
+  const endpoint = `https://www.google-analytics.com/mp/collect?measurement_id=${encodeURIComponent(measurementId)}&api_secret=${encodeURIComponent(apiSecret)}`;
   const payload = {
-    client_id: 'server-webhook',
+    client_id: "server-webhook",
     events: [{
-      name: 'purchase',
+      name: "purchase",
       params: {
         transaction_id: transactionId,
         value: Number(value || 0),
-        currency: (currency || 'EUR').toUpperCase(),
-        items: items && items.length ? items : [{ item_id: 'AER', item_name: 'Reserva AER' }]
+        currency: (currency || "EUR").toUpperCase(),
+        items: items && items.length ? items : [{ item_id: "purchase", item_name: "LHT Program" }]
       }
     }]
   };
 
-  const res = await fetch(endpoint, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload)
   });
-  return { ok: res.ok, status: res.status };
+  return { ok: response.ok, status: response.status };
+}
+
+function buildGaItems(program) {
+  if (!program) {
+    return [{ item_id: "purchase", item_name: "LHT Program" }];
+  }
+
+  return [{
+    item_id: program.external_id || program.id,
+    item_name: program.name
+  }];
+}
+
+async function handleCheckoutCompleted(config, stripe, session) {
+  const identityId = typeof session.client_reference_id === "string" && session.client_reference_id
+    ? session.client_reference_id
+    : session.metadata && typeof session.metadata.identity_id === "string"
+      ? session.metadata.identity_id
+      : "";
+  const programId = session.metadata && typeof session.metadata.program_id === "string"
+    ? session.metadata.program_id
+    : "";
+
+  if (!identityId || !programId) {
+    return { persisted: false, reason: "missing_identity_or_program_metadata" };
+  }
+
+  const program = await getTrainingProgramById(config, programId);
+  if (!program) {
+    return { persisted: false, reason: "program_not_found" };
+  }
+
+  const subscription = typeof session.subscription === "string"
+    ? await stripe.subscriptions.retrieve(session.subscription)
+    : null;
+  const purchase = toStripePurchaseRecord({
+    session,
+    identityId,
+    programId: program.id,
+    billingType: program.billing_type,
+    fallbackEmail: session.customer_details && session.customer_details.email,
+    source: "stripe",
+    subscription
+  });
+
+  const record = await upsertStripePurchaseBySessionId(config, purchase);
+  return {
+    persisted: true,
+    record,
+    program
+  };
+}
+
+function extractInvoicePeriodEnd(invoice) {
+  const firstLine = invoice && invoice.lines && Array.isArray(invoice.lines.data) ? invoice.lines.data[0] : null;
+  if (firstLine && firstLine.period && Number.isFinite(firstLine.period.end)) {
+    return toIsoFromUnix(firstLine.period.end);
+  }
+  if (Number.isFinite(invoice.period_end)) {
+    return toIsoFromUnix(invoice.period_end);
+  }
+  return null;
 }
 
 exports.handler = async (event) => {
-  const sigHeader = event.headers['stripe-signature'] || event.headers['Stripe-Signature'];
-  const secret = process.env.STRIPE_WEBHOOK_SECRET;
-  if (!secret) {
-    return { statusCode: 500, body: 'Missing STRIPE_WEBHOOK_SECRET' };
-  }
-  if (!sigHeader) {
-    return { statusCode: 400, body: 'Missing Stripe-Signature header' };
+  if (event.httpMethod !== "POST") {
+    return json(405, { error: "Method not allowed" });
   }
 
-  const { timestamp, signatures } = parseStripeSignature(sigHeader);
-  const expected = computeSignature(secret, timestamp, event.body || '');
-  const valid = signatures.some(sig => safeCompare(expected, sig));
-  if (!valid) {
-    return { statusCode: 400, body: 'Invalid signature' };
-  }
-
-  let stripeEvent;
   try {
-    stripeEvent = JSON.parse(event.body || '{}');
-  } catch (e) {
-    return { statusCode: 400, body: 'Invalid JSON' };
-  }
+    const config = getConfig();
+    if (!config.stripeWebhookSecret) {
+      return json(500, { error: "Missing STRIPE_WEBHOOK_SECRET" });
+    }
 
-  // Capture completed purchases from Payment Links/Checkout
-  const type = stripeEvent.type;
-  const obj = stripeEvent.data && stripeEvent.data.object ? stripeEvent.data.object : {};
+    const stripe = getStripeClient(config);
+    const signature = event.headers["stripe-signature"] || event.headers["Stripe-Signature"];
+    if (!signature) {
+      return json(400, { error: "Missing Stripe-Signature header" });
+    }
 
-  let purchase = null;
-  if (type === 'checkout.session.completed') {
-    // amount_total in cents
-    purchase = {
-      transactionId: obj.id,
-      value: (obj.amount_total || 0) / 100,
-      currency: obj.currency || 'eur',
-      items: [{ item_id: 'AER', item_name: 'Reserva AER' }]
-    };
-  } else if (type === 'payment_intent.succeeded') {
-    // amount in cents
-    purchase = {
-      transactionId: obj.id,
-      value: (obj.amount || 0) / 100,
-      currency: obj.currency || 'eur',
-      items: [{ item_id: 'AER', item_name: 'Reserva AER' }]
-    };
-  } else if (type === 'charge.succeeded') {
-    purchase = {
-      transactionId: obj.id,
-      value: (obj.amount || 0) / 100,
-      currency: obj.currency || 'eur',
-      items: [{ item_id: 'AER', item_name: 'Reserva AER' }]
-    };
-  }
+    const payload = event.isBase64Encoded
+      ? Buffer.from(event.body || "", "base64").toString("utf8")
+      : (event.body || "");
+    const stripeEvent = stripe.webhooks.constructEvent(payload, signature, config.stripeWebhookSecret);
 
-  // If not a purchase-type event, acknowledge
-  if (!purchase) {
-    return { statusCode: 200, body: JSON.stringify({ received: true, ignored_type: type }) };
-  }
+    if (stripeEvent.type === "checkout.session.completed") {
+      const result = await handleCheckoutCompleted(config, stripe, stripeEvent.data.object);
+      let ga = null;
+      if (result.persisted && result.record) {
+        ga = await sendGaPurchase({
+          measurementId: process.env.GA_MEASUREMENT_ID,
+          apiSecret: process.env.GA_API_SECRET,
+          transactionId: result.record.stripe_session_id || result.record.id,
+          value: (result.record.amount_cents || 0) / 100,
+          currency: result.record.currency,
+          items: buildGaItems(result.program)
+        });
+      }
+      return json(200, { received: true, type: stripeEvent.type, result, ga });
+    }
 
-  const measurementId = process.env.GA_MEASUREMENT_ID;
-  const apiSecret = process.env.GA_API_SECRET;
-  try {
-    const result = await sendGaPurchase({
-      measurementId,
-      apiSecret,
-      transactionId: purchase.transactionId,
-      value: purchase.value,
-      currency: purchase.currency,
-      items: purchase.items
-    });
-    return { statusCode: 200, body: JSON.stringify({ received: true, ga_sent: result }) };
-  } catch (err) {
-    return { statusCode: 200, body: JSON.stringify({ received: true, ga_error: String(err && err.message || err) }) };
+    if (stripeEvent.type === "invoice.paid") {
+      const invoice = stripeEvent.data.object;
+      if (invoice.subscription) {
+        const updated = await updateStripePurchasesBySubscriptionId(config, invoice.subscription, {
+          status: "paid",
+          paid_at: new Date().toISOString(),
+          expires_at: extractInvoicePeriodEnd(invoice)
+        });
+        return json(200, { received: true, type: stripeEvent.type, updated: updated.length });
+      }
+    }
+
+    if (stripeEvent.type === "invoice.payment_failed") {
+      const invoice = stripeEvent.data.object;
+      if (invoice.subscription) {
+        const updated = await updateStripePurchasesBySubscriptionId(config, invoice.subscription, {
+          status: "payment_failed"
+        });
+        return json(200, { received: true, type: stripeEvent.type, updated: updated.length });
+      }
+    }
+
+    if (stripeEvent.type === "customer.subscription.deleted") {
+      const subscription = stripeEvent.data.object;
+      const updated = await updateStripePurchasesBySubscriptionId(config, subscription.id, {
+        status: "cancelled",
+        expires_at: new Date().toISOString()
+      });
+      return json(200, { received: true, type: stripeEvent.type, updated: updated.length });
+    }
+
+    if (stripeEvent.type === "charge.refunded") {
+      const charge = stripeEvent.data.object;
+      if (charge.payment_intent) {
+        const updated = await updateStripePurchasesByPaymentIntentId(config, charge.payment_intent, {
+          status: "refunded",
+          expires_at: new Date().toISOString()
+        });
+        return json(200, { received: true, type: stripeEvent.type, updated: updated.length });
+      }
+    }
+
+    return json(200, { received: true, ignored_type: stripeEvent.type });
+  } catch (error) {
+    return json(400, { error: normalizeStripeError(error) });
   }
 };

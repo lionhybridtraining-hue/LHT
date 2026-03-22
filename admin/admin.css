@@ -1167,6 +1167,114 @@ body.auth-locked {
   color: #ffd8cf;
 }
 
+.blog-ai-panel {
+  margin-top: 18px;
+  border: 1px solid var(--line-strong);
+  border-radius: 16px;
+  padding: 16px;
+  background: rgba(14, 13, 11, 0.62);
+}
+
+.blog-ai-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.blog-ai-header h3 {
+  margin: 0;
+  font-family: "Oswald", sans-serif;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+.blog-ai-header p {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.blog-ai-toggle {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+}
+
+.blog-ai-toggle input {
+  width: auto;
+}
+
+.blog-ai-grid {
+  margin-top: 10px;
+}
+
+.blog-ai-actions {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.blog-ai-actions label {
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.blog-ai-actions select {
+  width: auto;
+  min-width: 130px;
+}
+
+.blog-ai-variants {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.blog-ai-variant-card {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.blog-ai-variant-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.blog-ai-variant-head strong {
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-soft);
+}
+
+.blog-ai-variant-head button {
+  padding: 6px 10px;
+  font-size: 0.74rem;
+}
+
+.blog-ai-variant-card textarea {
+  min-height: 110px;
+}
+
+.blog-ai-status {
+  margin: 10px 0 0;
+  color: var(--ink-soft);
+  font-size: 0.85rem;
+}
+
 ::-webkit-scrollbar {
   width: 10px;
 }
@@ -1230,6 +1338,14 @@ body.auth-locked {
   }
 
   .athletes-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .blog-ai-header {
+    flex-direction: column;
+  }
+
+  .blog-ai-variants {
     grid-template-columns: 1fr;
   }
 

@@ -2,6 +2,11 @@ const { json } = require("./_lib/http");
 const { getConfig } = require("./_lib/config");
 const { getWeeklyCheckinByToken } = require("./_lib/supabase");
 
+function isExpired(timestamp) {
+  if (!timestamp) return false;
+  return new Date(timestamp).getTime() < Date.now();
+}
+
 exports.handler = async (event) => {
   if (event.httpMethod !== "GET") {
     return json(405, { error: "Method not allowed" });
@@ -20,6 +25,14 @@ exports.handler = async (event) => {
     const checkin = await getWeeklyCheckinByToken(config, token);
     if (!checkin) {
       return json(404, { error: "Check-in nao encontrado" });
+    }
+
+    if (checkin.approved_at) {
+      return json(409, { error: "Check-in ja aprovado" });
+    }
+
+    if (isExpired(checkin.token_expires_at)) {
+      return json(410, { error: "Link de check-in expirado" });
     }
 
     return json(200, {

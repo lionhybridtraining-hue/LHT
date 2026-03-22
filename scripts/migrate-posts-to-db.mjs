@@ -77,8 +77,8 @@ async function main() {
     return;
   }
 
-  const existingRows = await supabaseRequest("blog_articles?select=slug");
-  const existingSlugs = new Set((existingRows || []).map((row) => row.slug));
+  const existingRows = await supabaseRequest("blog_articles?select=slug,deleted_at");
+  const existingBySlug = new Map((existingRows || []).map((row) => [row.slug, row]));
 
   const payload = [];
   for (const fileName of markdownFiles) {
@@ -99,7 +99,8 @@ async function main() {
       category,
       content,
       status: "published",
-      published_at: publishedAt
+      published_at: publishedAt,
+      deleted_at: null
     });
   }
 
@@ -108,9 +109,14 @@ async function main() {
 
   let inserted = 0;
   let updated = 0;
+  let restored = 0;
   for (const slug of returnedSlugs) {
-    if (existingSlugs.has(slug)) {
+    const existing = existingBySlug.get(slug);
+    if (existing) {
       updated += 1;
+      if (existing.deleted_at) {
+        restored += 1;
+      }
     } else {
       inserted += 1;
     }
@@ -122,6 +128,7 @@ async function main() {
   console.log(`Rows returned: ${returnedSlugs.size}`);
   console.log(`Inserted: ${inserted}`);
   console.log(`Updated: ${updated}`);
+  console.log(`Restored from deleted_at: ${restored}`);
   console.log(`Conflicts (slug already existed): ${conflicts}`);
 }
 

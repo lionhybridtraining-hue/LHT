@@ -1,63 +1,41 @@
 # Gestão de Posts — LHT
 
-Este site está preparado para gerir artigos sem mexer em código, usando Decap CMS (Netlify CMS).
-Além disso, durante o build é gerado automaticamente `blog/posts.json` e atualizado o `sitemap.xml` com todos os slugs.
+## Fonte de verdade
+O blog usa **Supabase** como fonte de verdade única na tabela `blog_articles`.
 
-## Abrir painel Admin
-- Depois de publicado (GitHub Pages/Netlify), acede a `/admin/` no teu site.
-- Faz login (Netlify Identity ou GitHub, conforme configuração).
+- Frontend público: `/.netlify/functions/blog-articles`
+- Editor: `admin/index.html` (CRUD autenticado)
+- Build: `scripts/generate-posts-json.mjs` lê artigos **published** do Supabase e gera `blog/posts.json` + `sitemap.xml`
 
-## Testar login (Netlify)
-- Localmente: usa o Netlify CLI para emular o site e abrir o Admin em `http://localhost:8888/admin/`.
-- Em produção: garante que **Identity** e **Git Gateway** estão ativos no painel do Netlify (ver `README-DEPLOY.md`).
+## Fluxo editorial recomendado
+1. Abre `/admin/` e gere artigos no editor interno.
+2. Usa `draft` para revisão e `published` para publicação.
+3. Faz deploy normal; o build gera `blog/posts.json` e `sitemap.xml` a partir do Supabase.
 
-## Fluxo recomendado
-1. Cria o artigo em **Artigos** (collection `posts`):
-   - Título, Data, Categoria, Resumo, Conteúdo (Markdown)
-   - Guarda e publica.
+## Variáveis obrigatórias para build
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
 
-Durante o build, o script `scripts/generate-posts-json.mjs` percorre `blog/posts/*.md`, extrai o front‑matter e gera automaticamente `blog/posts.json`. O blog consome este ficheiro estático.
+Sem estas variáveis, `scripts/generate-posts-json.mjs` termina com erro para evitar builds com dados inconsistentes.
 
-## Imagens
-- Faz upload em `assets/img/uploads` pelo Admin.
-- No Markdown: `![alt](/assets/img/uploads/minha-imagem.jpg)`
+## Estado do Decap CMS
+`admin/config.yml` está em modo legado para evitar duplo fluxo editorial.
 
-## Configuração do backend
-- Atualiza `admin/config.yml`:
-  - `repo: CHANGE_ME_OWNER/CHANGE_ME_REPO` para o teu repositório.
-  - Se usares Netlify, podes mudar `backend.name` para `git-gateway`.
+## Ficheiros Markdown (arquivo)
+`blog/archive/*.md` — arquivo histórico dos artigos originais. Já não são fonte ativa do blog.
 
-## Servir localmente
-Alguns browsers bloqueiam `fetch` em ficheiros locais. Usa um servidor:
+Uso:
+- referência/historial
+- recuperação/migração pontual via scripts (`migrate-posts-to-db`, `import-historical-posts-from-git`)
 
+## Operação local
 ```bash
-# Netlify (recomendado, inclui emulação)
-/opt/buildhome/node-deps/node_modules/.bin/netlify dev
-
-# Node
-npx serve .
-
-# Python
-python -m http.server 5500
-```
-
-Abre `http://localhost:5500/blog`.
-
-Ou usa o Netlify CLI para replicar rewrites e o build:
-
-```bash
-npm i -g netlify-cli
+npm i
 netlify dev
 node scripts/generate-posts-json.mjs
 ```
 
-## Dicas
-- `slug` = nome do ficheiro sem `.md`.
-- `date` no formato `YYYY-MM-DD`.
-- O build gera automaticamente `posts.json` a partir dos ficheiros markdown em `blog/posts/`.
-- Os artigos são ordenados por data (mais recentes primeiro).
-
 ## Troubleshooting rápido
-- `blog` sem artigos: verifica o Deploy log por `Gerado: blog/posts.json` e confirma que `/blog/posts.json` devolve JSON (não HTML).
-- Ao abrir `/blog/SLUG` aparece 404: confirma que o ficheiro existe em `blog/posts/SLUG.md` e que o rewrite 200 está ativo em `netlify.toml`.
-- Scripts desatualizados: hard refresh ou usa "Clear cache and deploy site" em Netlify.
+- Blog sem artigos: valida se há artigos `published` no Supabase.
+- Build falha com erro de variáveis: define `SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY`.
+- `/blog/posts.json` desatualizado: confirma logs do build e faz hard refresh.

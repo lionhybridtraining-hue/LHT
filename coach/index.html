@@ -1066,6 +1066,13 @@
         .replace(/'/g, "&#39;");
     }
 
+    function isCheckinLinkExpired(checkin) {
+      if (!checkin || !checkin.token_expires_at) {
+        return false;
+      }
+      return new Date(checkin.token_expires_at).getTime() < Date.now();
+    }
+
     function renderCheckins(checkins) {
       if (!selectedAthleteId) {
         checkinsContainer.innerHTML = "Seleciona um atleta para ver os check-ins.";
@@ -1084,9 +1091,14 @@
         const createdAt = checkin.created_at
           ? new Date(checkin.created_at).toLocaleString("pt-PT")
           : "-";
+        const tokenExpiresAt = checkin.token_expires_at
+          ? new Date(checkin.token_expires_at).toLocaleString("pt-PT")
+          : "-";
         const isLocked = Boolean(checkin.responded_at || checkin.approved_at);
+        const isExpired = isCheckinLinkExpired(checkin);
         const hasBatch = Boolean(checkin.upload_batch_id);
         const canCancel = hasBatch && !isLocked;
+        const canReissue = !isLocked;
         const hasStrengthConfirmation = Boolean(checkin.has_strength_manual_confirmation);
         const strengthDone = Number.isInteger(checkin.strength_planned_done_count)
           ? checkin.strength_planned_done_count
@@ -1099,6 +1111,17 @@
           : isLocked
             ? "Nao cancelavel"
             : "Cancelar";
+        const reissueLabel = isLocked
+          ? "Bloqueado"
+          : "Reemitir link";
+        const submissionSource = checkin.submitted_via
+          ? `Submissao: ${checkin.submitted_via}`
+          : "Submissao: sem resposta";
+        const tokenStatus = isLocked
+          ? "Link encerrado"
+          : isExpired
+            ? "Link expirado"
+            : "Link ativo";
 
         return `
           <article style="border:1px solid rgba(255,255,255,0.1); border-radius:10px; padding:12px; margin-bottom:10px;">
@@ -1110,6 +1133,8 @@
               Forca confirmada: ${hasStrengthConfirmation ? `${strengthDone} done / ${strengthNotDone} not done` : "nao"}
             </div>
             <div style="margin-top:6px; font-size:12px; opacity:0.9;">Criado: ${escapeHtml(createdAt)}</div>
+            <div style="margin-top:4px; font-size:12px; opacity:0.9;">${escapeHtml(submissionSource)}</div>
+            <div style="margin-top:4px; font-size:12px; opacity:0.9;">${escapeHtml(tokenStatus)} · expira: ${escapeHtml(tokenExpiresAt)}</div>
             <div style="margin-top:6px;">${escapeHtml(summary)}</div>
             <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; margin-top:8px;">
               <div>
@@ -1126,6 +1151,14 @@
                 ${canCancel ? "" : "disabled"}
                 style="padding:6px 10px; font-size:12px;"
               >${cancelLabel}</button>
+              <button
+                type="button"
+                class="btn btn-secondary checkin-reissue-btn"
+                data-checkin-id="${escapeHtml(checkin.id || "")}"
+                data-week-start="${escapeHtml(checkin.week_start || "")}"
+                ${canReissue ? "" : "disabled"}
+                style="padding:6px 10px; font-size:12px;"
+              >${reissueLabel}</button>
             </div>
           </article>
         `;
@@ -1233,6 +1266,35 @@
         await loadCheckinsForAthlete(selectedAthleteId);
       } catch (error) {
         showResult("Erro: nao foi possivel cancelar o upload.", "error");
+      }
+    }
+
+    async function reissueCheckinLink(checkinId, weekStart) {
+      if (!selectedAthleteId || !checkinId) {
+        showResult("Erro: check-in invalido para reemissao.", "error");
+        return;
+      }
+
+      const confirmed = window.confirm(`Reemitir link do check-in da semana ${weekStart || "-"}? O token atual sera substituido.`);
+      if (!confirmed) {
+        return;
+      }
+
+      showResult("A reemitir link de check-in...", "");
+
+      try {
+        const data = await apiRequest("POST", "/.netlify/functions/reissue-checkin-token", {
+          athleteId: selectedAthleteId,
+          checkinId
+        });
+
+        showResult(
+          `Novo link gerado com sucesso.<br><a href="${escapeHtml(data.checkinUrl)}" target="_blank" rel="noopener">Abrir novo check-in</a><br>Expira: ${escapeHtml(new Date(data.tokenExpiresAt).toLocaleString("pt-PT"))}`,
+          "success"
+        );
+        await loadCheckinsForAthlete(selectedAthleteId);
+      } catch (error) {
+        showResult(`Erro: ${escapeHtml(error.message || "nao foi possivel reemitir o link")}`, "error");
       }
     }
 
@@ -1463,6 +1525,13 @@
     checkinsContainer.addEventListener("click", (event) => {
       const target = event.target;
       if (!(target instanceof HTMLElement)) {
+        return;
+      }
+
+      if (target.classList.contains("checkin-reissue-btn")) {
+        const checkinId = target.getAttribute("data-checkin-id") || "";
+        const weekStart = target.getAttribute("data-week-start") || "";
+        reissueCheckinLink(checkinId, weekStart);
         return;
       }
 

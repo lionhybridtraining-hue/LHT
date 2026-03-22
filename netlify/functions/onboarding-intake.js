@@ -1,6 +1,8 @@
 const { parseJsonBody, json } = require("./_lib/http");
 const { getConfig } = require("./_lib/config");
 const { getAuthenticatedUser } = require("./_lib/auth-supabase");
+const { getProgramAccess } = require("./_lib/program-access");
+const { upsertAthleteByIdentity } = require("./_lib/supabase");
 
 async function supabaseRequest({ url, serviceRoleKey, path, method = "GET", body, prefer }) {
   const response = await fetch(`${url}/rest/v1/${path}`, {
@@ -34,7 +36,7 @@ async function getExistingByIdentity(config, identityId) {
   const rows = await supabaseRequest({
     url: config.supabaseUrl,
     serviceRoleKey: config.supabaseServiceRoleKey,
-    path: `onboarding_intake?identity_id=eq.${encodeURIComponent(identityId)}&select=id,identity_id,email,phone,full_name,goal_distance,weekly_frequency,experience_level,consistency_level,funnel_stage,plan_generated_at,plan_storage,answers,submitted_at,updated_at&limit=1`
+    path: `onboarding_intake?identity_id=eq.${encodeURIComponent(identityId)}&select=id,identity_id,athlete_id,email,phone,full_name,goal_distance,weekly_frequency,experience_level,consistency_level,funnel_stage,plan_generated_at,plan_storage,answers,submitted_at,updated_at&limit=1`
   });
   return Array.isArray(rows) ? rows[0] || null : null;
 }
@@ -334,12 +336,28 @@ exports.handler = async (event) => {
       return json(401, { error: "Authentication required" });
     }
 
+    const query = event.queryStringParameters || {};
+    const access = await getProgramAccess(config, {
+      identityId: user.id,
+      programId: query.program_id,
+      programExternalId: query.program || query.program_external_id
+    });
+
+    if (!access.program) {
+      return json(404, { error: "Programa nao encontrado" });
+    }
+
+    if (!access.hasAccess) {
+      return json(403, { error: "Pagamento necessario para aceder ao onboarding" });
+    }
+
     if (event.httpMethod === "GET") {
       const existing = await getExistingByIdentity(config, user.id);
       return json(200, {
         ok: true,
         profile: existing
           ? {
+              athleteId: existing.athlete_id || null,
               phone: existing.phone || null,
               fullName: existing.full_name || null,
               goalDistance: existing.goal_distance,
@@ -370,9 +388,15 @@ exports.handler = async (event) => {
       ...(existing && existing.answers ? existing.answers : {}),
       ...answers
     };
+    const athlete = await upsertAthleteByIdentity(config, {
+      identityId: user.id,
+      email: user.email,
+      name: pickFirstNonNull(structured.full_name, existing ? existing.full_name : null, user.email)
+    });
 
     const row = {
       identity_id: user.id,
+      athlete_id: athlete.id,
       email: user.email,
       phone: pickFirstNonNull(structured.phone, existing ? existing.phone : null),
       full_name: pickFirstNonNull(structured.full_name, existing ? existing.full_name : null),
@@ -416,10 +440,14 @@ exports.handler = async (event) => {
 
     return json(200, {
       ok: true,
+      athleteId: athlete.id,
       submittedAt: record ? record.submitted_at : row.submitted_at,
       legacySync
     });
   } catch (err) {
+    if (err && err.status === 409) {
+      return json(409, { error: err.message || "Conflito ao associar atleta" });
+    }
     return json(500, { error: err.message || "Erro ao guardar onboarding" });
   }
 };

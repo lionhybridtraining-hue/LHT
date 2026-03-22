@@ -2,73 +2,73 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://lionhybridtraining.com/</loc>
-    <lastmod>2026-03-20</lastmod>
+    <lastmod>2026-03-22</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://lionhybridtraining.com/onboarding</loc>
-    <lastmod>2026-03-20</lastmod>
+    <lastmod>2026-03-22</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://lionhybridtraining.com/sobre</loc>
-    <lastmod>2026-03-20</lastmod>
+    <lastmod>2026-03-22</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://lionhybridtraining.com/blog</loc>
-    <lastmod>2026-03-20</lastmod>
+    <lastmod>2026-03-22</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://lionhybridtraining.com/termos</loc>
-    <lastmod>2026-03-20</lastmod>
+    <lastmod>2026-03-22</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.4</priority>
   </url>
   <url>
     <loc>https://lionhybridtraining.com/politica-privacidade</loc>
-    <lastmod>2026-03-20</lastmod>
+    <lastmod>2026-03-22</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.4</priority>
   </url>
   <url>
-    <loc>https://lionhybridtraining.com/blog/estímulo-vs-adaptação</loc>
-    <lastmod>2026-02-07</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
     <loc>https://lionhybridtraining.com/blog/construir-a-base-a-fisiologia-do-treino-de-endurance</loc>
-    <lastmod>2026-01-31</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://lionhybridtraining.com/blog/motivação-vs-disciplina</loc>
-    <lastmod>2026-01-23</lastmod>
+    <lastmod>2026-03-22</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://lionhybridtraining.com/blog/limiar-fisiológico-≠-número-mágico</loc>
-    <lastmod>2026-01-17</lastmod>
+    <lastmod>2026-03-22</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://lionhybridtraining.com/blog/porque-é-que-a-lion-hybrid-training-utiliza-o-trainingpeaks</loc>
-    <lastmod>2026-01-16</lastmod>
+    <lastmod>2026-03-22</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://lionhybridtraining.com/blog/vdot-jack-daniels-vs-training-bible-joe-friel</loc>
-    <lastmod>2026-01-14</lastmod>
+    <lastmod>2026-03-22</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://lionhybridtraining.com/blog/estímulo-vs-adaptação</loc>
+    <lastmod>2026-03-22</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://lionhybridtraining.com/blog/motivação-vs-disciplina</loc>
+    <lastmod>2026-03-22</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>

@@ -3,6 +3,7 @@ const { getActiveAiPrompt, insertAiLog } = require("./supabase");
 const DEFAULT_MODEL = "gemini-2.5-flash";
 const WEEKLY_FEATURE = "weekly_questions";
 const COACH_FEATURE = "coach_draft";
+const BLOG_WHATSAPP_FEATURE = "blog_whatsapp_generation";
 
 const WEEKLY_SYSTEM_FALLBACK = [
   "Tu es um treinador de endurance + forca.",
@@ -22,6 +23,34 @@ const COACH_SYSTEM_FALLBACK = [
   "Confronta os dados de treino da semana com as respostas do atleta.",
   "Devolve apenas JSON valido com formato:",
   "{\"alignment\": string, \"adjustments\": string[], \"final_feedback\": string}"
+].join("\n");
+
+const BLOG_SYSTEM_FALLBACK = [
+  "Tu es editor de conteudo da Lion Hybrid Training.",
+  "Responde sempre em Portugues europeu.",
+  "Cria conteudo claro, pratico e alinhado com treino hibrido.",
+  "Devolve apenas JSON valido no formato:",
+  "{",
+  "  \"blog\": {",
+  "    \"title\": string,",
+  "    \"excerpt\": string,",
+  "    \"category\": string,",
+  "    \"content\": string",
+  "  },",
+  "  \"whatsappVariants\": [",
+  "    {\"label\": \"A\", \"text\": string},",
+  "    {\"label\": \"B\", \"text\": string},",
+  "    {\"label\": \"C\", \"text\": string}",
+  "  ]",
+  "}",
+  "Cada variante WhatsApp deve ser curta, com gancho, valor e CTA para o blog."
+].join("\n");
+
+const BLOG_USER_FALLBACK = [
+  "Usa o contexto recebido para gerar um blogpost util e 3 copys para WhatsApp.",
+  "Nao inventes claims medicas.",
+  "Mantem tom motivador mas objetivo.",
+  "O texto WhatsApp deve ser pronto a copiar/colar para comunidade."
 ].join("\n");
 
 function getModelName(modelName) {
@@ -91,6 +120,150 @@ async function loadSystemPrompt(config, feature, fallback) {
   } catch (_err) {
     return fallback;
   }
+}
+
+async function loadPrompt(config, feature, type, fallback) {
+  if (!config || !config.supabaseUrl || !config.supabaseServiceRoleKey) {
+    return fallback;
+  }
+
+  try {
+    const prompt = await getActiveAiPrompt(config, feature, type);
+    return prompt && prompt.content ? String(prompt.content) : fallback;
+  } catch (_err) {
+    return fallback;
+  }
+}
+
+function safeText(value, fallback = "") {
+  if (value == null) return fallback;
+  const text = String(value).trim();
+  return text || fallback;
+}
+
+function toMarkdownTitle(value) {
+  const title = safeText(value, "Treino hibrido com consistencia");
+  return title.startsWith("#") ? title : `# ${title}`;
+}
+
+function fallbackBlogPack(article, briefing) {
+  const topic = safeText(briefing && briefing.topic, safeText(article && article.title, "Treino hibrido"));
+  const objective = safeText(briefing && briefing.objective, "Aplicar no treino da semana");
+  const tone = safeText(briefing && briefing.tone, "direto e pratico");
+  const cta = safeText(briefing && briefing.cta, "Ler o artigo completo e partilhar no grupo");
+  const title = safeText(article && article.title, `Como aplicar ${topic} com consistencia`);
+  const excerpt = safeText(
+    article && article.excerpt,
+    `Guia pratico para ${topic.toLowerCase()} com foco em ${objective.toLowerCase()}.`
+  );
+  const category = safeText(article && article.category, safeText(briefing && briefing.category, "Artigo"));
+  const content = safeText(
+    article && article.content,
+    [
+      toMarkdownTitle(title),
+      "",
+      "## Porque isto importa",
+      `Quando defines um foco claro (${topic}), consegues treinar com mais intencao e menos ruido.`,
+      "",
+      "## Como aplicar esta semana",
+      `1. Escolhe 1 prioridade concreta alinhada com ${objective.toLowerCase()}.`,
+      "2. Define blocos de treino realistas para os proximos 7 dias.",
+      "3. Fecha a semana com revisao simples: o que funcionou, o que ajustar.",
+      "",
+      "## Erros comuns",
+      "- Mudar demasiadas variaveis ao mesmo tempo.",
+      "- Falta de consistencia na execucao diaria.",
+      "- Falta de revisao semanal.",
+      "",
+      "## Proximo passo",
+      cta
+    ].join("\n")
+  );
+
+  return {
+    blog: { title, excerpt, category, content },
+    whatsappVariants: [
+      {
+        label: "A",
+        text: `Comunidade, saiu novo artigo: ${title}. Foco desta semana: ${topic}. Vem ver o plano pratico e aplica hoje. ${cta}`
+      },
+      {
+        label: "B",
+        text: `Se andas sem clareza no treino, este artigo ajuda: ${title}. Direto ao ponto, com passos para ${objective.toLowerCase()}. ${cta}`
+      },
+      {
+        label: "C",
+        text: `Novo no blog LHT: ${title}. Tom ${tone}, sem teoria a mais, so execucao. Le e partilha o que vais aplicar esta semana. ${cta}`
+      }
+    ],
+    generationSource: "fallback"
+  };
+}
+
+function normalizeWhatsappVariants(list) {
+  const labels = ["A", "B", "C"];
+  const input = Array.isArray(list) ? list : [];
+  return labels.map((label, index) => {
+    const row = input[index] || input.find((item) => String((item && item.label) || "").toUpperCase() === label) || {};
+    return {
+      label,
+      text: safeText(row.text, "")
+    };
+  });
+}
+
+function normalizeBlogPack(parsed, article, briefing) {
+  if (!parsed || typeof parsed !== "object") {
+    return fallbackBlogPack(article, briefing);
+  }
+
+  const fallback = fallbackBlogPack(article, briefing);
+  const blog = parsed.blog && typeof parsed.blog === "object" ? parsed.blog : {};
+  const normalized = {
+    blog: {
+      title: safeText(blog.title, fallback.blog.title),
+      excerpt: safeText(blog.excerpt, fallback.blog.excerpt),
+      category: safeText(blog.category, fallback.blog.category),
+      content: safeText(blog.content, fallback.blog.content)
+    },
+    whatsappVariants: normalizeWhatsappVariants(parsed.whatsappVariants)
+  };
+
+  if (!normalized.whatsappVariants.every((item) => item.text.length > 0)) {
+    normalized.whatsappVariants = fallback.whatsappVariants;
+    normalized.generationSource = "fallback";
+  } else {
+    normalized.generationSource = "ai";
+  }
+
+  return normalized;
+}
+
+function buildBlogUserPrompt({ article, briefing, userPromptTemplate }) {
+  const payload = {
+    articleSeed: {
+      title: safeText(article && article.title, ""),
+      excerpt: safeText(article && article.excerpt, ""),
+      category: safeText(article && article.category, "Artigo"),
+      content: safeText(article && article.content, "")
+    },
+    briefing: {
+      topic: safeText(briefing && briefing.topic, ""),
+      objective: safeText(briefing && briefing.objective, ""),
+      tone: safeText(briefing && briefing.tone, ""),
+      cta: safeText(briefing && briefing.cta, ""),
+      targetAudience: safeText(briefing && briefing.targetAudience, ""),
+      category: safeText(briefing && briefing.category, ""),
+      lengthHint: safeText(briefing && briefing.lengthHint, "")
+    }
+  };
+
+  return [
+    userPromptTemplate,
+    "",
+    "Contexto editorial:",
+    JSON.stringify(payload)
+  ].join("\n");
 }
 
 async function safeInsertAiLog(config, payload) {
@@ -431,7 +604,93 @@ async function generateCoachDraft({ config, apiKey, modelName, athlete, checkin,
   return result;
 }
 
+async function generateBlogWhatsappPack({ config, apiKey, modelName, article, briefing, articleId }) {
+  const startTime = Date.now();
+  const fallback = fallbackBlogPack(article, briefing);
+  const systemPrompt = await loadPrompt(config, BLOG_WHATSAPP_FEATURE, "system", BLOG_SYSTEM_FALLBACK);
+  const userPromptTemplate = await loadPrompt(config, BLOG_WHATSAPP_FEATURE, "user", BLOG_USER_FALLBACK);
+  const userPrompt = buildBlogUserPrompt({ article, briefing, userPromptTemplate });
+
+  if (!apiKey) {
+    await safeInsertAiLog(config, {
+      feature: BLOG_WHATSAPP_FEATURE,
+      athlete_id: null,
+      model: "fallback:no_api_key",
+      system_prompt_snapshot: systemPrompt,
+      user_prompt_snapshot: userPrompt,
+      input_data: { articleId: articleId || null, article, briefing },
+      output_data: fallback,
+      tokens_estimated: estimateTokens(systemPrompt, userPrompt, fallback),
+      duration_ms: Date.now() - startTime,
+      success: false,
+      error: "GEMINI_API_KEY missing"
+    });
+    return fallback;
+  }
+
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${getModelName(modelName)}:generateContent`;
+  const prompt = `${systemPrompt}\n\n${userPrompt}`;
+
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-goog-api-key": apiKey
+    },
+    body: JSON.stringify({
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      generationConfig: {
+        temperature: 0.7,
+        responseMimeType: "application/json"
+      }
+    })
+  });
+
+  if (!response.ok) {
+    await safeInsertAiLog(config, {
+      feature: BLOG_WHATSAPP_FEATURE,
+      athlete_id: null,
+      model: getModelName(modelName),
+      system_prompt_snapshot: systemPrompt,
+      user_prompt_snapshot: userPrompt,
+      input_data: { articleId: articleId || null, article, briefing },
+      output_data: fallback,
+      tokens_estimated: estimateTokens(prompt, fallback),
+      duration_ms: Date.now() - startTime,
+      success: false,
+      error: `Gemini HTTP ${response.status}`
+    });
+    return fallback;
+  }
+
+  const payload = await response.json();
+  const content = payload && payload.candidates && payload.candidates[0] && payload.candidates[0].content
+    ? payload.candidates[0].content
+    : null;
+  const textPart = content && Array.isArray(content.parts) ? content.parts.find((p) => typeof p.text === "string") : null;
+  const parsed = safeJsonParse(textPart ? textPart.text : "");
+  const result = normalizeBlogPack(parsed, article, briefing);
+  const success = result.generationSource !== "fallback";
+
+  await safeInsertAiLog(config, {
+    feature: BLOG_WHATSAPP_FEATURE,
+    athlete_id: null,
+    model: getModelName(modelName),
+    system_prompt_snapshot: systemPrompt,
+    user_prompt_snapshot: userPrompt,
+    input_data: { articleId: articleId || null, article, briefing },
+    output_data: result,
+    tokens_estimated: estimateTokens(prompt, textPart ? textPart.text : "", result),
+    duration_ms: Date.now() - startTime,
+    success,
+    error: success ? null : "Invalid Gemini JSON format"
+  });
+
+  return result;
+}
+
 module.exports = {
   generateWeeklyQuestions,
-  generateCoachDraft
+  generateCoachDraft,
+  generateBlogWhatsappPack
 };

@@ -1,37 +1,75 @@
-# Stripe Webhook → Verified Purchase Tracking
+﻿# Stripe — Programas, Checkout e Acesso
 
-This site uses a Stripe Payment Link for AER. To avoid false positives and ensure every purchase is recorded, use a Stripe webhook that verifies the signature and emits a GA4 `purchase` event via Measurement Protocol.
+O site usa Stripe Checkout para venda de programas. O fluxo completo cobre: listagem pública, autenticação via Supabase, criação de sessão Stripe, confirmação de acesso pós-pagamento e webhook para persistência e rastreio GA4.
 
-## Endpoint (Netlify Function)
-- Path: `/.netlify/functions/stripe-webhook`
-- File: `netlify/functions/stripe-webhook.js`
-- Verifies `Stripe-Signature` using your `STRIPE_WEBHOOK_SECRET`
-- Handles: `checkout.session.completed`, `payment_intent.succeeded`, `charge.succeeded`
-- Sends GA4 `purchase` with `transaction_id`, `value`, `currency`, `items`
+## Fluxo de compra
 
-## Configure Environment Variables (Netlify → Site settings → Environment)
-- `STRIPE_WEBHOOK_SECRET`: From Stripe Dashboard → Webhooks → Signing secret
-- `GA_MEASUREMENT_ID`: e.g., `G-K3EJSN5M4Y`
-- `GA_API_SECRET`: GA4 Data Stream → Measurement Protocol API secret
+```
+programas.html   →  list-programs (GET)            → mostra catálogo
+utilizador clica →  create-checkout-session (POST) → Stripe Checkout hosted
+Stripe redireciona → /onboarding?session_id=...
+onboarding       →  check-access (GET)             → sincroniza sessão + confirma acesso
+Stripe webhook   →  stripe-webhook (POST)          → persiste compra + GA4 purchase
+```
 
-## Stripe Setup
-1. Stripe Dashboard → Developers → Webhooks → Add endpoint.
+## Funções Netlify
+
+| Função | Método | Descrição |
+|---|---|---|
+| `list-programs` | GET | Lista programas ativos (público) |
+| `create-checkout-session` | POST | Cria sessão Stripe Checkout (requer auth) |
+| `check-access` | GET | Verifica acesso; sincroniza sessão Stripe se `session_id` presente |
+| `stripe-webhook` | POST | Recebe eventos Stripe; persiste compra; emite GA4 `purchase` |
+
+## Base de Dados (Supabase)
+
+Antes de usar em produção, corre as migrações no **SQL Editor** do Supabase Dashboard:
+
+1. `scripts/migration-stripe-programs.sql` — adiciona `stripe_product_id`, `stripe_price_id`, `billing_type` à tabela `training_programs`
+2. `scripts/migration-stripe-purchases.sql` — cria tabela `stripe_purchases`
+
+## Variáveis de Ambiente (Netlify → Site settings → Environment)
+
+| Variável | Obrigatória | Descrição |
+|---|---|---|
+| `SUPABASE_URL` | ✓ | URL do projeto Supabase |
+| `SUPABASE_SERVICE_ROLE_KEY` | ✓ | Chave de service role do Supabase |
+| `STRIPE_SECRET_KEY` | ✓ | Chave secreta Stripe (`sk_live_...` ou `sk_test_...`) |
+| `STRIPE_WEBHOOK_SECRET` | ✓ | Signing secret do webhook Stripe (`whsec_...`) |
+| `GA_MEASUREMENT_ID` | opcional | Ex: `G-K3EJSN5M4Y` para rastreio GA4 |
+| `GA_API_SECRET` | opcional | Measurement Protocol API secret (GA4) |
+| `DEFAULT_ONBOARDING_PROGRAM_ID` | opcional | UUID do programa padrão no onboarding |
+
+## Configuração Stripe
+
+1. Stripe Dashboard → Developers → Webhooks → **Add endpoint**
 2. URL: `https://<your-site>.netlify.app/.netlify/functions/stripe-webhook`
-3. Select events:
-   - `payment_intent.succeeded`
-   - `checkout.session.completed` (if you use Checkout)
-   - `charge.succeeded` (optional, belt-and-braces)
-4. Reveal `Signing secret` and paste into Netlify env.
+3. Eventos a selecionar:
+   - `checkout.session.completed`
+   - `invoice.paid`
+   - `invoice.payment_failed`
+   - `customer.subscription.deleted`
+4. Copia o **Signing secret** (`whsec_...`) → Netlify env `STRIPE_WEBHOOK_SECRET`
+5. Para cada programa, no Admin → Programas, preenche `stripe_price_id` (ex: `price_...`)
 
-## Why webhook over client-side redirect?
-- Browser redirects (e.g., to onboarding) can be revisited/bookmarked and don’t prove payment.
-- Webhooks originate from Stripe, include verified signatures, and represent finalized payment states.
-- GA4 `purchase` is emitted server-side, independent of user consent/state, avoiding missed conversions. If you prefer to respect consent strictly, you can store accept/deny per user and link purchases via user ID; for anonymous links this is typically not available, so server-side purchase is standard.
+## Configurar um Programa com Stripe
 
-## Testing
-- Use Stripe CLI: `stripe listen --forward-to https://<your-site>.netlify.app/.netlify/functions/stripe-webhook`
-- Trigger test events: `stripe trigger payment_intent.succeeded`
-- Check Netlify Functions logs and GA4 Debug (Measurement Protocol hits won’t appear in Tag Assistant, but DebugView can show them if you add `debug_mode: 1`).
+No Admin (`/admin/`), tab **Programas**:
+- Cria ou edita um programa com `status = active`
+- Preenche `stripe_price_id` com o ID do Price no Stripe Dashboard
+- Define `billing_type`: `one_time` (pagamento único) ou `recurring` (subscrição)
 
-## Optional: Debug Mode
-You can add `params.debug_mode = 1` to the Measurement Protocol payload to make events visible in DebugView more easily; keep it disabled in production.
+## Por que webhook e não redirect?
+
+- Redirects do browser podem ser revisitados; não provam pagamento.
+- O webhook chega do Stripe com assinatura verificada e representa o estado final do pagamento.
+- GA4 `purchase` é emitido server-side, independente de consentimento/cookies.
+
+## Teste local
+
+```bash
+stripe listen --forward-to http://localhost:8888/.netlify/functions/stripe-webhook
+stripe trigger checkout.session.completed
+```
+
+Verifica os logs nas Netlify Functions e no GA4 DebugView (adiciona `debug_mode: 1` temporariamente se necessário).

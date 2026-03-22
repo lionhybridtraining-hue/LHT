@@ -1,6 +1,7 @@
 const { json } = require("./_lib/http");
 const { getConfig } = require("./_lib/config");
 const { getAuthenticatedUser } = require("./_lib/auth-supabase");
+const { upsertAthleteByIdentity } = require("./_lib/supabase");
 
 /**
  * Saves a generated training plan to the active assignment when it exists.
@@ -54,7 +55,12 @@ exports.handler = async (event) => {
     }
 
     const identityId = user.id || user.sub;
-    const athleteId = identityId;
+    const athlete = await upsertAthleteByIdentity(config, {
+      identityId,
+      email: user.email || "",
+      name: toOptionalString(plan_params.athlete_name)
+    });
+    const athleteId = athlete.id;
 
     // Get the active program assignment for this athlete
     const programAssignment = await supabaseRequest({
@@ -109,6 +115,7 @@ exports.handler = async (event) => {
       body: [
         {
           identity_id: identityId,
+          athlete_id: athleteId,
           email: user.email || "",
           phone: existingOnboarding ? existingOnboarding.phone || null : null,
           full_name:
@@ -140,11 +147,15 @@ exports.handler = async (event) => {
       success: true,
       message: "Plan saved successfully",
       storage: "onboarding_intake",
+      athlete_id: athleteId,
       identity_id: identityId,
       plan_params: plan_params
     });
 
   } catch (err) {
+    if (err && err.status === 409) {
+      return json(409, { error: err.message || "Conflito ao associar atleta" });
+    }
     console.error("Error saving plan:", err);
     return json(500, { error: err.message || "Error saving plan" });
   }
@@ -154,7 +165,7 @@ async function getExistingOnboarding(config, identityId) {
   const rows = await supabaseRequest({
     url: config.supabaseUrl,
     serviceRoleKey: config.supabaseServiceRoleKey,
-    path: `onboarding_intake?identity_id=eq.${encodeURIComponent(identityId)}&select=id,answers,phone,full_name,goal_distance,weekly_frequency,experience_level,consistency_level&limit=1`
+    path: `onboarding_intake?identity_id=eq.${encodeURIComponent(identityId)}&select=id,athlete_id,answers,phone,full_name,goal_distance,weekly_frequency,experience_level,consistency_level&limit=1`
   });
   return Array.isArray(rows) ? rows[0] || null : null;
 }
