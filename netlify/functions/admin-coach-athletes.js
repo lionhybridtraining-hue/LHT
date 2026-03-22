@@ -1,7 +1,7 @@
 const { json } = require("./_lib/http");
 const { getConfig } = require("./_lib/config");
-const { listAthletesByCoach, getPayingStatusForAthletes } = require("./_lib/supabase");
-const { getAuthenticatedUser } = require("./_lib/auth-supabase");
+const { requireRole } = require("./_lib/authz");
+const { listAthletesByCoach, listCoaches, getPayingStatusForAthletes } = require("./_lib/supabase");
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "GET") {
@@ -10,14 +10,15 @@ exports.handler = async (event) => {
 
   try {
     const config = getConfig();
-    const user = await getAuthenticatedUser(event, config);
-    
-    if (!user) {
-      return json(401, { error: "Authentication required" });
+    const auth = await requireRole(event, config, "admin");
+    if (auth.error) return auth.error;
+
+    const coachIdentityId = (event.queryStringParameters || {}).coachIdentityId || "";
+    if (!coachIdentityId) {
+      return json(400, { error: "coachIdentityId query param is required" });
     }
 
-    const coachId = user.sub;
-    const athletes = await listAthletesByCoach(config, coachId);
+    const athletes = await listAthletesByCoach(config, coachIdentityId);
     const list = Array.isArray(athletes) ? athletes : [];
 
     const identityIds = list
@@ -32,17 +33,25 @@ exports.handler = async (event) => {
           id: athlete.id,
           name: athlete.name || "",
           email: athlete.email || "",
-          label: athlete.name || athlete.email || athlete.id,
           isPaying: paying ? paying.isPaying : false,
           billingType: paying ? paying.billingType : null,
           paidAt: paying ? paying.paidAt : null,
           expiresAt: paying ? paying.expiresAt : null
         };
       })
-      .sort((left, right) => left.label.localeCompare(right.label, "pt"));
+      .sort((left, right) => {
+        if (left.isPaying !== right.isPaying) return left.isPaying ? -1 : 1;
+        return (left.name || left.email || "").localeCompare(right.name || right.email || "", "pt");
+      });
 
-    return json(200, { athletes: normalized });
+    const payingCount = normalized.filter((a) => a.isPaying).length;
+
+    return json(200, {
+      athletes: normalized,
+      total: normalized.length,
+      payingCount
+    });
   } catch (err) {
-    return json(500, { error: err.message || "Erro ao carregar atletas" });
+    return json(500, { error: err.message || "Erro ao listar atletas do coach" });
   }
 };

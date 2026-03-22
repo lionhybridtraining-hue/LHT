@@ -538,8 +538,36 @@ async function listAthletesByCoach(config, coachIdentityId) {
   return supabaseRequest({
     url: config.supabaseUrl,
     serviceRoleKey: config.supabaseServiceRoleKey,
-    path: `athletes?coach_identity_id=eq.${encodeURIComponent(coachIdentityId)}&select=id,name,email&limit=200`
+    path: `athletes?coach_identity_id=eq.${encodeURIComponent(coachIdentityId)}&select=id,name,email,identity_id&limit=200`
   });
+}
+
+async function getPayingStatusForAthletes(config, identityIds) {
+  if (!Array.isArray(identityIds) || identityIds.length === 0) return {};
+  const validIds = identityIds.filter((id) => typeof id === "string" && id.length > 0);
+  if (validIds.length === 0) return {};
+  const now = new Date().toISOString();
+  const inList = validIds.map((id) => encodeURIComponent(id)).join(",");
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `stripe_purchases?identity_id=in.(${inList})&status=eq.paid&or=(expires_at.is.null,expires_at.gt.${encodeURIComponent(now)})&select=identity_id,status,billing_type,program_id,expires_at,paid_at&order=paid_at.desc.nullslast`
+  });
+  const map = {};
+  if (Array.isArray(rows)) {
+    rows.forEach((row) => {
+      if (row.identity_id && !map[row.identity_id]) {
+        map[row.identity_id] = {
+          isPaying: true,
+          billingType: row.billing_type || "one_time",
+          programId: row.program_id || null,
+          paidAt: row.paid_at || null,
+          expiresAt: row.expires_at || null
+        };
+      }
+    });
+  }
+  return map;
 }
 
 async function createAthleteForCoach(config, coachIdentityId, payload) {
@@ -1104,6 +1132,7 @@ module.exports = {
   verifyCoachOwnsAthlete,
   listUnassignedAthletes,
   assignUnassignedAthleteToCoach,
+  getPayingStatusForAthletes,
   getUserRoleNames,
   listCoaches,
   createCoach,

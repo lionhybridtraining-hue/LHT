@@ -980,18 +980,59 @@
           <div>
             <p class="section-eyebrow">Coach Ops</p>
             <h2>Coaches</h2>
-            <p>Area preparada para criar, editar e gerir capacidade operacional dos coaches.</p>
+            <p>Seleciona um coach para ver os atletas atribuidos e o estado de pagamento de cada um.</p>
           </div>
         </div>
-        <div class="module-grid">
+
+        <p id="coaches-panel-message" class="message" role="status"></p>
+
+        <div class="athletes-toolbar">
+          <div class="field">
+            <label for="coaches-panel-select">Coach</label>
+            <select id="coaches-panel-select">
+              <option value="">A carregar coaches...</option>
+            </select>
+          </div>
+          <button id="coaches-panel-refresh-btn" type="button">Ver atletas</button>
+          <label style="display:flex; align-items:center; gap:6px; font-size:14px; cursor:pointer;">
+            <input id="coaches-panel-paying-filter" type="checkbox" />
+            Apenas pagantes
+          </label>
+        </div>
+
+        <div id="coaches-panel-kpis" class="module-grid operations-kpis" hidden>
           <article class="module-card">
-            <h3>Registo de coach</h3>
-            <p>Estrutura pronta para onboarding de coach e parametros operacionais.</p>
+            <h3>Total atletas</h3>
+            <p id="coaches-panel-total-kpi">-</p>
           </article>
           <article class="module-card">
-            <h3>Atribuicoes</h3>
-            <p>Consolida atribuicoes de atletas por coach numa vista central.</p>
+            <h3>Pagantes ativos</h3>
+            <p id="coaches-panel-paying-kpi">-</p>
           </article>
+          <article class="module-card">
+            <h3>Sem pagamento</h3>
+            <p id="coaches-panel-nonpaying-kpi">-</p>
+          </article>
+        </div>
+
+        <div id="coaches-panel-empty" class="athletes-empty" hidden>
+          <p>Sem atletas atribuidos a este coach.</p>
+        </div>
+
+        <div class="athletes-list-wrap">
+          <table class="athletes-table">
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>Email</th>
+                <th>Estado pagamento</th>
+                <th>Tipo</th>
+                <th>Pago em</th>
+                <th>Expira em</th>
+              </tr>
+            </thead>
+            <tbody id="coaches-panel-athletes-body"></tbody>
+          </table>
         </div>
       </section>
 
@@ -1324,6 +1365,7 @@
     const adminStripeCouponsApiBase = '/.netlify/functions/admin-stripe-coupons';
     const adminStripePricesApiBase = '/.netlify/functions/admin-stripe-prices';
     const adminStripeLinksApiBase = '/.netlify/functions/admin-stripe-links';
+    const adminCoachAthletesApiBase = '/.netlify/functions/admin-coach-athletes';
     const state = {
       user: null,
       token: null,
@@ -1552,6 +1594,16 @@
       athletesPanel: document.getElementById('athletes-panel'),
       programsPanel: document.getElementById('programs-panel'),
       coachesPanel: document.getElementById('coaches-panel'),
+      coachesPanelMessage: document.getElementById('coaches-panel-message'),
+      coachesPanelSelect: document.getElementById('coaches-panel-select'),
+      coachesPanelRefreshBtn: document.getElementById('coaches-panel-refresh-btn'),
+      coachesPanelPayingFilter: document.getElementById('coaches-panel-paying-filter'),
+      coachesPanelKpis: document.getElementById('coaches-panel-kpis'),
+      coachesPanelTotalKpi: document.getElementById('coaches-panel-total-kpi'),
+      coachesPanelPayingKpi: document.getElementById('coaches-panel-paying-kpi'),
+      coachesPanelNonpayingKpi: document.getElementById('coaches-panel-nonpaying-kpi'),
+      coachesPanelEmpty: document.getElementById('coaches-panel-empty'),
+      coachesPanelAthletesBody: document.getElementById('coaches-panel-athletes-body'),
       operationsPanel: document.getElementById('operations-panel'),
       siteContentMessage: document.getElementById('site-content-message'),
       refreshSiteContentBtn: document.getElementById('refresh-site-content-btn'),
@@ -1799,6 +1851,10 @@
       if (activeTab === 'operations' && state.user) {
         refreshAuditAthletesCatalog().catch((err) => showOperationsMessage(err.message, true));
         showOperationsMessage('Preenche pelo menos um filtro e clica em "Auditar dados".', false);
+      }
+
+      if (activeTab === 'coaches' && state.user) {
+        loadCoachesPanelSelect().catch((err) => showCoachesPanelMessage(err.message, true));
       }
     }
 
@@ -4751,6 +4807,91 @@
     els.clearDataAuditBtn.addEventListener('click', () => {
       clearDataAudit();
     });
+
+    // --- Coaches panel logic ---
+    let coachesPanelAthletes = [];
+
+    function showCoachesPanelMessage(msg, isError) {
+      els.coachesPanelMessage.textContent = msg;
+      els.coachesPanelMessage.className = 'message' + (isError ? ' error' : '');
+    }
+
+    async function loadCoachesPanelSelect() {
+      try {
+        const data = await apiRequest('GET', coachesApiBase);
+        const coaches = Array.isArray(data.coaches) ? data.coaches : [];
+        els.coachesPanelSelect.innerHTML = '';
+        const defaultOpt = document.createElement('option');
+        defaultOpt.value = '';
+        defaultOpt.textContent = coaches.length ? 'Seleciona um coach' : 'Sem coaches registados';
+        els.coachesPanelSelect.appendChild(defaultOpt);
+        coaches.forEach((c) => {
+          const opt = document.createElement('option');
+          opt.value = c.identityId || '';
+          opt.textContent = `${c.name || c.email} (${c.email})`;
+          els.coachesPanelSelect.appendChild(opt);
+        });
+      } catch (err) {
+        els.coachesPanelSelect.innerHTML = '<option value="">Erro ao carregar coaches</option>';
+      }
+    }
+
+    function renderCoachesPanelAthletes() {
+      const payingOnly = els.coachesPanelPayingFilter.checked;
+      const filtered = payingOnly ? coachesPanelAthletes.filter((a) => a.isPaying) : coachesPanelAthletes;
+      const payingCount = coachesPanelAthletes.filter((a) => a.isPaying).length;
+      const nonPayingCount = coachesPanelAthletes.length - payingCount;
+
+      els.coachesPanelKpis.hidden = false;
+      els.coachesPanelTotalKpi.textContent = coachesPanelAthletes.length;
+      els.coachesPanelPayingKpi.textContent = payingCount;
+      els.coachesPanelNonpayingKpi.textContent = nonPayingCount;
+
+      els.coachesPanelAthletesBody.innerHTML = '';
+      els.coachesPanelEmpty.hidden = filtered.length > 0;
+
+      if (!filtered.length) return;
+
+      const fragment = document.createDocumentFragment();
+      filtered.forEach((a) => {
+        const row = document.createElement('tr');
+        const statusBadge = a.isPaying
+          ? '<span class="badge badge-success">Pagante</span>'
+          : '<span class="badge badge-warn">Sem pagamento</span>';
+        row.innerHTML = `
+          <td>${a.name || '-'}</td>
+          <td>${a.email || '-'}</td>
+          <td>${statusBadge}</td>
+          <td>${a.billingType || '-'}</td>
+          <td>${a.paidAt ? formatDate(a.paidAt) : '-'}</td>
+          <td>${a.expiresAt ? formatDate(a.expiresAt) : 'Sem expiracao'}</td>
+        `;
+        fragment.appendChild(row);
+      });
+      els.coachesPanelAthletesBody.appendChild(fragment);
+    }
+
+    async function loadCoachesPanelAthletes() {
+      const coachIdentityId = (els.coachesPanelSelect.value || '').trim();
+      if (!coachIdentityId) {
+        showCoachesPanelMessage('Seleciona um coach primeiro.', true);
+        return;
+      }
+
+      showCoachesPanelMessage('A carregar atletas do coach...', false);
+      try {
+        const data = await apiRequest('GET', `${adminCoachAthletesApiBase}?coachIdentityId=${encodeURIComponent(coachIdentityId)}`);
+        coachesPanelAthletes = Array.isArray(data.athletes) ? data.athletes : [];
+        renderCoachesPanelAthletes();
+        const payingCount = data.payingCount || 0;
+        showCoachesPanelMessage(`${coachesPanelAthletes.length} atleta(s) encontrado(s), ${payingCount} pagante(s) ativo(s).`, false);
+      } catch (err) {
+        showCoachesPanelMessage(err.message || 'Erro ao carregar atletas', true);
+      }
+    }
+
+    els.coachesPanelRefreshBtn.addEventListener('click', loadCoachesPanelAthletes);
+    els.coachesPanelPayingFilter.addEventListener('change', renderCoachesPanelAthletes);
 
     els.tabBlog.addEventListener('click', () => setActiveTab('blog'));
     els.tabSiteContent.addEventListener('click', () => setActiveTab('siteContent'));

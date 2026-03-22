@@ -342,6 +342,20 @@
       border: 1px solid var(--line);
     }
 
+    .paying-badge {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 2px 7px;
+      border-radius: 6px;
+      margin-left: 6px;
+      vertical-align: middle;
+    }
+    .paying-badge.active { background: rgba(124, 199, 141, 0.18); color: #7cc78d; border: 1px solid rgba(124, 199, 141, 0.3); }
+    .paying-badge.inactive { background: rgba(255, 147, 132, 0.12); color: #ff9384; border: 1px solid rgba(255, 147, 132, 0.22); }
+
     .result {
       margin-top: 18px;
       padding: 18px;
@@ -636,6 +650,12 @@
               <label for="athleteSearch">Pesquisar atleta</label>
               <input id="athleteSearch" type="search" placeholder="Filtrar por nome, email ou UUID" />
             </div>
+            <div class="field full" style="display:flex; align-items:center; gap:10px;">
+              <label for="filterPayingOnly" style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:14px; color:var(--text-soft);">
+                <input id="filterPayingOnly" type="checkbox" style="accent-color:var(--gold); width:16px; height:16px;" />
+                Apenas pagantes ativos
+              </label>
+            </div>
             <div class="field full">
               <label for="athleteSelect">Selecionar atleta</label>
               <select id="athleteSelect">
@@ -785,6 +805,7 @@
 
   <script>
     const athleteSearchInput = document.getElementById("athleteSearch");
+    const filterPayingOnly = document.getElementById("filterPayingOnly");
     const authGate = document.getElementById("coach-auth-gate");
     const protectedContent = document.getElementById("protected-content");
     const gateLoginBtn = document.getElementById("gate-login-btn");
@@ -1302,39 +1323,50 @@
       const list = Array.isArray(filteredAthletes) ? filteredAthletes : athletes;
       athleteSelect.innerHTML = "";
 
+      const payingCount = list.filter((a) => a.isPaying).length;
       const defaultOption = document.createElement("option");
       defaultOption.value = "";
       defaultOption.textContent = list.length
-        ? "Seleciona um atleta do sistema"
+        ? `Seleciona um atleta (${payingCount} pagante${payingCount !== 1 ? "s" : ""} / ${list.length} total)`
         : "Nenhum atleta encontrado";
       athleteSelect.appendChild(defaultOption);
 
       list.forEach((athlete) => {
         const option = document.createElement("option");
         option.value = athlete.id;
-        option.textContent = athlete.name
+        const nameLabel = athlete.name
           ? `${athlete.name} (${athlete.email || athlete.id.slice(0, 8)})`
           : (athlete.email || athlete.id);
+        const payTag = athlete.isPaying ? " ✓ Pagante" : " ○ Sem pagamento";
+        option.textContent = nameLabel + payTag;
         athleteSelect.appendChild(option);
       });
     }
 
     function applyAthleteFilter() {
       const query = athleteSearchInput.value.trim();
-      if (!query) {
-        renderAthleteOptions(athletes);
-        athleteFilterMeta.textContent = `Total de atletas carregados: ${athletes.length}.`;
-        return;
+      const payingOnly = filterPayingOnly.checked;
+      let filtered = athletes;
+
+      if (payingOnly) {
+        filtered = filtered.filter((a) => a.isPaying);
       }
 
-      const needle = normalizeForSearch(query);
-      const filtered = athletes.filter((athlete) => {
-        const haystack = normalizeForSearch(`${athlete.name || ""} ${athlete.email || ""} ${athlete.id || ""}`);
-        return haystack.includes(needle);
-      });
+      if (query) {
+        const needle = normalizeForSearch(query);
+        filtered = filtered.filter((athlete) => {
+          const haystack = normalizeForSearch(`${athlete.name || ""} ${athlete.email || ""} ${athlete.id || ""}`);
+          return haystack.includes(needle);
+        });
+      }
 
       renderAthleteOptions(filtered);
-      athleteFilterMeta.textContent = `Filtro "${query}": ${filtered.length} atleta(s) encontrado(s).`;
+      const payingCount = filtered.filter((a) => a.isPaying).length;
+      const parts = [];
+      if (query) parts.push(`Filtro "${query}"`);
+      if (payingOnly) parts.push("apenas pagantes");
+      parts.push(`${filtered.length} atleta(s) (${payingCount} pagante${payingCount !== 1 ? "s" : ""})`);
+      athleteFilterMeta.textContent = parts.join(" — ") + ".";
     }
 
     function syncSelectedAthlete(athleteId) {
@@ -1520,6 +1552,7 @@
     });
 
     athleteSearchInput.addEventListener("input", applyAthleteFilter);
+    filterPayingOnly.addEventListener("change", applyAthleteFilter);
     checkinStatusFilter.addEventListener("change", applyCheckinsFilter);
 
     checkinsContainer.addEventListener("click", (event) => {

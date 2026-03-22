@@ -1954,6 +1954,28 @@ details[open] .sc-ess-summary::before {
   color: #e36b56;
 }
 
+.badge {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--muted);
+}
+
+.badge-success {
+  background: rgba(36, 107, 82, 0.2);
+  color: #4ecb91;
+}
+
+.badge-warn {
+  background: rgba(200, 154, 60, 0.2);
+  color: var(--accent-strong);
+}
+
 /* Small action buttons */
 .btn-sm {
   font-family: "Oswald", sans-serif;
