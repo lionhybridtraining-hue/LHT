@@ -175,6 +175,37 @@ exports.handler = async (event) => {
       }
     }
 
+    if (stripeEvent.type === "checkout.session.expired") {
+      const session = stripeEvent.data.object;
+      const identityId = typeof session.client_reference_id === "string" && session.client_reference_id
+        ? session.client_reference_id
+        : session.metadata && typeof session.metadata.identity_id === "string"
+          ? session.metadata.identity_id
+          : "";
+      const programId = session.metadata && typeof session.metadata.program_id === "string"
+        ? session.metadata.program_id
+        : "";
+
+      if (!identityId || !programId) {
+        return json(200, { received: true, type: stripeEvent.type, persisted: false, reason: "missing_identity_or_program" });
+      }
+
+      const abandoned = toStripePurchaseRecord({
+        session,
+        identityId,
+        programId,
+        billingType: session.metadata && session.metadata.billing_type ? session.metadata.billing_type : "one_time",
+        fallbackEmail: session.customer_details && session.customer_details.email ? session.customer_details.email : null,
+        source: "stripe",
+        subscription: null
+      });
+      abandoned.status = "abandoned";
+      abandoned.paid_at = null;
+
+      const record = await upsertStripePurchaseBySessionId(config, abandoned);
+      return json(200, { received: true, type: stripeEvent.type, persisted: true, record });
+    }
+
     return json(200, { received: true, ignored_type: stripeEvent.type });
   } catch (error) {
     return json(400, { error: normalizeStripeError(error) });

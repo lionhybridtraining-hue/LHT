@@ -4,6 +4,9 @@ const DEFAULT_MODEL = "gemini-2.5-flash";
 const WEEKLY_FEATURE = "weekly_questions";
 const COACH_FEATURE = "coach_draft";
 const BLOG_WHATSAPP_FEATURE = "blog_whatsapp_generation";
+const ABC_FROM_ARTICLE_FEATURE = "abc_from_article";
+const DRAFT_FROM_IDEA_FEATURE = "draft_from_idea";
+const ABC_STANDALONE_FEATURE = "abc_standalone";
 
 const WEEKLY_SYSTEM_FALLBACK = [
   "Tu es um treinador de endurance + forca.",
@@ -51,6 +54,78 @@ const BLOG_USER_FALLBACK = [
   "Nao inventes claims medicas.",
   "Mantem tom motivador mas objetivo.",
   "O texto WhatsApp deve ser pronto a copiar/colar para comunidade."
+].join("\n");
+
+const ABC_FROM_ARTICLE_SYSTEM_FALLBACK = [
+  "Tu es editor de conteudo da Lion Hybrid Training.",
+  "Responde sempre em Portugues europeu.",
+  "Tens um artigo ja escrito. Gera 3 mensagens WhatsApp distintas para promover este artigo na comunidade.",
+  "Cada mensagem deve ter: gancho inicial, proposta de valor e CTA claro.",
+  "Variacao A: gancho direto e energico.",
+  "Variacao B: abordagem problema-solucao.",
+  "Variacao C: pergunta que gera curiosidade.",
+  "Devolve apenas JSON valido no formato:",
+  "{",
+  "  \"whatsappVariants\": [",
+  "    {\"label\": \"A\", \"text\": string},",
+  "    {\"label\": \"B\", \"text\": string},",
+  "    {\"label\": \"C\", \"text\": string}",
+  "  ]",
+  "}"
+].join("\n");
+
+const ABC_FROM_ARTICLE_USER_FALLBACK = [
+  "Gera 3 copys WhatsApp para promover o artigo na comunidade LHT.",
+  "Cada copy deve ser curta, pronta a copiar/colar.",
+  "Respeita o tom e CTA indicados."
+].join("\n");
+
+const DRAFT_FROM_IDEA_SYSTEM_FALLBACK = [
+  "Tu es editor de conteudo da Lion Hybrid Training.",
+  "Responde sempre em Portugues europeu.",
+  "Cria um draft de artigo completo a partir da ideia/tema fornecido.",
+  "O artigo deve ser claro, pratico e alinhado com treino hibrido.",
+  "Devolve apenas JSON valido no formato:",
+  "{",
+  "  \"blog\": {",
+  "    \"title\": string,",
+  "    \"excerpt\": string,",
+  "    \"category\": string,",
+  "    \"content\": string (Markdown)",
+  "  }",
+  "}"
+].join("\n");
+
+const DRAFT_FROM_IDEA_USER_FALLBACK = [
+  "Gera um draft de artigo completo com base no tema e contexto fornecidos.",
+  "Nao inventes claims medicas.",
+  "Conteudo pratico, estruturado com headers Markdown.",
+  "Inclui seccoes: introducao, porque importa, como aplicar, erros comuns, proximo passo."
+].join("\n");
+
+const ABC_STANDALONE_SYSTEM_FALLBACK = [
+  "Tu es editor de conteudo da Lion Hybrid Training.",
+  "Responde sempre em Portugues europeu.",
+  "Gera 3 mensagens WhatsApp distintas para partilhar na comunidade.",
+  "NAO ha artigo associado — a mensagem deve funcionar sozinha.",
+  "Cada mensagem deve ter: gancho inicial, valor pratico e CTA.",
+  "Variacao A: gancho direto e energico.",
+  "Variacao B: abordagem problema-solucao.",
+  "Variacao C: pergunta que gera curiosidade.",
+  "Devolve apenas JSON valido no formato:",
+  "{",
+  "  \"whatsappVariants\": [",
+  "    {\"label\": \"A\", \"text\": string},",
+  "    {\"label\": \"B\", \"text\": string},",
+  "    {\"label\": \"C\", \"text\": string}",
+  "  ]",
+  "}"
+].join("\n");
+
+const ABC_STANDALONE_USER_FALLBACK = [
+  "Gera 3 copys WhatsApp sobre o tema indicado para a comunidade LHT.",
+  "Cada copy deve funcionar sozinha, sem link para artigo.",
+  "Pronta a copiar/colar. Curta, com gancho e CTA."
 ].join("\n");
 
 function getModelName(modelName) {
@@ -689,8 +764,281 @@ async function generateBlogWhatsappPack({ config, apiKey, modelName, article, br
   return result;
 }
 
+/* ------------------------------------------------------------------ */
+/* Mode: ABC from existing article                                    */
+/* ------------------------------------------------------------------ */
+
+function fallbackAbcFromArticle(article, briefing) {
+  const title = safeText(article && article.title, "Treino hibrido");
+  const topic = safeText(briefing && briefing.topic, title);
+  const cta = safeText(briefing && briefing.cta, "Le o artigo completo e partilha no grupo");
+  const objective = safeText(briefing && briefing.objective, "aplicar no treino da semana");
+  return {
+    whatsappVariants: [
+      { label: "A", text: `Comunidade, saiu novo artigo: ${title}. Foco: ${topic}. Vem ver e aplica hoje. ${cta}` },
+      { label: "B", text: `Se andas sem clareza no treino, este artigo ajuda: ${title}. Passos concretos para ${objective}. ${cta}` },
+      { label: "C", text: `Novo no blog LHT: ${title}. Sem teoria a mais, so execucao. ${cta}` }
+    ],
+    generationSource: "fallback"
+  };
+}
+
+function normalizeAbcResult(parsed, article, briefing) {
+  if (!parsed || typeof parsed !== "object") {
+    return fallbackAbcFromArticle(article, briefing);
+  }
+  const variants = normalizeWhatsappVariants(parsed.whatsappVariants);
+  if (!variants.every((v) => v.text.length > 0)) {
+    return fallbackAbcFromArticle(article, briefing);
+  }
+  return { whatsappVariants: variants, generationSource: "ai" };
+}
+
+function buildAbcFromArticleUserPrompt({ article, briefing, extraInstructions, userPromptTemplate }) {
+  const payload = {
+    article: {
+      title: safeText(article && article.title, ""),
+      excerpt: safeText(article && article.excerpt, ""),
+      category: safeText(article && article.category, "Artigo"),
+      content: safeText(article && article.content, "")
+    },
+    briefing: {
+      cta: safeText(briefing && briefing.cta, ""),
+      topic: safeText(briefing && briefing.topic, ""),
+      tone: safeText(briefing && briefing.tone, "")
+    }
+  };
+  const parts = [userPromptTemplate, "", "Contexto editorial:", JSON.stringify(payload)];
+  if (extraInstructions) parts.push("", "Instrucoes adicionais:", extraInstructions);
+  return parts.join("\n");
+}
+
+async function generateAbcFromArticle({ config, apiKey, modelName, article, briefing, extraInstructions, articleId }) {
+  const startTime = Date.now();
+  const fallback = fallbackAbcFromArticle(article, briefing);
+  const systemPrompt = await loadPrompt(config, ABC_FROM_ARTICLE_FEATURE, "system", ABC_FROM_ARTICLE_SYSTEM_FALLBACK);
+  const userPromptTemplate = await loadPrompt(config, ABC_FROM_ARTICLE_FEATURE, "user", ABC_FROM_ARTICLE_USER_FALLBACK);
+  const userPrompt = buildAbcFromArticleUserPrompt({ article, briefing, extraInstructions, userPromptTemplate });
+  const logBase = { feature: ABC_FROM_ARTICLE_FEATURE, athlete_id: null, input_data: { articleId, article, briefing, extraInstructions } };
+
+  if (!apiKey) {
+    await safeInsertAiLog(config, { ...logBase, model: "fallback:no_api_key", system_prompt_snapshot: systemPrompt, user_prompt_snapshot: userPrompt, output_data: fallback, tokens_estimated: estimateTokens(systemPrompt, userPrompt, fallback), duration_ms: Date.now() - startTime, success: false, error: "GEMINI_API_KEY missing" });
+    return fallback;
+  }
+
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${getModelName(modelName)}:generateContent`;
+  const prompt = `${systemPrompt}\n\n${userPrompt}`;
+
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
+    body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: prompt }] }], generationConfig: { temperature: 0.7, responseMimeType: "application/json" } })
+  });
+
+  if (!response.ok) {
+    await safeInsertAiLog(config, { ...logBase, model: getModelName(modelName), system_prompt_snapshot: systemPrompt, user_prompt_snapshot: userPrompt, output_data: fallback, tokens_estimated: estimateTokens(prompt, fallback), duration_ms: Date.now() - startTime, success: false, error: `Gemini HTTP ${response.status}` });
+    return fallback;
+  }
+
+  const payload = await response.json();
+  const content = payload && payload.candidates && payload.candidates[0] && payload.candidates[0].content ? payload.candidates[0].content : null;
+  const textPart = content && Array.isArray(content.parts) ? content.parts.find((p) => typeof p.text === "string") : null;
+  const parsed = safeJsonParse(textPart ? textPart.text : "");
+  const result = normalizeAbcResult(parsed, article, briefing);
+  const success = result.generationSource !== "fallback";
+
+  await safeInsertAiLog(config, { ...logBase, model: getModelName(modelName), system_prompt_snapshot: systemPrompt, user_prompt_snapshot: userPrompt, output_data: result, tokens_estimated: estimateTokens(prompt, textPart ? textPart.text : "", result), duration_ms: Date.now() - startTime, success, error: success ? null : "Invalid Gemini JSON format" });
+  return result;
+}
+
+/* ------------------------------------------------------------------ */
+/* Mode: Draft blog from idea                                         */
+/* ------------------------------------------------------------------ */
+
+function fallbackDraftFromIdea(briefing) {
+  const topic = safeText(briefing && briefing.topic, "Treino hibrido");
+  const objective = safeText(briefing && briefing.objective, "Aplicar no treino da semana");
+  const cta = safeText(briefing && briefing.cta, "Ler o artigo completo e partilhar no grupo");
+  const title = `Como aplicar ${topic} com consistencia`;
+  return {
+    blog: {
+      title,
+      excerpt: `Guia pratico para ${topic.toLowerCase()} com foco em ${objective.toLowerCase()}.`,
+      category: safeText(briefing && briefing.category, "Artigo"),
+      content: [
+        toMarkdownTitle(title), "",
+        "## Porque isto importa",
+        `Quando defines um foco claro (${topic}), consegues treinar com mais intencao e menos ruido.`, "",
+        "## Como aplicar esta semana",
+        `1. Escolhe 1 prioridade concreta alinhada com ${objective.toLowerCase()}.`,
+        "2. Define blocos de treino realistas para os proximos 7 dias.",
+        "3. Fecha a semana com revisao simples: o que funcionou, o que ajustar.", "",
+        "## Erros comuns",
+        "- Mudar demasiadas variaveis ao mesmo tempo.",
+        "- Falta de consistencia na execucao diaria.",
+        "- Falta de revisao semanal.", "",
+        "## Proximo passo",
+        cta
+      ].join("\n")
+    },
+    generationSource: "fallback"
+  };
+}
+
+function normalizeDraftResult(parsed, briefing) {
+  if (!parsed || typeof parsed !== "object") {
+    return fallbackDraftFromIdea(briefing);
+  }
+  const fb = fallbackDraftFromIdea(briefing);
+  const blog = parsed.blog && typeof parsed.blog === "object" ? parsed.blog : {};
+  const result = {
+    blog: {
+      title: safeText(blog.title, fb.blog.title),
+      excerpt: safeText(blog.excerpt, fb.blog.excerpt),
+      category: safeText(blog.category, fb.blog.category),
+      content: safeText(blog.content, fb.blog.content)
+    }
+  };
+  if (!result.blog.title || !result.blog.content) {
+    return { ...fb, generationSource: "fallback" };
+  }
+  result.generationSource = "ai";
+  return result;
+}
+
+function buildDraftUserPrompt({ briefing, extraInstructions, userPromptTemplate }) {
+  const payload = {
+    briefing: {
+      topic: safeText(briefing && briefing.topic, ""),
+      objective: safeText(briefing && briefing.objective, ""),
+      tone: safeText(briefing && briefing.tone, ""),
+      cta: safeText(briefing && briefing.cta, ""),
+      targetAudience: safeText(briefing && briefing.targetAudience, ""),
+      category: safeText(briefing && briefing.category, ""),
+      lengthHint: safeText(briefing && briefing.lengthHint, "")
+    }
+  };
+  const parts = [userPromptTemplate, "", "Contexto editorial:", JSON.stringify(payload)];
+  if (extraInstructions) parts.push("", "Instrucoes adicionais:", extraInstructions);
+  return parts.join("\n");
+}
+
+async function generateDraftFromIdea({ config, apiKey, modelName, briefing, extraInstructions }) {
+  const startTime = Date.now();
+  const fallback = fallbackDraftFromIdea(briefing);
+  const systemPrompt = await loadPrompt(config, DRAFT_FROM_IDEA_FEATURE, "system", DRAFT_FROM_IDEA_SYSTEM_FALLBACK);
+  const userPromptTemplate = await loadPrompt(config, DRAFT_FROM_IDEA_FEATURE, "user", DRAFT_FROM_IDEA_USER_FALLBACK);
+  const userPrompt = buildDraftUserPrompt({ briefing, extraInstructions, userPromptTemplate });
+  const logBase = { feature: DRAFT_FROM_IDEA_FEATURE, athlete_id: null, input_data: { briefing, extraInstructions } };
+
+  if (!apiKey) {
+    await safeInsertAiLog(config, { ...logBase, model: "fallback:no_api_key", system_prompt_snapshot: systemPrompt, user_prompt_snapshot: userPrompt, output_data: fallback, tokens_estimated: estimateTokens(systemPrompt, userPrompt, fallback), duration_ms: Date.now() - startTime, success: false, error: "GEMINI_API_KEY missing" });
+    return fallback;
+  }
+
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${getModelName(modelName)}:generateContent`;
+  const prompt = `${systemPrompt}\n\n${userPrompt}`;
+
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
+    body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: prompt }] }], generationConfig: { temperature: 0.7, responseMimeType: "application/json" } })
+  });
+
+  if (!response.ok) {
+    await safeInsertAiLog(config, { ...logBase, model: getModelName(modelName), system_prompt_snapshot: systemPrompt, user_prompt_snapshot: userPrompt, output_data: fallback, tokens_estimated: estimateTokens(prompt, fallback), duration_ms: Date.now() - startTime, success: false, error: `Gemini HTTP ${response.status}` });
+    return fallback;
+  }
+
+  const payload = await response.json();
+  const content = payload && payload.candidates && payload.candidates[0] && payload.candidates[0].content ? payload.candidates[0].content : null;
+  const textPart = content && Array.isArray(content.parts) ? content.parts.find((p) => typeof p.text === "string") : null;
+  const parsed = safeJsonParse(textPart ? textPart.text : "");
+  const result = normalizeDraftResult(parsed, briefing);
+  const success = result.generationSource !== "fallback";
+
+  await safeInsertAiLog(config, { ...logBase, model: getModelName(modelName), system_prompt_snapshot: systemPrompt, user_prompt_snapshot: userPrompt, output_data: result, tokens_estimated: estimateTokens(prompt, textPart ? textPart.text : "", result), duration_ms: Date.now() - startTime, success, error: success ? null : "Invalid Gemini JSON format" });
+  return result;
+}
+
+/* ------------------------------------------------------------------ */
+/* Mode: ABC standalone (no article)                                  */
+/* ------------------------------------------------------------------ */
+
+function fallbackAbcStandalone(briefing) {
+  const topic = safeText(briefing && briefing.topic, "Treino hibrido");
+  const objective = safeText(briefing && briefing.objective, "melhorar consistencia");
+  const cta = safeText(briefing && briefing.cta, "Deixa nos comentarios o que vais aplicar");
+  return {
+    whatsappVariants: [
+      { label: "A", text: `Comunidade LHT: tema da semana e ${topic}. ${cta}` },
+      { label: "B", text: `Queres ${objective}? Comeca por aqui: foca em ${topic} esta semana. ${cta}` },
+      { label: "C", text: `Pergunta para a comunidade: como estas a trabalhar ${topic}? Partilha a tua abordagem. ${cta}` }
+    ],
+    generationSource: "fallback"
+  };
+}
+
+function buildAbcStandaloneUserPrompt({ briefing, extraInstructions, userPromptTemplate }) {
+  const payload = {
+    briefing: {
+      topic: safeText(briefing && briefing.topic, ""),
+      objective: safeText(briefing && briefing.objective, ""),
+      tone: safeText(briefing && briefing.tone, ""),
+      cta: safeText(briefing && briefing.cta, "")
+    }
+  };
+  const parts = [userPromptTemplate, "", "Contexto editorial:", JSON.stringify(payload)];
+  if (extraInstructions) parts.push("", "Instrucoes adicionais:", extraInstructions);
+  return parts.join("\n");
+}
+
+async function generateAbcStandalone({ config, apiKey, modelName, briefing, extraInstructions }) {
+  const startTime = Date.now();
+  const fallback = fallbackAbcStandalone(briefing);
+  const systemPrompt = await loadPrompt(config, ABC_STANDALONE_FEATURE, "system", ABC_STANDALONE_SYSTEM_FALLBACK);
+  const userPromptTemplate = await loadPrompt(config, ABC_STANDALONE_FEATURE, "user", ABC_STANDALONE_USER_FALLBACK);
+  const userPrompt = buildAbcStandaloneUserPrompt({ briefing, extraInstructions, userPromptTemplate });
+  const logBase = { feature: ABC_STANDALONE_FEATURE, athlete_id: null, input_data: { briefing, extraInstructions } };
+
+  if (!apiKey) {
+    await safeInsertAiLog(config, { ...logBase, model: "fallback:no_api_key", system_prompt_snapshot: systemPrompt, user_prompt_snapshot: userPrompt, output_data: fallback, tokens_estimated: estimateTokens(systemPrompt, userPrompt, fallback), duration_ms: Date.now() - startTime, success: false, error: "GEMINI_API_KEY missing" });
+    return fallback;
+  }
+
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${getModelName(modelName)}:generateContent`;
+  const prompt = `${systemPrompt}\n\n${userPrompt}`;
+
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
+    body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: prompt }] }], generationConfig: { temperature: 0.7, responseMimeType: "application/json" } })
+  });
+
+  if (!response.ok) {
+    await safeInsertAiLog(config, { ...logBase, model: getModelName(modelName), system_prompt_snapshot: systemPrompt, user_prompt_snapshot: userPrompt, output_data: fallback, tokens_estimated: estimateTokens(prompt, fallback), duration_ms: Date.now() - startTime, success: false, error: `Gemini HTTP ${response.status}` });
+    return fallback;
+  }
+
+  const payload = await response.json();
+  const content = payload && payload.candidates && payload.candidates[0] && payload.candidates[0].content ? payload.candidates[0].content : null;
+  const textPart = content && Array.isArray(content.parts) ? content.parts.find((p) => typeof p.text === "string") : null;
+  const parsed = safeJsonParse(textPart ? textPart.text : "");
+  const result = normalizeAbcResult(parsed, null, briefing);
+  const success = result.generationSource !== "fallback";
+  if (!success) {
+    result.whatsappVariants = fallback.whatsappVariants;
+  }
+
+  await safeInsertAiLog(config, { ...logBase, model: getModelName(modelName), system_prompt_snapshot: systemPrompt, user_prompt_snapshot: userPrompt, output_data: result, tokens_estimated: estimateTokens(prompt, textPart ? textPart.text : "", result), duration_ms: Date.now() - startTime, success, error: success ? null : "Invalid Gemini JSON format" });
+  return result;
+}
+
 module.exports = {
   generateWeeklyQuestions,
   generateCoachDraft,
-  generateBlogWhatsappPack
+  generateBlogWhatsappPack,
+  generateAbcFromArticle,
+  generateDraftFromIdea,
+  generateAbcStandalone
 };

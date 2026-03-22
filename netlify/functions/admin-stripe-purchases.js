@@ -62,6 +62,7 @@ exports.handler = async (event) => {
     const refundedCount = mapped.filter((p) => p.status === "refunded").length;
     const cancelledCount = mapped.filter((p) => p.status === "cancelled").length;
     const pendingCount = mapped.filter((p) => p.status === "pending").length;
+    const abandonedCount = mapped.filter((p) => p.status === "abandoned").length;
 
     return json(200, {
       purchases: mapped,
@@ -71,7 +72,8 @@ exports.handler = async (event) => {
         totalRevenueCents,
         refundedCount,
         cancelledCount,
-        pendingCount
+        pendingCount,
+        abandonedCount
       }
     });
   } catch (err) {

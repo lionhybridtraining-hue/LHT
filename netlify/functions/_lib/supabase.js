@@ -492,6 +492,48 @@ async function updateBlogContentProductionByArticle(config, articleId, patch) {
   return Array.isArray(rows) ? rows[0] || null : null;
 }
 
+async function getBlogContentProductionById(config, id) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `blog_content_production?id=eq.${encodeURIComponent(id)}&select=*&limit=1`
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function updateBlogContentProductionById(config, id, patch) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `blog_content_production?id=eq.${encodeURIComponent(id)}`,
+    method: "PATCH",
+    body: patch,
+    prefer: "return=representation"
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function insertBlogContentProduction(config, payload) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: "blog_content_production",
+    method: "POST",
+    body: [payload],
+    prefer: "return=representation"
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function listStandaloneProductions(config, limit) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `blog_content_production?article_id=is.null&select=id,status,briefing_data,whatsapp_variants,selected_variant,generation_mode,extra_instructions,manual_shared_at,updated_at,created_at&order=updated_at.desc&limit=${limit || 20}`
+  });
+  return Array.isArray(rows) ? rows : [];
+}
+
 async function listAthletesByCoach(config, coachIdentityId) {
   return supabaseRequest({
     url: config.supabaseUrl,
@@ -1114,6 +1156,10 @@ module.exports = {
   getBlogContentProductionByArticle,
   upsertBlogContentProduction,
   updateBlogContentProductionByArticle,
+  getBlogContentProductionById,
+  updateBlogContentProductionById,
+  insertBlogContentProduction,
+  listStandaloneProductions,
   insertMetaLead,
   listMetaLeads,
   updateMetaLead,

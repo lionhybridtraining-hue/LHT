@@ -133,74 +133,172 @@
             <div class="blog-ai-header">
               <div>
                 <p class="section-eyebrow">IA Editorial</p>
-                <h3 id="blog-ai-title">Linha de producao para Blog + WhatsApp</h3>
-                <p>Gera um draft do artigo e 3 mensagens prontas para copiar/colar na comunidade.</p>
+                <h3 id="blog-ai-title">Linha de producao</h3>
+                <p>Gera ABC WhatsApp a partir de artigo, cria drafts de ideias, ou gera ABC avulso.</p>
               </div>
-              <label class="blog-ai-toggle" for="blog-ai-regenerate-on-publish">
-                <input id="blog-ai-regenerate-on-publish" type="checkbox" checked />
-                <span>Regenerar ao publicar</span>
-              </label>
             </div>
 
             <p id="blog-ai-message" class="message" role="status"></p>
 
-            <div class="form-grid blog-ai-grid">
-              <div class="field">
-                <label for="blog-ai-topic">Tema</label>
-                <input id="blog-ai-topic" type="text" placeholder="Ex.: Base aerobia para corredores hibridos" />
-              </div>
-              <div class="field">
-                <label for="blog-ai-objective">Objetivo</label>
-                <input id="blog-ai-objective" type="text" placeholder="Ex.: Levar atletas a agir esta semana" />
-              </div>
-              <div class="field">
-                <label for="blog-ai-tone">Tom</label>
-                <input id="blog-ai-tone" type="text" placeholder="Ex.: direto, energico e pratico" />
-              </div>
-              <div class="field field-wide">
-                <label for="blog-ai-cta">CTA</label>
-                <input id="blog-ai-cta" type="text" placeholder="Ex.: Le o artigo e diz no grupo qual ponto vais aplicar hoje" />
-              </div>
+            <!-- Mode tabs -->
+            <div class="blog-ai-mode-tabs" role="tablist">
+              <button class="blog-ai-mode-tab active" data-mode="abc_from_article" role="tab" id="tab-abc-article" aria-controls="pane-abc-article" aria-selected="true">ABC do Artigo</button>
+              <button class="blog-ai-mode-tab" data-mode="draft_from_idea" role="tab" id="tab-draft-idea" aria-controls="pane-draft-idea" aria-selected="false">Draft de Ideia</button>
+              <button class="blog-ai-mode-tab" data-mode="abc_standalone" role="tab" id="tab-abc-standalone" aria-controls="pane-abc-standalone" aria-selected="false">ABC Avulso</button>
             </div>
 
-            <div class="blog-ai-actions">
-              <button id="blog-ai-generate-btn" type="button">Gerar com IA</button>
-              <button id="blog-ai-apply-btn" type="button">Aplicar draft no editor</button>
-              <button id="blog-ai-mark-shared-btn" type="button">Marcar como partilhado</button>
-              <label for="blog-ai-selected-variant">Variação escolhida</label>
-              <select id="blog-ai-selected-variant">
-                <option value="">Sem escolha</option>
-                <option value="A">A</option>
-                <option value="B">B</option>
-                <option value="C">C</option>
-              </select>
+            <!-- Tab 1: ABC from selected article -->
+            <div class="blog-ai-pane active" id="pane-abc-article" role="tabpanel" aria-labelledby="tab-abc-article">
+              <div id="blog-ai-article-context" class="blog-ai-article-context">
+                <strong id="blog-ai-ctx-title">Nenhum artigo selecionado</strong>
+                <p id="blog-ai-ctx-excerpt" style="margin:4px 0 0;"></p>
+              </div>
+
+              <div class="form-grid blog-ai-grid">
+                <div class="field">
+                  <label for="blog-ai-t1-cta">CTA</label>
+                  <input id="blog-ai-t1-cta" type="text" placeholder="Ex.: Le o artigo e diz no grupo qual ponto vais aplicar" />
+                </div>
+                <div class="field field-wide">
+                  <label for="blog-ai-t1-instructions">Instruções extra</label>
+                  <textarea id="blog-ai-t1-instructions" rows="2" placeholder="Instruções adicionais para a IA (opcional)"></textarea>
+                </div>
+              </div>
+
+              <div class="blog-ai-actions">
+                <button id="blog-ai-t1-generate-btn" type="button">Gerar ABC</button>
+                <button id="blog-ai-t1-mark-shared-btn" type="button">Marcar como partilhado</button>
+                <label for="blog-ai-t1-selected-variant">Variação escolhida</label>
+                <select id="blog-ai-t1-selected-variant">
+                  <option value="">Sem escolha</option>
+                  <option value="A">A</option>
+                  <option value="B">B</option>
+                  <option value="C">C</option>
+                </select>
+              </div>
+
+              <div class="blog-ai-variants">
+                <div class="blog-ai-variant-card">
+                  <div class="blog-ai-variant-head">
+                    <strong>Variação A</strong>
+                    <button class="blog-ai-copy-btn" data-label="A" data-tab="t1" type="button">Copiar A</button>
+                  </div>
+                  <textarea id="blog-ai-t1-variant-a" rows="4" placeholder="Mensagem A para WhatsApp"></textarea>
+                </div>
+                <div class="blog-ai-variant-card">
+                  <div class="blog-ai-variant-head">
+                    <strong>Variação B</strong>
+                    <button class="blog-ai-copy-btn" data-label="B" data-tab="t1" type="button">Copiar B</button>
+                  </div>
+                  <textarea id="blog-ai-t1-variant-b" rows="4" placeholder="Mensagem B para WhatsApp"></textarea>
+                </div>
+                <div class="blog-ai-variant-card">
+                  <div class="blog-ai-variant-head">
+                    <strong>Variação C</strong>
+                    <button class="blog-ai-copy-btn" data-label="C" data-tab="t1" type="button">Copiar C</button>
+                  </div>
+                  <textarea id="blog-ai-t1-variant-c" rows="4" placeholder="Mensagem C para WhatsApp"></textarea>
+                </div>
+              </div>
+
+              <p id="blog-ai-t1-status" class="blog-ai-status">Sem geracao ainda.</p>
             </div>
 
-            <div class="blog-ai-variants">
-              <div class="blog-ai-variant-card">
-                <div class="blog-ai-variant-head">
-                  <strong>Variação A</strong>
-                  <button id="blog-ai-copy-a-btn" type="button">Copiar A</button>
+            <!-- Tab 2: Draft from idea -->
+            <div class="blog-ai-pane" id="pane-draft-idea" role="tabpanel" aria-labelledby="tab-draft-idea">
+              <div class="form-grid blog-ai-grid">
+                <div class="field">
+                  <label for="blog-ai-t2-topic">Tema *</label>
+                  <input id="blog-ai-t2-topic" type="text" placeholder="Ex.: Base aerobia para corredores hibridos" />
                 </div>
-                <textarea id="blog-ai-variant-a" rows="4" placeholder="Mensagem A para WhatsApp"></textarea>
-              </div>
-              <div class="blog-ai-variant-card">
-                <div class="blog-ai-variant-head">
-                  <strong>Variação B</strong>
-                  <button id="blog-ai-copy-b-btn" type="button">Copiar B</button>
+                <div class="field">
+                  <label for="blog-ai-t2-objective">Objetivo</label>
+                  <input id="blog-ai-t2-objective" type="text" placeholder="Ex.: Levar atletas a agir esta semana" />
                 </div>
-                <textarea id="blog-ai-variant-b" rows="4" placeholder="Mensagem B para WhatsApp"></textarea>
-              </div>
-              <div class="blog-ai-variant-card">
-                <div class="blog-ai-variant-head">
-                  <strong>Variação C</strong>
-                  <button id="blog-ai-copy-c-btn" type="button">Copiar C</button>
+                <div class="field">
+                  <label for="blog-ai-t2-tone">Tom</label>
+                  <input id="blog-ai-t2-tone" type="text" placeholder="Ex.: direto, energico e pratico" />
                 </div>
-                <textarea id="blog-ai-variant-c" rows="4" placeholder="Mensagem C para WhatsApp"></textarea>
+                <div class="field field-wide">
+                  <label for="blog-ai-t2-instructions">Notas / contexto extra</label>
+                  <textarea id="blog-ai-t2-instructions" rows="2" placeholder="Instruções adicionais para a IA (opcional)"></textarea>
+                </div>
               </div>
+
+              <div class="blog-ai-actions">
+                <button id="blog-ai-t2-generate-btn" type="button">Gerar Draft</button>
+                <button id="blog-ai-t2-apply-btn" type="button">Aplicar no editor</button>
+              </div>
+
+              <div id="blog-ai-draft-preview" class="blog-ai-draft-preview" hidden>
+                <h4 id="blog-ai-draft-title"></h4>
+                <p class="draft-excerpt" id="blog-ai-draft-excerpt"></p>
+                <div class="draft-content" id="blog-ai-draft-content"></div>
+              </div>
+
+              <p id="blog-ai-t2-status" class="blog-ai-status">Sem draft ainda.</p>
             </div>
 
-            <p id="blog-ai-status" class="blog-ai-status">Sem geracao ainda.</p>
+            <!-- Tab 3: ABC standalone -->
+            <div class="blog-ai-pane" id="pane-abc-standalone" role="tabpanel" aria-labelledby="tab-abc-standalone">
+              <div class="form-grid blog-ai-grid">
+                <div class="field">
+                  <label for="blog-ai-t3-topic">Tema *</label>
+                  <input id="blog-ai-t3-topic" type="text" placeholder="Ex.: Recuperacao ativa entre sessoes" />
+                </div>
+                <div class="field">
+                  <label for="blog-ai-t3-cta">CTA</label>
+                  <input id="blog-ai-t3-cta" type="text" placeholder="Ex.: Deixa nos comentarios o que vais aplicar" />
+                </div>
+                <div class="field field-wide">
+                  <label for="blog-ai-t3-instructions">Instruções extra</label>
+                  <textarea id="blog-ai-t3-instructions" rows="2" placeholder="Instruções adicionais para a IA (opcional)"></textarea>
+                </div>
+              </div>
+
+              <div class="blog-ai-actions">
+                <button id="blog-ai-t3-generate-btn" type="button">Gerar ABC</button>
+                <button id="blog-ai-t3-mark-shared-btn" type="button">Marcar como partilhado</button>
+                <label for="blog-ai-t3-selected-variant">Variação escolhida</label>
+                <select id="blog-ai-t3-selected-variant">
+                  <option value="">Sem escolha</option>
+                  <option value="A">A</option>
+                  <option value="B">B</option>
+                  <option value="C">C</option>
+                </select>
+              </div>
+
+              <div class="blog-ai-variants">
+                <div class="blog-ai-variant-card">
+                  <div class="blog-ai-variant-head">
+                    <strong>Variação A</strong>
+                    <button class="blog-ai-copy-btn" data-label="A" data-tab="t3" type="button">Copiar A</button>
+                  </div>
+                  <textarea id="blog-ai-t3-variant-a" rows="4" placeholder="Mensagem A para WhatsApp"></textarea>
+                </div>
+                <div class="blog-ai-variant-card">
+                  <div class="blog-ai-variant-head">
+                    <strong>Variação B</strong>
+                    <button class="blog-ai-copy-btn" data-label="B" data-tab="t3" type="button">Copiar B</button>
+                  </div>
+                  <textarea id="blog-ai-t3-variant-b" rows="4" placeholder="Mensagem B para WhatsApp"></textarea>
+                </div>
+                <div class="blog-ai-variant-card">
+                  <div class="blog-ai-variant-head">
+                    <strong>Variação C</strong>
+                    <button class="blog-ai-copy-btn" data-label="C" data-tab="t3" type="button">Copiar C</button>
+                  </div>
+                  <textarea id="blog-ai-t3-variant-c" rows="4" placeholder="Mensagem C para WhatsApp"></textarea>
+                </div>
+              </div>
+
+              <div class="blog-ai-history">
+                <p class="blog-ai-history-title">Historico de ABC avulsos</p>
+                <ul id="blog-ai-standalone-history" class="blog-ai-history-list"></ul>
+              </div>
+
+              <p id="blog-ai-t3-status" class="blog-ai-status">Sem geracao ainda.</p>
+            </div>
           </section>
         </form>
       </section>
@@ -492,6 +590,7 @@
           <div class="field">
             <label for="program-stripe-price-id">Stripe Price ID</label>
             <input id="program-stripe-price-id" type="text" placeholder="price_..." />
+            <small class="field-hint">ID do preco no Stripe (ex.: <code>price_1R...</code>). Nao coloques o valor em euros. Se ativares "Criar produto/preco no Stripe automaticamente", deixa vazio &mdash; o campo e preenchido automaticamente.</small>
           </div>
           <div class="field">
             <label for="program-billing-type">Tipo de faturacao</label>
@@ -503,6 +602,7 @@
           <div class="field">
             <label for="program-followup-type">Follow-up</label>
             <input id="program-followup-type" type="text" value="standard" />
+            <small class="field-hint">Tipo de acompanhamento do programa. Usa <code>standard</code> na maioria dos casos. Este valor e guardado como snapshot quando um atleta e atribuido ao programa.</small>
           </div>
           <div class="field">
             <label for="program-status">Estado</label>
@@ -515,6 +615,7 @@
           <div class="field">
             <label for="program-scheduled-template">Template agendado</label>
             <input id="program-scheduled-template" type="checkbox" />
+            <small class="field-hint">Marca se este programa e um template de plano agendado (nao e um produto de venda direta). Nao afeta o checkout nem o acesso &mdash; e apenas metadado operacional.</small>
           </div>
           <div class="field">
             <label><input type="checkbox" id="program-create-stripe" /> Criar produto/preço no Stripe automaticamente</label>
@@ -621,6 +722,10 @@
             <span class="kpi-label">Canceladas</span>
             <span class="kpi-value" id="kpi-cancelled">-</span>
           </div>
+          <div class="kpi-card kpi-warn">
+            <span class="kpi-label">Abandonadas</span>
+            <span class="kpi-value" id="kpi-abandoned">-</span>
+          </div>
         </div>
 
         <!-- Subtabs -->
@@ -644,6 +749,7 @@
                 <option value="refunded">refunded</option>
                 <option value="cancelled">cancelled</option>
                 <option value="payment_failed">payment_failed</option>
+                <option value="abandoned">abandoned</option>
               </select>
             </div>
             <div class="field">
@@ -1397,22 +1503,42 @@
       publishNowBtn: document.getElementById('publish-now-btn'),
       deleteBtn: document.getElementById('delete-btn'),
       blogAiMessage: document.getElementById('blog-ai-message'),
-      blogAiTopic: document.getElementById('blog-ai-topic'),
-      blogAiObjective: document.getElementById('blog-ai-objective'),
-      blogAiTone: document.getElementById('blog-ai-tone'),
-      blogAiCta: document.getElementById('blog-ai-cta'),
-      blogAiGenerateBtn: document.getElementById('blog-ai-generate-btn'),
-      blogAiApplyBtn: document.getElementById('blog-ai-apply-btn'),
-      blogAiMarkSharedBtn: document.getElementById('blog-ai-mark-shared-btn'),
-      blogAiSelectedVariant: document.getElementById('blog-ai-selected-variant'),
-      blogAiVariantA: document.getElementById('blog-ai-variant-a'),
-      blogAiVariantB: document.getElementById('blog-ai-variant-b'),
-      blogAiVariantC: document.getElementById('blog-ai-variant-c'),
-      blogAiCopyABtn: document.getElementById('blog-ai-copy-a-btn'),
-      blogAiCopyBBtn: document.getElementById('blog-ai-copy-b-btn'),
-      blogAiCopyCBtn: document.getElementById('blog-ai-copy-c-btn'),
-      blogAiStatus: document.getElementById('blog-ai-status'),
-      blogAiRegenerateOnPublish: document.getElementById('blog-ai-regenerate-on-publish')
+      // Tab 1 — ABC from article
+      blogAiCtxTitle: document.getElementById('blog-ai-ctx-title'),
+      blogAiCtxExcerpt: document.getElementById('blog-ai-ctx-excerpt'),
+      blogAiT1Cta: document.getElementById('blog-ai-t1-cta'),
+      blogAiT1Instructions: document.getElementById('blog-ai-t1-instructions'),
+      blogAiT1GenerateBtn: document.getElementById('blog-ai-t1-generate-btn'),
+      blogAiT1MarkSharedBtn: document.getElementById('blog-ai-t1-mark-shared-btn'),
+      blogAiT1SelectedVariant: document.getElementById('blog-ai-t1-selected-variant'),
+      blogAiT1VariantA: document.getElementById('blog-ai-t1-variant-a'),
+      blogAiT1VariantB: document.getElementById('blog-ai-t1-variant-b'),
+      blogAiT1VariantC: document.getElementById('blog-ai-t1-variant-c'),
+      blogAiT1Status: document.getElementById('blog-ai-t1-status'),
+      // Tab 2 — Draft from idea
+      blogAiT2Topic: document.getElementById('blog-ai-t2-topic'),
+      blogAiT2Objective: document.getElementById('blog-ai-t2-objective'),
+      blogAiT2Tone: document.getElementById('blog-ai-t2-tone'),
+      blogAiT2Instructions: document.getElementById('blog-ai-t2-instructions'),
+      blogAiT2GenerateBtn: document.getElementById('blog-ai-t2-generate-btn'),
+      blogAiT2ApplyBtn: document.getElementById('blog-ai-t2-apply-btn'),
+      blogAiDraftPreview: document.getElementById('blog-ai-draft-preview'),
+      blogAiDraftTitle: document.getElementById('blog-ai-draft-title'),
+      blogAiDraftExcerpt: document.getElementById('blog-ai-draft-excerpt'),
+      blogAiDraftContent: document.getElementById('blog-ai-draft-content'),
+      blogAiT2Status: document.getElementById('blog-ai-t2-status'),
+      // Tab 3 — ABC standalone
+      blogAiT3Topic: document.getElementById('blog-ai-t3-topic'),
+      blogAiT3Cta: document.getElementById('blog-ai-t3-cta'),
+      blogAiT3Instructions: document.getElementById('blog-ai-t3-instructions'),
+      blogAiT3GenerateBtn: document.getElementById('blog-ai-t3-generate-btn'),
+      blogAiT3MarkSharedBtn: document.getElementById('blog-ai-t3-mark-shared-btn'),
+      blogAiT3SelectedVariant: document.getElementById('blog-ai-t3-selected-variant'),
+      blogAiT3VariantA: document.getElementById('blog-ai-t3-variant-a'),
+      blogAiT3VariantB: document.getElementById('blog-ai-t3-variant-b'),
+      blogAiT3VariantC: document.getElementById('blog-ai-t3-variant-c'),
+      blogAiStandaloneHistory: document.getElementById('blog-ai-standalone-history'),
+      blogAiT3Status: document.getElementById('blog-ai-t3-status')
       ,
       tabBlog: document.getElementById('tab-blog'),
       tabSiteContent: document.getElementById('tab-site-content'),
@@ -1496,6 +1622,7 @@
       kpiPending: document.getElementById('kpi-pending'),
       kpiRefunded: document.getElementById('kpi-refunded'),
       kpiCancelled: document.getElementById('kpi-cancelled'),
+      kpiAbandoned: document.getElementById('kpi-abandoned'),
       vendasSubtabPurchases: document.getElementById('vendas-subtab-purchases'),
       vendasSubtabCoupons: document.getElementById('vendas-subtab-coupons'),
       vendasSubtabPrices: document.getElementById('vendas-subtab-prices'),
@@ -2714,133 +2841,69 @@
       els.blogAiMessage.classList.toggle('success', !isError && Boolean(text));
     }
 
-    function collectBlogAiBriefing() {
-      return {
-        topic: (els.blogAiTopic.value || '').trim(),
-        objective: (els.blogAiObjective.value || '').trim(),
-        tone: (els.blogAiTone.value || '').trim(),
-        cta: (els.blogAiCta.value || '').trim(),
-        category: (els.category.value || '').trim(),
-        targetAudience: 'comunidade_whatsapp',
-        lengthHint: 'medium'
-      };
-    }
+    /* ------------------------------------------------------------------ */
+    /* Tab switching                                                       */
+    /* ------------------------------------------------------------------ */
+    const blogAiModeTabs = document.querySelectorAll('.blog-ai-mode-tab');
+    const blogAiPanes = document.querySelectorAll('.blog-ai-pane');
+    let blogAiActiveMode = 'abc_from_article';
 
-    function collectBlogAiArticleSeed() {
-      return {
-        title: (els.title.value || '').trim(),
-        excerpt: (els.excerpt.value || '').trim(),
-        category: (els.category.value || 'Artigo').trim() || 'Artigo',
-        content: els.content.value || ''
-      };
-    }
-
-    function getVariantText(label) {
-      if (label === 'A') return els.blogAiVariantA.value || '';
-      if (label === 'B') return els.blogAiVariantB.value || '';
-      if (label === 'C') return els.blogAiVariantC.value || '';
-      return '';
-    }
-
-    function setVariantText(label, value) {
-      if (label === 'A') els.blogAiVariantA.value = value || '';
-      if (label === 'B') els.blogAiVariantB.value = value || '';
-      if (label === 'C') els.blogAiVariantC.value = value || '';
-    }
-
-    function buildVariantArrayFromEditor() {
-      return ['A', 'B', 'C'].map((label) => ({
-        label,
-        text: getVariantText(label).trim()
-      }));
-    }
-
-    function renderBlogProduction(production) {
-      state.blogProduction = production || null;
-      if (!production) {
-        els.blogAiStatus.textContent = 'Sem geracao ainda.';
-        els.blogAiSelectedVariant.value = '';
-        setVariantText('A', '');
-        setVariantText('B', '');
-        setVariantText('C', '');
-        return;
-      }
-
-      const briefing = production.briefing || {};
-      if (!els.blogAiTopic.value) els.blogAiTopic.value = briefing.topic || '';
-      if (!els.blogAiObjective.value) els.blogAiObjective.value = briefing.objective || '';
-      if (!els.blogAiTone.value) els.blogAiTone.value = briefing.tone || '';
-      if (!els.blogAiCta.value) els.blogAiCta.value = briefing.cta || '';
-      els.blogAiSelectedVariant.value = production.selectedVariant || '';
-      els.blogAiRegenerateOnPublish.checked = production.regenerateOnPublish !== false;
-
-      const variants = Array.isArray(production.whatsappVariants) ? production.whatsappVariants : [];
-      ['A', 'B', 'C'].forEach((label) => {
-        const row = variants.find((item) => item && item.label === label) || {};
-        setVariantText(label, row.text || '');
+    function switchBlogAiMode(mode) {
+      blogAiActiveMode = mode;
+      blogAiModeTabs.forEach((tab) => {
+        const isActive = tab.dataset.mode === mode;
+        tab.classList.toggle('active', isActive);
+        tab.setAttribute('aria-selected', String(isActive));
       });
-
-      const shared = production.manualSharedAt
-        ? ` | Partilhado manualmente em ${new Date(production.manualSharedAt).toLocaleString('pt-PT')}`
-        : '';
-      els.blogAiStatus.textContent = `Estado: ${production.status || 'not_generated'}${shared}`;
-    }
-
-    function resetBlogProductionPanel() {
-      state.blogProduction = null;
-      els.blogAiTopic.value = '';
-      els.blogAiObjective.value = '';
-      els.blogAiTone.value = '';
-      els.blogAiCta.value = '';
-      els.blogAiSelectedVariant.value = '';
-      els.blogAiRegenerateOnPublish.checked = true;
-      setVariantText('A', '');
-      setVariantText('B', '');
-      setVariantText('C', '');
-      els.blogAiStatus.textContent = 'Sem geracao ainda.';
+      blogAiPanes.forEach((pane) => {
+        pane.classList.toggle('active', pane.id === 'pane-' + mode.replace(/_/g, '-'));
+      });
       showBlogAiMessage('', false);
     }
 
-    async function refreshBlogProductionForCurrentArticle() {
-      const articleId = (els.id.value || '').trim();
-      if (!articleId || !state.user) {
-        renderBlogProduction(null);
-        return;
+    function updateAbcArticleTabState() {
+      const hasArticle = Boolean((els.id.value || '').trim());
+      const tab = document.getElementById('tab-abc-article');
+      tab.disabled = !hasArticle;
+      if (hasArticle) {
+        els.blogAiCtxTitle.textContent = (els.title.value || '').trim() || 'Sem titulo';
+        els.blogAiCtxExcerpt.textContent = (els.excerpt.value || '').trim() || '';
+      } else {
+        els.blogAiCtxTitle.textContent = 'Nenhum artigo selecionado';
+        els.blogAiCtxExcerpt.textContent = '';
+        if (blogAiActiveMode === 'abc_from_article') switchBlogAiMode('draft_from_idea');
       }
-
-      const data = await apiRequest('GET', `${blogProductionApiBase}?articleId=${encodeURIComponent(articleId)}`);
-      renderBlogProduction(data.production || null);
     }
 
-    async function generateBlogProduction() {
-      if (!state.user) throw new Error('Faz login para gerar conteudo com IA.');
+    blogAiModeTabs.forEach((tab) => {
+      tab.addEventListener('click', () => {
+        if (tab.disabled) return;
+        switchBlogAiMode(tab.dataset.mode);
+      });
+    });
 
-      const articleId = (els.id.value || '').trim();
-      const payload = {
-        briefing: collectBlogAiBriefing(),
-        article: collectBlogAiArticleSeed(),
-        regenerateOnPublish: Boolean(els.blogAiRegenerateOnPublish.checked)
-      };
-      if (articleId) payload.articleId = articleId;
-
-      showBlogAiMessage('A gerar blog + WhatsApp com IA...', false);
-      const data = await apiRequest('POST', blogProductionApiBase, payload);
-      renderBlogProduction(data.production || null);
-      showBlogAiMessage('Conteudo gerado. Escolhe variacao e copia para o WhatsApp.', false);
+    /* ------------------------------------------------------------------ */
+    /* Variant helpers (per tab prefix: t1, t3)                           */
+    /* ------------------------------------------------------------------ */
+    function getVariantText(prefix, label) {
+      const el = document.getElementById(`blog-ai-${prefix}-variant-${label.toLowerCase()}`);
+      return el ? el.value || '' : '';
     }
 
-    function applyGeneratedBlogToEditor() {
-      const generated = state.blogProduction && state.blogProduction.generatedBlog;
-      if (!generated) throw new Error('Gera conteudo primeiro.');
-      if (generated.title) els.title.value = generated.title;
-      if (generated.excerpt) els.excerpt.value = generated.excerpt;
-      if (generated.category) els.category.value = generated.category;
-      if (generated.content) els.content.value = generated.content;
-      showBlogAiMessage('Draft aplicado no editor.', false);
+    function setVariantText(prefix, label, value) {
+      const el = document.getElementById(`blog-ai-${prefix}-variant-${label.toLowerCase()}`);
+      if (el) el.value = value || '';
     }
 
-    async function copyBlogVariant(label) {
-      const text = getVariantText(label).trim();
+    function buildVariantArrayFromTab(prefix) {
+      return ['A', 'B', 'C'].map((label) => ({
+        label,
+        text: getVariantText(prefix, label).trim()
+      }));
+    }
+
+    async function copyVariant(prefix, label) {
+      const text = getVariantText(prefix, label).trim();
       if (!text) throw new Error(`Variacao ${label} vazia.`);
 
       if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -2856,26 +2919,249 @@
         document.body.removeChild(ta);
       }
 
-      els.blogAiSelectedVariant.value = label;
+      const sel = prefix === 't1' ? els.blogAiT1SelectedVariant : els.blogAiT3SelectedVariant;
+      sel.value = label;
       showBlogAiMessage(`Variacao ${label} copiada.`, false);
     }
 
-    async function saveBlogProductionManualShare() {
-      const articleId = (els.id.value || '').trim();
-      if (!articleId) throw new Error('Guarda o artigo antes de marcar partilha manual.');
+    /* ------------------------------------------------------------------ */
+    /* Tab 1 — ABC from article                                           */
+    /* ------------------------------------------------------------------ */
+    function renderT1Production(production) {
+      state.blogProduction = production || null;
+      if (!production) {
+        els.blogAiT1Status.textContent = 'Sem geracao ainda.';
+        els.blogAiT1SelectedVariant.value = '';
+        setVariantText('t1', 'A', ''); setVariantText('t1', 'B', ''); setVariantText('t1', 'C', '');
+        return;
+      }
+      const briefing = production.briefing || {};
+      if (!els.blogAiT1Cta.value) els.blogAiT1Cta.value = briefing.cta || '';
 
-      const selectedVariant = (els.blogAiSelectedVariant.value || '').trim();
+      els.blogAiT1SelectedVariant.value = production.selectedVariant || '';
+      const variants = Array.isArray(production.whatsappVariants) ? production.whatsappVariants : [];
+      ['A', 'B', 'C'].forEach((label) => {
+        const row = variants.find((v) => v && v.label === label) || {};
+        setVariantText('t1', label, row.text || '');
+      });
+
+      const shared = production.manualSharedAt
+        ? ` | Partilhado em ${new Date(production.manualSharedAt).toLocaleString('pt-PT')}`
+        : '';
+      els.blogAiT1Status.textContent = `Estado: ${production.status || 'not_generated'}${shared}`;
+    }
+
+    async function refreshBlogProductionForCurrentArticle() {
+      const articleId = (els.id.value || '').trim();
+      if (!articleId || !state.user) {
+        renderT1Production(null);
+        return;
+      }
+      const data = await apiRequest('GET', `${blogProductionApiBase}?articleId=${encodeURIComponent(articleId)}`);
+      renderT1Production(data.production || null);
+    }
+
+    async function generateAbcFromArticle() {
+      if (!state.user) throw new Error('Faz login para gerar conteudo com IA.');
+      const articleId = (els.id.value || '').trim();
+      if (!articleId) throw new Error('Seleciona um artigo primeiro.');
+
+      const payload = {
+        mode: 'abc_from_article',
+        articleId,
+        briefing: { cta: (els.blogAiT1Cta.value || '').trim() },
+        extraInstructions: (els.blogAiT1Instructions.value || '').trim()
+      };
+
+      showBlogAiMessage('A gerar ABC do artigo...', false);
+      const data = await apiRequest('POST', blogProductionApiBase, payload);
+      renderT1Production(data.production || null);
+      showBlogAiMessage('ABC gerado. Escolhe variacao e copia para o WhatsApp.', false);
+    }
+
+    async function saveT1ManualShare() {
+      const articleId = (els.id.value || '').trim();
+      if (!articleId) throw new Error('Guarda o artigo antes de marcar partilha.');
+
       const payload = {
         articleId,
-        selectedVariant: selectedVariant || undefined,
-        regenerateOnPublish: Boolean(els.blogAiRegenerateOnPublish.checked),
-        whatsappVariants: buildVariantArrayFromEditor(),
+        selectedVariant: (els.blogAiT1SelectedVariant.value || '').trim() || undefined,
+        whatsappVariants: buildVariantArrayFromTab('t1'),
         markShared: true
       };
 
       const data = await apiRequest('PATCH', blogProductionApiBase, payload);
-      renderBlogProduction(data.production || null);
+      renderT1Production(data.production || null);
       showBlogAiMessage('Partilha manual registada.', false);
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* Tab 2 — Draft from idea                                            */
+    /* ------------------------------------------------------------------ */
+    function renderT2Production(production) {
+      state.blogDraft = production || null;
+      if (!production || !production.generatedBlog || !production.generatedBlog.title) {
+        els.blogAiDraftPreview.hidden = true;
+        els.blogAiT2Status.textContent = 'Sem draft ainda.';
+        return;
+      }
+      const blog = production.generatedBlog;
+      els.blogAiDraftTitle.textContent = blog.title || '';
+      els.blogAiDraftExcerpt.textContent = blog.excerpt || '';
+      els.blogAiDraftContent.textContent = blog.content || '';
+      els.blogAiDraftPreview.hidden = false;
+      els.blogAiT2Status.textContent = `Draft gerado (${production.status || 'generated'}).`;
+    }
+
+    async function generateDraftFromIdea() {
+      if (!state.user) throw new Error('Faz login para gerar conteudo com IA.');
+      const topic = (els.blogAiT2Topic.value || '').trim();
+      if (!topic) throw new Error('Preenche o tema.');
+
+      const payload = {
+        mode: 'draft_from_idea',
+        briefing: {
+          topic,
+          objective: (els.blogAiT2Objective.value || '').trim(),
+          tone: (els.blogAiT2Tone.value || '').trim()
+        },
+        extraInstructions: (els.blogAiT2Instructions.value || '').trim()
+      };
+
+      showBlogAiMessage('A gerar draft do artigo...', false);
+      const data = await apiRequest('POST', blogProductionApiBase, payload);
+      renderT2Production(data.production || null);
+      showBlogAiMessage('Draft gerado. Revisa e aplica no editor.', false);
+    }
+
+    function applyDraftToEditor() {
+      const blog = state.blogDraft && state.blogDraft.generatedBlog;
+      if (!blog) throw new Error('Gera um draft primeiro.');
+      if (blog.title) els.title.value = blog.title;
+      if (blog.excerpt) els.excerpt.value = blog.excerpt;
+      if (blog.category) els.category.value = blog.category;
+      if (blog.content) els.content.value = blog.content;
+      showBlogAiMessage('Draft aplicado no editor.', false);
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* Tab 3 — ABC standalone                                             */
+    /* ------------------------------------------------------------------ */
+    function renderT3Production(production) {
+      state.blogStandalone = production || null;
+      if (!production) {
+        els.blogAiT3Status.textContent = 'Sem geracao ainda.';
+        els.blogAiT3SelectedVariant.value = '';
+        setVariantText('t3', 'A', ''); setVariantText('t3', 'B', ''); setVariantText('t3', 'C', '');
+        return;
+      }
+      els.blogAiT3SelectedVariant.value = production.selectedVariant || '';
+      const variants = Array.isArray(production.whatsappVariants) ? production.whatsappVariants : [];
+      ['A', 'B', 'C'].forEach((label) => {
+        const row = variants.find((v) => v && v.label === label) || {};
+        setVariantText('t3', label, row.text || '');
+      });
+
+      const shared = production.manualSharedAt
+        ? ` | Partilhado em ${new Date(production.manualSharedAt).toLocaleString('pt-PT')}`
+        : '';
+      els.blogAiT3Status.textContent = `Estado: ${production.status || 'not_generated'}${shared}`;
+    }
+
+    async function generateAbcStandalone() {
+      if (!state.user) throw new Error('Faz login para gerar conteudo com IA.');
+      const topic = (els.blogAiT3Topic.value || '').trim();
+      if (!topic) throw new Error('Preenche o tema.');
+
+      const payload = {
+        mode: 'abc_standalone',
+        briefing: {
+          topic,
+          cta: (els.blogAiT3Cta.value || '').trim()
+        },
+        extraInstructions: (els.blogAiT3Instructions.value || '').trim()
+      };
+
+      showBlogAiMessage('A gerar ABC avulso...', false);
+      const data = await apiRequest('POST', blogProductionApiBase, payload);
+      renderT3Production(data.production || null);
+      showBlogAiMessage('ABC avulso gerado. Copia a variacao pretendida.', false);
+      loadStandaloneHistory();
+    }
+
+    async function saveT3ManualShare() {
+      const prod = state.blogStandalone;
+      if (!prod || !prod.id) throw new Error('Gera ABC avulso primeiro.');
+
+      const payload = {
+        id: prod.id,
+        selectedVariant: (els.blogAiT3SelectedVariant.value || '').trim() || undefined,
+        whatsappVariants: buildVariantArrayFromTab('t3'),
+        markShared: true
+      };
+
+      const data = await apiRequest('PATCH', blogProductionApiBase, payload);
+      renderT3Production(data.production || null);
+      showBlogAiMessage('Partilha manual registada.', false);
+    }
+
+    async function loadStandaloneHistory() {
+      if (!state.user) return;
+      try {
+        const data = await apiRequest('GET', `${blogProductionApiBase}?standalone=true`);
+        const list = Array.isArray(data.productions) ? data.productions : [];
+        state.standaloneHistory = list;
+        renderStandaloneHistory(list);
+      } catch (_err) {
+        // silent
+      }
+    }
+
+    function renderStandaloneHistory(list) {
+      els.blogAiStandaloneHistory.innerHTML = '';
+      if (!list.length) return;
+      const frag = document.createDocumentFragment();
+      list.forEach((prod) => {
+        const li = document.createElement('li');
+        li.className = 'blog-ai-history-item';
+        const topic = (prod.briefing && prod.briefing.topic) || '(sem tema)';
+        const date = prod.updatedAt ? new Date(prod.updatedAt).toLocaleDateString('pt-PT') : '';
+        li.innerHTML = `<span class="hi-topic">${topic}</span><span class="hi-date">${date}</span>`;
+        li.addEventListener('click', () => {
+          renderT3Production(prod);
+          const briefing = prod.briefing || {};
+          els.blogAiT3Topic.value = briefing.topic || '';
+          els.blogAiT3Cta.value = briefing.cta || '';
+          showBlogAiMessage('Registo carregado.', false);
+        });
+        frag.appendChild(li);
+      });
+      els.blogAiStandaloneHistory.appendChild(frag);
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* Reset panel on new article / deselect                              */
+    /* ------------------------------------------------------------------ */
+    function resetBlogProductionPanel() {
+      state.blogProduction = null;
+      state.blogDraft = null;
+      state.blogStandalone = null;
+      // Tab 1
+      els.blogAiT1Cta.value = '';
+      els.blogAiT1Instructions.value = '';
+      els.blogAiT1SelectedVariant.value = '';
+      setVariantText('t1', 'A', ''); setVariantText('t1', 'B', ''); setVariantText('t1', 'C', '');
+      els.blogAiT1Status.textContent = 'Sem geracao ainda.';
+      // Tab 2
+      els.blogAiT2Topic.value = '';
+      els.blogAiT2Objective.value = '';
+      els.blogAiT2Tone.value = '';
+      els.blogAiT2Instructions.value = '';
+      els.blogAiDraftPreview.hidden = true;
+      els.blogAiT2Status.textContent = 'Sem draft ainda.';
+      // Tab 3 stays (independent of article)
+      showBlogAiMessage('', false);
+      updateAbcArticleTabState();
     }
 
     function showLeadsMessage(text, isError) {
@@ -3260,21 +3546,32 @@
       els.saveBtn.disabled = !canUseApi;
       els.publishNowBtn.disabled = !canUseApi;
       els.deleteBtn.disabled = !canUseApi;
-      els.blogAiTopic.disabled = !canUseApi;
-      els.blogAiObjective.disabled = !canUseApi;
-      els.blogAiTone.disabled = !canUseApi;
-      els.blogAiCta.disabled = !canUseApi;
-      els.blogAiGenerateBtn.disabled = !canUseApi;
-      els.blogAiApplyBtn.disabled = !canUseApi;
-      els.blogAiMarkSharedBtn.disabled = !canUseApi;
-      els.blogAiSelectedVariant.disabled = !canUseApi;
-      els.blogAiVariantA.disabled = !canUseApi;
-      els.blogAiVariantB.disabled = !canUseApi;
-      els.blogAiVariantC.disabled = !canUseApi;
-      els.blogAiCopyABtn.disabled = !canUseApi;
-      els.blogAiCopyBBtn.disabled = !canUseApi;
-      els.blogAiCopyCBtn.disabled = !canUseApi;
-      els.blogAiRegenerateOnPublish.disabled = !canUseApi;
+      // Tab 1
+      els.blogAiT1Cta.disabled = !canUseApi;
+      els.blogAiT1Instructions.disabled = !canUseApi;
+      els.blogAiT1GenerateBtn.disabled = !canUseApi;
+      els.blogAiT1MarkSharedBtn.disabled = !canUseApi;
+      els.blogAiT1SelectedVariant.disabled = !canUseApi;
+      els.blogAiT1VariantA.disabled = !canUseApi;
+      els.blogAiT1VariantB.disabled = !canUseApi;
+      els.blogAiT1VariantC.disabled = !canUseApi;
+      // Tab 2
+      els.blogAiT2Topic.disabled = !canUseApi;
+      els.blogAiT2Objective.disabled = !canUseApi;
+      els.blogAiT2Tone.disabled = !canUseApi;
+      els.blogAiT2Instructions.disabled = !canUseApi;
+      els.blogAiT2GenerateBtn.disabled = !canUseApi;
+      els.blogAiT2ApplyBtn.disabled = !canUseApi;
+      // Tab 3
+      els.blogAiT3Topic.disabled = !canUseApi;
+      els.blogAiT3Cta.disabled = !canUseApi;
+      els.blogAiT3Instructions.disabled = !canUseApi;
+      els.blogAiT3GenerateBtn.disabled = !canUseApi;
+      els.blogAiT3MarkSharedBtn.disabled = !canUseApi;
+      els.blogAiT3SelectedVariant.disabled = !canUseApi;
+      els.blogAiT3VariantA.disabled = !canUseApi;
+      els.blogAiT3VariantB.disabled = !canUseApi;
+      els.blogAiT3VariantC.disabled = !canUseApi;
       els.refreshSiteContentBtn.disabled = !canUseApi;
       els.saveSiteContentBtn.disabled = !canUseApi;
       els.addMetadataBtn.disabled = !canUseApi;
@@ -3349,6 +3646,7 @@
       els.status.value = 'draft';
       els.content.value = '';
       resetBlogProductionPanel();
+      updateAbcArticleTabState();
       showMessage('Novo artigo pronto para edicao.', false);
       renderList();
     }
@@ -3364,6 +3662,8 @@
       els.status.value = article.status || 'draft';
       els.content.value = article.content || '';
       resetBlogProductionPanel();
+      updateAbcArticleTabState();
+      switchBlogAiMode('abc_from_article');
       refreshBlogProductionForCurrentArticle().catch((err) => showBlogAiMessage(err.message, true));
       renderList();
     }
@@ -3464,14 +3764,11 @@
       await refreshList();
       fillForm(data.article);
 
-      if (els.blogAiRegenerateOnPublish.checked) {
-        try {
-          await generateBlogProduction();
-          showBlogAiMessage('Conteudo IA regenerado apos publicacao.', false);
-        } catch (err) {
-          showBlogAiMessage(`Publicado, mas houve falha a regenerar IA: ${err.message}`, true);
-        }
-      }
+      // Auto-regenerate ABC after publish if tab 1 has data
+      try {
+        await generateAbcFromArticle();
+        showBlogAiMessage('ABC regenerado apos publicacao.', false);
+      } catch (_) { /* ignore – article may not have ABC yet */ }
     }
 
     async function deleteArticle() {
@@ -3745,70 +4042,65 @@
       }
     });
 
-    els.blogAiGenerateBtn.addEventListener('click', async () => {
-      try {
-        await generateBlogProduction();
-      } catch (err) {
-        showBlogAiMessage(err.message, true);
-      }
+    els.blogAiT1GenerateBtn.addEventListener('click', async () => {
+      try { await generateAbcFromArticle(); } catch (err) { showBlogAiMessage(err.message, true); }
     });
 
-    els.blogAiApplyBtn.addEventListener('click', () => {
-      try {
-        applyGeneratedBlogToEditor();
-      } catch (err) {
-        showBlogAiMessage(err.message, true);
-      }
+    els.blogAiT1MarkSharedBtn.addEventListener('click', async () => {
+      try { await saveT1ManualShare(); } catch (err) { showBlogAiMessage(err.message, true); }
     });
 
-    els.blogAiCopyABtn.addEventListener('click', async () => {
-      try {
-        await copyBlogVariant('A');
-      } catch (err) {
-        showBlogAiMessage(err.message, true);
-      }
-    });
-
-    els.blogAiCopyBBtn.addEventListener('click', async () => {
-      try {
-        await copyBlogVariant('B');
-      } catch (err) {
-        showBlogAiMessage(err.message, true);
-      }
-    });
-
-    els.blogAiCopyCBtn.addEventListener('click', async () => {
-      try {
-        await copyBlogVariant('C');
-      } catch (err) {
-        showBlogAiMessage(err.message, true);
-      }
-    });
-
-    els.blogAiMarkSharedBtn.addEventListener('click', async () => {
-      try {
-        await saveBlogProductionManualShare();
-      } catch (err) {
-        showBlogAiMessage(err.message, true);
-      }
-    });
-
-    els.blogAiSelectedVariant.addEventListener('change', async () => {
+    els.blogAiT1SelectedVariant.addEventListener('change', async () => {
       const articleId = (els.id.value || '').trim();
       if (!articleId || !state.user) return;
-
       try {
         const data = await apiRequest('PATCH', blogProductionApiBase, {
           articleId,
-          selectedVariant: (els.blogAiSelectedVariant.value || '').trim() || undefined,
-          regenerateOnPublish: Boolean(els.blogAiRegenerateOnPublish.checked),
-          whatsappVariants: buildVariantArrayFromEditor()
+          selectedVariant: (els.blogAiT1SelectedVariant.value || '').trim() || undefined,
+          whatsappVariants: buildVariantArrayFromTab('t1')
         });
-        renderBlogProduction(data.production || null);
-      } catch (err) {
-        showBlogAiMessage(err.message, true);
-      }
+        renderT1Production(data.production || null);
+      } catch (err) { showBlogAiMessage(err.message, true); }
     });
+
+    els.blogAiT2GenerateBtn.addEventListener('click', async () => {
+      try { await generateDraftFromIdea(); } catch (err) { showBlogAiMessage(err.message, true); }
+    });
+
+    els.blogAiT2ApplyBtn.addEventListener('click', () => {
+      try { applyDraftToEditor(); } catch (err) { showBlogAiMessage(err.message, true); }
+    });
+
+    els.blogAiT3GenerateBtn.addEventListener('click', async () => {
+      try { await generateAbcStandalone(); } catch (err) { showBlogAiMessage(err.message, true); }
+    });
+
+    els.blogAiT3MarkSharedBtn.addEventListener('click', async () => {
+      try { await saveT3ManualShare(); } catch (err) { showBlogAiMessage(err.message, true); }
+    });
+
+    els.blogAiT3SelectedVariant.addEventListener('change', async () => {
+      const prod = state.blogStandalone;
+      if (!prod || !prod.id || !state.user) return;
+      try {
+        const data = await apiRequest('PATCH', blogProductionApiBase, {
+          id: prod.id,
+          selectedVariant: (els.blogAiT3SelectedVariant.value || '').trim() || undefined,
+          whatsappVariants: buildVariantArrayFromTab('t3')
+        });
+        renderT3Production(data.production || null);
+      } catch (err) { showBlogAiMessage(err.message, true); }
+    });
+
+    // Copy buttons (delegated via class)
+    document.querySelectorAll('.blog-ai-copy-btn').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        try { await copyVariant(btn.dataset.tab, btn.dataset.label); } catch (err) { showBlogAiMessage(err.message, true); }
+      });
+    });
+
+    // Load standalone history on first auth
+    loadStandaloneHistory();
 
     els.refreshAthletesBtn.addEventListener('click', async () => {
       try {
@@ -3884,10 +4176,11 @@
       els.kpiPending.textContent = k.pendingCount;
       els.kpiRefunded.textContent = k.refundedCount;
       els.kpiCancelled.textContent = k.cancelledCount;
+      els.kpiAbandoned.textContent = k.abandonedCount || 0;
     }
 
     function statusBadge(status) {
-      const map = { paid: 'badge-ok', pending: 'badge-warn', refunded: 'badge-danger', cancelled: 'badge-danger', payment_failed: 'badge-danger' };
+      const map = { paid: 'badge-ok', pending: 'badge-warn', refunded: 'badge-danger', cancelled: 'badge-danger', payment_failed: 'badge-danger', abandoned: 'badge-warn' };
       return '<span class="status-badge ' + (map[status] || '') + '">' + escapeHtml(status || '-') + '</span>';
     }
 
