@@ -1321,7 +1321,7 @@ async function upsertStrengthPrescriptions(config, prescriptions) {
   return supabaseRequest({
     url: config.supabaseUrl,
     serviceRoleKey: config.supabaseServiceRoleKey,
-    path: "strength_prescriptions",
+    path: "strength_prescriptions?on_conflict=plan_exercise_id,week_number",
     method: "POST",
     body: prescriptions,
     prefer: "return=representation,resolution=merge-duplicates"

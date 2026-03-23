@@ -1,6 +1,6 @@
 const { json, parseJsonBody } = require("./_lib/http");
 const { getConfig } = require("./_lib/config");
-const { requireRole } = require("./_lib/authz");
+const { requireAuthenticatedUser } = require("./_lib/authz");
 const {
   getAthlete1rmLatest,
   get1rmHistory,
@@ -8,10 +8,16 @@ const {
   verifyCoachOwnsAthlete
 } = require("./_lib/supabase");
 
+function requireCoachOrAdmin(auth) {
+  const roles = Array.isArray(auth.roles) ? auth.roles : [];
+  return roles.includes("coach") || roles.includes("admin");
+}
+
 exports.handler = async (event) => {
   const config = getConfig();
-  const auth = await requireRole(event, config, "coach");
+  const auth = await requireAuthenticatedUser(event, config);
   if (auth.error) return auth.error;
+  if (!requireCoachOrAdmin(auth)) return json(403, { error: "Forbidden" });
 
   const coachId = auth.user.sub;
 

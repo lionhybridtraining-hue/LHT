@@ -598,6 +598,36 @@
       border:1px solid var(--line-strong); border-bottom:none;
     }
     .str-section-header h4 { margin:0; font-size:14px; font-family:"Oswald",sans-serif; text-transform:uppercase; color:var(--gold); }
+
+    .coach-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+
+    .coach-tab-btn {
+      border: 1px solid var(--line);
+      background: var(--surface-2);
+      color: var(--text-soft);
+      border-radius: 999px;
+      padding: 8px 14px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .coach-tab-btn:hover {
+      border-color: var(--line-strong);
+      color: var(--text);
+    }
+
+    .coach-tab-btn.active {
+      background: var(--gold);
+      color: #101010;
+      border-color: var(--gold);
+      font-weight: 700;
+    }
     .str-section-header .phase-note { font-size:11px; color:var(--muted); max-width:400px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
     .str-table-wrap {
@@ -622,6 +652,24 @@
     }
     .str-table input:focus, .str-table select:focus { border-color:var(--gold); outline:none; }
     .str-table input[type=number] { width:56px; }
+    .str-table .rm-input, .str-table .load-input {
+      width:60px; text-align:center; font-size:11px;
+    }
+    .str-table .rm-input::placeholder, .str-table .load-input::placeholder {
+      color:var(--muted); opacity:0.7;
+    }
+
+    /* 1RM management table */
+    .onerm-table { width:100%; border-collapse:collapse; font-size:13px; }
+    .onerm-table th { padding:6px 8px; text-align:left; font-weight:600; color:var(--gold); border-bottom:1px solid var(--line-strong); font-size:11px; text-transform:uppercase; }
+    .onerm-table td { padding:5px 8px; border-bottom:1px solid var(--line); vertical-align:middle; }
+    .onerm-table tr:last-child td { border-bottom:none; }
+    .onerm-empty { padding:20px; text-align:center; color:var(--muted); font-size:13px; }
+    .onerm-method { font-size:10px; padding:2px 6px; border-radius:4px; background:rgba(255,255,255,0.08); color:var(--text-soft); }
+    .onerm-add-row { display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap; margin-top:12px; padding-top:12px; border-top:1px solid var(--line); }
+    .onerm-add-row .field { margin:0; }
+    .onerm-add-row input, .onerm-add-row select { padding:6px 8px; font-size:13px; border:1px solid var(--line); border-radius:4px; background:rgba(255,255,255,0.06); color:var(--text); font-family:inherit; }
+    .onerm-add-row input:focus, .onerm-add-row select:focus { border-color:var(--gold); outline:none; }
 
     .superset-A { border-left:3px solid #6fc; }
     .superset-B { border-left:3px solid #f9c; }
@@ -703,7 +751,13 @@
           </div>
         </div>
 
-        <section class="section-card">
+        <div class="coach-tabs" id="coachTabs">
+          <button class="coach-tab-btn active" type="button" data-coach-tab="athlete">Atleta</button>
+          <button class="coach-tab-btn" type="button" data-coach-tab="general">Geral</button>
+          <button class="coach-tab-btn" type="button" data-coach-tab="strength">Treino de Força</button>
+        </div>
+
+        <section class="section-card coach-tab-section" data-coach-tab="athlete">
           <div style="display:flex; justify-content:space-between; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:10px;">
             <h3 class="section-title" style="margin:0;">Atletas do sistema</h3>
             <div class="header-actions">
@@ -729,9 +783,9 @@
             </div>
           </div>
           <p id="athleteFilterMeta" class="microcopy">A lista é carregada do Supabase.</p>
-        </section>
+  <button id="openOneRmModal" class="btn btn-secondary" type="button" style="margin-top:10px;" disabled>Gerir 1RM do atleta</button>
 
-        <section class="section-card">
+        <section class="section-card coach-tab-section" data-coach-tab="athlete">
           <div style="display:flex; justify-content:space-between; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:10px;">
             <h3 class="section-title" style="margin:0;">Carga de treino</h3>
             <div class="header-actions" style="align-items:flex-end;">
@@ -782,7 +836,7 @@
           </div>
         </section>
 
-        <section class="section-card">
+        <section class="section-card coach-tab-section" data-coach-tab="general" hidden>
           <h3 class="section-title">Novo upload</h3>
           <form id="uploadForm">
             <div class="form-grid">
@@ -823,7 +877,7 @@
           </form>
         </section>
 
-        <section class="section-card">
+        <section class="section-card coach-tab-section" data-coach-tab="general" hidden>
           <div style="display:flex; justify-content:space-between; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:10px;">
             <h3 class="section-title" style="margin:0;">Historico de check-ins</h3>
             <div class="field" style="min-width:220px; margin:0;">
@@ -841,7 +895,7 @@
         </section>
 
         <!-- ── Planos de Força ── -->
-        <section class="section-card" id="strengthSection">
+        <section class="section-card coach-tab-section" id="strengthSection" data-coach-tab="strength" hidden>
           <div style="display:flex; justify-content:space-between; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:10px;">
             <h3 class="section-title" style="margin:0;">Planos de Força</h3>
             <div style="display:flex; gap:8px; align-items:center;">
@@ -1023,6 +1077,43 @@
   </div>
 
   <!-- Check-in Detail Modal -->
+  <!-- 1RM Management Modal -->
+  <div id="oneRmModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="oneRmTitle">
+    <div class="modal" style="max-width:700px; max-height:90vh; overflow-y:auto;">
+      <h3 id="oneRmTitle">Gestão de 1RM</h3>
+      <p id="oneRmAthleteName" class="microcopy">Atleta: —</p>
+      <div id="oneRmContent">
+        <p class="onerm-empty">Seleciona um atleta para ver os 1RM.</p>
+      </div>
+      <div class="onerm-add-row" id="oneRmAddRow" style="display:none;">
+        <div class="field">
+          <label for="oneRmExerciseSelect" style="font-size:11px;">Exercício</label>
+          <select id="oneRmExerciseSelect" style="min-width:180px;"></select>
+        </div>
+        <div class="field">
+          <label for="oneRmValueInput" style="font-size:11px;">1RM (kg)</label>
+          <input id="oneRmValueInput" type="number" min="0" step="0.5" style="width:80px;" placeholder="kg" />
+        </div>
+        <div class="field">
+          <label for="oneRmMethodSelect" style="font-size:11px;">Método</label>
+          <select id="oneRmMethodSelect">
+            <option value="tested">Testado</option>
+            <option value="manual" selected>Manual</option>
+            <option value="estimated_epley">Estimado (Epley)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="oneRmDateInput" style="font-size:11px;">Data</label>
+          <input id="oneRmDateInput" type="date" />
+        </div>
+        <button id="oneRmAddBtn" class="btn btn-primary" type="button" style="height:36px; align-self:flex-end;">Adicionar</button>
+      </div>
+      <div class="modal-actions" style="margin-top:12px;">
+        <button id="oneRmCloseBtn" class="btn btn-secondary" type="button">Fechar</button>
+      </div>
+    </div>
+  </div>
+
   <div id="checkinDetailModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="checkinDetailTitle">
     <div class="modal" style="max-width:640px; max-height:90vh; overflow-y:auto;">
       <h3 id="checkinDetailTitle">Detalhe do check-in</h3>
@@ -1068,6 +1159,9 @@
     const metricWork = document.getElementById("metricWork");
     const result = document.getElementById("result");
     const submitButton = document.getElementById("submitButton");
+    const coachTabs = document.getElementById("coachTabs");
+    const coachTabButtons = Array.from(document.querySelectorAll(".coach-tab-btn"));
+    const coachTabSections = Array.from(document.querySelectorAll(".coach-tab-section"));
 
     const addAthleteModal = document.getElementById("addAthleteModal");
     const openAddAthleteModalButton = document.getElementById("openAddAthleteModal");
@@ -1210,6 +1304,17 @@
       submitButton.textContent = skipCheckin
         ? "Importar sem check-in"
         : "Importar e gerar check-in";
+    }
+
+    function setCoachTab(tabName) {
+      coachTabButtons.forEach((btn) => {
+        const isActive = btn.dataset.coachTab === tabName;
+        btn.classList.toggle("active", isActive);
+      });
+
+      coachTabSections.forEach((section) => {
+        section.hidden = section.dataset.coachTab !== tabName;
+      });
     }
 
     function renderTrainingLoadSummary(summary, metaText) {
@@ -1738,6 +1843,25 @@
         option.textContent = nameLabel + payTag;
         athleteSelect.appendChild(option);
       });
+
+      // Preserve current selection even when filtered out of the visible list.
+      if (selectedAthleteId) {
+        const stillVisible = list.some((a) => a.id === selectedAthleteId);
+        if (!stillVisible) {
+          const selectedAthlete = athletes.find((a) => a.id === selectedAthleteId);
+          if (selectedAthlete) {
+            const stickyOption = document.createElement("option");
+            stickyOption.value = selectedAthlete.id;
+            const selectedLabel = selectedAthlete.name
+              ? `${selectedAthlete.name} (${selectedAthlete.email || selectedAthlete.id.slice(0, 8)})`
+              : (selectedAthlete.email || selectedAthlete.id);
+            stickyOption.textContent = `${selectedLabel} • selecionado`;
+            athleteSelect.appendChild(stickyOption);
+          }
+        }
+
+        athleteSelect.value = selectedAthleteId;
+      }
     }
 
     function applyAthleteFilter() {
@@ -1876,7 +2000,24 @@
       setSelectedTrainingLoadWeekStart("");
       loadCheckinsForAthlete(athleteSelect.value);
       loadTrainingLoadForAthlete(athleteSelect.value);
+      load1RMsForAthlete(athleteSelect.value).then(() => {
+        document.getElementById("openOneRmModal").disabled = !athleteSelect.value;
+        if (strCurrentPlan) renderDayView();
+      });
     });
+
+    // 1RM modal open/close/add
+    document.getElementById("openOneRmModal").addEventListener("click", () => {
+      renderOneRmModal();
+      document.getElementById("oneRmModal").classList.remove("hidden");
+    });
+    document.getElementById("oneRmCloseBtn").addEventListener("click", () => {
+      document.getElementById("oneRmModal").classList.add("hidden");
+    });
+    document.getElementById("oneRmModal").addEventListener("click", (e) => {
+      if (e.target === e.currentTarget) e.currentTarget.classList.add("hidden");
+    });
+    document.getElementById("oneRmAddBtn").addEventListener("click", addOneRmEntry);
 
     applyTrainingLoadWeekButton.addEventListener("click", () => {
       if (!selectedAthleteId) {
@@ -1951,6 +2092,12 @@
     athleteSearchInput.addEventListener("input", applyAthleteFilter);
     filterPayingOnly.addEventListener("change", applyAthleteFilter);
     checkinStatusFilter.addEventListener("change", applyCheckinsFilter);
+
+    coachTabs.addEventListener("click", (event) => {
+      const btn = event.target.closest(".coach-tab-btn");
+      if (!btn) return;
+      setCoachTab(btn.dataset.coachTab || "athlete");
+    });
 
     checkinsContainer.addEventListener("click", (event) => {
       const target = event.target;
@@ -2179,6 +2326,7 @@
 
     syncTrainingLoadWeekControls();
     syncCheckinMode();
+    setCoachTab("athlete");
 
     // ══════════════════════════════════════════════════════════
     // Strength Planning Module
@@ -2206,6 +2354,7 @@
     let strSelectedDay = 1;
     let strSelectedWeek = 1;
     let strOneRms = {};  // exerciseId → value_kg
+    let strOneRmRecords = []; // full records from API for modal display
 
     // DOM refs
     const strengthPlanSelect = document.getElementById("strengthPlanSelect");
@@ -2350,6 +2499,103 @@
       } catch (e) {
         strengthNoPlan.textContent = "Erro ao carregar planos.";
         console.error(e);
+      }
+    }
+
+    // ── 1RM Management ──
+    async function load1RMsForAthlete(athleteId) {
+      if (!athleteId) {
+        strOneRms = {};
+        strOneRmRecords = [];
+        return;
+      }
+      try {
+        const data = await apiRequest("GET", `/.netlify/functions/athlete-1rm?athleteId=${encodeURIComponent(athleteId)}`);
+        strOneRmRecords = data.records || [];
+        strOneRms = {};
+        for (const r of strOneRmRecords) {
+          strOneRms[r.exercise_id] = Number(r.value_kg);
+        }
+      } catch (e) {
+        console.error("Failed to load 1RMs", e);
+        strOneRms = {};
+        strOneRmRecords = [];
+      }
+    }
+
+    function renderOneRmModal() {
+      const content = document.getElementById("oneRmContent");
+      const addRow = document.getElementById("oneRmAddRow");
+      const nameEl = document.getElementById("oneRmAthleteName");
+      const athlete = athletes.find(a => a.id === selectedAthleteId);
+      nameEl.textContent = athlete ? `Atleta: ${athlete.name || athlete.email}` : "Atleta: —";
+
+      if (!selectedAthleteId) {
+        content.innerHTML = '<p class="onerm-empty">Seleciona um atleta para ver os 1RM.</p>';
+        addRow.style.display = "none";
+        return;
+      }
+
+      addRow.style.display = "flex";
+      document.getElementById("oneRmDateInput").value = new Date().toISOString().slice(0, 10);
+
+      // Populate exercise dropdown with all known exercises
+      const exSelect = document.getElementById("oneRmExerciseSelect");
+      exSelect.innerHTML = '<option value="">— Selecionar —</option>';
+      const sorted = [...strExercises].sort((a, b) => a.name.localeCompare(b.name));
+      for (const ex of sorted) {
+        const opt = document.createElement("option");
+        opt.value = ex.id;
+        opt.textContent = ex.name;
+        exSelect.appendChild(opt);
+      }
+
+      if (strOneRmRecords.length === 0) {
+        content.innerHTML = '<p class="onerm-empty">Nenhum 1RM registado para este atleta.</p>';
+        return;
+      }
+
+      // Build table of latest 1RMs
+      const exMap = {};
+      for (const ex of strExercises) exMap[ex.id] = ex.name;
+
+      let html = '<table class="onerm-table"><thead><tr><th>Exercício</th><th>1RM (kg)</th><th>Método</th><th>Data</th></tr></thead><tbody>';
+      for (const r of strOneRmRecords) {
+        const name = exMap[r.exercise_id] || r.exercise_id.slice(0, 8);
+        const method = r.method === "tested" ? "Testado" : r.method === "estimated_epley" ? "Epley" : "Manual";
+        const date = r.tested_at || "—";
+        html += `<tr><td>${name}</td><td><strong>${Number(r.value_kg).toFixed(1)}</strong></td><td><span class="onerm-method">${method}</span></td><td>${date}</td></tr>`;
+      }
+      html += '</tbody></table>';
+      content.innerHTML = html;
+    }
+
+    async function addOneRmEntry() {
+      const exerciseId = document.getElementById("oneRmExerciseSelect").value;
+      const valueKg = document.getElementById("oneRmValueInput").value;
+      const method = document.getElementById("oneRmMethodSelect").value;
+      const testedAt = document.getElementById("oneRmDateInput").value;
+
+      if (!exerciseId || !valueKg) {
+        showResult("Seleciona um exercício e insere o valor de 1RM.", true);
+        return;
+      }
+
+      try {
+        await apiRequest("POST", "/.netlify/functions/athlete-1rm", {
+          athlete_id: selectedAthleteId,
+          exercise_id: exerciseId,
+          value_kg: Number(valueKg),
+          method: method,
+          tested_at: testedAt || new Date().toISOString().slice(0, 10)
+        });
+        document.getElementById("oneRmValueInput").value = "";
+        await load1RMsForAthlete(selectedAthleteId);
+        renderOneRmModal();
+        // Re-render plan view if open (load placeholders will update)
+        if (strCurrentPlan) renderDayView();
+      } catch (e) {
+        showResult("Erro ao guardar 1RM: " + e.message, true);
       }
     }
 
@@ -2545,9 +2791,14 @@
             <td><button class="str-rm-btn" data-rmpe="${pe.id}" title="Remover">✕</button></td>
           `;
         } else if (section === "main") {
+          const autoRm = calcRmPercent(Number(rx.reps)||0, Number(rx.rir)||0);
+          const autoRmDisplay = autoRm != null ? (autoRm * 100).toFixed(1) : "";
+          const hasRmOverride = rx.rm_percent_override != null && rx.rm_percent_override !== "";
+          const rmOverrideVal = hasRmOverride ? (Number(rx.rm_percent_override) * 100).toFixed(1) : "";
+          const hasLoadOverride = rx.load_override_kg != null && rx.load_override_kg !== "";
+          const loadOverrideVal = hasLoadOverride ? Number(rx.load_override_kg) : "";
           const { rmPercent, loadKg } = resolveLoad(rx, pe, oneRm, loadRound, week);
-          const displayRm = rmPercent != null ? (rmPercent * 100).toFixed(1) + "%" : "—";
-          const displayLoad = loadKg != null ? loadKg.toFixed(1) + "kg" : (oneRm ? "—" : "sem 1RM");
+          const loadPlaceholder = loadKg != null ? loadKg.toFixed(1) : (oneRm ? "" : "sem 1RM");
           row.innerHTML = `
             <td>${pe.exercise_order}</td>
             <td><select data-field="superset_group" data-peid="${pe.id}" style="width:36px;">${SUPERSET_LETTERS.map(l => `<option value="${l}" ${l===ss?"selected":""}>${l||"-"}</option>`).join("")}</select></td>
@@ -2560,8 +2811,8 @@
               ${METHOD_OPTIONS.map(m => `<option value="${m}" ${rx.method===m?"selected":""}>${m}</option>`).join("")}
             </select></td>
             <td><input value="${rx.tempo||''}" data-field="tempo" data-peid="${pe.id}" data-week="${week}" placeholder="3-1-X-0" style="width:72px;" /></td>
-            <td style="text-align:center;" title="Auto: ${displayRm}">${displayRm}</td>
-            <td style="text-align:center;" title="Auto: ${displayLoad}">${displayLoad}</td>
+            <td><input type="number" value="${rmOverrideVal}" data-field="rm_percent_override" data-peid="${pe.id}" data-week="${week}" placeholder="${autoRmDisplay}" step="0.1" min="0" max="100" style="width:60px;" class="rm-input" /></td>
+            <td><input type="number" value="${loadOverrideVal}" data-field="load_override_kg" data-peid="${pe.id}" data-week="${week}" placeholder="${loadPlaceholder}" step="0.5" min="0" style="width:60px;" class="load-input" /></td>
             <td><input value="${rx.coach_notes||''}" data-field="coach_notes" data-peid="${pe.id}" data-week="${week}" style="width:80px;" /></td>
             <td></td>
             <td><button class="str-rm-btn" data-rmpe="${pe.id}" title="Remover">✕</button></td>
@@ -2574,6 +2825,7 @@
 
       // Event delegation for inputs
       table.addEventListener("change", handleTableChange);
+      table.addEventListener("input", handleTableInput);
       table.addEventListener("click", handleTableClick);
 
       return table;
@@ -2627,7 +2879,11 @@
     function queuePrescriptionChange(peId, week, field, value) {
       const key = `${peId}_${week}`;
       if (!pendingPrescriptionChanges[key]) pendingPrescriptionChanges[key] = { plan_exercise_id: peId, week_number: week };
-      pendingPrescriptionChanges[key][field] = value === "" ? null : (["sets","reps","rest_seconds","rir","duration_seconds"].includes(field) ? Number(value) : value);
+      if (field === "rm_percent_override" || field === "load_override_kg") {
+        pendingPrescriptionChanges[key][field] = value;
+      } else {
+        pendingPrescriptionChanges[key][field] = value === "" ? null : (["sets","reps","rest_seconds","rir","duration_seconds"].includes(field) ? Number(value) : value);
+      }
       scheduleSave();
     }
 
@@ -2672,8 +2928,52 @@
 
       if (field === "superset_group" || field === "plyo_mechanical_load") {
         queueExerciseChange(peId, field, el.value);
+      } else if (field === "rm_percent_override") {
+        // User enters %, store as decimal (85 → 0.85)
+        const pct = el.value === "" ? null : Number(el.value) / 100;
+        queuePrescriptionChange(peId, parseInt(week, 10), field, pct);
+      } else if (field === "load_override_kg") {
+        queuePrescriptionChange(peId, parseInt(week, 10), field, el.value === "" ? null : Number(el.value));
       } else if (week) {
         queuePrescriptionChange(peId, parseInt(week, 10), field, el.value);
+      }
+    }
+
+    // Live update %RM and Load placeholders as user types reps/rir
+    function handleTableInput(e) {
+      const el = e.target;
+      const field = el.getAttribute("data-field");
+      if (!field || !["reps", "rir", "rm_percent_override", "load_override_kg"].includes(field)) return;
+      const row = el.closest("tr");
+      if (!row) return;
+      const rmInput = row.querySelector(".rm-input");
+      const loadInput = row.querySelector(".load-input");
+      if (!rmInput || !loadInput) return;
+
+      // Read current values from the row inputs
+      const repsEl = row.querySelector('[data-field="reps"]');
+      const rirEl = row.querySelector('[data-field="rir"]');
+      const reps = repsEl ? Number(repsEl.value) || 0 : 0;
+      const rir = rirEl ? Number(rirEl.value) || 0 : 0;
+
+      // Update %RM placeholder (auto-calc from reps+rir)
+      const autoRm = calcRmPercent(reps, rir);
+      rmInput.placeholder = autoRm != null ? (autoRm * 100).toFixed(1) : "";
+
+      // Determine effective %RM for load placeholder
+      const peId = el.getAttribute("data-peid");
+      const pe = strCurrentPlan ? strCurrentPlan.exercises.find(x => x.id === peId) : null;
+      const exId = pe && pe.exercise ? pe.exercise.id : (pe ? pe.exercise_id : null);
+      const oneRm = exId ? strOneRms[exId] : null;
+      const loadRound = strCurrentPlan ? strCurrentPlan.plan.load_round || 2.5 : 2.5;
+      const rmOverrideVal = rmInput.value !== "" ? Number(rmInput.value) / 100 : null;
+      const effectiveRm = rmOverrideVal != null ? rmOverrideVal : autoRm;
+      if (loadInput.value === "") {
+        if (effectiveRm != null && oneRm) {
+          loadInput.placeholder = roundToPlates(oneRm * effectiveRm, loadRound).toFixed(1);
+        } else {
+          loadInput.placeholder = oneRm ? "" : "sem 1RM";
+        }
       }
     }
 
