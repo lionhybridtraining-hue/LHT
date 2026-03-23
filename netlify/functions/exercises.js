@@ -1,25 +1,32 @@
 const { json } = require("./_lib/http");
 const { getConfig } = require("./_lib/config");
 const { listExercises, createExercise, updateExercise } = require("./_lib/supabase");
-const { requireRole } = require("./_lib/authz");
+const { requireAuthenticatedUser } = require("./_lib/authz");
 const { parseJsonBody } = require("./_lib/http");
+
+function requireCoachOrAdmin(auth) {
+  const roles = Array.isArray(auth.roles) ? auth.roles : [];
+  return roles.includes("coach") || roles.includes("admin");
+}
 
 exports.handler = async (event) => {
   const config = getConfig();
 
-  // GET — list all exercises (any authenticated user)
+  // GET — list all exercises (coach or admin)
   if (event.httpMethod === "GET") {
-    const auth = await requireRole(event, config, "coach");
+    const auth = await requireAuthenticatedUser(event, config);
     if (auth.error) return auth.error;
+    if (!requireCoachOrAdmin(auth)) return json(403, { error: "Forbidden" });
 
     const exercises = await listExercises(config);
     return json(200, { exercises: exercises || [] });
   }
 
-  // POST — create exercise (coach only)
+  // POST — create exercise (coach or admin)
   if (event.httpMethod === "POST") {
-    const auth = await requireRole(event, config, "coach");
+    const auth = await requireAuthenticatedUser(event, config);
     if (auth.error) return auth.error;
+    if (!requireCoachOrAdmin(auth)) return json(403, { error: "Forbidden" });
 
     const body = parseJsonBody(event);
     if (!body.name || !body.category || !body.subcategory) {
@@ -39,10 +46,11 @@ exports.handler = async (event) => {
     return json(201, { exercise });
   }
 
-  // PATCH — update exercise (coach only)
+  // PATCH — update exercise (coach or admin)
   if (event.httpMethod === "PATCH") {
-    const auth = await requireRole(event, config, "coach");
+    const auth = await requireAuthenticatedUser(event, config);
     if (auth.error) return auth.error;
+    if (!requireCoachOrAdmin(auth)) return json(403, { error: "Forbidden" });
 
     const body = parseJsonBody(event);
     if (!body.id) {
