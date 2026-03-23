@@ -1,119 +1,171 @@
 const { json, parseJsonBody } = require("./_lib/http");
 const { getConfig } = require("./_lib/config");
-const { requireRole } = require("./_lib/authz");
+const { requireAuthenticatedUser } = require("./_lib/authz");
 const {
-  listStrengthPlansForAthlete,
+  listStrengthPlans,
   getStrengthPlanFull,
-  getActivePlanForAthlete,
   createStrengthPlan,
   updateStrengthPlan,
   upsertStrengthPlanExercises,
   deleteStrengthPlanExercises,
   upsertStrengthPrescriptions,
   upsertStrengthPlanPhaseNotes,
-  verifyCoachOwnsAthlete,
-  getStrengthPlanById
+  getStrengthPlanById,
+  listStrengthPlanInstances,
+  createStrengthPlanInstance,
+  updateStrengthPlanInstance,
+  getStrengthPlanInstanceById,
+  getActiveInstanceForAthlete,
+  verifyCoachOwnsAthlete
 } = require("./_lib/supabase");
 
 exports.handler = async (event) => {
   const config = getConfig();
-  const auth = await requireRole(event, config, "coach");
+  const auth = await requireAuthenticatedUser(event, config);
   if (auth.error) return auth.error;
+
+  const roles = Array.isArray(auth.roles) ? auth.roles : [];
+  const isCoach = roles.includes("coach");
+  const isAdmin = roles.includes("admin");
+  if (!isCoach && !isAdmin) {
+    return json(403, { error: "Forbidden" });
+  }
 
   const coachId = auth.user.sub;
 
   try {
-    // GET — fetch plan(s) for an athlete
+    const qs = event.queryStringParameters || {};
+
+    // ── GET ──
     if (event.httpMethod === "GET") {
-      const qs = event.queryStringParameters || {};
-      const athleteId = qs.athleteId;
-      if (!athleteId) return json(400, { error: "athleteId is required" });
+      // ?instances=1&athleteId=X&planId=X → list instances
+      if (qs.instances === "1") {
+        const filters = {};
+        if (qs.athleteId) filters.athleteId = qs.athleteId;
+        if (qs.planId) filters.planId = qs.planId;
+        if (qs.status) filters.status = qs.status;
+        const instances = await listStrengthPlanInstances(config, filters);
+        return json(200, { instances: instances || [] });
+      }
 
-      await verifyCoachOwnsAthlete(config, coachId, athleteId);
+      // ?activeInstance=1&athleteId=X → get active instance for athlete
+      if (qs.activeInstance === "1" && qs.athleteId) {
+        const instance = await getActiveInstanceForAthlete(config, qs.athleteId);
+        return json(200, { instance });
+      }
 
-      // If planId provided, return full plan; otherwise list all plans
+      // ?planId=X → full plan template detail
       if (qs.planId) {
         const full = await getStrengthPlanFull(config, qs.planId);
-        if (!full || full.plan.athlete_id !== athleteId) {
-          return json(404, { error: "Plan not found" });
-        }
+        if (!full) return json(404, { error: "Plan not found" });
         return json(200, full);
       }
 
-      const plans = await listStrengthPlansForAthlete(config, athleteId);
+      // Default: list plan templates
+      const filters = {};
+      if (qs.status) filters.status = qs.status;
+      if (qs.trainingProgramId) filters.trainingProgramId = qs.trainingProgramId;
+      const plans = await listStrengthPlans(config, filters);
       return json(200, { plans: plans || [] });
     }
 
-    // POST — create new plan
+    // ── POST ──
     if (event.httpMethod === "POST") {
       const body = parseJsonBody(event);
-      if (!body.athlete_id || !body.name || !body.total_weeks) {
-        return json(400, { error: "athlete_id, name, total_weeks are required" });
+
+      // POST with action=assign → create instance (assign plan to athlete)
+      if (body.action === "assign") {
+        if (!body.plan_id || !body.athlete_id) {
+          return json(400, { error: "plan_id and athlete_id are required" });
+        }
+        if (!isAdmin) {
+          const owns = await verifyCoachOwnsAthlete(config, coachId, body.athlete_id);
+          if (!owns) return json(403, { error: "Forbidden" });
+        }
+        const instance = await createStrengthPlanInstance(config, {
+          plan_id: body.plan_id,
+          athlete_id: body.athlete_id,
+          start_date: body.start_date || null,
+          load_round: body.load_round != null ? body.load_round : 2.5,
+          status: "active",
+          assigned_by: coachId
+        });
+        return json(201, { instance });
       }
 
-      await verifyCoachOwnsAthlete(config, coachId, body.athlete_id);
-
+      // POST default: create new plan template
+      if (!body.name || !body.total_weeks) {
+        return json(400, { error: "name and total_weeks are required" });
+      }
       const plan = await createStrengthPlan(config, {
-        athlete_id: body.athlete_id,
         name: body.name,
+        description: body.description || null,
         total_weeks: body.total_weeks,
         load_round: body.load_round != null ? body.load_round : 2.5,
         start_date: body.start_date || null,
+        training_program_id: body.training_program_id || null,
         status: "draft",
         created_by: coachId
       });
       return json(201, { plan });
     }
 
-    // PUT — upsert exercises + prescriptions + phase notes
+    // ── PUT — upsert exercises + prescriptions + phase notes ──
     if (event.httpMethod === "PUT") {
       const body = parseJsonBody(event);
       if (!body.plan_id) return json(400, { error: "plan_id is required" });
 
       const plan = await getStrengthPlanById(config, body.plan_id);
       if (!plan) return json(404, { error: "Plan not found" });
-      await verifyCoachOwnsAthlete(config, coachId, plan.athlete_id);
 
-      // Delete removed exercises
       if (body.delete_exercise_ids && body.delete_exercise_ids.length > 0) {
         await deleteStrengthPlanExercises(config, body.delete_exercise_ids);
       }
-
-      // Upsert exercises
       if (body.exercises && body.exercises.length > 0) {
         await upsertStrengthPlanExercises(config, body.exercises);
       }
-
-      // Upsert prescriptions
       if (body.prescriptions && body.prescriptions.length > 0) {
         await upsertStrengthPrescriptions(config, body.prescriptions);
       }
-
-      // Upsert phase notes
       if (body.phase_notes && body.phase_notes.length > 0) {
         await upsertStrengthPlanPhaseNotes(config, body.phase_notes);
       }
 
-      // Return refreshed full plan
       const full = await getStrengthPlanFull(config, body.plan_id);
       return json(200, full);
     }
 
-    // PATCH — status change or plan metadata update
+    // ── PATCH — update plan template metadata OR instance status ──
     if (event.httpMethod === "PATCH") {
       const body = parseJsonBody(event);
-      if (!body.plan_id) return json(400, { error: "plan_id is required" });
 
+      // Patch instance
+      if (body.instance_id) {
+        const inst = await getStrengthPlanInstanceById(config, body.instance_id);
+        if (!inst) return json(404, { error: "Instance not found" });
+        if (!isAdmin) {
+          const owns = await verifyCoachOwnsAthlete(config, coachId, inst.athlete_id);
+          if (!owns) return json(403, { error: "Forbidden" });
+        }
+        const allowedInst = ["status", "start_date", "load_round"];
+        const patch = {};
+        for (const key of allowedInst) {
+          if (body[key] !== undefined) patch[key] = body[key];
+        }
+        const updated = await updateStrengthPlanInstance(config, body.instance_id, patch);
+        return json(200, { instance: updated });
+      }
+
+      // Patch plan template
+      if (!body.plan_id) return json(400, { error: "plan_id or instance_id is required" });
       const plan = await getStrengthPlanById(config, body.plan_id);
       if (!plan) return json(404, { error: "Plan not found" });
-      await verifyCoachOwnsAthlete(config, coachId, plan.athlete_id);
 
-      const allowed = ["name", "total_weeks", "load_round", "start_date", "status"];
+      const allowed = ["name", "description", "total_weeks", "load_round", "start_date", "status", "training_program_id"];
       const patch = {};
       for (const key of allowed) {
         if (body[key] !== undefined) patch[key] = body[key];
       }
-
       const updated = await updateStrengthPlan(config, body.plan_id, patch);
       return json(200, { plan: updated });
     }

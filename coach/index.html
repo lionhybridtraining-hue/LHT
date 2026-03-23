@@ -852,7 +852,7 @@
             </div>
           </div>
 
-          <div id="strengthNoPlan" class="microcopy">Seleciona um atleta para gerir planos de força.</div>
+          <div id="strengthNoPlan" class="microcopy">Nenhum plano selecionado.</div>
 
           <!-- Plan header (hidden until plan selected) -->
           <div id="strengthPlanHeader" hidden style="margin-bottom:12px;">
@@ -863,6 +863,13 @@
               <button class="btn btn-small btn-ghost" id="editPlanMetaBtn" title="Editar plano">✏</button>
               <button class="btn btn-small" id="activatePlanBtn" hidden>Ativar</button>
               <button class="btn btn-small btn-ghost" id="archivePlanBtn" hidden>Arquivar</button>
+              <button class="btn btn-small" id="assignPlanBtn" hidden>Atribuir a Atleta</button>
+            </div>
+
+            <!-- Active instances for this plan -->
+            <div id="strengthPlanInstances" hidden style="margin-bottom:8px; padding:8px 12px; border:1px solid var(--line); border-radius:var(--radius-md); background:var(--surface-2);">
+              <span class="microcopy" style="font-weight:600;">Atribuições ativas:</span>
+              <div id="strengthInstancesList" style="margin-top:4px;"></div>
             </div>
 
             <!-- Day tabs -->
@@ -928,6 +935,16 @@
             <input id="spName" placeholder="Ex.: Mesociclo Base" required />
           </div>
           <div class="field">
+            <label for="spDescription">Descrição (opcional)</label>
+            <textarea id="spDescription" rows="2" placeholder="Descrição do programa..."></textarea>
+          </div>
+          <div class="field">
+            <label for="spProgram">Programa associado (opcional)</label>
+            <select id="spProgram">
+              <option value="">— Nenhum —</option>
+            </select>
+          </div>
+          <div class="field">
             <label for="spWeeks">Semanas</label>
             <input id="spWeeks" type="number" min="1" max="52" value="4" required />
           </div>
@@ -943,6 +960,36 @@
         <div class="modal-actions">
           <button class="btn btn-primary" type="submit" id="spSaveBtn">Criar plano</button>
           <button class="btn btn-secondary" type="button" id="spCancelBtn">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Assign Plan to Athlete Modal -->
+  <div id="assignPlanModal" class="modal-backdrop hidden" role="dialog" aria-modal="true">
+    <div class="modal">
+      <h3>Atribuir Plano a Atleta</h3>
+      <p id="assignPlanLabel" class="microcopy"></p>
+      <form id="assignPlanForm">
+        <div class="form-grid">
+          <div class="field">
+            <label for="assignAthleteSelect">Atleta</label>
+            <select id="assignAthleteSelect" required>
+              <option value="">— Selecionar atleta —</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="assignStartDate">Data início (opcional)</label>
+            <input id="assignStartDate" type="date" />
+          </div>
+          <div class="field">
+            <label for="assignLoadRound">Arredondamento carga (kg)</label>
+            <input id="assignLoadRound" type="number" min="0.5" step="0.5" value="2.5" />
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-primary" type="submit" id="assignSaveBtn">Atribuir</button>
+          <button class="btn btn-secondary" type="button" id="assignCancelBtn">Cancelar</button>
         </div>
       </form>
     </div>
@@ -1121,6 +1168,7 @@
       if (state.user) {
         try {
           await loadAthletes();
+          loadStrengthPlans();
         } catch (err) {
           showResult(err.message, true);
         }
@@ -1548,7 +1596,6 @@
         setSelectedTrainingLoadWeekStart("");
         syncTrainingLoadWeekControls();
         renderTrainingLoadSummary(null, "Sem dados calculados ainda.");
-        resetStrengthUI();
         return;
       }
       const athlete = athletes.find((item) => item.id === selectedAthleteId);
@@ -1561,7 +1608,6 @@
         ? `${athlete.name} (${athlete.email || athlete.id})`
         : (athlete.email || athlete.id);
       syncTrainingLoadWeekControls();
-      loadStrengthPlans();
     }
 
     async function loadAthletes(preselectId) {
@@ -1988,6 +2034,8 @@
     const strengthWeekTabs = document.getElementById("strengthWeekTabs");
     const strengthPlanModal = document.getElementById("strengthPlanModal");
     const strengthPlanForm = document.getElementById("strengthPlanForm");
+    const spProgramSelect = document.getElementById("spProgram");
+    let strPrograms = [];
     const addExerciseModal = document.getElementById("addExerciseModal");
     let addExerciseTargetSection = "";
 
@@ -2059,12 +2107,37 @@
     // ── UI helpers ──
     function resetStrengthUI() {
       strengthPlanSelect.innerHTML = '<option value="">— Selecionar plano —</option>';
-      strengthNoPlan.textContent = "Seleciona um atleta para gerir planos de força.";
+      strengthNoPlan.textContent = "Nenhum plano selecionado.";
       strengthNoPlan.hidden = false;
       strengthPlanHeader.hidden = true;
       strengthDayView.hidden = true;
       strCurrentPlan = null;
       strPlans = [];
+    }
+
+    async function loadProgramOptions() {
+      if (strPrograms.length > 0) return;
+      try {
+        const data = await apiRequest("GET", "/.netlify/functions/admin-programs");
+        strPrograms = data.programs || [];
+      } catch (e) {
+        // Fallback to public list if not admin
+        try {
+          const data = await apiRequest("GET", "/.netlify/functions/list-programs");
+          strPrograms = data.programs || [];
+        } catch (e2) { console.error("Failed to load programs", e2); }
+      }
+    }
+
+    function renderProgramOptions(preselectedId) {
+      spProgramSelect.innerHTML = '<option value="">— Nenhum —</option>';
+      for (const prog of strPrograms) {
+        const opt = document.createElement("option");
+        opt.value = prog.id;
+        opt.textContent = prog.name + (prog.status && prog.status !== "active" ? ` (${prog.status})` : "");
+        spProgramSelect.appendChild(opt);
+      }
+      if (preselectedId) spProgramSelect.value = preselectedId;
     }
 
     async function loadExerciseCatalog() {
@@ -2076,10 +2149,9 @@
     }
 
     async function loadStrengthPlans() {
-      if (!selectedAthleteId) { resetStrengthUI(); return; }
       await loadExerciseCatalog();
       try {
-        const data = await apiRequest("GET", `/.netlify/functions/strength-plan?athleteId=${selectedAthleteId}`);
+        const data = await apiRequest("GET", "/.netlify/functions/strength-plan");
         strPlans = data.plans || [];
         strengthPlanSelect.innerHTML = '<option value="">— Selecionar plano —</option>';
         for (const p of strPlans) {
@@ -2092,13 +2164,6 @@
         strengthNoPlan.hidden = false;
         strengthPlanHeader.hidden = true;
         strengthDayView.hidden = true;
-
-        // Load 1RMs
-        try {
-          const rmData = await apiRequest("GET", `/.netlify/functions/athlete-1rm?athleteId=${selectedAthleteId}`);
-          strOneRms = {};
-          for (const r of (rmData.records || [])) { strOneRms[r.exercise_id] = r.value_kg; }
-        } catch (e) { console.error("1RM load failed", e); }
       } catch (e) {
         strengthNoPlan.textContent = "Erro ao carregar planos.";
         console.error(e);
@@ -2106,9 +2171,9 @@
     }
 
     async function loadStrengthPlanFull(planId) {
-      if (!planId || !selectedAthleteId) return;
+      if (!planId) return;
       try {
-        const data = await apiRequest("GET", `/.netlify/functions/strength-plan?athleteId=${selectedAthleteId}&planId=${planId}`);
+        const data = await apiRequest("GET", `/.netlify/functions/strength-plan?planId=${planId}`);
         strCurrentPlan = data;
         strengthNoPlan.hidden = true;
         strengthPlanHeader.hidden = false;
@@ -2132,6 +2197,8 @@
       document.getElementById("strengthPlanWeeks").textContent = `${p.total_weeks} semanas · Carga arred. ${p.load_round}kg`;
       document.getElementById("activatePlanBtn").hidden = p.status !== "draft";
       document.getElementById("archivePlanBtn").hidden = (p.status === "archived");
+      document.getElementById("assignPlanBtn").hidden = (p.status !== "active");
+      loadPlanInstances(p.id);
     }
 
     function renderDayTabs() {
@@ -2515,12 +2582,14 @@
     });
 
     // ── Plan CRUD ──
-    document.getElementById("newStrengthPlanBtn").addEventListener("click", () => {
-      if (!selectedAthleteId) { alert("Seleciona primeiro um atleta."); return; }
+    document.getElementById("newStrengthPlanBtn").addEventListener("click", async () => {
       document.getElementById("spEditId").value = "";
       document.getElementById("strengthPlanModalTitle").textContent = "Novo Plano de Força";
       document.getElementById("spSaveBtn").textContent = "Criar plano";
+      await loadProgramOptions();
+      renderProgramOptions("");
       document.getElementById("spName").value = "";
+      document.getElementById("spDescription").value = "";
       document.getElementById("spWeeks").value = "4";
       document.getElementById("spLoadRound").value = "2.5";
       document.getElementById("spStartDate").value = "";
@@ -2528,13 +2597,16 @@
       document.getElementById("spName").focus();
     });
 
-    document.getElementById("editPlanMetaBtn").addEventListener("click", () => {
+    document.getElementById("editPlanMetaBtn").addEventListener("click", async () => {
       if (!strCurrentPlan) return;
       const p = strCurrentPlan.plan;
       document.getElementById("spEditId").value = p.id;
       document.getElementById("strengthPlanModalTitle").textContent = "Editar Plano";
       document.getElementById("spSaveBtn").textContent = "Guardar";
+      await loadProgramOptions();
+      renderProgramOptions(p.training_program_id || "");
       document.getElementById("spName").value = p.name;
+      document.getElementById("spDescription").value = p.description || "";
       document.getElementById("spWeeks").value = p.total_weeks;
       document.getElementById("spLoadRound").value = p.load_round;
       document.getElementById("spStartDate").value = p.start_date || "";
@@ -2549,6 +2621,8 @@
       e.preventDefault();
       const editId = document.getElementById("spEditId").value;
       const name = document.getElementById("spName").value.trim();
+      const description = document.getElementById("spDescription").value.trim() || null;
+      const trainingProgramId = spProgramSelect.value || null;
       const totalWeeks = parseInt(document.getElementById("spWeeks").value, 10);
       const loadRound = parseFloat(document.getElementById("spLoadRound").value) || 2.5;
       const startDate = document.getElementById("spStartDate").value || null;
@@ -2558,14 +2632,17 @@
       try {
         if (editId) {
           await apiRequest("PATCH", "/.netlify/functions/strength-plan", {
-            plan_id: editId, name, total_weeks: totalWeeks, load_round: loadRound, start_date: startDate
+            plan_id: editId, name, description, training_program_id: trainingProgramId,
+            total_weeks: totalWeeks, load_round: loadRound, start_date: startDate
           });
           strengthPlanModal.classList.add("hidden");
           await loadStrengthPlanFull(editId);
         } else {
           const data = await apiRequest("POST", "/.netlify/functions/strength-plan", {
-            athlete_id: selectedAthleteId, name, total_weeks: totalWeeks, load_round: loadRound, start_date: startDate
+            name, description, training_program_id: trainingProgramId,
+            total_weeks: totalWeeks, load_round: loadRound, start_date: startDate
           });
+
           strengthPlanModal.classList.add("hidden");
           await loadStrengthPlans();
           if (data.plan) {
@@ -2610,6 +2687,96 @@
         });
         await loadStrengthPlans();
       } catch (e) { alert("Erro: " + (e.message || "")); }
+    });
+
+    // ── Plan Instance Assignment ──
+    const assignPlanModal = document.getElementById("assignPlanModal");
+    const assignPlanForm = document.getElementById("assignPlanForm");
+    const assignAthleteSelect = document.getElementById("assignAthleteSelect");
+    const strengthPlanInstances = document.getElementById("strengthPlanInstances");
+    const strengthInstancesList = document.getElementById("strengthInstancesList");
+
+    async function loadPlanInstances(planId) {
+      try {
+        const data = await apiRequest("GET", `/.netlify/functions/strength-plan?instances=1&planId=${planId}`);
+        const active = (data.instances || []).filter(i => i.status === "active");
+        if (active.length === 0) {
+          strengthPlanInstances.hidden = true;
+          return;
+        }
+        strengthPlanInstances.hidden = false;
+        strengthInstancesList.innerHTML = "";
+        for (const inst of active) {
+          const ath = athletes.find(a => a.id === inst.athlete_id);
+          const name = ath ? (ath.name || ath.email) : inst.athlete_id;
+          const row = document.createElement("div");
+          row.style.cssText = "display:flex; gap:8px; align-items:center; margin-bottom:4px;";
+          row.innerHTML = `<span style="flex:1;">${escapeHtml(name)}</span>`
+            + `<span class="microcopy">${inst.start_date || "sem data"} · ${inst.load_round}kg</span>`
+            + `<button class="btn btn-small btn-ghost" data-instance-pause="${inst.id}" title="Pausar">⏸</button>`
+            + `<button class="btn btn-small btn-ghost" data-instance-complete="${inst.id}" title="Completar">✓</button>`
+            + `<button class="btn btn-small btn-ghost" data-instance-cancel="${inst.id}" title="Cancelar">✕</button>`;
+          strengthInstancesList.appendChild(row);
+        }
+      } catch (e) {
+        strengthPlanInstances.hidden = true;
+        console.error("Failed to load instances", e);
+      }
+    }
+
+    strengthInstancesList.addEventListener("click", async (e) => {
+      const btn = e.target.closest("[data-instance-pause],[data-instance-complete],[data-instance-cancel]");
+      if (!btn) return;
+      let status, instanceId;
+      if (btn.dataset.instancePause) { instanceId = btn.dataset.instancePause; status = "paused"; }
+      else if (btn.dataset.instanceComplete) { instanceId = btn.dataset.instanceComplete; status = "completed"; }
+      else if (btn.dataset.instanceCancel) { instanceId = btn.dataset.instanceCancel; status = "cancelled"; }
+      if (!instanceId || !status) return;
+      try {
+        await apiRequest("PATCH", "/.netlify/functions/strength-plan", { instance_id: instanceId, status });
+        if (strCurrentPlan) await loadPlanInstances(strCurrentPlan.plan.id);
+      } catch (e) { alert("Erro: " + (e.message || "")); }
+    });
+
+    document.getElementById("assignPlanBtn").addEventListener("click", () => {
+      if (!strCurrentPlan) return;
+      document.getElementById("assignPlanLabel").textContent = `Plano: ${strCurrentPlan.plan.name}`;
+      assignAthleteSelect.innerHTML = '<option value="">— Selecionar atleta —</option>';
+      for (const ath of athletes) {
+        const opt = document.createElement("option");
+        opt.value = ath.id;
+        opt.textContent = ath.name || ath.email || ath.id;
+        assignAthleteSelect.appendChild(opt);
+      }
+      document.getElementById("assignLoadRound").value = strCurrentPlan.plan.load_round || 2.5;
+      document.getElementById("assignStartDate").value = "";
+      assignPlanModal.classList.remove("hidden");
+    });
+
+    document.getElementById("assignCancelBtn").addEventListener("click", () => {
+      assignPlanModal.classList.add("hidden");
+    });
+
+    assignPlanForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (!strCurrentPlan) return;
+      const athleteId = assignAthleteSelect.value;
+      if (!athleteId) return;
+      const startDate = document.getElementById("assignStartDate").value || null;
+      const loadRound = parseFloat(document.getElementById("assignLoadRound").value) || 2.5;
+      try {
+        await apiRequest("POST", "/.netlify/functions/strength-plan", {
+          action: "assign",
+          plan_id: strCurrentPlan.plan.id,
+          athlete_id: athleteId,
+          start_date: startDate,
+          load_round: loadRound
+        });
+        assignPlanModal.classList.add("hidden");
+        await loadPlanInstances(strCurrentPlan.plan.id);
+      } catch (e) {
+        alert("Erro ao atribuir plano: " + (e.message || "O atleta pode já ter um plano ativo."));
+      }
     });
 
   </script>

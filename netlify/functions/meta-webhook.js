@@ -9,6 +9,7 @@
 const crypto = require("crypto");
 const { getConfig } = require("./_lib/config");
 const { insertMetaLead } = require("./_lib/supabase");
+const { sendCAPIEvent, buildUserData } = require("./_lib/meta-capi");
 
 function safeCompare(a, b) {
   const bufA = Buffer.from(a);
@@ -19,7 +20,7 @@ function safeCompare(a, b) {
 
 async function fetchLeadFieldData(leadgenId, accessToken) {
   const url =
-    `https://graph.facebook.com/v19.0/${encodeURIComponent(leadgenId)}` +
+    `https://graph.facebook.com/v21.0/${encodeURIComponent(leadgenId)}` +
     `?fields=field_data,created_time,form_id,ad_id,ad_name,form_name` +
     `&access_token=${encodeURIComponent(accessToken)}`;
 
@@ -152,6 +153,31 @@ exports.handler = async (event) => {
         } catch (err) {
           console.error("meta-webhook: failed to insert lead:", err.message);
           errors.push(err.message);
+        }
+
+        // ── CAPI: send Lead event server-side ─────────────────────────────
+        if (config.metaCapiAccessToken && config.metaDatasetId) {
+          try {
+            const firstName = name ? name.split(" ")[0] : undefined;
+            const lastName = name && name.includes(" ")
+              ? name.split(" ").slice(1).join(" ")
+              : undefined;
+
+            await sendCAPIEvent(config, {
+              event_name: "Lead",
+              event_time: Math.floor(Date.now() / 1000),
+              event_id: `lead_${leadgenId}`,
+              action_source: "other",
+              user_data: buildUserData({ email, phone, firstName, lastName }),
+              custom_data: {
+                content_name: formName || undefined,
+                lead_event_source: "meta_lead_ads"
+              }
+            });
+            console.log(`meta-webhook: CAPI Lead sent for ${leadgenId}`);
+          } catch (err) {
+            console.error("meta-webhook: CAPI Lead failed:", err.message);
+          }
         }
       }
     }

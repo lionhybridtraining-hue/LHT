@@ -19,7 +19,9 @@ function getConfig() {
     defaultOnboardingProgramExternalId: process.env.DEFAULT_ONBOARDING_PROGRAM_EXTERNAL_ID || "AER",
     metaWebhookVerifyToken: process.env.META_WEBHOOK_VERIFY_TOKEN || "",
     metaAppSecret: process.env.META_APP_SECRET || "",
-    metaPageAccessToken: process.env.META_PAGE_ACCESS_TOKEN || ""
+    metaPageAccessToken: process.env.META_PAGE_ACCESS_TOKEN || "",
+    metaCapiAccessToken: process.env.META_CAPI_ACCESS_TOKEN || "",
+    metaDatasetId: process.env.META_DATASET_ID || ""
   };
 }
 

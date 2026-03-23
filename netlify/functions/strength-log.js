@@ -3,10 +3,11 @@ const { getConfig } = require("./_lib/config");
 const { requireAuthenticatedUser } = require("./_lib/authz");
 const {
   getAthleteByIdentity,
-  getStrengthPlanById,
   insertStrengthLogSets,
   getStrengthLogs,
-  insertAthlete1rm
+  insertAthlete1rm,
+  getActiveInstanceForAthlete,
+  getStrengthPlanExercisesByIds
 } = require("./_lib/supabase");
 const { estimate1rm } = require("./_lib/strength");
 
@@ -45,15 +46,17 @@ exports.handler = async (event) => {
       const athlete = await getAthleteByIdentity(config, identityId);
       if (!athlete) return json(404, { error: "Athlete not found" });
 
-      const plan = await getStrengthPlanById(config, body.plan_id);
-      if (!plan || plan.athlete_id !== athlete.id) {
-        return json(403, { error: "Not your plan" });
-      }
+      // Resolve the athlete's active instance for this plan (if any)
+      const activeInstance = await getActiveInstanceForAthlete(config, athlete.id);
+      const instanceId = (activeInstance && activeInstance.plan_id === body.plan_id)
+        ? activeInstance.id
+        : null;
 
       const rows = body.sets.map(s => ({
         athlete_id: athlete.id,
         plan_exercise_id: s.plan_exercise_id || null,
         plan_id: body.plan_id,
+        instance_id: instanceId,
         week_number: s.week_number,
         day_number: s.day_number,
         session_date: s.session_date || new Date().toISOString().slice(0, 10),
@@ -70,35 +73,45 @@ exports.handler = async (event) => {
       const saved = await insertStrengthLogSets(config, rows);
 
       // Auto 1RM estimation via Epley for sets with load+reps
-      const oneRmUpdates = [];
+      // Resolve plan_exercise_id → exercise_id for proper 1RM records
+      const planExIds = [...new Set(
+        (saved || []).filter(s => s.plan_exercise_id && s.load_kg && s.reps > 0)
+                     .map(s => s.plan_exercise_id)
+      )];
+
+      let peToExercise = {};
+      if (planExIds.length > 0) {
+        try {
+          const planExRows = await getStrengthPlanExercisesByIds(config, planExIds);
+          for (const pe of (planExRows || [])) {
+            if (pe.exercise_id) peToExercise[pe.id] = pe.exercise_id;
+          }
+        } catch (_) { /* best-effort */ }
+      }
+
+      const oneRmInserted = [];
       for (const set of (saved || [])) {
         if (set.load_kg && set.reps && set.reps > 0 && set.plan_exercise_id) {
+          const exerciseId = peToExercise[set.plan_exercise_id];
+          if (!exerciseId) continue;
           const estimated = estimate1rm(set.load_kg, set.reps);
-          if (estimated) {
-            oneRmUpdates.push({
+          if (!estimated) continue;
+          try {
+            const rm = await insertAthlete1rm(config, {
               athlete_id: athlete.id,
-              exercise_id: set.plan_exercise_id, // will map to exercise_id below
+              exercise_id: exerciseId,
               value_kg: Math.round(estimated * 100) / 100,
               method: "estimated_epley",
               source: "auto_from_log",
               source_log_id: set.id,
               tested_at: set.session_date
             });
-          }
+            if (rm) oneRmInserted.push(rm);
+          } catch (_) { /* best-effort */ }
         }
       }
 
-      // For 1RM updates we need to resolve plan_exercise_id → exercise_id
-      // This is done by looking up the plan exercise
-      if (oneRmUpdates.length > 0) {
-        const { supabaseRequest } = require("./_lib/supabase");
-        // We can't import supabaseRequest directly (not exported for raw use).
-        // Instead, insert 1RM records — we need the exercise_id from strength_plan_exercises
-        // For now, the caller (frontend) should handle mapping or we batch-query.
-        // Skip auto-1RM for set-level — Phase 5 will handle mapping properly via the plan_exercise join.
-      }
-
-      return json(201, { sets: saved || [], oneRmUpdates: oneRmUpdates.length });
+      return json(201, { sets: saved || [], oneRmUpdates: oneRmInserted.length });
     }
 
     return json(405, { error: "Method not allowed" });

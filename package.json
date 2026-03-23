@@ -5,6 +5,7 @@
     "build": "node scripts/generate-posts-json.mjs && node scripts/build-planocorrida.mjs",
     "dev": "netlify dev --context dev --no-open --port 8888 --functions-port 9999",
     "dev:offline": "netlify dev --offline --context dev --no-open --port 8888 --functions-port 9999",
+    "dev:planocorrida": "cd aer-frontend-main && VITE_ROUTER_BASENAME=/planocorrida VITE_ASSET_BASE_PATH=/planocorrida/ npm run dev -- --host 127.0.0.1 --port 5173",
     "migrate:posts": "node scripts/migrate-posts-to-db.mjs"
   },
   "devDependencies": {

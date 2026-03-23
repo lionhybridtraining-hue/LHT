@@ -646,7 +646,8 @@ if(document.readyState === 'loading'){
       }
       // Meta Pixel (fbq)
       if(typeof window.fbq === 'function'){
-        window.fbq('track','PageView');
+        const eventID = 'PageView_' + Date.now() + '_' + Math.random().toString(36).slice(2, 9);
+        window.fbq('track','PageView', {}, { eventID });
       }
       // Plausible
       else if(typeof window.plausible === 'function'){
@@ -717,13 +718,14 @@ if(document.readyState === 'loading'){
       if(typeof window.gtag === 'function'){
         window.gtag('event', ga.event, ga.params);
       }
-      // Meta Pixel custom events
+      // Meta Pixel custom events (with eventID for CAPI deduplication)
       if(typeof window.fbq === 'function'){
+        const eventID = name + '_' + Date.now() + '_' + Math.random().toString(36).slice(2, 9);
         const mapped = FB_STANDARD_EVENT_MAP[name];
         if(mapped){
-          window.fbq('track', mapped.event, Object.assign({}, meta, mapped.params));
+          window.fbq('track', mapped.event, Object.assign({}, meta, mapped.params), { eventID });
         } else {
-          window.fbq('trackCustom', name, meta);
+          window.fbq('trackCustom', name, meta, { eventID });
         }
       } else if(typeof window.plausible === 'function'){
         window.plausible(ga.event, { props: ga.params });

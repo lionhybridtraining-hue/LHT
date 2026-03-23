@@ -1,12 +1,11 @@
 const { json } = require("./_lib/http");
 const { getConfig } = require("./_lib/config");
-const { requireRole } = require("./_lib/authz");
+const { requireAuthenticatedUser } = require("./_lib/authz");
 const {
   getStrengthPlanFull,
   getStrengthLogs,
   getAthlete1rmLatest,
-  verifyCoachOwnsAthlete,
-  getStrengthPlanById
+  verifyCoachOwnsAthlete
 } = require("./_lib/supabase");
 const { resolveLoad, resolveReps, calculateStimulatingReps, calculateTUT, calculatePlyoLoad } = require("./_lib/strength");
 
@@ -16,8 +15,15 @@ exports.handler = async (event) => {
   }
 
   const config = getConfig();
-  const auth = await requireRole(event, config, "coach");
+  const auth = await requireAuthenticatedUser(event, config);
   if (auth.error) return auth.error;
+
+  const roles = Array.isArray(auth.roles) ? auth.roles : [];
+  const isCoach = roles.includes("coach");
+  const isAdmin = roles.includes("admin");
+  if (!isCoach && !isAdmin) {
+    return json(403, { error: "Forbidden" });
+  }
 
   const qs = event.queryStringParameters || {};
   if (!qs.athleteId || !qs.planId) {
@@ -25,10 +31,13 @@ exports.handler = async (event) => {
   }
 
   try {
-    await verifyCoachOwnsAthlete(config, auth.user.sub, qs.athleteId);
+    if (!isAdmin) {
+      const owns = await verifyCoachOwnsAthlete(config, auth.user.sub, qs.athleteId);
+      if (!owns) return json(403, { error: "Forbidden" });
+    }
 
     const full = await getStrengthPlanFull(config, qs.planId);
-    if (!full || full.plan.athlete_id !== qs.athleteId) {
+    if (!full) {
       return json(404, { error: "Plan not found" });
     }
 

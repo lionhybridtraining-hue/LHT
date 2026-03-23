@@ -7,6 +7,7 @@ const {
   updateStripePurchasesByPaymentIntentId,
   getTrainingProgramById
 } = require("./_lib/supabase");
+const { sendCAPIEvent, buildUserData } = require("./_lib/meta-capi");
 
 async function sendGaPurchase({ measurementId, apiSecret, transactionId, value, currency, items }) {
   if (!measurementId || !apiSecret) return { ok: false, reason: "missing_ga_config" };
@@ -118,8 +119,10 @@ exports.handler = async (event) => {
     const stripeEvent = stripe.webhooks.constructEvent(payload, signature, config.stripeWebhookSecret);
 
     if (stripeEvent.type === "checkout.session.completed") {
-      const result = await handleCheckoutCompleted(config, stripe, stripeEvent.data.object);
+      const session = stripeEvent.data.object;
+      const result = await handleCheckoutCompleted(config, stripe, session);
       let ga = null;
+      let capi = null;
       if (result.persisted && result.record) {
         ga = await sendGaPurchase({
           measurementId: process.env.GA_MEASUREMENT_ID,
@@ -129,8 +132,32 @@ exports.handler = async (event) => {
           currency: result.record.currency,
           items: buildGaItems(result.program)
         });
+
+        // Meta Conversions API — Purchase event
+        const meta = session.metadata || {};
+        const customerEmail = session.customer_details && session.customer_details.email;
+        const customerPhone = session.customer_details && session.customer_details.phone;
+        capi = await sendCAPIEvent(config, {
+          event_name: "Purchase",
+          event_time: Math.floor(Date.now() / 1000),
+          event_id: `purchase_${session.id}`,
+          event_source_url: meta.event_source_url || `${config.siteUrl}/programas.html`,
+          action_source: "website",
+          user_data: buildUserData({
+            email: customerEmail,
+            phone: customerPhone,
+            fbp: meta.fbp || undefined,
+            fbc: meta.fbc || undefined
+          }),
+          custom_data: {
+            value: (result.record.amount_cents || 0) / 100,
+            currency: (result.record.currency || "EUR").toUpperCase(),
+            content_ids: [result.program ? (result.program.external_id || result.program.id) : "purchase"],
+            content_type: "product"
+          }
+        });
       }
-      return json(200, { received: true, type: stripeEvent.type, result, ga });
+      return json(200, { received: true, type: stripeEvent.type, result, ga, capi: capi ? { ok: capi.ok } : null });
     }
 
     if (stripeEvent.type === "invoice.paid") {
