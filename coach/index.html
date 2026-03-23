@@ -1022,6 +1022,20 @@
     </div>
   </div>
 
+  <!-- Check-in Detail Modal -->
+  <div id="checkinDetailModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="checkinDetailTitle">
+    <div class="modal" style="max-width:640px; max-height:90vh; overflow-y:auto;">
+      <h3 id="checkinDetailTitle">Detalhe do check-in</h3>
+      <div id="checkinDetailBody" style="font-size:14px;">
+        <p class="microcopy">A carregar...</p>
+      </div>
+      <div class="modal-actions" style="margin-top:12px;">
+        <button id="checkinApproveBtn" class="btn btn-primary" type="button" disabled>Aprovar</button>
+        <button id="checkinDetailCloseBtn" class="btn btn-secondary" type="button">Fechar</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const athleteSearchInput = document.getElementById("athleteSearch");
     const filterPayingOnly = document.getElementById("filterPayingOnly");
@@ -1059,6 +1073,11 @@
     const openAddAthleteModalButton = document.getElementById("openAddAthleteModal");
     const cancelAddAthleteButton = document.getElementById("cancelAddAthlete");
     const addAthleteForm = document.getElementById("addAthleteForm");
+
+    const checkinDetailModal = document.getElementById("checkinDetailModal");
+    const checkinDetailBody = document.getElementById("checkinDetailBody");
+    const checkinApproveBtn = document.getElementById("checkinApproveBtn");
+    const checkinDetailCloseBtn = document.getElementById("checkinDetailCloseBtn");
     const newAthleteNameInput = document.getElementById("newAthleteName");
     const newAthleteEmailInput = document.getElementById("newAthleteEmail");
     const createAthleteButton = document.getElementById("createAthleteButton");
@@ -1384,6 +1403,12 @@
                   : ""
                 }
               </div>
+              ${isLocked ? `<button
+                type="button"
+                class="btn btn-secondary checkin-detail-btn"
+                data-checkin-id="${escapeHtml(checkin.id || "")}"
+                style="padding:6px 10px; font-size:12px;"
+              >Ver detalhe</button>` : ""}
               <button
                 type="button"
                 class="btn btn-secondary checkin-cancel-btn"
@@ -1538,6 +1563,158 @@
         showResult(`Erro: ${escapeHtml(error.message || "nao foi possivel reemitir o link")}`, "error");
       }
     }
+
+    // --- Check-in Detail Modal ---
+    let currentCheckinDetail = null;
+
+    function closeCheckinDetail() {
+      checkinDetailModal.classList.add("hidden");
+      currentCheckinDetail = null;
+    }
+
+    function renderCheckinDetailBody(c) {
+      const questions = Array.isArray(c.ai_questions) ? c.ai_questions : [];
+      const answers = c.athlete_answers && typeof c.athlete_answers === "object" ? c.athlete_answers : {};
+      const analysis = c.ai_analysis && typeof c.ai_analysis === "object" ? c.ai_analysis : {};
+      const athlete = c.athletes || {};
+      const hasStrength = Boolean(c.has_strength_manual_confirmation);
+      const done = Number.isInteger(c.strength_planned_done_count) ? c.strength_planned_done_count : 0;
+      const notDone = Number.isInteger(c.strength_planned_not_done_count) ? c.strength_planned_not_done_count : 0;
+
+      const statusBadge = `<span style="padding:2px 8px;border-radius:4px;font-size:12px;background:${
+        c.status === "approved" ? "rgba(40,167,69,0.2);color:#5cb85c" :
+        c.status === "pending_coach" ? "rgba(200,164,21,0.2);color:#c8a415" :
+        "rgba(108,117,125,0.2);color:#aaa"
+      };">${escapeHtml(c.status || "-")}</span>`;
+
+      let qaHtml = "";
+      questions.forEach((q, i) => {
+        const key = `q_${i + 1}`;
+        const ans = answers[key] || "";
+        qaHtml += `
+          <div style="margin-bottom:10px;">
+            <div style="font-weight:600;color:var(--gold);font-size:13px;">P${i + 1}: ${escapeHtml(q)}</div>
+            <div style="margin-top:4px;white-space:pre-wrap;">${escapeHtml(ans) || "<em style='opacity:0.5;'>Sem resposta</em>"}</div>
+          </div>`;
+      });
+      if (answers.extra) {
+        qaHtml += `
+          <div style="margin-bottom:10px;">
+            <div style="font-weight:600;color:var(--gold);font-size:13px;">Contexto extra</div>
+            <div style="margin-top:4px;white-space:pre-wrap;">${escapeHtml(answers.extra)}</div>
+          </div>`;
+      }
+
+      const adjustments = Array.isArray(analysis.adjustments) ? analysis.adjustments : [];
+      const adjustmentsHtml = adjustments.length
+        ? `<ul style="margin:4px 0 0 16px;">${adjustments.map(a => `<li>${escapeHtml(a)}</li>`).join("")}</ul>`
+        : "<em style='opacity:0.5;'>Sem ajustes sugeridos.</em>";
+
+      const isApproved = c.status === "approved";
+      const isPendingCoach = c.status === "pending_coach";
+
+      return `
+        <div style="margin-bottom:12px;">
+          <strong>Semana: ${escapeHtml(c.week_start || "-")}</strong> ${statusBadge}
+          ${athlete.name ? `<span style="margin-left:8px;opacity:0.7;">· ${escapeHtml(athlete.name)}</span>` : ""}
+        </div>
+
+        <details open style="margin-bottom:12px;">
+          <summary style="cursor:pointer;font-weight:600;">Resumo do treino</summary>
+          <div style="margin-top:6px;white-space:pre-wrap;font-size:13px;">${escapeHtml(c.training_summary || "Sem resumo.")}</div>
+        </details>
+
+        ${hasStrength ? `
+        <details style="margin-bottom:12px;">
+          <summary style="cursor:pointer;font-weight:600;">Forca</summary>
+          <div style="margin-top:6px;font-size:13px;">
+            Feitas: ${done} · Nao feitas: ${notDone}
+            ${c.coach_strength_feedback ? `<div style="margin-top:4px;white-space:pre-wrap;">${escapeHtml(c.coach_strength_feedback)}</div>` : ""}
+          </div>
+        </details>
+        ` : ""}
+
+        <details open style="margin-bottom:12px;">
+          <summary style="cursor:pointer;font-weight:600;">Perguntas & Respostas</summary>
+          <div style="margin-top:6px;">${qaHtml || "<em style='opacity:0.5;'>Sem perguntas.</em>"}</div>
+        </details>
+
+        <details style="margin-bottom:12px;">
+          <summary style="cursor:pointer;font-weight:600;">Analise IA</summary>
+          <div style="margin-top:6px;font-size:13px;">
+            <div style="font-weight:600;margin-bottom:4px;">Alinhamento</div>
+            <div style="white-space:pre-wrap;">${escapeHtml(analysis.alignment || "Sem analise.")}</div>
+            <div style="font-weight:600;margin:8px 0 4px;">Ajustes sugeridos</div>
+            ${adjustmentsHtml}
+          </div>
+        </details>
+
+        <div style="margin-bottom:4px;">
+          <label for="checkinFinalFeedback" style="font-weight:600;display:block;margin-bottom:4px;">Feedback final${isApproved ? " (aprovado)" : ""}</label>
+          <textarea id="checkinFinalFeedback"
+            style="width:100%;min-height:120px;background:var(--bg-card);border:1px solid var(--line);border-radius:var(--radius-md);padding:8px;color:var(--text);font-size:13px;resize:vertical;"
+            ${isApproved ? "disabled" : ""}
+          >${escapeHtml(c.final_feedback || "")}</textarea>
+        </div>
+
+        ${c.responded_at ? `<div style="font-size:11px;opacity:0.6;margin-top:4px;">Respondido: ${new Date(c.responded_at).toLocaleString("pt-PT")}</div>` : ""}
+        ${c.approved_at ? `<div style="font-size:11px;opacity:0.6;">Aprovado: ${new Date(c.approved_at).toLocaleString("pt-PT")}</div>` : ""}
+      `;
+    }
+
+    async function openCheckinDetail(checkinId) {
+      if (!checkinId) return;
+
+      checkinDetailBody.innerHTML = "<p class='microcopy'>A carregar...</p>";
+      checkinApproveBtn.disabled = true;
+      checkinDetailModal.classList.remove("hidden");
+
+      try {
+        const data = await apiRequest("GET", `/.netlify/functions/get-checkin?checkinId=${encodeURIComponent(checkinId)}`);
+        currentCheckinDetail = data.checkin;
+        checkinDetailBody.innerHTML = renderCheckinDetailBody(currentCheckinDetail);
+        checkinApproveBtn.disabled = currentCheckinDetail.status !== "pending_coach";
+      } catch (error) {
+        checkinDetailBody.innerHTML = `<p style="color:#e74c3c;">Erro ao carregar detalhe: ${escapeHtml(error.message)}</p>`;
+      }
+    }
+
+    async function approveCheckin() {
+      if (!currentCheckinDetail) return;
+
+      const feedbackEl = document.getElementById("checkinFinalFeedback");
+      const finalFeedback = feedbackEl ? feedbackEl.value.trim() : "";
+
+      if (!finalFeedback) {
+        showResult("Escreve ou confirma o feedback final antes de aprovar.", "error");
+        return;
+      }
+
+      checkinApproveBtn.disabled = true;
+      checkinApproveBtn.textContent = "A aprovar...";
+
+      try {
+        await apiRequest("POST", "/.netlify/functions/approve-checkin", {
+          checkinId: currentCheckinDetail.id,
+          finalFeedback
+        });
+
+        showResult("Check-in aprovado com sucesso.", "success");
+        closeCheckinDetail();
+        await loadCheckinsForAthlete(selectedAthleteId);
+      } catch (error) {
+        showResult(`Erro ao aprovar: ${escapeHtml(error.message)}`, "error");
+        checkinApproveBtn.disabled = false;
+      } finally {
+        checkinApproveBtn.textContent = "Aprovar";
+      }
+    }
+
+    checkinApproveBtn.addEventListener("click", approveCheckin);
+    checkinDetailCloseBtn.addEventListener("click", closeCheckinDetail);
+    checkinDetailModal.addEventListener("click", (event) => {
+      if (event.target === checkinDetailModal) closeCheckinDetail();
+    });
 
     function renderAthleteOptions(filteredAthletes) {
       const list = Array.isArray(filteredAthletes) ? filteredAthletes : athletes;
@@ -1778,6 +1955,12 @@
     checkinsContainer.addEventListener("click", (event) => {
       const target = event.target;
       if (!(target instanceof HTMLElement)) {
+        return;
+      }
+
+      if (target.classList.contains("checkin-detail-btn")) {
+        const checkinId = target.getAttribute("data-checkin-id") || "";
+        openCheckinDetail(checkinId);
         return;
       }
 

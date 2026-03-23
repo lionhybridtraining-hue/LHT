@@ -376,6 +376,15 @@ async function listWeeklyCheckinsByAthlete(config, athleteId) {
   });
 }
 
+async function getWeeklyCheckinDetail(config, checkinId) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `weekly_checkins?id=eq.${encodeURIComponent(checkinId)}&select=*,athletes(id,name,email)&limit=1`
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
 async function updateWeeklyCheckin(config, id, patch) {
   const rows = await supabaseRequest({
     url: config.supabaseUrl,
@@ -1468,6 +1477,7 @@ module.exports = {
   getWeeklyCheckinById,
   getWeeklyCheckinByBatch,
   listWeeklyCheckinsByAthlete,
+  getWeeklyCheckinDetail,
   updateWeeklyCheckin,
   listPublishedBlogArticles,
   getPublishedBlogArticleBySlug,

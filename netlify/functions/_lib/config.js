@@ -21,7 +21,9 @@ function getConfig() {
     metaAppSecret: process.env.META_APP_SECRET || "",
     metaPageAccessToken: process.env.META_PAGE_ACCESS_TOKEN || "",
     metaCapiAccessToken: process.env.META_CAPI_ACCESS_TOKEN || "",
-    metaDatasetId: process.env.META_DATASET_ID || ""
+    metaDatasetId: process.env.META_DATASET_ID || "",
+    resendApiKey: process.env.RESEND_API_KEY || "",
+    emailFrom: process.env.EMAIL_FROM || "Lion Hybrid Training <noreply@lionhybridtraining.com>"
   };
 }
 
