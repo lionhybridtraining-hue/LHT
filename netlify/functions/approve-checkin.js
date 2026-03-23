@@ -53,16 +53,23 @@ exports.handler = async (event) => {
       approved_at: new Date().toISOString()
     });
 
-    // Fire-and-forget email — do not block response
+    // Await email — sendEmail handles errors internally and won't throw.
+    // Fire-and-forget is unreliable in serverless: the process exits before the promise resolves.
     const athlete = await getAthleteById(config, checkin.athlete_id);
     if (athlete && athlete.email) {
       const { subject, html } = buildCheckinApprovedEmail({
         athleteName: athlete.name || "",
         weekStart: checkin.week_start || ""
       });
-      sendEmail(config, { to: athlete.email, subject, html }).catch((err) =>
-        console.error("[approve-checkin] Email error:", err)
-      );
+      console.log(`[approve-checkin] Sending email to ${athlete.email} for checkin ${checkin.id}`);
+      const emailResult = await sendEmail(config, { to: athlete.email, subject, html });
+      if (emailResult) {
+        console.log(`[approve-checkin] Email sent successfully, id: ${emailResult.id}`);
+      } else {
+        console.warn("[approve-checkin] Email not sent (no result — check RESEND_API_KEY and EMAIL_FROM).");
+      }
+    } else {
+      console.warn(`[approve-checkin] No athlete email found for athlete_id ${checkin.athlete_id} — skipping email.`);
     }
 
     return json(200, {
