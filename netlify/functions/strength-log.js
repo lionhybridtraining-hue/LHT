@@ -7,7 +7,10 @@ const {
   getStrengthLogs,
   insertAthlete1rm,
   getActiveInstanceForAthlete,
-  getStrengthPlanExercisesByIds
+  getStrengthPlanExercisesByIds,
+  createStrengthLogSession,
+  updateStrengthLogSession,
+  getStrengthLogSession
 } = require("./_lib/supabase");
 const { estimate1rm } = require("./_lib/strength");
 
@@ -36,15 +39,57 @@ exports.handler = async (event) => {
       return json(200, { logs: logs || [] });
     }
 
-    // POST — submit log sets
+    // POST — submit log sets or manage sessions
     if (event.httpMethod === "POST") {
       const body = parseJsonBody(event);
-      if (!body.plan_id || !body.sets || !body.sets.length) {
-        return json(400, { error: "plan_id and sets[] are required" });
-      }
 
       const athlete = await getAthleteByIdentity(config, identityId);
       if (!athlete) return json(404, { error: "Athlete not found" });
+
+      // ── Session management actions ──
+      if (body.action === "start_session") {
+        if (!body.plan_id || !body.week_number || !body.day_number) {
+          return json(400, { error: "plan_id, week_number, and day_number are required" });
+        }
+        const activeInstance = await getActiveInstanceForAthlete(config, athlete.id);
+        const session = await createStrengthLogSession(config, {
+          athlete_id: athlete.id,
+          instance_id: (activeInstance && activeInstance.plan_id === body.plan_id) ? activeInstance.id : null,
+          plan_id: body.plan_id,
+          week_number: body.week_number,
+          day_number: body.day_number,
+          session_date: body.session_date || new Date().toISOString().slice(0, 10),
+          status: "in_progress"
+        });
+        return json(201, { session });
+      }
+
+      if (body.action === "finish_session") {
+        if (!body.session_id) return json(400, { error: "session_id is required" });
+        const existing = await getStrengthLogSession(config, body.session_id);
+        if (!existing || existing.athlete_id !== athlete.id) return json(404, { error: "Session not found" });
+        const session = await updateStrengthLogSession(config, body.session_id, {
+          finished_at: new Date().toISOString(),
+          status: "completed"
+        });
+        return json(200, { session });
+      }
+
+      if (body.action === "cancel_session") {
+        if (!body.session_id) return json(400, { error: "session_id is required" });
+        const existing = await getStrengthLogSession(config, body.session_id);
+        if (!existing || existing.athlete_id !== athlete.id) return json(404, { error: "Session not found" });
+        const session = await updateStrengthLogSession(config, body.session_id, {
+          cancelled_at: new Date().toISOString(),
+          status: "cancelled"
+        });
+        return json(200, { session });
+      }
+
+      // ── Log sets ──
+      if (!body.plan_id || !body.sets || !body.sets.length) {
+        return json(400, { error: "plan_id and sets[] are required" });
+      }
 
       // Resolve the athlete's active instance for this plan (if any)
       const activeInstance = await getActiveInstanceForAthlete(config, athlete.id);
@@ -57,6 +102,7 @@ exports.handler = async (event) => {
         plan_exercise_id: s.plan_exercise_id || null,
         plan_id: body.plan_id,
         instance_id: instanceId,
+        session_id: body.session_id || null,
         week_number: s.week_number,
         day_number: s.day_number,
         session_date: s.session_date || new Date().toISOString().slice(0, 10),

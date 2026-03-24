@@ -93,12 +93,18 @@
       align-items: center;
       justify-content: space-between;
       gap: 16px;
-      margin-bottom: 24px;
       padding: 14px 18px;
       border: 1px solid var(--line);
       border-radius: 999px;
       background: rgba(17, 17, 17, 0.74);
       backdrop-filter: blur(14px);
+    }
+
+    .top-bar {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      margin-bottom: 24px;
     }
 
     .brand { display: flex; align-items: center; gap: 14px; }
@@ -161,6 +167,7 @@
       box-shadow: var(--shadow);
       overflow: hidden;
     }
+    .panel.main-panel { overflow: visible; }
 
     .panel::before {
       content: "";
@@ -293,6 +300,12 @@
     }
 
     input::placeholder { color: #7b756b; }
+
+    select option,
+    select optgroup {
+      color: #17120c;
+      background: #f4efe6;
+    }
 
     input:focus,
     select:focus,
@@ -497,6 +510,9 @@
       gap: 8px;
     }
 
+    .layout.full-width-mode { grid-template-columns: 1fr; }
+    .layout.full-width-mode > .side-panel { display: none; }
+
     @media (max-width: 980px) {
       .layout { grid-template-columns: 1fr; }
     }
@@ -580,6 +596,14 @@
 
     /* ── Strength Planning ── */
     .btn-small { padding:4px 10px; font-size:12px; border-radius:8px; }
+    .save-area { display:inline-flex; align-items:center; gap:6px; margin-left:auto; }
+    .save-area .save-status { font-size:11px; transition:opacity .3s; }
+    .save-area .save-status.pending  { color:var(--warning, #f59e0b); opacity:1; }
+    .save-area .save-status.saving   { color:var(--text-2, #888); opacity:1; }
+    .save-area .save-status.saved    { color:var(--success, #22c55e); opacity:1; }
+    .save-area .save-status.error    { color:var(--danger, #ef4444); opacity:1; }
+    .save-area .save-status.idle     { opacity:0; }
+    #strSaveBtn { min-width:70px; }
     .btn-ghost { background:transparent; border:1px solid var(--line-strong); color:var(--text-soft); }
     .btn-ghost:hover { background:var(--gold-faint); }
 
@@ -601,34 +625,51 @@
 
     .coach-tabs {
       display: flex;
-      gap: 8px;
-      margin-bottom: 12px;
-      flex-wrap: wrap;
+      gap: 0;
+      padding: 0;
+      border-bottom: 2px solid var(--line);
+      background: rgba(12,12,12,0.97);
+      backdrop-filter: blur(10px);
+      border-radius: 0 0 var(--radius-md) var(--radius-md);
     }
 
     .coach-tab-btn {
-      border: 1px solid var(--line);
-      background: var(--surface-2);
-      color: var(--text-soft);
-      border-radius: 999px;
-      padding: 8px 14px;
-      font-size: 13px;
+      position: relative;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      padding: 16px 28px;
+      font-size: 14px;
+      font-family: "Oswald", sans-serif;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: color 0.2s ease;
+      white-space: nowrap;
     }
 
     .coach-tab-btn:hover {
-      border-color: var(--line-strong);
       color: var(--text);
     }
 
     .coach-tab-btn.active {
-      background: var(--gold);
-      color: #101010;
-      border-color: var(--gold);
-      font-weight: 700;
+      color: var(--gold);
+      font-weight: 600;
     }
-    .str-section-header .phase-note { font-size:11px; color:var(--muted); max-width:400px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+    .coach-tab-btn.active::after {
+      content: "";
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--gold);
+    }
+    .str-section-header .phase-note { font-size:11px; color:var(--muted); max-width:400px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer; border-bottom:1px dashed transparent; padding:2px 4px; border-radius:3px; min-width:60px; }
+    .str-section-header .phase-note:hover { border-bottom-color:var(--muted); background:rgba(255,255,255,0.04); }
+    .str-section-header .phase-note:empty::before { content:"+ nota"; color:var(--muted); opacity:0.5; font-style:italic; }
+    .str-section-header .phase-note-input { font-size:11px; background:var(--surface); color:var(--text); border:1px solid var(--gold); border-radius:3px; padding:2px 4px; width:300px; outline:none; }
 
     .str-table-wrap {
       overflow-x:auto; border:1px solid var(--line-strong);
@@ -670,11 +711,41 @@
     .onerm-add-row .field { margin:0; }
     .onerm-add-row input, .onerm-add-row select { padding:6px 8px; font-size:13px; border:1px solid var(--line); border-radius:4px; background:rgba(255,255,255,0.06); color:var(--text); font-family:inherit; }
     .onerm-add-row input:focus, .onerm-add-row select:focus { border-color:var(--gold); outline:none; }
+    .onerm-exercise-picker { margin-top:12px; padding-top:12px; border-top:1px solid var(--line); }
+    .onerm-exercise-picker .onerm-picker-filters { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:6px; }
+    .onerm-exercise-picker .onerm-picker-filters input,
+    .onerm-exercise-picker .onerm-picker-filters select { padding:6px 8px; font-size:13px; border:1px solid var(--line); border-radius:4px; background:rgba(255,255,255,0.06); color:var(--text); font-family:inherit; flex:1; min-width:120px; }
+    .onerm-exercise-picker .onerm-picker-filters input:focus,
+    .onerm-exercise-picker .onerm-picker-filters select:focus { border-color:var(--gold); outline:none; }
+    .onerm-picker-list { max-height:160px; overflow-y:auto; border:1px solid var(--line); border-radius:4px; }
+    .onerm-picker-item { padding:6px 10px; cursor:pointer; border-bottom:1px solid rgba(255,255,255,0.04); font-size:13px; display:flex; justify-content:space-between; align-items:center; }
+    .onerm-picker-item:hover { background:rgba(255,255,255,0.06); }
+    .onerm-picker-item.selected { background:var(--gold); color:var(--bg); font-weight:600; }
+    .onerm-picker-item .ex-meta { font-size:10px; color:var(--muted); }
+    .onerm-picker-item.selected .ex-meta { color:var(--bg); opacity:0.7; }
+
+    .reps-dur-cell { display:flex; align-items:center; gap:2px; }
+    .reps-dur-cell input { flex:1; min-width:0; }
+    .reps-dur-toggle { background:none; border:1px solid var(--line); border-radius:3px; color:var(--muted); cursor:pointer; font-size:9px; padding:2px 4px; line-height:1; white-space:nowrap; flex-shrink:0; }
+    .reps-dur-toggle:hover { color:var(--gold); border-color:var(--gold); }
+
+    /* Exercise CRUD list */
+    .ex-crud-table { width:100%; border-collapse:collapse; font-size:13px; }
+    .ex-crud-table th { padding:8px 10px; text-align:left; font-weight:600; color:var(--gold); border-bottom:1px solid var(--line-strong); font-size:11px; text-transform:uppercase; letter-spacing:0.04em; position:sticky; top:0; background:var(--surface); }
+    .ex-crud-table td { padding:6px 10px; border-bottom:1px solid var(--line); vertical-align:middle; }
+    .ex-crud-table tr:hover td { background:rgba(255,255,255,0.03); }
+    .ex-crud-table .ex-cat-badge { font-size:10px; padding:2px 6px; border-radius:4px; background:rgba(255,255,255,0.08); color:var(--text-soft); white-space:nowrap; }
+    .ex-crud-table .ex-video-link { color:var(--gold); text-decoration:none; font-size:11px; }
+    .ex-crud-table .ex-video-link:hover { text-decoration:underline; }
+    .ex-crud-empty { padding:40px 20px; text-align:center; color:var(--muted); font-size:14px; }
 
     .superset-A { border-left:3px solid #6fc; }
     .superset-B { border-left:3px solid #f9c; }
     .superset-C { border-left:3px solid #9cf; }
     .superset-D { border-left:3px solid #fc9; }
+    .superset-E { border-left:3px solid #c9f; }
+    .superset-F { border-left:3px solid #9fc; }
+    .superset-G { border-left:3px solid #cf9; }
 
     .vol-metric { display:flex; flex-direction:column; align-items:center; }
     .vol-label { font-size:10px; color:var(--muted); text-transform:uppercase; }
@@ -703,7 +774,8 @@
   </section>
 
   <div id="protected-content" class="page-shell" hidden>
-    <header class="brandbar">
+    <header class="top-bar">
+    <div class="brandbar">
       <div class="brand">
         <img src="../assets/img/logo-lht.png" alt="Lion Hybrid Training" />
         <div>
@@ -721,6 +793,14 @@
           </div>
         </div>
       </div>
+    </div>
+
+    <div class="coach-tabs" id="coachTabs">
+      <button class="coach-tab-btn active" type="button" data-coach-tab="athlete">Atleta</button>
+      <button class="coach-tab-btn" type="button" data-coach-tab="general">Geral</button>
+      <button class="coach-tab-btn" type="button" data-coach-tab="strength">Treino de Força</button>
+      <button class="coach-tab-btn" type="button" data-coach-tab="exercises">Exercícios</button>
+    </div>
     </header>
 
     <main class="layout">
@@ -751,12 +831,6 @@
           </div>
         </div>
 
-        <div class="coach-tabs" id="coachTabs">
-          <button class="coach-tab-btn active" type="button" data-coach-tab="athlete">Atleta</button>
-          <button class="coach-tab-btn" type="button" data-coach-tab="general">Geral</button>
-          <button class="coach-tab-btn" type="button" data-coach-tab="strength">Treino de Força</button>
-        </div>
-
         <section class="section-card coach-tab-section" data-coach-tab="athlete">
           <div style="display:flex; justify-content:space-between; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:10px;">
             <h3 class="section-title" style="margin:0;">Atletas do sistema</h3>
@@ -783,7 +857,8 @@
             </div>
           </div>
           <p id="athleteFilterMeta" class="microcopy">A lista é carregada do Supabase.</p>
-  <button id="openOneRmModal" class="btn btn-secondary" type="button" style="margin-top:10px;" disabled>Gerir 1RM do atleta</button>
+          <button id="openOneRmModal" class="btn btn-secondary" type="button" style="margin-top:10px;" disabled>Gerir 1RM do atleta</button>
+        </section>
 
         <section class="section-card coach-tab-section" data-coach-tab="athlete">
           <div style="display:flex; justify-content:space-between; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:10px;">
@@ -908,8 +983,8 @@
 
           <div id="strengthNoPlan" class="microcopy">Nenhum plano selecionado.</div>
 
-          <!-- Plan header (hidden until plan selected) -->
-          <div id="strengthPlanHeader" hidden style="margin-bottom:12px;">
+          <!-- Plan header -->
+          <div id="strengthPlanHeader" style="margin-bottom:12px;">
             <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:8px;">
               <span id="strengthPlanName" style="font-weight:600;"></span>
               <span id="strengthPlanStatus" class="status-badge"></span>
@@ -918,6 +993,10 @@
               <button class="btn btn-small" id="activatePlanBtn" hidden>Ativar</button>
               <button class="btn btn-small btn-ghost" id="archivePlanBtn" hidden>Arquivar</button>
               <button class="btn btn-small" id="assignPlanBtn" hidden>Atribuir a Atleta</button>
+              <span class="save-area">
+                <span id="strSaveStatus" class="save-status idle"></span>
+                <button class="btn btn-small btn-primary" id="strSaveBtn" title="Guardar alterações (Ctrl+S)">💾 Guardar</button>
+              </span>
             </div>
 
             <!-- Active instances for this plan -->
@@ -934,7 +1013,7 @@
           </div>
 
           <!-- Day view container (5 sections) -->
-          <div id="strengthDayView" hidden>
+          <div id="strengthDayView">
             <div id="strengthSections"></div>
 
             <!-- Volume summary panel -->
@@ -947,6 +1026,29 @@
               <div class="vol-metric"><span class="vol-label">Plyo Load</span><span id="volPlyoLoad" class="vol-value">—</span></div>
             </div>
           </div>
+        </section>
+
+        <!-- ── Gestão de Exercícios ── -->
+        <section class="section-card coach-tab-section" id="exercisesSection" data-coach-tab="exercises" hidden>
+          <div style="display:flex; justify-content:space-between; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:12px;">
+            <h3 class="section-title" style="margin:0;">Catálogo de Exercícios</h3>
+            <button class="btn btn-small btn-primary" id="newExerciseBtn">+ Novo Exercício</button>
+          </div>
+          <div style="display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap;">
+            <input id="exCrudSearch" placeholder="Pesquisar..." style="flex:2; min-width:180px;" />
+            <select id="exCrudCatFilter" style="flex:1; min-width:140px;">
+              <option value="">Todas categorias</option>
+              <option value="main_movements">Main Movements</option>
+              <option value="core">Core</option>
+              <option value="hypertrophy">Hypertrophy</option>
+              <option value="rfd">RFD</option>
+              <option value="mobility_activation">Mobility/Activation</option>
+            </select>
+            <select id="exCrudSubcatFilter" style="flex:1; min-width:140px;">
+              <option value="">Todas subcategorias</option>
+            </select>
+          </div>
+          <div id="exCrudList"></div>
         </section>
 
         <div id="result" class="result" hidden></div>
@@ -1077,6 +1179,67 @@
   </div>
 
   <!-- Check-in Detail Modal -->
+  <!-- Exercise CRUD Modal -->
+  <div id="exerciseCrudModal" class="modal-backdrop hidden" role="dialog" aria-modal="true">
+    <div class="modal" style="max-width:560px;">
+      <h3 id="exCrudModalTitle">Novo Exercício</h3>
+      <form id="exerciseCrudForm">
+        <input type="hidden" id="exCrudEditId" value="" />
+        <div class="form-grid">
+          <div class="field" style="grid-column:1/-1;">
+            <label for="exCrudName">Nome *</label>
+            <input id="exCrudName" required placeholder="Ex.: Back Squat" />
+          </div>
+          <div class="field">
+            <label for="exCrudCategory">Categoria</label>
+            <select id="exCrudCategory">
+              <option value="">—</option>
+              <option value="main_movements">Main Movements</option>
+              <option value="core">Core</option>
+              <option value="hypertrophy">Hypertrophy</option>
+              <option value="rfd">RFD</option>
+              <option value="mobility_activation">Mobility/Activation</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="exCrudSubcategory">Subcategoria</label>
+            <input id="exCrudSubcategory" placeholder="Ex.: squat" />
+          </div>
+          <div class="field" style="grid-column:1/-1;">
+            <label for="exCrudVideoUrl">URL de vídeo (instruções)</label>
+            <input id="exCrudVideoUrl" type="url" placeholder="https://youtube.com/..." />
+          </div>
+          <div class="field" style="grid-column:1/-1;">
+            <label for="exCrudDescription">Descrição / Instruções</label>
+            <textarea id="exCrudDescription" rows="3" placeholder="Notas de execução, cues, ..."></textarea>
+          </div>
+          <div class="field">
+            <label for="exCrudWeightPerSide">Peso por lado (default)</label>
+            <select id="exCrudWeightPerSide">
+              <option value="false">Não</option>
+              <option value="true">Sim</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="exCrudEachSide">Cada lado (default)</label>
+            <select id="exCrudEachSide">
+              <option value="false">Não</option>
+              <option value="true">Sim</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="exCrudTempo">Tempo default</label>
+            <input id="exCrudTempo" placeholder="3-1-X-0" />
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-primary" type="submit" id="exCrudSaveBtn">Criar</button>
+          <button class="btn btn-secondary" type="button" id="exCrudCancelBtn">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- 1RM Management Modal -->
   <div id="oneRmModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="oneRmTitle">
     <div class="modal" style="max-width:700px; max-height:90vh; overflow-y:auto;">
@@ -1085,14 +1248,41 @@
       <div id="oneRmContent">
         <p class="onerm-empty">Seleciona um atleta para ver os 1RM.</p>
       </div>
-      <div class="onerm-add-row" id="oneRmAddRow" style="display:none;">
-        <div class="field">
-          <label for="oneRmExerciseSelect" style="font-size:11px;">Exercício</label>
-          <select id="oneRmExerciseSelect" style="min-width:180px;"></select>
+      <div class="onerm-exercise-picker" id="oneRmExercisePicker" style="display:none;">
+        <label style="font-size:11px; font-weight:600; display:block; margin-bottom:6px;">Exercício</label>
+        <div class="onerm-picker-filters">
+          <input id="oneRmExSearchInput" type="text" placeholder="Pesquisar exercício..." />
+          <select id="oneRmExCatFilter">
+            <option value="">Todas categorias</option>
+            <option value="main_movements">Main Movements</option>
+            <option value="core">Core</option>
+            <option value="hypertrophy">Hypertrophy</option>
+            <option value="rfd">RFD</option>
+            <option value="mobility_activation">Mobility/Activation</option>
+          </select>
+          <select id="oneRmExSubcatFilter">
+            <option value="">Todas subcategorias</option>
+          </select>
         </div>
-        <div class="field">
+        <div id="oneRmExPickerList" class="onerm-picker-list"></div>
+        <input type="hidden" id="oneRmSelectedExId" value="" />
+      </div>
+      <div class="onerm-add-row" id="oneRmAddRow" style="display:none;">
+        <div class="field" id="oneRmDirectField">
           <label for="oneRmValueInput" style="font-size:11px;">1RM (kg)</label>
           <input id="oneRmValueInput" type="number" min="0" step="0.5" style="width:80px;" placeholder="kg" />
+        </div>
+        <div class="field" id="oneRmEpleyWeightField" style="display:none;">
+          <label for="oneRmEpleyWeight" style="font-size:11px;">Peso usado (kg) *</label>
+          <input id="oneRmEpleyWeight" type="number" min="0" step="0.5" style="width:80px;" placeholder="kg" />
+        </div>
+        <div class="field" id="oneRmEpleyRepsField" style="display:none;">
+          <label for="oneRmEpleyReps" style="font-size:11px;">Repetições *</label>
+          <input id="oneRmEpleyReps" type="number" min="1" max="30" step="1" style="width:60px;" placeholder="reps" />
+        </div>
+        <div class="field" id="oneRmEpleyRirField" style="display:none;">
+          <label for="oneRmEpleyRir" style="font-size:11px;">RIR (opcional)</label>
+          <input id="oneRmEpleyRir" type="number" min="0" max="10" step="1" style="width:60px;" placeholder="0" />
         </div>
         <div class="field">
           <label for="oneRmMethodSelect" style="font-size:11px;">Método</label>
@@ -1181,7 +1371,6 @@
 
     const SUPABASE_URL = 'https://rlivxjarqpqmvjtgmxhh.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJsaXZ4amFycXBxbXZqdGdteGhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MDk3NzcsImV4cCI6MjA4OTE4NTc3N30.MHwkQnytSCOBleYVOF5hJHWiV8d_-2V9UGIqsLTgjIY';
-    const DEV_LOCAL_AUTH_BYPASS = ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname);
     
     let supabaseClient = null;
 
@@ -1208,10 +1397,6 @@
     }
 
     async function apiRequest(method, url, body) {
-      if (DEV_LOCAL_AUTH_BYPASS && !state.user) {
-        throw new Error('Modo teste local: autenticacao desativada. Faz login real para usar a API.');
-      }
-
       if (!state.user) {
         throw new Error("Sessão expirada. Faz login novamente.");
       }
@@ -1237,7 +1422,7 @@
     }
 
     function setAuthUI() {
-      const viewingAllowed = DEV_LOCAL_AUTH_BYPASS || Boolean(state.user);
+      const viewingAllowed = Boolean(state.user);
       const canUseApi = Boolean(state.user);
 
       authGate.hidden = viewingAllowed;
@@ -1246,14 +1431,12 @@
 
       if (state.user) {
         authStatus.textContent = `Autenticado: ${state.user.email || state.user.id}`;
-      } else if (DEV_LOCAL_AUTH_BYPASS) {
-        authStatus.textContent = 'Modo teste local (sem login)';
       } else {
         authStatus.textContent = "Não autenticado";
       }
 
-      loginBtn.disabled = DEV_LOCAL_AUTH_BYPASS || canUseApi;
-      logoutBtn.disabled = DEV_LOCAL_AUTH_BYPASS || !canUseApi;
+      loginBtn.disabled = canUseApi;
+      logoutBtn.disabled = !canUseApi;
       athleteSelect.disabled = !canUseApi;
       athleteSearchInput.disabled = !canUseApi;
       openAddAthleteModalButton.disabled = !canUseApi;
@@ -1315,6 +1498,18 @@
       coachTabSections.forEach((section) => {
         section.hidden = section.dataset.coachTab !== tabName;
       });
+
+      // Hide the "Importação semanal" header on the strength/exercises tab
+      const panelHeader = document.querySelector(".panel-header");
+      if (panelHeader) panelHeader.hidden = tabName === "strength" || tabName === "exercises";
+
+      // Strength tab uses full width (hide sidebar)
+      document.querySelector(".layout").classList.toggle("full-width-mode", tabName === "strength" || tabName === "exercises");
+
+      // Load exercises when switching to the exercises tab
+      if (tabName === "exercises") {
+        loadExerciseCatalog().then(() => renderExerciseCrudList());
+      }
     }
 
     function renderTrainingLoadSummary(summary, metaText) {
@@ -2019,6 +2214,32 @@
     });
     document.getElementById("oneRmAddBtn").addEventListener("click", addOneRmEntry);
 
+    // Toggle Epley fields based on method
+    document.getElementById("oneRmMethodSelect").addEventListener("change", function() {
+      const isEpley = this.value === "estimated_epley";
+      document.getElementById("oneRmDirectField").style.display = isEpley ? "none" : "";
+      document.getElementById("oneRmEpleyWeightField").style.display = isEpley ? "" : "none";
+      document.getElementById("oneRmEpleyRepsField").style.display = isEpley ? "" : "none";
+      document.getElementById("oneRmEpleyRirField").style.display = isEpley ? "" : "none";
+    });
+
+    // 1RM exercise picker: search, category, subcategory, click-to-select
+    document.getElementById("oneRmExSearchInput").addEventListener("input", renderOneRmExPickerList);
+    document.getElementById("oneRmExCatFilter").addEventListener("change", () => {
+      const cat = document.getElementById("oneRmExCatFilter").value;
+      const subcats = [...new Set(strExercises.filter(e => !cat || e.category === cat).map(e => e.subcategory).filter(Boolean))].sort();
+      const sel = document.getElementById("oneRmExSubcatFilter");
+      sel.innerHTML = '<option value="">Todas subcategorias</option>' + subcats.map(s => `<option value="${s}">${s}</option>`).join("");
+      renderOneRmExPickerList();
+    });
+    document.getElementById("oneRmExSubcatFilter").addEventListener("change", renderOneRmExPickerList);
+    document.getElementById("oneRmExPickerList").addEventListener("click", (e) => {
+      const item = e.target.closest("[data-exid]");
+      if (!item) return;
+      document.getElementById("oneRmSelectedExId").value = item.getAttribute("data-exid");
+      renderOneRmExPickerList();
+    });
+
     applyTrainingLoadWeekButton.addEventListener("click", () => {
       if (!selectedAthleteId) {
         showResult("Erro: seleciona primeiro um atleta para filtrar a semana.", "error");
@@ -2244,12 +2465,6 @@
     }
 
     async function initializeAuth() {
-      if (DEV_LOCAL_AUTH_BYPASS) {
-        setAuthUI();
-        showResult('Modo teste local ativo: login Google ignorado em localhost.', '');
-        return;
-      }
-
       // Espera que o Supabase script carregue
       let attempts = 0;
       while (!window.supabase && attempts < 50) {
@@ -2345,7 +2560,133 @@
     const SECTIONS = ["warm_up","plyos_speed","main","conditioning","observations"];
     const SECTION_LABELS = {warm_up:"Warm Up",plyos_speed:"Plyos / Speed",main:"Main",conditioning:"Conditioning",observations:"Observations"};
     const METHOD_OPTIONS = ["standard","amrap","drop_set","rest_pause","cluster","myo_reps","isometric"];
-    const SUPERSET_LETTERS = ["","A","B","C","D"];
+    const GROUP_LETTERS = "ABCDEFG";
+
+    // Compute order labels for a sorted list of exercises in a section.
+    // Returns array of {label, groupLetter, index} parallel to exercises.
+    // e.g. [{label:"A-",...}, {label:"B1-",...}, {label:"B2-",...}, {label:"C-",...}]
+    function computeOrderLabels(exercises) {
+      const labels = [];
+      let letterIdx = 0; // index into GROUP_LETTERS
+      let i = 0;
+      while (i < exercises.length) {
+        const pe = exercises[i];
+        const ss = pe.superset_group || "";
+        if (!ss) {
+          // Isolated exercise
+          const letter = GROUP_LETTERS[letterIdx] || GROUP_LETTERS[GROUP_LETTERS.length - 1];
+          labels.push({ label: letter + "-", groupLetter: letter, index: 0 });
+          letterIdx++;
+          i++;
+        } else {
+          // Superset group: collect all consecutive exercises with same superset_group
+          const letter = GROUP_LETTERS[letterIdx] || GROUP_LETTERS[GROUP_LETTERS.length - 1];
+          let n = 1;
+          while (i < exercises.length && exercises[i].superset_group === ss) {
+            labels.push({ label: letter + n + "-", groupLetter: letter, index: n });
+            n++;
+            i++;
+          }
+          letterIdx++;
+        }
+      }
+      return labels;
+    }
+
+    // Get valid order label options for a specific exercise index.
+    // Based on what the previous exercise's label is.
+    function getValidOrderOptions(exercises, exIndex) {
+      const allLabels = computeOrderLabels(exercises);
+      if (exIndex === 0) {
+        return ["A-", "A1-"];
+      }
+      const prev = allLabels[exIndex - 1];
+      const prevLetter = prev.groupLetter;
+      const prevIdx = prev.index; // 0 = isolated, 1+ = superset position
+      const nextLetterChar = GROUP_LETTERS[GROUP_LETTERS.indexOf(prevLetter) + 1] || "";
+
+      if (prevIdx === 0) {
+        // Previous was isolated (e.g. "A-") → next must be new group
+        const opts = [];
+        if (nextLetterChar) {
+          opts.push(nextLetterChar + "-");
+          opts.push(nextLetterChar + "1-");
+        }
+        return opts;
+      } else if (prevIdx === 1) {
+        // Previous was superset start (e.g. "A1-") → must continue
+        return [prevLetter + "2-"];
+      } else {
+        // Previous was superset continuation (e.g. "A2-", "A3-"...) → can continue or start new
+        const opts = [prevLetter + (prevIdx + 1) + "-"];
+        if (nextLetterChar) {
+          opts.push(nextLetterChar + "-");
+          opts.push(nextLetterChar + "1-");
+        }
+        return opts;
+      }
+    }
+
+    // Parse a label like "A-", "B2-" back into {letter, index}
+    // index=0 means isolated, index>=1 means superset position
+    function parseOrderLabel(label) {
+      const m = label.match(/^([A-G])(\d*)-$/);
+      if (!m) return null;
+      return { letter: m[1], index: m[2] ? parseInt(m[2], 10) : 0 };
+    }
+
+    // Apply a label change: updates superset_group for this exercise and
+    // ensures consistency (supersets must have ≥2 members).
+    function applyOrderLabelChange(exercises, exIndex, newLabel) {
+      const parsed = parseOrderLabel(newLabel);
+      if (!parsed) return;
+
+      const pe = exercises[exIndex];
+      if (parsed.index === 0) {
+        // Changing to isolated: clear superset_group
+        queueExerciseChange(pe.id, "superset_group", "");
+        pe.superset_group = "";
+      } else {
+        // Superset: use a group key.
+        // For X1- (starting a new superset): use the label letter as key
+        // For Xn- (continuing): use the previous exercise's superset_group
+        let groupKey;
+        if (parsed.index === 1) {
+          groupKey = parsed.letter;
+          queueExerciseChange(pe.id, "superset_group", groupKey);
+          pe.superset_group = groupKey;
+          // Ensure the next exercise joins the superset (X2-)
+          if (exIndex + 1 < exercises.length) {
+            const next = exercises[exIndex + 1];
+            queueExerciseChange(next.id, "superset_group", groupKey);
+            next.superset_group = groupKey;
+          }
+        } else {
+          // Continuing: use the previous exercise's group
+          const prev = exercises[exIndex - 1];
+          groupKey = prev ? prev.superset_group : parsed.letter;
+          queueExerciseChange(pe.id, "superset_group", groupKey);
+          pe.superset_group = groupKey;
+        }
+      }
+
+      // Check for orphaned supersets (groups with only 1 member) and make them isolated.
+      // Skip the very last exercise — it may be a superset-start waiting for the next addition.
+      const groupCounts = {};
+      for (const ex of exercises) {
+        if (ex.superset_group) {
+          groupCounts[ex.superset_group] = (groupCounts[ex.superset_group] || 0) + 1;
+        }
+      }
+      const lastIdx = exercises.length - 1;
+      for (let i = 0; i < exercises.length; i++) {
+        const ex = exercises[i];
+        if (ex.superset_group && groupCounts[ex.superset_group] === 1 && i !== lastIdx) {
+          queueExerciseChange(ex.id, "superset_group", "");
+          ex.superset_group = "";
+        }
+      }
+    }
 
     // Strength state
     let strExercises = [];
@@ -2355,6 +2696,7 @@
     let strSelectedWeek = 1;
     let strOneRms = {};  // exerciseId → value_kg
     let strOneRmRecords = []; // full records from API for modal display
+    let strLoadedInstances = []; // active instances for current plan
 
     // DOM refs
     const strengthPlanSelect = document.getElementById("strengthPlanSelect");
@@ -2414,6 +2756,16 @@
       const ct = c * r;
       return ct > 0 ? Math.floor(dur / ct) : null;
     }
+    function getEffectiveLoadRound() {
+      if (!strCurrentPlan) return 2.5;
+      // If an athlete is selected and has an active instance, use instance's load_round
+      if (selectedAthleteId && strLoadedInstances.length > 0) {
+        const inst = strLoadedInstances.find(i => i.athlete_id === selectedAthleteId && i.status === "active");
+        if (inst && inst.load_round != null) return Number(inst.load_round);
+      }
+      return strCurrentPlan.plan.load_round || 2.5;
+    }
+
     function resolveReps(rx, section, pe) {
       if (rx.prescription_type === "duration") {
         if (section === "plyos_speed") return estimatePlyoReps(rx.duration_seconds, rx.gct, pe.plyo_mechanical_load) || 0;
@@ -2440,9 +2792,7 @@
     function resetStrengthUI() {
       strengthPlanSelect.innerHTML = '<option value="">— Selecionar plano —</option>';
       strengthNoPlan.textContent = "Nenhum plano selecionado.";
-      strengthNoPlan.hidden = false;
-      strengthPlanHeader.hidden = true;
-      strengthDayView.hidden = true;
+      strengthSections.innerHTML = "";
       strCurrentPlan = null;
       strPlans = [];
     }
@@ -2482,6 +2832,7 @@
 
     async function loadStrengthPlans() {
       await loadExerciseCatalog();
+      const previousPlanId = strCurrentPlan ? strCurrentPlan.plan.id : strengthPlanSelect.value;
       try {
         const data = await apiRequest("GET", "/.netlify/functions/strength-plan");
         strPlans = data.plans || [];
@@ -2492,10 +2843,19 @@
           opt.textContent = `${p.name} (${p.status})`;
           strengthPlanSelect.appendChild(opt);
         }
-        strengthNoPlan.textContent = strPlans.length ? "Seleciona um plano acima." : "Nenhum plano criado. Clica '+ Novo Plano'.";
-        strengthNoPlan.hidden = false;
-        strengthPlanHeader.hidden = true;
-        strengthDayView.hidden = true;
+
+        // Re-select previous plan if it still exists, otherwise auto-select first plan
+        if (previousPlanId && strPlans.some(p => p.id === previousPlanId)) {
+          strengthPlanSelect.value = previousPlanId;
+          if (!strCurrentPlan || strCurrentPlan.plan.id !== previousPlanId) {
+            await loadStrengthPlanFull(previousPlanId);
+          }
+        } else if (strPlans.length > 0) {
+          strengthPlanSelect.value = strPlans[0].id;
+          await loadStrengthPlanFull(strPlans[0].id);
+        } else {
+          strengthNoPlan.textContent = "Nenhum plano criado. Clica '+ Novo Plano'.";
+        }
       } catch (e) {
         strengthNoPlan.textContent = "Erro ao carregar planos.";
         console.error(e);
@@ -2526,6 +2886,7 @@
     function renderOneRmModal() {
       const content = document.getElementById("oneRmContent");
       const addRow = document.getElementById("oneRmAddRow");
+      const picker = document.getElementById("oneRmExercisePicker");
       const nameEl = document.getElementById("oneRmAthleteName");
       const athlete = athletes.find(a => a.id === selectedAthleteId);
       nameEl.textContent = athlete ? `Atleta: ${athlete.name || athlete.email}` : "Atleta: —";
@@ -2533,22 +2894,20 @@
       if (!selectedAthleteId) {
         content.innerHTML = '<p class="onerm-empty">Seleciona um atleta para ver os 1RM.</p>';
         addRow.style.display = "none";
+        picker.style.display = "none";
         return;
       }
 
       addRow.style.display = "flex";
+      picker.style.display = "block";
       document.getElementById("oneRmDateInput").value = new Date().toISOString().slice(0, 10);
 
-      // Populate exercise dropdown with all known exercises
-      const exSelect = document.getElementById("oneRmExerciseSelect");
-      exSelect.innerHTML = '<option value="">— Selecionar —</option>';
-      const sorted = [...strExercises].sort((a, b) => a.name.localeCompare(b.name));
-      for (const ex of sorted) {
-        const opt = document.createElement("option");
-        opt.value = ex.id;
-        opt.textContent = ex.name;
-        exSelect.appendChild(opt);
-      }
+      // Reset picker filters
+      document.getElementById("oneRmExSearchInput").value = "";
+      document.getElementById("oneRmExCatFilter").value = "";
+      document.getElementById("oneRmExSubcatFilter").innerHTML = '<option value="">Todas subcategorias</option>';
+      document.getElementById("oneRmSelectedExId").value = "";
+      renderOneRmExPickerList();
 
       if (strOneRmRecords.length === 0) {
         content.innerHTML = '<p class="onerm-empty">Nenhum 1RM registado para este atleta.</p>';
@@ -2570,29 +2929,69 @@
       content.innerHTML = html;
     }
 
+    function renderOneRmExPickerList() {
+      const search = (document.getElementById("oneRmExSearchInput").value || "").toLowerCase();
+      const cat = document.getElementById("oneRmExCatFilter").value;
+      const subcat = document.getElementById("oneRmExSubcatFilter").value;
+      const selectedId = document.getElementById("oneRmSelectedExId").value;
+      let filtered = strExercises;
+      if (cat) filtered = filtered.filter(e => e.category === cat);
+      if (subcat) filtered = filtered.filter(e => e.subcategory === subcat);
+      if (search) filtered = filtered.filter(e => e.name.toLowerCase().includes(search));
+      filtered = [...filtered].sort((a, b) => a.name.localeCompare(b.name));
+
+      const list = document.getElementById("oneRmExPickerList");
+      if (filtered.length === 0) {
+        list.innerHTML = '<div style="padding:12px; text-align:center; color:var(--muted); font-size:12px;">Nenhum exercício encontrado.</div>';
+        return;
+      }
+      list.innerHTML = filtered.slice(0, 60).map(e =>
+        `<div class="onerm-picker-item${e.id === selectedId ? ' selected' : ''}" data-exid="${e.id}">
+          <span>${e.name}</span>
+          <span class="ex-meta">${e.category || ""}${e.subcategory ? " / " + e.subcategory : ""}</span>
+        </div>`
+      ).join("");
+    }
+
     async function addOneRmEntry() {
-      const exerciseId = document.getElementById("oneRmExerciseSelect").value;
-      const valueKg = document.getElementById("oneRmValueInput").value;
+      const exerciseId = document.getElementById("oneRmSelectedExId").value;
       const method = document.getElementById("oneRmMethodSelect").value;
       const testedAt = document.getElementById("oneRmDateInput").value;
+      let valueKg;
 
-      if (!exerciseId || !valueKg) {
-        showResult("Seleciona um exercício e insere o valor de 1RM.", true);
-        return;
+      if (method === "estimated_epley") {
+        const weight = Number(document.getElementById("oneRmEpleyWeight").value);
+        const reps = Number(document.getElementById("oneRmEpleyReps").value);
+        const rir = Number(document.getElementById("oneRmEpleyRir").value) || 0;
+        if (!exerciseId || !weight || !reps || reps < 1) {
+          showResult("Seleciona um exercício, peso e repetições.", true);
+          return;
+        }
+        const effectiveReps = reps + rir;
+        valueKg = effectiveReps === 1 ? weight : weight * (1 + effectiveReps / 30);
+        valueKg = Math.round(valueKg * 100) / 100;
+      } else {
+        valueKg = Number(document.getElementById("oneRmValueInput").value);
+        if (!exerciseId || !valueKg) {
+          showResult("Seleciona um exercício e insere o valor de 1RM.", true);
+          return;
+        }
       }
 
       try {
         await apiRequest("POST", "/.netlify/functions/athlete-1rm", {
           athlete_id: selectedAthleteId,
           exercise_id: exerciseId,
-          value_kg: Number(valueKg),
+          value_kg: valueKg,
           method: method,
           tested_at: testedAt || new Date().toISOString().slice(0, 10)
         });
         document.getElementById("oneRmValueInput").value = "";
+        document.getElementById("oneRmEpleyWeight").value = "";
+        document.getElementById("oneRmEpleyReps").value = "";
+        document.getElementById("oneRmEpleyRir").value = "";
         await load1RMsForAthlete(selectedAthleteId);
         renderOneRmModal();
-        // Re-render plan view if open (load placeholders will update)
         if (strCurrentPlan) renderDayView();
       } catch (e) {
         showResult("Erro ao guardar 1RM: " + e.message, true);
@@ -2604,26 +3003,39 @@
       try {
         const data = await apiRequest("GET", `/.netlify/functions/strength-plan?planId=${planId}`);
         strCurrentPlan = data;
-        strengthNoPlan.hidden = true;
-        strengthPlanHeader.hidden = false;
-        strengthDayView.hidden = false;
+        strengthNoPlan.textContent = "";
         renderPlanHeader();
         renderDayTabs();
         renderWeekTabs();
         renderDayView();
       } catch (e) {
         console.error("Failed to load plan", e);
+        strCurrentPlan = null;
         strengthNoPlan.textContent = "Erro ao carregar plano.";
+        renderPlanHeader();
+        renderDayTabs();
+        renderWeekTabs();
+        renderDayView();
       }
     }
 
     function renderPlanHeader() {
+      if (!strCurrentPlan || !strCurrentPlan.plan) {
+        document.getElementById("strengthPlanName").textContent = "";
+        document.getElementById("strengthPlanStatus").textContent = "";
+        document.getElementById("strengthPlanStatus").className = "status-badge";
+        document.getElementById("strengthPlanWeeks").textContent = "";
+        document.getElementById("activatePlanBtn").hidden = true;
+        document.getElementById("archivePlanBtn").hidden = true;
+        document.getElementById("assignPlanBtn").hidden = true;
+        return;
+      }
       const p = strCurrentPlan.plan;
       document.getElementById("strengthPlanName").textContent = p.name;
       const badge = document.getElementById("strengthPlanStatus");
       badge.textContent = p.status;
       badge.className = "status-badge " + p.status;
-      document.getElementById("strengthPlanWeeks").textContent = `${p.total_weeks} semanas · Carga arred. ${p.load_round}kg`;
+      document.getElementById("strengthPlanWeeks").textContent = `${p.total_weeks} semanas · Carga arred. ${getEffectiveLoadRound()}kg`;
       document.getElementById("activatePlanBtn").hidden = p.status !== "draft";
       document.getElementById("archivePlanBtn").hidden = (p.status === "archived");
       document.getElementById("assignPlanBtn").hidden = (p.status !== "active");
@@ -2643,7 +3055,7 @@
 
     function renderWeekTabs() {
       strengthWeekTabs.innerHTML = "";
-      const totalWeeks = strCurrentPlan.plan.total_weeks;
+      const totalWeeks = strCurrentPlan ? strCurrentPlan.plan.total_weeks : 4;
       for (let w = 1; w <= totalWeeks; w++) {
         const btn = document.createElement("button");
         btn.className = "week-tab" + (w === strSelectedWeek ? " active" : "");
@@ -2654,18 +3066,21 @@
     }
 
     function getExercisesForDaySection(day, section) {
+      if (!strCurrentPlan) return [];
       return (strCurrentPlan.exercises || [])
         .filter(e => e.day_number === day && e.section === section)
         .sort((a, b) => a.exercise_order - b.exercise_order);
     }
 
     function getPrescription(planExerciseId, week) {
+      if (!strCurrentPlan) return null;
       return (strCurrentPlan.prescriptions || []).find(
         p => p.plan_exercise_id === planExerciseId && p.week_number === week
       ) || null;
     }
 
     function getPhaseNote(day, section, week) {
+      if (!strCurrentPlan) return null;
       return (strCurrentPlan.phaseNotes || []).find(
         n => n.day_number === day && n.section === section && n.week_number === week
       );
@@ -2684,12 +3099,35 @@
         const header = document.createElement("div");
         header.className = "str-section-header";
         const phaseNote = getPhaseNote(day, sec, week);
+        const phaseNoteText = phaseNote ? phaseNote.notes : '';
         header.innerHTML = `
           <h4>${SECTION_LABELS[sec]}</h4>
-          <span class="phase-note" title="${phaseNote ? phaseNote.notes : ''}">${phaseNote ? phaseNote.notes : ''}</span>
+          <span class="phase-note" data-day="${day}" data-section="${sec}" data-week="${week}" title="${phaseNoteText}">${phaseNoteText}</span>
           <button class="btn-small str-add-btn" data-section="${sec}">+ Exercício</button>
         `;
         header.querySelector(".str-add-btn").addEventListener("click", () => openAddExerciseModal(sec));
+        header.querySelector(".phase-note").addEventListener("click", (ev) => {
+          const span = ev.currentTarget;
+          if (span.querySelector("input")) return;
+          const input = document.createElement("input");
+          input.type = "text";
+          input.className = "phase-note-input";
+          input.value = span.textContent;
+          input.placeholder = "Nota da fase…";
+          const commitEdit = () => {
+            const val = input.value.trim();
+            span.textContent = val;
+            span.title = val;
+            queuePhaseNoteChange(day, sec, week, val);
+          };
+          input.addEventListener("blur", commitEdit);
+          input.addEventListener("keydown", (ke) => { if (ke.key === "Enter") input.blur(); if (ke.key === "Escape") { input.value = span.dataset.originalText || ""; input.blur(); } });
+          span.dataset.originalText = span.textContent;
+          span.textContent = "";
+          span.appendChild(input);
+          input.focus();
+          input.select();
+        });
         block.appendChild(header);
 
         // Exercise table
@@ -2714,16 +3152,17 @@
     function buildSectionTable(exercises, section, week) {
       const table = document.createElement("table");
       table.className = "str-table";
+      const orderLabels = computeOrderLabels(exercises);
 
       // Header
       const thead = document.createElement("thead");
       let cols;
       if (section === "warm_up" || section === "conditioning") {
-        cols = ["#","SS","Exercício","Sets","Reps","Rest","",""];
+        cols = ["Ordem","Exercício","Sets","Reps/Dur","Rest","",""];
       } else if (section === "plyos_speed") {
-        cols = ["#","SS","Exercício","Sets","Reps","Rest","GCT","M.Load","",""];
+        cols = ["Ordem","Exercício","Sets","Reps/Dur","Rest","GCT","M.Load","",""];
       } else if (section === "main") {
-        cols = ["#","SS","Exercício","Sets","Reps","Rest","RIR","Method","Tempo","%RM","Load","Notes","",""];
+        cols = ["Ordem","Exercício","Sets","Reps/Dur","Rest","RIR","Method","Tempo","%RM","Load","Notes","",""];
       } else {
         cols = ["#","Exercício","Notes",""];
       }
@@ -2739,15 +3178,21 @@
 
       // Body
       const tbody = document.createElement("tbody");
-      for (const pe of exercises) {
+      for (let ei = 0; ei < exercises.length; ei++) {
+        const pe = exercises[ei];
         const rx = getPrescription(pe.id, week) || {};
         const exName = pe.exercise ? pe.exercise.name : "??";
         const exId = pe.exercise ? pe.exercise.id : pe.exercise_id;
         const oneRm = strOneRms[exId];
-        const loadRound = strCurrentPlan.plan.load_round || 2.5;
+        const loadRound = getEffectiveLoadRound();
         const row = document.createElement("tr");
-        const ss = pe.superset_group || "";
-        if (ss) row.className = "superset-" + ss;
+        const lbl = orderLabels[ei] || { label: "?-", groupLetter: "?", index: 0 };
+        if (lbl.index > 0) row.className = "superset-" + lbl.groupLetter;
+        // Build order dropdown: current label + valid alternatives
+        const validOpts = getValidOrderOptions(exercises, ei);
+        const allOpts = [lbl.label];
+        for (const o of validOpts) { if (o !== lbl.label) allOpts.push(o); }
+        const orderSelect = `<select data-field="order_label" data-peid="${pe.id}" data-eidx="${ei}" data-section="${section}" style="width:50px; font-size:12px; font-weight:600;">${allOpts.map(o => `<option value="${o}" ${o===lbl.label?"selected":""}>${o}</option>`).join("")}</select>`;
 
         if (section === "observations") {
           row.innerHTML = `
@@ -2757,23 +3202,29 @@
             <td><button class="str-rm-btn" data-rmpe="${pe.id}" title="Remover">✕</button></td>
           `;
         } else if (section === "warm_up" || section === "conditioning") {
+          const isDur = rx.prescription_type === "duration";
           row.innerHTML = `
-            <td>${pe.exercise_order}</td>
-            <td><select data-field="superset_group" data-peid="${pe.id}" style="width:36px;">${SUPERSET_LETTERS.map(l => `<option value="${l}" ${l===ss?"selected":""}>${l||"-"}</option>`).join("")}</select></td>
+            <td>${orderSelect}</td>
             <td title="${exName}">${exName}</td>
             <td><input type="number" value="${rx.sets||''}" data-field="sets" data-peid="${pe.id}" data-week="${week}" min="1" /></td>
-            <td><input type="number" value="${rx.reps||''}" data-field="reps" data-peid="${pe.id}" data-week="${week}" min="0" /></td>
+            <td><div class="reps-dur-cell">
+              <input type="number" value="${isDur ? (rx.duration_seconds||'') : (rx.reps||'')}" data-field="${isDur ? 'duration_seconds' : 'reps'}" data-peid="${pe.id}" data-week="${week}" min="0" placeholder="${isDur ? 's' : ''}" />
+              <button type="button" class="reps-dur-toggle" data-peid="${pe.id}" data-week="${week}" title="Alternar reps/duração">${isDur ? 'seg' : 'rep'}</button>
+            </div></td>
             <td><input type="number" value="${rx.rest_seconds||''}" data-field="rest_seconds" data-peid="${pe.id}" data-week="${week}" min="0" placeholder="s" /></td>
             <td></td>
             <td><button class="str-rm-btn" data-rmpe="${pe.id}" title="Remover">✕</button></td>
           `;
         } else if (section === "plyos_speed") {
+          const isDur = rx.prescription_type === "duration";
           row.innerHTML = `
-            <td>${pe.exercise_order}</td>
-            <td><select data-field="superset_group" data-peid="${pe.id}" style="width:36px;">${SUPERSET_LETTERS.map(l => `<option value="${l}" ${l===ss?"selected":""}>${l||"-"}</option>`).join("")}</select></td>
+            <td>${orderSelect}</td>
             <td title="${exName}">${exName}</td>
             <td><input type="number" value="${rx.sets||''}" data-field="sets" data-peid="${pe.id}" data-week="${week}" min="1" /></td>
-            <td><input type="number" value="${rx.reps||''}" data-field="reps" data-peid="${pe.id}" data-week="${week}" min="0" /></td>
+            <td><div class="reps-dur-cell">
+              <input type="number" value="${isDur ? (rx.duration_seconds||'') : (rx.reps||'')}" data-field="${isDur ? 'duration_seconds' : 'reps'}" data-peid="${pe.id}" data-week="${week}" min="0" placeholder="${isDur ? 's' : ''}" />
+              <button type="button" class="reps-dur-toggle" data-peid="${pe.id}" data-week="${week}" title="Alternar reps/duração">${isDur ? 'seg' : 'rep'}</button>
+            </div></td>
             <td><input type="number" value="${rx.rest_seconds||''}" data-field="rest_seconds" data-peid="${pe.id}" data-week="${week}" min="0" placeholder="s" /></td>
             <td><select data-field="gct" data-peid="${pe.id}" data-week="${week}" style="width:76px;">
               <option value="">—</option>
@@ -2797,14 +3248,17 @@
           const rmOverrideVal = hasRmOverride ? (Number(rx.rm_percent_override) * 100).toFixed(1) : "";
           const hasLoadOverride = rx.load_override_kg != null && rx.load_override_kg !== "";
           const loadOverrideVal = hasLoadOverride ? Number(rx.load_override_kg) : "";
+          const isDur = rx.prescription_type === "duration";
           const { rmPercent, loadKg } = resolveLoad(rx, pe, oneRm, loadRound, week);
           const loadPlaceholder = loadKg != null ? loadKg.toFixed(1) : (oneRm ? "" : "sem 1RM");
           row.innerHTML = `
-            <td>${pe.exercise_order}</td>
-            <td><select data-field="superset_group" data-peid="${pe.id}" style="width:36px;">${SUPERSET_LETTERS.map(l => `<option value="${l}" ${l===ss?"selected":""}>${l||"-"}</option>`).join("")}</select></td>
+            <td>${orderSelect}</td>
             <td title="${exName}${oneRm ? ' · 1RM: '+oneRm+'kg' : ''}">${exName}</td>
             <td><input type="number" value="${rx.sets||''}" data-field="sets" data-peid="${pe.id}" data-week="${week}" min="1" /></td>
-            <td><input type="number" value="${rx.reps||''}" data-field="reps" data-peid="${pe.id}" data-week="${week}" min="0" /></td>
+            <td><div class="reps-dur-cell">
+              <input type="number" value="${isDur ? (rx.duration_seconds||'') : (rx.reps||'')}" data-field="${isDur ? 'duration_seconds' : 'reps'}" data-peid="${pe.id}" data-week="${week}" min="0" placeholder="${isDur ? 's' : ''}" />
+              <button type="button" class="reps-dur-toggle" data-peid="${pe.id}" data-week="${week}" title="Alternar reps/duração">${isDur ? 'seg' : 'rep'}</button>
+            </div></td>
             <td><input type="number" value="${rx.rest_seconds||''}" data-field="rest_seconds" data-peid="${pe.id}" data-week="${week}" min="0" placeholder="s" /></td>
             <td><input type="number" value="${rx.rir!=null?rx.rir:''}" data-field="rir" data-peid="${pe.id}" data-week="${week}" min="0" max="10" /></td>
             <td><select data-field="method" data-peid="${pe.id}" data-week="${week}" style="width:76px;">
@@ -2842,7 +3296,7 @@
       }
 
       let totalReps = 0, stimReps = 0, repsRm = 0, totalKg = 0, tut = 0, plyoLd = 0;
-      const loadRound = strCurrentPlan ? strCurrentPlan.plan.load_round || 2.5 : 2.5;
+      const loadRound = getEffectiveLoadRound();
 
       for (const { pe, rx, sec } of exercises) {
         const sets = rx.sets || 0;
@@ -2871,51 +3325,201 @@
       document.getElementById("volPlyoLoad").textContent = plyoLd ? plyoLd.toFixed(1) : "—";
     }
 
+    // Initial blank render so the structure is always visible
+    renderDayTabs();
+    renderWeekTabs();
+    renderDayView();
+
     // ── Save helpers — debounced auto-save ──
     let saveTimer = null;
+    let saveRetries = 0;
     let pendingPrescriptionChanges = {};
     let pendingExerciseChanges = {};
+    let pendingPhaseNoteChanges = {};
+
+    function queuePhaseNoteChange(day, section, week, notes) {
+      const key = `${day}_${section}_${week}`;
+      pendingPhaseNoteChanges[key] = {
+        plan_id: strCurrentPlan.plan.id,
+        day_number: day,
+        section: section,
+        week_number: week,
+        notes: notes || ""
+      };
+      // Update in-memory
+      if (strCurrentPlan) {
+        const existing = (strCurrentPlan.phaseNotes || []).find(
+          n => n.day_number === day && n.section === section && n.week_number === week
+        );
+        if (existing) {
+          existing.notes = notes || "";
+        } else {
+          strCurrentPlan.phaseNotes = strCurrentPlan.phaseNotes || [];
+          strCurrentPlan.phaseNotes.push({ plan_id: strCurrentPlan.plan.id, day_number: day, section: section, week_number: week, notes: notes || "" });
+        }
+      }
+      scheduleSave();
+    }
 
     function queuePrescriptionChange(peId, week, field, value) {
       const key = `${peId}_${week}`;
       if (!pendingPrescriptionChanges[key]) pendingPrescriptionChanges[key] = { plan_exercise_id: peId, week_number: week };
+      let stored;
       if (field === "rm_percent_override" || field === "load_override_kg") {
-        pendingPrescriptionChanges[key][field] = value;
+        stored = value;
       } else {
-        pendingPrescriptionChanges[key][field] = value === "" ? null : (["sets","reps","rest_seconds","rir","duration_seconds"].includes(field) ? Number(value) : value);
+        stored = value === "" ? null : (["sets","reps","rest_seconds","rir","duration_seconds"].includes(field) ? Number(value) : value);
+      }
+      pendingPrescriptionChanges[key][field] = stored;
+
+      // Update in-memory data so renderDayView reflects pending changes
+      if (strCurrentPlan) {
+        let rx = (strCurrentPlan.prescriptions || []).find(p => p.plan_exercise_id === peId && p.week_number === week);
+        if (!rx) {
+          rx = { plan_exercise_id: peId, week_number: week };
+          strCurrentPlan.prescriptions = strCurrentPlan.prescriptions || [];
+          strCurrentPlan.prescriptions.push(rx);
+        }
+        rx[field] = stored;
       }
       scheduleSave();
     }
 
     function queueExerciseChange(peId, field, value) {
       if (!pendingExerciseChanges[peId]) pendingExerciseChanges[peId] = { id: peId, plan_id: strCurrentPlan.plan.id };
-      pendingExerciseChanges[peId][field] = value === "" ? null : value;
+      const stored = value === "" ? null : value;
+      pendingExerciseChanges[peId][field] = stored;
+
+      // Update in-memory data so renderDayView reflects pending changes
+      if (strCurrentPlan) {
+        const ex = (strCurrentPlan.exercises || []).find(e => e.id === peId);
+        if (ex) ex[field] = stored;
+      }
       scheduleSave();
+    }
+
+    function setSaveStatus(state, text) {
+      const el = document.getElementById("strSaveStatus");
+      if (!el) return;
+      el.className = "save-status " + state;
+      el.textContent = text || "";
     }
 
     function scheduleSave() {
       if (saveTimer) clearTimeout(saveTimer);
+      setSaveStatus("pending", "Alterações pendentes");
       saveTimer = setTimeout(flushSave, 1200);
     }
 
     async function flushSave() {
+      saveTimer = null;
       if (!strCurrentPlan) return;
       const rxList = Object.values(pendingPrescriptionChanges);
       const exList = Object.values(pendingExerciseChanges);
+      const pnList = Object.values(pendingPhaseNoteChanges);
       pendingPrescriptionChanges = {};
       pendingExerciseChanges = {};
-      if (rxList.length === 0 && exList.length === 0) return;
+      pendingPhaseNoteChanges = {};
+      if (rxList.length === 0 && exList.length === 0 && pnList.length === 0) { setSaveStatus("idle"); return; }
 
+      console.log("[flushSave] Saving:", { rxCount: rxList.length, exCount: exList.length, exercises: exList, prescriptions: rxList });
+      setSaveStatus("saving", "A guardar…");
       try {
         const body = { plan_id: strCurrentPlan.plan.id };
-        if (exList.length > 0) body.exercises = exList;
+        if (exList.length > 0) {
+          // Enrich exercise changes with all required NOT NULL fields for Supabase upsert
+          body.exercises = exList.map(ex => {
+            const full = (strCurrentPlan.exercises || []).find(e => e.id === ex.id);
+            if (!full) return ex;
+            return {
+              id: full.id,
+              plan_id: full.plan_id,
+              day_number: full.day_number,
+              section: full.section,
+              exercise_order: full.exercise_order,
+              exercise_id: full.exercise_id,
+              each_side: full.each_side,
+              weight_per_side: full.weight_per_side,
+              plyo_mechanical_load: full.plyo_mechanical_load,
+              rm_percent_increase_per_week: full.rm_percent_increase_per_week,
+              superset_group: full.superset_group,
+              ...ex
+            };
+          });
+        }
         if (rxList.length > 0) body.prescriptions = rxList;
+        if (pnList.length > 0) body.phase_notes = pnList;
         const data = await apiRequest("PUT", "/.netlify/functions/strength-plan", body);
         strCurrentPlan = data;
+
+        // Re-apply any changes queued while the API call was in flight
+        reapplyPendingToMemory();
+
         // Soft re-render volume only (avoid full re-render during editing)
         updateVolumeSummary(strSelectedDay, strSelectedWeek);
+        setSaveStatus("saved", "✓ Guardado");
+        saveRetries = 0;
+        setTimeout(() => { if (!saveTimer) setSaveStatus("idle"); }, 2500);
       } catch (e) {
         console.error("Auto-save failed", e);
+        // Restore pending changes so they are retried on the next save (max 3 retries)
+        for (const rx of rxList) {
+          const key = `${rx.plan_exercise_id}_${rx.week_number}`;
+          if (!pendingPrescriptionChanges[key]) pendingPrescriptionChanges[key] = rx;
+          else Object.assign(pendingPrescriptionChanges[key], rx);
+        }
+        for (const ex of exList) {
+          if (!pendingExerciseChanges[ex.id]) pendingExerciseChanges[ex.id] = ex;
+          else Object.assign(pendingExerciseChanges[ex.id], ex);
+        }
+        for (const pn of pnList) {
+          const key = `${pn.day_number}_${pn.section}_${pn.week_number}`;
+          if (!pendingPhaseNoteChanges[key]) pendingPhaseNoteChanges[key] = pn;
+        }
+        saveRetries++;
+        if (saveRetries < 3) {
+          setSaveStatus("error", "Erro ao guardar — a tentar de novo…");
+          scheduleSave();
+        } else {
+          setSaveStatus("error", "Erro ao guardar — tenta guardar manualmente");
+          saveRetries = 0;
+        }
+      }
+    }
+
+    function reapplyPendingToMemory() {
+      if (!strCurrentPlan) return;
+      for (const change of Object.values(pendingPrescriptionChanges)) {
+        let rx = (strCurrentPlan.prescriptions || []).find(
+          p => p.plan_exercise_id === change.plan_exercise_id && p.week_number === change.week_number
+        );
+        if (!rx) {
+          rx = { plan_exercise_id: change.plan_exercise_id, week_number: change.week_number };
+          strCurrentPlan.prescriptions = strCurrentPlan.prescriptions || [];
+          strCurrentPlan.prescriptions.push(rx);
+        }
+        for (const [f, v] of Object.entries(change)) {
+          if (f !== "plan_exercise_id" && f !== "week_number") rx[f] = v;
+        }
+      }
+      for (const change of Object.values(pendingExerciseChanges)) {
+        const ex = (strCurrentPlan.exercises || []).find(e => e.id === change.id);
+        if (ex) {
+          for (const [f, v] of Object.entries(change)) {
+            if (f !== "id" && f !== "plan_id") ex[f] = v;
+          }
+        }
+      }
+      for (const change of Object.values(pendingPhaseNoteChanges)) {
+        const existing = (strCurrentPlan.phaseNotes || []).find(
+          n => n.day_number === change.day_number && n.section === change.section && n.week_number === change.week_number
+        );
+        if (existing) {
+          existing.notes = change.notes;
+        } else {
+          strCurrentPlan.phaseNotes = strCurrentPlan.phaseNotes || [];
+          strCurrentPlan.phaseNotes.push(change);
+        }
       }
     }
 
@@ -2926,24 +3530,58 @@
       const week = el.getAttribute("data-week");
       if (!field || !peId) return;
 
-      if (field === "superset_group" || field === "plyo_mechanical_load") {
+      if (field === "order_label") {
+        const eidx = parseInt(el.getAttribute("data-eidx"), 10);
+        const section = el.getAttribute("data-section");
+        const exercises = getExercisesForDaySection(strSelectedDay, section);
+        applyOrderLabelChange(exercises, eidx, el.value);
+        // Flush immediately — discrete change, no benefit from debouncing
+        if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
+        flushSave();
+        renderDayView();
+        return;
+      } else if (field === "plyo_mechanical_load") {
         queueExerciseChange(peId, field, el.value);
-      } else if (field === "rm_percent_override") {
-        // User enters %, store as decimal (85 → 0.85)
-        const pct = el.value === "" ? null : Number(el.value) / 100;
-        queuePrescriptionChange(peId, parseInt(week, 10), field, pct);
-      } else if (field === "load_override_kg") {
-        queuePrescriptionChange(peId, parseInt(week, 10), field, el.value === "" ? null : Number(el.value));
+        if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
+        flushSave();
+        return;
+      } else if (field === "rm_percent_override" || field === "load_override_kg") {
+        // Handled by handleTableInput with correct % → decimal conversion
+        return;
+      } else if (field === "gct" || field === "method") {
+        // Select-based fields: queue + flush immediately
+        queuePrescriptionChange(peId, parseInt(week, 10), field, el.value);
+        if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
+        flushSave();
+        return;
       } else if (week) {
         queuePrescriptionChange(peId, parseInt(week, 10), field, el.value);
       }
     }
 
     // Live update %RM and Load placeholders as user types reps/rir
+    // Also queue saves on input (not just change/blur) for all fields
     function handleTableInput(e) {
       const el = e.target;
       const field = el.getAttribute("data-field");
-      if (!field || !["reps", "rir", "rm_percent_override", "load_override_kg"].includes(field)) return;
+      if (!field) return;
+      const peId = el.getAttribute("data-peid");
+      const week = el.getAttribute("data-week");
+
+      // Queue save on every input event (debounced)
+      if (peId && week && field !== "order_label" && field !== "plyo_mechanical_load") {
+        if (field === "rm_percent_override") {
+          const pct = el.value === "" ? null : Number(el.value) / 100;
+          queuePrescriptionChange(peId, parseInt(week, 10), field, pct);
+        } else if (field === "load_override_kg") {
+          queuePrescriptionChange(peId, parseInt(week, 10), field, el.value === "" ? null : Number(el.value));
+        } else {
+          queuePrescriptionChange(peId, parseInt(week, 10), field, el.value);
+        }
+      }
+
+      // Live-update %RM and Load placeholders
+      if (!["reps", "rir", "rm_percent_override", "load_override_kg"].includes(field)) return;
       const row = el.closest("tr");
       if (!row) return;
       const rmInput = row.querySelector(".rm-input");
@@ -2961,16 +3599,18 @@
       rmInput.placeholder = autoRm != null ? (autoRm * 100).toFixed(1) : "";
 
       // Determine effective %RM for load placeholder
-      const peId = el.getAttribute("data-peid");
       const pe = strCurrentPlan ? strCurrentPlan.exercises.find(x => x.id === peId) : null;
       const exId = pe && pe.exercise ? pe.exercise.id : (pe ? pe.exercise_id : null);
       const oneRm = exId ? strOneRms[exId] : null;
-      const loadRound = strCurrentPlan ? strCurrentPlan.plan.load_round || 2.5 : 2.5;
+      const loadRound = getEffectiveLoadRound();
       const rmOverrideVal = rmInput.value !== "" ? Number(rmInput.value) / 100 : null;
       const effectiveRm = rmOverrideVal != null ? rmOverrideVal : autoRm;
+      const inc = pe ? (pe.rm_percent_increase_per_week || 0) : 0;
+      const weekNum = parseInt(week, 10) || 1;
+      const adjustedRm = effectiveRm != null ? effectiveRm + (weekNum - 1) * inc : null;
       if (loadInput.value === "") {
-        if (effectiveRm != null && oneRm) {
-          loadInput.placeholder = roundToPlates(oneRm * effectiveRm, loadRound).toFixed(1);
+        if (adjustedRm != null && oneRm) {
+          loadInput.placeholder = roundToPlates(oneRm * adjustedRm, loadRound).toFixed(1);
         } else {
           loadInput.placeholder = oneRm ? "" : "sem 1RM";
         }
@@ -2978,6 +3618,25 @@
     }
 
     async function handleTableClick(e) {
+      // Toggle reps ↔ duration
+      const toggle = e.target.closest(".reps-dur-toggle");
+      if (toggle) {
+        const peId = toggle.getAttribute("data-peid");
+        const week = parseInt(toggle.getAttribute("data-week"), 10);
+        const rx = getPrescription(peId, week) || {};
+        const isDur = rx.prescription_type === "duration";
+        const newType = isDur ? "reps" : "duration";
+        // Clear opposite field
+        if (newType === "duration") {
+          queuePrescriptionChange(peId, week, "reps", null);
+        } else {
+          queuePrescriptionChange(peId, week, "duration_seconds", null);
+        }
+        queuePrescriptionChange(peId, week, "prescription_type", newType);
+        renderDayView();
+        return;
+      }
+
       const btn = e.target.closest("[data-rmpe]");
       if (!btn) return;
       const peId = btn.getAttribute("data-rmpe");
@@ -2993,6 +3652,7 @@
 
     // ── Add exercise modal ──
     function openAddExerciseModal(section) {
+      if (!strCurrentPlan) { alert("Seleciona um plano primeiro."); return; }
       addExerciseTargetSection = section;
       addExerciseModal.classList.remove("hidden");
       document.getElementById("exerciseSearchInput").value = "";
@@ -3040,6 +3700,9 @@
       const existing = getExercisesForDaySection(strSelectedDay, addExerciseTargetSection);
       const nextOrder = existing.length > 0 ? Math.max(...existing.map(e => e.exercise_order)) + 1 : 1;
 
+      // Flush any pending saves before adding so reload doesn't overwrite them
+      if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; await flushSave(); }
+
       try {
         const body = {
           plan_id: strCurrentPlan.plan.id,
@@ -3054,7 +3717,30 @@
             plyo_mechanical_load: addExerciseTargetSection === "plyos_speed" ? "medium" : null
           }]
         };
-        await apiRequest("PUT", "/.netlify/functions/strength-plan", body);
+        const data = await apiRequest("PUT", "/.netlify/functions/strength-plan", body);
+
+        // Find the newly created plan_exercise and create blank prescriptions for all weeks
+        const newPe = (data.exercises || []).find(pe =>
+          pe.exercise_id === exId && pe.day_number === strSelectedDay &&
+          pe.section === addExerciseTargetSection && pe.exercise_order === nextOrder
+        );
+        if (newPe && data.plan && data.plan.total_weeks) {
+          const existingWeeks = new Set(
+            (data.prescriptions || []).filter(p => p.plan_exercise_id === newPe.id).map(p => p.week_number)
+          );
+          const blankRx = [];
+          for (let w = 1; w <= data.plan.total_weeks; w++) {
+            if (!existingWeeks.has(w)) {
+              blankRx.push({ plan_exercise_id: newPe.id, week_number: w });
+            }
+          }
+          if (blankRx.length > 0) {
+            await apiRequest("PUT", "/.netlify/functions/strength-plan", {
+              plan_id: data.plan.id, prescriptions: blankRx
+            });
+          }
+        }
+
         addExerciseModal.classList.add("hidden");
         await loadStrengthPlanFull(strCurrentPlan.plan.id);
       } catch (e) { console.error("Add exercise failed", e); }
@@ -3078,6 +3764,36 @@
       document.getElementById("spStartDate").value = "";
       strengthPlanModal.classList.remove("hidden");
       document.getElementById("spName").focus();
+    });
+
+    // Manual save button
+    document.getElementById("strSaveBtn").addEventListener("click", async () => {
+      if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
+      await flushSave();
+    });
+
+    // Ctrl+S shortcut for saving
+    document.addEventListener("keydown", (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+        const strengthTab = document.querySelector('.tab-btn[data-tab="strength"]');
+        if (strengthTab && strengthTab.classList.contains("active")) {
+          e.preventDefault();
+          if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
+          flushSave();
+        }
+      }
+    });
+
+    // Warn user if there are unsaved changes on page unload
+    window.addEventListener("beforeunload", (e) => {
+      const hasPending = Object.keys(pendingPrescriptionChanges).length > 0 ||
+                         Object.keys(pendingExerciseChanges).length > 0 ||
+                         saveTimer;
+      if (hasPending) {
+        if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
+        flushSave();
+        e.preventDefault();
+      }
     });
 
     document.getElementById("editPlanMetaBtn").addEventListener("click", async () => {
@@ -3139,16 +3855,25 @@
       }
     });
 
-    strengthPlanSelect.addEventListener("change", () => {
+    strengthPlanSelect.addEventListener("change", async () => {
+      // Flush any pending saves for the current plan before switching
+      if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
+      await flushSave();
+      pendingPrescriptionChanges = {};
+      pendingExerciseChanges = {};
+
       const planId = strengthPlanSelect.value;
       if (planId) {
         strSelectedDay = 1;
         strSelectedWeek = 1;
         loadStrengthPlanFull(planId);
       } else {
-        strengthPlanHeader.hidden = true;
-        strengthDayView.hidden = true;
-        strengthNoPlan.hidden = false;
+        strCurrentPlan = null;
+        strengthNoPlan.textContent = "Nenhum plano selecionado.";
+        renderPlanHeader();
+        renderDayTabs();
+        renderWeekTabs();
+        renderDayView();
       }
     });
 
@@ -3183,6 +3908,7 @@
       try {
         const data = await apiRequest("GET", `/.netlify/functions/strength-plan?instances=1&planId=${planId}`);
         const active = (data.instances || []).filter(i => i.status === "active");
+        strLoadedInstances = active;
         if (active.length === 0) {
           strengthPlanInstances.hidden = true;
           return;
@@ -3203,6 +3929,7 @@
         }
       } catch (e) {
         strengthPlanInstances.hidden = true;
+        strLoadedInstances = [];
         console.error("Failed to load instances", e);
       }
     }
@@ -3259,6 +3986,131 @@
         await loadPlanInstances(strCurrentPlan.plan.id);
       } catch (e) {
         alert("Erro ao atribuir plano: " + (e.message || "O atleta pode já ter um plano ativo."));
+      }
+    });
+
+    // ── Exercise CRUD ──
+    function renderExerciseCrudList() {
+      const container = document.getElementById("exCrudList");
+      if (!container) return;
+      const search = (document.getElementById("exCrudSearch").value || "").toLowerCase();
+      const cat = document.getElementById("exCrudCatFilter").value;
+      const subcat = document.getElementById("exCrudSubcatFilter").value;
+      let filtered = strExercises;
+      if (cat) filtered = filtered.filter(e => e.category === cat);
+      if (subcat) filtered = filtered.filter(e => e.subcategory === subcat);
+      if (search) filtered = filtered.filter(e => e.name.toLowerCase().includes(search));
+
+      if (filtered.length === 0) {
+        container.innerHTML = '<div class="ex-crud-empty">Nenhum exercício encontrado.</div>';
+        return;
+      }
+
+      let html = `<div style="max-height:70vh; overflow-y:auto; border:1px solid var(--line); border-radius:var(--radius-md);">
+        <table class="ex-crud-table"><thead><tr>
+          <th>Nome</th><th>Categoria</th><th>Subcategoria</th><th>Vídeo</th><th>Peso/lado</th><th>Cada lado</th><th>Tempo</th><th></th>
+        </tr></thead><tbody>`;
+      for (const ex of filtered) {
+        const videoCell = ex.video_url
+          ? `<a href="${escapeHtml(ex.video_url)}" target="_blank" rel="noopener" class="ex-video-link">▶ Ver</a>`
+          : '<span class="microcopy">—</span>';
+        html += `<tr>
+          <td><strong>${escapeHtml(ex.name)}</strong>${ex.description ? `<br><span class="microcopy" style="max-width:200px;display:inline-block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(ex.description)}">${escapeHtml(ex.description)}</span>` : ''}</td>
+          <td><span class="ex-cat-badge">${ex.category || '—'}</span></td>
+          <td>${ex.subcategory || '—'}</td>
+          <td>${videoCell}</td>
+          <td>${ex.default_weight_per_side ? 'Sim' : 'Não'}</td>
+          <td>${ex.default_each_side ? 'Sim' : 'Não'}</td>
+          <td>${ex.default_tempo || '—'}</td>
+          <td><button class="btn btn-small btn-ghost" data-edit-ex="${ex.id}" title="Editar">✏</button></td>
+        </tr>`;
+      }
+      html += '</tbody></table></div>';
+      html += `<div class="microcopy" style="margin-top:8px;">${filtered.length} exercício(s)</div>`;
+      container.innerHTML = html;
+    }
+
+    function openExerciseCrudModal(exerciseId) {
+      const modal = document.getElementById("exerciseCrudModal");
+      const form = document.getElementById("exerciseCrudForm");
+      form.reset();
+      document.getElementById("exCrudEditId").value = "";
+      document.getElementById("exCrudModalTitle").textContent = "Novo Exercício";
+      document.getElementById("exCrudSaveBtn").textContent = "Criar";
+
+      if (exerciseId) {
+        const ex = strExercises.find(e => e.id === exerciseId);
+        if (!ex) return;
+        document.getElementById("exCrudEditId").value = ex.id;
+        document.getElementById("exCrudModalTitle").textContent = "Editar Exercício";
+        document.getElementById("exCrudSaveBtn").textContent = "Guardar";
+        document.getElementById("exCrudName").value = ex.name || "";
+        document.getElementById("exCrudCategory").value = ex.category || "";
+        document.getElementById("exCrudSubcategory").value = ex.subcategory || "";
+        document.getElementById("exCrudVideoUrl").value = ex.video_url || "";
+        document.getElementById("exCrudDescription").value = ex.description || "";
+        document.getElementById("exCrudWeightPerSide").value = ex.default_weight_per_side ? "true" : "false";
+        document.getElementById("exCrudEachSide").value = ex.default_each_side ? "true" : "false";
+        document.getElementById("exCrudTempo").value = ex.default_tempo || "";
+      }
+
+      modal.classList.remove("hidden");
+      document.getElementById("exCrudName").focus();
+    }
+
+    document.getElementById("newExerciseBtn").addEventListener("click", () => openExerciseCrudModal(null));
+    document.getElementById("exCrudCancelBtn").addEventListener("click", () => {
+      document.getElementById("exerciseCrudModal").classList.add("hidden");
+    });
+
+    document.getElementById("exCrudList").addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-edit-ex]");
+      if (btn) openExerciseCrudModal(btn.dataset.editEx);
+    });
+
+    document.getElementById("exCrudSearch").addEventListener("input", renderExerciseCrudList);
+    document.getElementById("exCrudCatFilter").addEventListener("change", () => {
+      const cat = document.getElementById("exCrudCatFilter").value;
+      const subcats = [...new Set(strExercises.filter(e => !cat || e.category === cat).map(e => e.subcategory).filter(Boolean))].sort();
+      document.getElementById("exCrudSubcatFilter").innerHTML = '<option value="">Todas subcategorias</option>' + subcats.map(s => `<option value="${s}">${s}</option>`).join("");
+      renderExerciseCrudList();
+    });
+    document.getElementById("exCrudSubcatFilter").addEventListener("change", renderExerciseCrudList);
+
+    document.getElementById("exerciseCrudForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const editId = document.getElementById("exCrudEditId").value;
+      const payload = {
+        name: document.getElementById("exCrudName").value.trim(),
+        category: document.getElementById("exCrudCategory").value || null,
+        subcategory: document.getElementById("exCrudSubcategory").value.trim() || null,
+        video_url: document.getElementById("exCrudVideoUrl").value.trim() || null,
+        description: document.getElementById("exCrudDescription").value.trim() || null,
+        default_weight_per_side: document.getElementById("exCrudWeightPerSide").value === "true",
+        default_each_side: document.getElementById("exCrudEachSide").value === "true",
+        default_tempo: document.getElementById("exCrudTempo").value.trim() || null
+      };
+      if (!payload.name) return;
+
+      const btn = document.getElementById("exCrudSaveBtn");
+      btn.disabled = true;
+      btn.textContent = "A guardar…";
+      try {
+        if (editId) {
+          await apiRequest("PATCH", "/.netlify/functions/exercises", { id: editId, ...payload });
+        } else {
+          await apiRequest("POST", "/.netlify/functions/exercises", payload);
+        }
+        // Reload catalog
+        strExercises = [];
+        await loadExerciseCatalog();
+        document.getElementById("exerciseCrudModal").classList.add("hidden");
+        renderExerciseCrudList();
+      } catch (err) {
+        alert("Erro ao guardar exercício: " + (err.message || ""));
+      } finally {
+        btn.disabled = false;
+        btn.textContent = editId ? "Guardar" : "Criar";
       }
     });
 

@@ -32,6 +32,12 @@ body {
   color: var(--white);
 }
 
+select option,
+select optgroup {
+  color: #17120c;
+  background: #f4efe6;
+}
+
 body.auth-locked {
   overflow: hidden;
 }

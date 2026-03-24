@@ -1417,6 +1417,41 @@ async function getStrengthLogsByDateRange(config, athleteId, from, to) {
   });
 }
 
+// ── Strength Log Sessions ──
+
+async function createStrengthLogSession(config, payload) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: "strength_log_sessions",
+    method: "POST",
+    body: [payload],
+    prefer: "return=representation"
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function updateStrengthLogSession(config, sessionId, patch) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `strength_log_sessions?id=eq.${encodeURIComponent(sessionId)}`,
+    method: "PATCH",
+    body: patch,
+    prefer: "return=representation"
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function getStrengthLogSession(config, sessionId) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `strength_log_sessions?id=eq.${encodeURIComponent(sessionId)}&select=*&limit=1`
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
 module.exports = {
   insertTrainingSessions,
   findExistingSessions,
@@ -1530,5 +1565,8 @@ module.exports = {
   insertAthlete1rm,
   insertStrengthLogSets,
   getStrengthLogs,
-  getStrengthLogsByDateRange
+  getStrengthLogsByDateRange,
+  createStrengthLogSession,
+  updateStrengthLogSession,
+  getStrengthLogSession
 };
