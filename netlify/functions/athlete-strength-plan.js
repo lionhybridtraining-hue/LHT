@@ -24,8 +24,9 @@ exports.handler = async (event) => {
       return json(401, { error: "Authentication required" });
     }
 
-    // Auto-register: create athlete if not exists
+    // Auto-register/link athlete by identity/email if not found by identity
     let athlete = await getAthleteByIdentity(config, user.sub);
+    let createdNow = false;
     if (!athlete) {
       athlete = await upsertAthleteByIdentity(config, {
         identityId: user.sub,
@@ -35,17 +36,20 @@ exports.handler = async (event) => {
       if (!athlete) {
         return json(500, { error: "Failed to create athlete record" });
       }
-      // Newly created — no plan yet
-      return json(200, {
-        status: "pending",
-        message: "Bem-vindo! O teu coach vai ativar a tua conta.",
-        athlete: sanitizeAthlete(athlete)
-      });
+      createdNow = true;
     }
 
     // Check for active strength plan instance
     const instance = await getActiveInstanceForAthlete(config, athlete.id);
     if (!instance) {
+      // Keep the friendly onboarding message only right after the first auto-created link.
+      if (createdNow) {
+        return json(200, {
+          status: "pending",
+          message: "Bem-vindo! O teu coach vai ativar a tua conta.",
+          athlete: sanitizeAthlete(athlete)
+        });
+      }
       return json(200, {
         status: "no_plan",
         message: "Sem plano de força atribuído de momento.",
@@ -53,7 +57,7 @@ exports.handler = async (event) => {
       });
     }
 
-    // Load full plan details
+    // Load full plan details (prefer snapshot from assignment if available)
     const planData = await getStrengthPlanFull(config, instance.plan_id);
     if (!planData) {
       return json(200, {
@@ -61,6 +65,16 @@ exports.handler = async (event) => {
         message: "Plano não encontrado.",
         athlete: sanitizeAthlete(athlete)
       });
+    }
+
+    // Phase 5.1 — Use snapshotted data when available
+    const snapshot = instance.plan_snapshot
+      ? (typeof instance.plan_snapshot === "string" ? JSON.parse(instance.plan_snapshot) : instance.plan_snapshot)
+      : null;
+    if (snapshot) {
+      if (snapshot.exercises) planData.exercises = snapshot.exercises;
+      if (snapshot.prescriptions) planData.prescriptions = snapshot.prescriptions;
+      if (snapshot.phaseNotes) planData.phaseNotes = snapshot.phaseNotes;
     }
 
     // Load athlete's 1RMs (latest per exercise)

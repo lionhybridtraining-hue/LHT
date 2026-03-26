@@ -26,29 +26,31 @@ export default function AthleteAuthGuard({ children }: Props) {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[var(--background)]">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--primary)] border-t-transparent" />
+      <div className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top,rgba(212,165,79,0.14),#1a1a1a_46%,#090909)]">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#d4a54f] border-t-transparent" />
       </div>
     );
   }
 
   if (!session) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-[var(--background)] px-6 text-center">
-        <img
-          src="/assets/img/logo_lht.jpg"
-          alt="Lion Hybrid Training"
-          className="h-20 w-20 rounded-full"
-        />
-        <h1 className="font-['Oswald'] text-2xl font-semibold text-[var(--foreground)]">
-          Treino de Força
+      <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-[radial-gradient(circle_at_top,rgba(212,165,79,0.14),#1a1a1a_46%,#090909)] px-6 text-center">
+        <div className="rounded-full border border-[#d4a54f66] p-1 shadow-[0_0_24px_rgba(212,165,79,0.25)]">
+          <img
+            src="/assets/img/logo_lht.jpg"
+            alt="Lion Hybrid Training"
+            className="h-24 w-24 rounded-full"
+          />
+        </div>
+        <h1 className="font-['Oswald'] text-4xl font-semibold text-[#f7f1e8]">
+          Treino <span className="text-[#d4a54f]">de Força</span>
         </h1>
-        <p className="text-sm text-[var(--muted-foreground)]">
+        <p className="max-w-xs text-sm text-[#8f99a8]">
           Entra com a tua conta Google para aceder ao teu plano de treino.
         </p>
         <button
           onClick={() => signInWithGoogle("/atleta/forca")}
-          className="flex items-center gap-3 rounded-lg bg-white px-6 py-3 text-sm font-medium text-gray-800 shadow-md transition-transform active:scale-95"
+          className="flex items-center gap-3 rounded-full bg-white px-6 py-3 text-sm font-medium text-gray-800 shadow-[0_12px_30px_rgba(0,0,0,0.4)] transition-transform active:scale-95"
         >
           <svg className="h-5 w-5" viewBox="0 0 24 24">
             <path

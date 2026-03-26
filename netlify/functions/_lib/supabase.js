@@ -19,7 +19,9 @@ async function supabaseRequest({ url, serviceRoleKey, path, method = "GET", body
   }
 
   if (!response.ok) {
-    const message = payload && payload.message ? payload.message : `Supabase error ${response.status}`;
+    const detail = payload && payload.message ? payload.message : `Supabase error ${response.status}`;
+    const table = path.split("?")[0];
+    const message = `${detail} [table: ${table}]`;
     const error = new Error(message);
     error.status = response.status;
     error.payload = payload;
@@ -555,27 +557,68 @@ async function getPayingStatusForAthletes(config, identityIds) {
   if (!Array.isArray(identityIds) || identityIds.length === 0) return {};
   const validIds = identityIds.filter((id) => typeof id === "string" && id.length > 0);
   if (validIds.length === 0) return {};
-  const now = new Date().toISOString();
+
+  // Fetch all PAID purchases (no date filtering here - we'll do it in JS)
   const inList = validIds.map((id) => encodeURIComponent(id)).join(",");
   const rows = await supabaseRequest({
     url: config.supabaseUrl,
     serviceRoleKey: config.supabaseServiceRoleKey,
-    path: `stripe_purchases?identity_id=in.(${inList})&status=eq.paid&or=(expires_at.is.null,expires_at.gt.${encodeURIComponent(now)})&select=identity_id,status,billing_type,program_id,expires_at,paid_at&order=paid_at.desc.nullslast`
+    path: `stripe_purchases?identity_id=in.(${inList})&status=eq.paid&select=identity_id,status,billing_type,program_id,expires_at,paid_at,source&order=paid_at.desc.nullslast`
   });
+
+  const map = {};
+  const now = new Date().getTime();
+  if (Array.isArray(rows)) {
+    rows.forEach((row) => {
+      if (row.identity_id && !map[row.identity_id]) {
+        // Check if subscription is still valid (no expiry OR expiry is in the future)
+        const isActive =
+          !row.expires_at || new Date(row.expires_at).getTime() > now;
+        
+        if (isActive) {
+          map[row.identity_id] = {
+            isPaying: true,
+            billingType: row.billing_type || "one_time",
+            programId: row.program_id || null,
+            paidAt: row.paid_at || null,
+            expiresAt: row.expires_at || null,
+            manualAccessActive: row.source === "admin_override"
+          };
+        }
+      }
+    });
+  }
+  return map;
+}
+
+async function getLatestPurchaseStatusForAthletes(config, identityIds) {
+  if (!Array.isArray(identityIds) || identityIds.length === 0) return {};
+  const validIds = identityIds.filter((id) => typeof id === "string" && id.length > 0);
+  if (validIds.length === 0) return {};
+
+  const inList = validIds.map((id) => encodeURIComponent(id)).join(",");
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `stripe_purchases?identity_id=in.(${inList})&select=identity_id,status,billing_type,program_id,expires_at,paid_at,source&order=paid_at.desc.nullslast,created_at.desc`
+  });
+
   const map = {};
   if (Array.isArray(rows)) {
     rows.forEach((row) => {
       if (row.identity_id && !map[row.identity_id]) {
         map[row.identity_id] = {
-          isPaying: true,
-          billingType: row.billing_type || "one_time",
+          status: row.status || null,
+          billingType: row.billing_type || null,
           programId: row.program_id || null,
           paidAt: row.paid_at || null,
-          expiresAt: row.expires_at || null
+          expiresAt: row.expires_at || null,
+          source: row.source || null
         };
       }
     });
   }
+
   return map;
 }
 
@@ -654,6 +697,54 @@ async function createCoach(config, payload) {
   return Array.isArray(rows) ? rows[0] || null : null;
 }
 
+async function updateCoach(config, coachId, patch) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `coaches?id=eq.${encodeURIComponent(coachId)}`,
+    method: "PATCH",
+    body: patch,
+    prefer: "return=representation"
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function listAssignmentHistory(config, athleteId, limit = 50) {
+  return supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `program_assignments?athlete_id=eq.${encodeURIComponent(athleteId)}&select=id,athlete_id,coach_id,training_program_id,start_date,duration_weeks,computed_end_date,actual_end_date,status,price_cents_snapshot,currency_snapshot,followup_type_snapshot,notes,created_at,updated_at&order=created_at.desc&limit=${limit}`
+  });
+}
+
+async function listAllAthletesForAdmin(config) {
+  return supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: "athletes?select=id,name,email,identity_id,coach_identity_id,created_at&order=created_at.desc&limit=500"
+  });
+}
+
+async function listActiveAssignmentsWithPrograms(config) {
+  return supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: "program_assignments?status=in.(active,scheduled,paused)&select=id,athlete_id,coach_id,training_program_id,status,start_date,duration_weeks,notes,created_at&order=created_at.desc&limit=1000"
+  });
+}
+
+async function archiveAthlete(config, athleteId) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `athletes?id=eq.${encodeURIComponent(athleteId)}`,
+    method: "PATCH",
+    body: { status: "archived", updated_at: new Date().toISOString() },
+    prefer: "return=representation"
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
 async function assignRoleToIdentity(config, identityId, roleName) {
   const roles = await supabaseRequest({
     url: config.supabaseUrl,
@@ -676,6 +767,152 @@ async function assignRoleToIdentity(config, identityId, roleName) {
   });
 
   return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function createAuthUser(config, email) {
+  // Generate a temporary password for the user
+  const tempPassword = Math.random().toString(36).slice(-12) + Math.random().toString(36).slice(-12);
+  
+  const response = await fetch(`${config.supabaseUrl}/auth/v1/admin/users`, {
+    method: "POST",
+    headers: {
+      apikey: config.supabaseServiceRoleKey,
+      Authorization: `Bearer ${config.supabaseServiceRoleKey}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      email: email,
+      password: tempPassword,
+      email_confirm: true,
+      user_metadata: {
+        auto_created: true,
+        created_by_coach_flow: true
+      }
+    })
+  });
+
+  const text = await response.text();
+  let payload;
+  try {
+    payload = text ? JSON.parse(text) : null;
+  } catch (err) {
+    payload = text;
+  }
+
+  if (!response.ok) {
+    const message = payload && payload.message ? payload.message : `Supabase auth error ${response.status}`;
+    const error = new Error(message);
+    error.status = response.status;
+    error.payload = payload;
+    throw error;
+  }
+
+  return payload;
+}
+
+// Invites a user by email via Supabase Admin API.
+// Creates the auth user and sends an invite email with a magic link.
+// If the user already exists (confirmed), Supabase returns an error which callers should handle gracefully.
+async function inviteAuthUser(config, email, userMetadata = {}) {
+  const response = await fetch(`${config.supabaseUrl}/auth/v1/admin/invite`, {
+    method: "POST",
+    headers: {
+      apikey: config.supabaseServiceRoleKey,
+      Authorization: `Bearer ${config.supabaseServiceRoleKey}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      email,
+      data: {
+        ...userMetadata
+      }
+    })
+  });
+
+  const text = await response.text();
+  let payload;
+  try {
+    payload = text ? JSON.parse(text) : null;
+  } catch {
+    payload = text;
+  }
+
+  if (!response.ok) {
+    const message = payload
+      ? (payload.error_description || payload.message || payload.error || `Supabase invite error ${response.status}`)
+      : `Supabase invite error ${response.status}`;
+    const err = new Error(message);
+    err.status = response.status;
+    err.payload = payload;
+    throw err;
+  }
+
+  return payload;
+}
+
+async function getAuthUserByEmail(config, email) {
+  const normalizedEmail = typeof email === "string" ? email.trim().toLowerCase() : "";
+  if (!normalizedEmail) return null;
+
+  const headers = {
+    apikey: config.supabaseServiceRoleKey,
+    Authorization: `Bearer ${config.supabaseServiceRoleKey}`,
+    "Content-Type": "application/json"
+  };
+
+  const parseAuthPayload = async (response) => {
+    const text = await response.text();
+    let payload;
+    try {
+      payload = text ? JSON.parse(text) : null;
+    } catch {
+      payload = text;
+    }
+    return payload;
+  };
+
+  // Helper: extract flat array of users from any GoTrue response shape
+  const extractAllUsers = (payload) => {
+    if (!payload) return [];
+    if (Array.isArray(payload)) return payload;
+    if (Array.isArray(payload.users)) return payload.users;
+    if (payload.user && typeof payload.user === "object") return [payload.user];
+    if (payload.id) return [payload];
+    return [];
+  };
+
+  const findByEmail = (users) =>
+    users.find((u) => {
+      const e = typeof u.email === "string" ? u.email.trim().toLowerCase() : "";
+      return e === normalizedEmail;
+    }) || null;
+
+  // Always list ALL users and match by email (most reliable across Supabase versions).
+  for (let page = 1; page <= 50; page += 1) {
+    const listResponse = await fetch(
+      `${config.supabaseUrl}/auth/v1/admin/users?page=${page}&per_page=100`,
+      { method: "GET", headers }
+    );
+    const listPayload = await parseAuthPayload(listResponse);
+
+    if (!listResponse.ok) {
+      const message = listPayload
+        ? (listPayload.error_description || listPayload.message || listPayload.error || `Supabase auth users error ${listResponse.status}`)
+        : `Supabase auth users error ${listResponse.status}`;
+      const err = new Error(message);
+      err.status = listResponse.status;
+      err.payload = listPayload;
+      throw err;
+    }
+
+    const users = extractAllUsers(listPayload);
+    const matched = findByEmail(users);
+    if (matched) return matched;
+
+    if (users.length < 100) break;
+  }
+
+  return null;
 }
 
 async function listTrainingPrograms(config) {
@@ -867,6 +1104,75 @@ async function createProgramAssignment(config, payload) {
     path: "program_assignments",
     method: "POST",
     body: [payload],
+    prefer: "return=representation"
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function getCurrentProgramAssignment(config, athleteId, trainingProgramId) {
+  if (!athleteId) return null;
+
+  const baseFilters = [
+    `athlete_id=eq.${encodeURIComponent(athleteId)}`,
+    "select=*",
+    "order=created_at.desc",
+    "limit=1"
+  ];
+
+  if (trainingProgramId) {
+    baseFilters.unshift(`training_program_id=eq.${encodeURIComponent(trainingProgramId)}`);
+  }
+
+  const activeLikeRows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `program_assignments?status=in.(\"scheduled\",\"active\",\"paused\")&${baseFilters.join("&")}`
+  });
+
+  if (Array.isArray(activeLikeRows) && activeLikeRows.length) {
+    return activeLikeRows[0] || null;
+  }
+
+  const latestRows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `program_assignments?${baseFilters.join("&")}`
+  });
+
+  return Array.isArray(latestRows) ? latestRows[0] || null : null;
+}
+
+async function getLatestCancellableProgramAssignment(config, athleteId, trainingProgramId) {
+  if (!athleteId) return null;
+
+  const filters = [
+    `athlete_id=eq.${encodeURIComponent(athleteId)}`,
+    'status=in.("scheduled","active","paused")',
+    'select=*',
+    'order=created_at.desc',
+    'limit=1'
+  ];
+
+  if (trainingProgramId) {
+    filters.unshift(`training_program_id=eq.${encodeURIComponent(trainingProgramId)}`);
+  }
+
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `program_assignments?${filters.join("&")}`
+  });
+
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function updateProgramAssignment(config, assignmentId, patch) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `program_assignments?id=eq.${encodeURIComponent(assignmentId)}`,
+    method: "PATCH",
+    body: patch,
     prefer: "return=representation"
   });
   return Array.isArray(rows) ? rows[0] || null : null;
@@ -1239,8 +1545,37 @@ async function getStrengthPlanFull(config, planId) {
   const exercises = await supabaseRequest({
     url: config.supabaseUrl,
     serviceRoleKey: config.supabaseServiceRoleKey,
-    path: `strength_plan_exercises?plan_id=eq.${encodeURIComponent(planId)}&select=*,exercise:exercises(id,name,category,subcategory,video_url,description,default_weight_per_side,default_each_side,default_tempo)&order=day_number.asc,exercise_order.asc`
+    path: `strength_plan_exercises?plan_id=eq.${encodeURIComponent(planId)}&select=id,plan_id,day_number,section,superset_group,exercise_order,exercise_id,each_side,weight_per_side,plyo_mechanical_load,rm_percent_increase_per_week,alt_progression_exercise_id,alt_regression_exercise_id,created_at&order=day_number.asc,exercise_order.asc`
   });
+
+  // Avoid PostgREST relationship ambiguity by hydrating exercise records explicitly.
+  const exerciseIdSet = new Set();
+  for (const pe of (exercises || [])) {
+    if (pe.exercise_id) exerciseIdSet.add(pe.exercise_id);
+    if (pe.alt_progression_exercise_id) exerciseIdSet.add(pe.alt_progression_exercise_id);
+    if (pe.alt_regression_exercise_id) exerciseIdSet.add(pe.alt_regression_exercise_id);
+  }
+
+  let exerciseMap = {};
+  if (exerciseIdSet.size > 0) {
+    const exerciseRows = await supabaseRequest({
+      url: config.supabaseUrl,
+      serviceRoleKey: config.supabaseServiceRoleKey,
+      path: `exercises?id=in.(${Array.from(exerciseIdSet).join(",")})&select=id,name,category,subcategory,video_url,description,default_weight_per_side,default_each_side,default_tempo,progression_of,regression_of`
+    });
+
+    exerciseMap = (exerciseRows || []).reduce((acc, row) => {
+      acc[row.id] = row;
+      return acc;
+    }, {});
+  }
+
+  const hydratedExercises = (exercises || []).map(pe => ({
+    ...pe,
+    exercise: pe.exercise_id ? exerciseMap[pe.exercise_id] || null : null,
+    alt_progression_exercise: pe.alt_progression_exercise_id ? exerciseMap[pe.alt_progression_exercise_id] || null : null,
+    alt_regression_exercise: pe.alt_regression_exercise_id ? exerciseMap[pe.alt_regression_exercise_id] || null : null
+  }));
 
   const exerciseIds = (exercises || []).map(e => e.id);
   let prescriptions = [];
@@ -1258,7 +1593,7 @@ async function getStrengthPlanFull(config, planId) {
     path: `strength_plan_phase_notes?plan_id=eq.${encodeURIComponent(planId)}&select=*&order=day_number.asc,week_number.asc`
   });
 
-  return { plan, exercises: exercises || [], prescriptions: prescriptions || [], phaseNotes: phaseNotes || [] };
+  return { plan, exercises: hydratedExercises, prescriptions: prescriptions || [], phaseNotes: phaseNotes || [] };
 }
 
 async function createStrengthPlan(config, payload) {
@@ -1452,6 +1787,56 @@ async function getStrengthLogSession(config, sessionId) {
   return Array.isArray(rows) ? rows[0] || null : null;
 }
 
+async function findActiveStrengthSession(config, athleteId, planId, weekNumber, dayNumber) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `strength_log_sessions?athlete_id=eq.${encodeURIComponent(athleteId)}&plan_id=eq.${encodeURIComponent(planId)}&week_number=eq.${encodeURIComponent(weekNumber)}&day_number=eq.${encodeURIComponent(dayNumber)}&status=eq.in_progress&select=*&order=created_at.desc&limit=1`
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function cancelOrphanedSessions(config, athleteId, maxAgeHours = 4) {
+  const cutoff = new Date(Date.now() - maxAgeHours * 60 * 60 * 1000).toISOString();
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `strength_log_sessions?athlete_id=eq.${encodeURIComponent(athleteId)}&status=eq.in_progress&started_at=lt.${encodeURIComponent(cutoff)}`,
+    method: "PATCH",
+    body: { cancelled_at: new Date().toISOString(), status: "cancelled" },
+    prefer: "return=representation"
+  });
+  return Array.isArray(rows) ? rows.length : 0;
+}
+
+async function getStrengthSessionHistory(config, athleteId, planId, limit = 20) {
+  const params = [
+    `athlete_id=eq.${encodeURIComponent(athleteId)}`,
+    `status=eq.completed`,
+    "select=*",
+    "order=started_at.desc",
+    `limit=${limit}`
+  ];
+  if (planId) {
+    params.push(`plan_id=eq.${encodeURIComponent(planId)}`);
+  }
+  return supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `strength_log_sessions?${params.join("&")}`
+  });
+}
+
+async function getStrengthLogSetsForSessions(config, sessionIds) {
+  if (!sessionIds || sessionIds.length === 0) return [];
+  const inList = sessionIds.map(id => `"${id}"`).join(",");
+  return supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `strength_log_sets?session_id=in.(${inList})&select=*&order=set_number.asc`
+  });
+}
+
 module.exports = {
   insertTrainingSessions,
   findExistingSessions,
@@ -1470,10 +1855,16 @@ module.exports = {
   verifyCoachOwnsAthlete,
   listUnassignedAthletes,
   assignUnassignedAthleteToCoach,
+  archiveAthlete,
   getPayingStatusForAthletes,
+  getLatestPurchaseStatusForAthletes,
   getUserRoleNames,
   listCoaches,
   createCoach,
+  updateCoach,
+  createAuthUser,
+  inviteAuthUser,
+  getAuthUserByEmail,
   assignRoleToIdentity,
   listTrainingPrograms,
   createTrainingProgram,
@@ -1482,6 +1873,12 @@ module.exports = {
   getTrainingProgramByExternalId,
   listPublicTrainingPrograms,
   createProgramAssignment,
+  getCurrentProgramAssignment,
+  getLatestCancellableProgramAssignment,
+  updateProgramAssignment,
+  listAssignmentHistory,
+  listAllAthletesForAdmin,
+  listActiveAssignmentsWithPrograms,
   createStripePurchase,
   upsertStripePurchaseBySessionId,
   updateStripePurchaseById,
@@ -1568,5 +1965,9 @@ module.exports = {
   getStrengthLogsByDateRange,
   createStrengthLogSession,
   updateStrengthLogSession,
-  getStrengthLogSession
+  getStrengthLogSession,
+  findActiveStrengthSession,
+  cancelOrphanedSessions,
+  getStrengthSessionHistory,
+  getStrengthLogSetsForSessions
 };

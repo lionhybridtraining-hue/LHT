@@ -1,8 +1,10 @@
 import { getAccessToken } from "@/lib/supabase";
+import { enqueue } from "@/lib/offline-queue";
 import type {
   AthletePlanResponse,
   WorkoutSession,
   LogSet,
+  SessionSummary,
 } from "@/types/strength";
 
 const API_BASE = "/.netlify/functions";
@@ -42,7 +44,7 @@ export function startSession(params: {
   week_number: number;
   day_number: number;
   session_date?: string;
-}): Promise<{ session: WorkoutSession }> {
+}): Promise<{ session: WorkoutSession; resumed?: boolean; sets?: LogSet[] }> {
   return apiFetch("/strength-log", {
     method: "POST",
     body: JSON.stringify({ action: "start_session", ...params }),
@@ -83,7 +85,7 @@ export interface LogSetPayload {
   notes?: string;
 }
 
-export function submitSets(params: {
+export function submitSetsApi(params: {
   plan_id: string;
   session_id?: string;
   sets: LogSetPayload[];
@@ -94,11 +96,43 @@ export function submitSets(params: {
   });
 }
 
+export async function submitSets(params: {
+  plan_id: string;
+  session_id?: string;
+  sets: LogSetPayload[];
+}): Promise<{ sets: LogSet[]; oneRmUpdates: number }> {
+  try {
+    return await submitSetsApi(params);
+  } catch (err) {
+    // Queue for retry on network errors only
+    if (
+      err instanceof TypeError ||
+      (typeof navigator !== "undefined" && !navigator.onLine)
+    ) {
+      enqueue({
+        plan_id: params.plan_id,
+        session_id: params.session_id,
+        sets: params.sets,
+      });
+      return { sets: [] as LogSet[], oneRmUpdates: 0 };
+    }
+    throw err;
+  }
+}
+
 export function fetchLogs(
   planId: string,
   weekNumber?: number
 ): Promise<{ logs: LogSet[] }> {
   let qs = `?planId=${planId}`;
   if (weekNumber) qs += `&weekNumber=${weekNumber}`;
+  return apiFetch(`/strength-log${qs}`);
+}
+
+export function fetchSessionHistory(
+  planId?: string
+): Promise<{ sessions: SessionSummary[] }> {
+  let qs = "?action=sessions";
+  if (planId) qs += `&planId=${encodeURIComponent(planId)}`;
   return apiFetch(`/strength-log${qs}`);
 }

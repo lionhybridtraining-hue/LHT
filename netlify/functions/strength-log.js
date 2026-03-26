@@ -6,11 +6,16 @@ const {
   insertStrengthLogSets,
   getStrengthLogs,
   insertAthlete1rm,
+  getAthlete1rmLatest,
   getActiveInstanceForAthlete,
   getStrengthPlanExercisesByIds,
   createStrengthLogSession,
   updateStrengthLogSession,
-  getStrengthLogSession
+  getStrengthLogSession,
+  findActiveStrengthSession,
+  cancelOrphanedSessions,
+  getStrengthSessionHistory,
+  getStrengthLogSetsForSessions
 } = require("./_lib/supabase");
 const { estimate1rm } = require("./_lib/strength");
 
@@ -27,6 +32,37 @@ exports.handler = async (event) => {
       const qs = event.queryStringParameters || {};
       const athlete = await getAthleteByIdentity(config, identityId);
       if (!athlete) return json(404, { error: "Athlete not found" });
+
+      // Session history mode
+      if (qs.action === "sessions") {
+        const sessions = await getStrengthSessionHistory(
+          config, athlete.id, qs.planId || null, parseInt(qs.limit, 10) || 20
+        );
+        if (!sessions || sessions.length === 0) {
+          return json(200, { sessions: [] });
+        }
+        const sessionIds = sessions.map(s => s.id);
+        const sets = await getStrengthLogSetsForSessions(config, sessionIds);
+        // Group sets by session
+        const setsBySession = {};
+        for (const set of (sets || [])) {
+          if (!setsBySession[set.session_id]) setsBySession[set.session_id] = [];
+          setsBySession[set.session_id].push(set);
+        }
+        const enriched = sessions.map(s => ({
+          ...s,
+          sets: setsBySession[s.id] || [],
+          totalSets: (setsBySession[s.id] || []).length,
+          totalVolume: (setsBySession[s.id] || []).reduce(
+            (acc, set) => acc + (set.load_kg || 0) * (set.reps || 0), 0
+          ),
+          totalDuration: (setsBySession[s.id] || []).reduce(
+            (acc, set) => acc + (set.duration_seconds || 0), 0
+          ),
+          uniqueExercises: new Set((setsBySession[s.id] || []).map(set => set.plan_exercise_id)).size
+        }));
+        return json(200, { sessions: enriched });
+      }
 
       if (!qs.planId) return json(400, { error: "planId is required" });
 
@@ -51,6 +87,20 @@ exports.handler = async (event) => {
         if (!body.plan_id || !body.week_number || !body.day_number) {
           return json(400, { error: "plan_id, week_number, and day_number are required" });
         }
+
+        // Phase 1.3 — Cancel orphaned sessions older than 4 hours
+        await cancelOrphanedSessions(config, athlete.id, 4);
+
+        // Phase 1.2 — Return existing in-progress session instead of creating duplicate
+        const existingSession = await findActiveStrengthSession(
+          config, athlete.id, body.plan_id, body.week_number, body.day_number
+        );
+        if (existingSession) {
+          // Return existing sets so frontend can restore state
+          const existingSets = await getStrengthLogSetsForSessions(config, [existingSession.id]);
+          return json(200, { session: existingSession, resumed: true, sets: existingSets || [] });
+        }
+
         const activeInstance = await getActiveInstanceForAthlete(config, athlete.id);
         const session = await createStrengthLogSession(config, {
           athlete_id: athlete.id,
@@ -68,6 +118,10 @@ exports.handler = async (event) => {
         if (!body.session_id) return json(400, { error: "session_id is required" });
         const existing = await getStrengthLogSession(config, body.session_id);
         if (!existing || existing.athlete_id !== athlete.id) return json(404, { error: "Session not found" });
+        // Phase 1.4 — Only in-progress sessions can be finished
+        if (existing.status !== "in_progress") {
+          return json(409, { error: `Session already ${existing.status}` });
+        }
         const session = await updateStrengthLogSession(config, body.session_id, {
           finished_at: new Date().toISOString(),
           status: "completed"
@@ -79,6 +133,10 @@ exports.handler = async (event) => {
         if (!body.session_id) return json(400, { error: "session_id is required" });
         const existing = await getStrengthLogSession(config, body.session_id);
         if (!existing || existing.athlete_id !== athlete.id) return json(404, { error: "Session not found" });
+        // Phase 1.4 — Only in-progress sessions can be cancelled
+        if (existing.status !== "in_progress") {
+          return json(409, { error: `Session already ${existing.status}` });
+        }
         const session = await updateStrengthLogSession(config, body.session_id, {
           cancelled_at: new Date().toISOString(),
           status: "cancelled"
@@ -136,23 +194,42 @@ exports.handler = async (event) => {
       }
 
       const oneRmInserted = [];
+      // Fetch current best 1RM per exercise to avoid inserting lower estimates
+      let currentBest = {};
+      const exerciseIds = [...new Set(Object.values(peToExercise))];
+      if (exerciseIds.length > 0) {
+        try {
+          const latest = await getAthlete1rmLatest(config, athlete.id);
+          for (const r of (latest || [])) {
+            currentBest[r.exercise_id] = r.value_kg;
+          }
+        } catch (_) { /* best-effort */ }
+      }
+
       for (const set of (saved || [])) {
         if (set.load_kg && set.reps && set.reps > 0 && set.plan_exercise_id) {
           const exerciseId = peToExercise[set.plan_exercise_id];
           if (!exerciseId) continue;
           const estimated = estimate1rm(set.load_kg, set.reps);
           if (!estimated) continue;
+          const rounded = Math.round(estimated * 100) / 100;
+          // Only insert if new estimate beats current best (or no existing record)
+          const existing = currentBest[exerciseId] || 0;
+          if (rounded <= existing) continue;
           try {
             const rm = await insertAthlete1rm(config, {
               athlete_id: athlete.id,
               exercise_id: exerciseId,
-              value_kg: Math.round(estimated * 100) / 100,
+              value_kg: rounded,
               method: "estimated_epley",
               source: "auto_from_log",
               source_log_id: set.id,
               tested_at: set.session_date
             });
-            if (rm) oneRmInserted.push(rm);
+            if (rm) {
+              oneRmInserted.push(rm);
+              currentBest[exerciseId] = rounded; // update in-memory best
+            }
           } catch (_) { /* best-effort */ }
         }
       }

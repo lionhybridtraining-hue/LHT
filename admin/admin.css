@@ -111,6 +111,10 @@ body.auth-locked {
   background: rgba(255, 255, 255, 0.03);
 }
 
+.admin-inline-form[hidden] {
+  display: none;
+}
+
 .admin-shell {
   min-height: 100vh;
   display: flex;
@@ -960,6 +964,20 @@ body.auth-locked {
   font-size: 0.92rem;
 }
 
+.athletes-dual-pane {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+}
+
+.athletes-view {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.02);
+  padding: 12px;
+  min-width: 0;
+}
+
 .module-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -1543,6 +1561,139 @@ body.auth-locked {
   }
 }
 
+@media (min-width: 1200px) {
+  .admin-header {
+    padding: 14px 20px 10px;
+    gap: 14px;
+  }
+
+  .brand-lockup {
+    gap: 12px;
+  }
+
+  .brand-logo {
+    width: 54px;
+    height: 54px;
+  }
+
+  .admin-header h1 {
+    font-size: 2.45rem;
+    line-height: 0.94;
+  }
+
+  .brand-subtitle {
+    margin-top: 6px;
+    font-size: 0.9rem;
+    line-height: 1.45;
+  }
+
+  .admin-tabs {
+    gap: 6px;
+    padding: 4px;
+  }
+
+  .admin-tab {
+    padding: 8px 11px;
+    border-radius: 9px;
+    font-size: 0.86rem;
+  }
+
+  .auth-panel {
+    min-width: 250px;
+    padding: 12px;
+    border-radius: 14px;
+  }
+
+  .auth-controls {
+    gap: 7px;
+    margin-top: 8px;
+  }
+
+  #auth-status {
+    min-height: 34px;
+    padding: 7px 10px;
+    font-size: 0.85rem;
+  }
+
+  .admin-main {
+    grid-template-columns: minmax(250px, 300px) minmax(0, 1fr);
+    gap: 10px;
+    padding: 10px 16px 14px;
+  }
+
+  .admin-sidebar,
+  .admin-editor,
+  .admin-athletes {
+    border-radius: 14px;
+    padding: 12px;
+  }
+
+  .editor-top {
+    margin-bottom: 8px;
+    gap: 10px;
+  }
+
+  .editor-top h2,
+  .sidebar-intro h2 {
+    font-size: 1.35rem;
+  }
+
+  .message {
+    margin: 8px 0;
+    padding: 8px 10px;
+    font-size: 0.88rem;
+  }
+
+  .form-grid {
+    gap: 10px;
+  }
+
+  .admin-athletes .field label,
+  .form-grid label,
+  .athletes-toolbar .field label {
+    font-size: 0.72rem;
+  }
+
+  .admin-athletes .field input,
+  .admin-athletes .field select,
+  .admin-athletes .field textarea,
+  .form-grid input,
+  .form-grid select,
+  .form-grid textarea,
+  .athletes-toolbar .field input,
+  .athletes-toolbar .field select,
+  #create-coach-box .field input,
+  #create-coach-box .field select {
+    padding: 8px 10px;
+    font-size: 0.88rem;
+  }
+
+  .athletes-dual-pane {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+    gap: 12px;
+  }
+
+  .athletes-toolbar {
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .athletes-toolbar button,
+  .assign-athlete-btn,
+  .form-actions button,
+  .site-content-actions button,
+  .sidebar-actions button {
+    padding: 9px 12px;
+    border-radius: 12px;
+    font-size: 0.86rem;
+  }
+
+  .athletes-table th,
+  .athletes-table td {
+    padding: 9px 10px;
+  }
+}
+
 @media (max-width: 560px) {
   .brand-logo {
     width: 56px;
@@ -2095,5 +2246,985 @@ details[open] .sc-ess-summary::before {
   .vendas-subtab {
     font-size: 0.72rem;
     padding: 5px 10px;
+  }
+}
+
+/* ============================================================================
+   NEW INFORMATION ARCHITECTURE FOR ATHLETES & COACHES TAB
+   ============================================================================ */
+
+/* UNIFIED NOTIFICATION SYSTEM */
+.admin-notification {
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--line-strong);
+  background: rgba(200, 154, 60, 0.12);
+  color: var(--ink);
+  font-size: 0.92rem;
+  margin-bottom: 16px;
+  animation: fadeInNotification 0.3s ease-out;
+}
+
+.admin-notification[hidden] {
+  display: none !important;
+}
+
+.admin-notification.error {
+  background: rgba(182, 70, 51, 0.12);
+  border-color: rgba(182, 70, 51, 0.3);
+  color: #e8a89a;
+}
+
+.admin-notification.success {
+  background: rgba(36, 107, 82, 0.12);
+  border-color: rgba(36, 107, 82, 0.3);
+  color: #7dd4c0;
+}
+
+@keyframes fadeInNotification {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* FILTER & ACTION CONTAINER */
+.athletes-filter-container {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  margin-bottom: 16px;
+  align-items: flex-start;
+}
+
+/* GLOBAL FILTER BAR */
+.athletes-filter-bar {
+  display: grid;
+  grid-template-columns: minmax(200px, 1fr) repeat(4, minmax(140px, 1fr));
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  align-items: flex-end;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.filter-search,
+.filter-select {
+  width: 100%;
+  padding: 10px 12px;
+  font-family: inherit;
+  font-size: 0.9rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.filter-search::placeholder {
+  color: var(--muted);
+}
+
+.filter-search:focus,
+.filter-select:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(200, 154, 60, 0.12);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.filter-toggles {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.filter-toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  color: var(--ink-soft);
+  user-select: none;
+}
+
+.filter-toggle-label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: var(--accent-strong);
+}
+
+/* GLOBAL ACTION BAR */
+.athletes-action-bar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.action-btn {
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--ink);
+  transition: all 0.2s ease;
+}
+
+.action-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.action-btn-primary {
+  background: linear-gradient(180deg, #f2d184 0%, #c89a3c 100%);
+  color: #17120c;
+  border-color: var(--accent-strong);
+}
+
+.action-btn-primary:hover:not(:disabled) {
+  background: linear-gradient(180deg, #f1c86f 0%, #d4a844 100%);
+}
+
+.action-btn-secondary {
+  border-color: var(--line-strong);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--ink);
+}
+
+.action-btn-secondary:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* MAIN ATHLETES CONTAINER */
+.athletes-main-container {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+/* MAIN ATHLETES VIEW */
+.athletes-main-view {
+  /* flex grow to fill available space */
+}
+
+#athletes-empty-state {
+  padding: 32px 16px;
+  text-align: center;
+  border: 1px dashed var(--line-strong);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+#athletes-empty-state p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.athletes-list-wrap {
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  max-height: 600px;
+}
+
+.athletes-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 100%;
+  font-size: 0.9rem;
+}
+
+.athletes-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.athletes-table th,
+.athletes-table td {
+  text-align: left;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.athletes-table th {
+  font-family: "Oswald", sans-serif;
+  font-size: 0.82rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  background: rgba(200, 154, 60, 0.14);
+  font-weight: 600;
+}
+
+.athletes-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+/* SECONDARY COACHES PANEL (SIDEBAR) */
+.coaches-sidebar {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  height: fit-content;
+  max-height: 600px;
+}
+
+.coaches-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--line);
+  background: rgba(200, 154, 60, 0.08);
+}
+
+.coaches-panel-header h3 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-family: "Oswald", sans-serif;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.sidebar-toggle {
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink-soft);
+  cursor: pointer;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sidebar-toggle:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+/* COACHES PANEL CONTENT */
+.coaches-panel-content {
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.coaches-selector {
+  padding: 12px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.coaches-selector select {
+  width: 100%;
+  padding: 8px 10px;
+  font-family: inherit;
+  font-size: 0.85rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--ink);
+}
+
+.coaches-selector select:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(200, 154, 60, 0.12);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.coaches-action-btn {
+  width: 100%;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--ink);
+  transition: all 0.2s ease;
+}
+
+.coaches-action-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.coaches-action-btn-primary {
+  background: linear-gradient(180deg, #f2d184 0%, #c89a3c 100%);
+  color: #17120c;
+  border-color: var(--accent-strong);
+}
+
+.coaches-action-btn-primary:hover {
+  background: linear-gradient(180deg, #f1c86f 0%, #d4a844 100%);
+}
+
+.coaches-filter-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  color: var(--ink-soft);
+  user-select: none;
+  margin-top: 4px;
+}
+
+.coaches-filter-label input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+  accent-color: var(--accent-strong);
+}
+
+/* COACHES KPIs */
+.operations-kpis {
+  grid-template-columns: 1fr;
+  padding: 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.module-card {
+  padding: 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.02);
+  text-align: center;
+}
+
+.module-card h4 {
+  margin: 0 0 6px;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  font-weight: 600;
+}
+
+.module-card p {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--accent-strong);
+}
+
+/* COACHES ATHLETES TABLE */
+.coaches-athletes-wrap {
+  overflow: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.coaches-athletes-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+.coaches-athletes-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.coaches-athletes-table th,
+.coaches-athletes-table td {
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line);
+}
+
+.coaches-athletes-table th {
+  font-family: "Oswald", sans-serif;
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  background: rgba(200, 154, 60, 0.1);
+  font-weight: 600;
+}
+
+.coaches-athletes-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+/* COACHES PANEL FOOTER */
+.coaches-panel-footer {
+  padding: 12px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  gap: 8px;
+}
+
+/* EMPTY STATE */
+#coaches-panel-empty {
+  padding: 16px;
+  text-align: center;
+  margin: 12px;
+  border: 1px dashed var(--line-strong);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+#coaches-panel-empty p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+/* RESPONSIVE LAYOUT */
+@media (max-width: 1280px) {
+  .athletes-filter-bar {
+    grid-template-columns: minmax(180px, 1fr) repeat(3, minmax(120px, 1fr));
+  }
+}
+
+@media (max-width: 1024px) {
+  .athletes-main-container {
+    grid-template-columns: 1fr;
+  }
+
+  .coaches-sidebar {
+    max-height: 400px;
+  }
+
+  .athletes-filter-bar {
+    grid-template-columns: minmax(160px, 1fr) repeat(3, minmax(110px, 1fr));
+    gap: 8px;
+  }
+}
+
+@media (max-width: 768px) {
+  .athletes-filter-container {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .athletes-action-bar {
+    gap: 6px;
+  }
+
+  .action-btn {
+    padding: 8px 12px;
+    font-size: 0.8rem;
+    flex: 1;
+  }
+
+  .athletes-filter-bar {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .filter-toggles {
+    gap: 12px;
+  }
+
+  .athletes-list-wrap {
+    max-height: 400px;
+  }
+
+  .coaches-sidebar {
+    grid-column: 1;
+    max-height: 350px;
+  }
+
+  .athletes-table,
+  .coaches-athletes-table {
+    font-size: 0.8rem;
+  }
+
+  .athletes-table th,
+  .athletes-table td,
+  .coaches-athletes-table th,
+  .coaches-athletes-table td {
+    padding: 8px 10px;
+  }
+}
+
+/* ============================================================================
+   ROW ACTIONS & MODAL STYLING (Step 5)
+   ============================================================================ */
+
+.athlete-row-actions {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+}
+
+.action-btn-sm {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--ink);
+  cursor: pointer;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.action-btn-sm:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--accent-strong);
+}
+
+.action-btn-sm:active {
+  background: rgba(200, 154, 60, 0.15);
+}
+
+/* MODAL STYLING */
+dialog {
+  position: fixed;
+  inset: 0;
+  width: 90%;
+  max-width: 500px;
+  max-height: 90vh;
+  margin: auto;
+  border: 1px solid var(--line-strong);
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(16, 13, 9, 0.98), rgba(8, 7, 6, 0.98));
+  color: var(--ink);
+  padding: 0;
+  overflow: auto;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+  animation: slideInDialog 0.3s ease-out;
+  z-index: 1000;
+}
+
+dialog::backdrop {
+  background: rgba(0, 0, 0, 0.6);
+  animation: fadeInBackdrop 0.3s ease-out;
+}
+
+@keyframes slideInDialog {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInBackdrop {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid var(--line);
+  background: rgba(200, 154, 60, 0.08);
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-family: "Oswald", sans-serif;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.modal-close-btn {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink-soft);
+  cursor: pointer;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.modal-close-btn:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.modal-content {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.modal-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.modal-field label {
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+  font-weight: 500;
+}
+
+.modal-field input,
+.modal-field select,
+.modal-field textarea {
+  width: 100%;
+  padding: 10px 12px;
+  font-family: inherit;
+  font-size: 0.9rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--ink);
+}
+
+.modal-field input::placeholder,
+.modal-field textarea::placeholder {
+  color: var(--muted);
+}
+
+.modal-field input:focus,
+.modal-field select:focus,
+.modal-field textarea:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(200, 154, 60, 0.12);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.modal-footer {
+  display: flex;
+  gap: 10px;
+  padding: 16px;
+  border-top: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.01);
+  justify-content: flex-end;
+}
+
+.modal-btn {
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  padding: 10px 16px;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--ink);
+  transition: all 0.2s ease;
+}
+
+.modal-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.modal-btn-primary {
+  background: linear-gradient(180deg, #f2d184 0%, #c89a3c 100%);
+  color: #17120c;
+  border-color: var(--accent-strong);
+}
+
+.modal-btn-primary:hover:not(:disabled) {
+  background: linear-gradient(180deg, #f1c86f 0%, #d4a844 100%);
+}
+
+.modal-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ============================================================================
+   GLOBAL DENSITY TUNING (compact mode)
+   ============================================================================ */
+
+:root {
+  --admin-density-font-scale: 0.86;
+  --admin-density-space-scale: 0.72;
+}
+
+.admin-shell {
+  font-size: calc(1rem * var(--admin-density-font-scale));
+  line-height: 1.28;
+}
+
+.admin-header {
+  gap: 12px;
+  padding: 16px 16px 10px;
+}
+
+.header-brand {
+  gap: 8px;
+}
+
+.brand-lockup {
+  gap: 10px;
+}
+
+.brand-logo {
+  width: 52px;
+  height: 52px;
+}
+
+.brand-subtitle {
+  margin-top: 5px;
+  font-size: 0.84rem;
+  line-height: 1.3;
+}
+
+.admin-sidebar,
+.admin-editor,
+.admin-inline-form,
+.auth-gate-card,
+.coaches-sidebar,
+dialog {
+  border-radius: 8px;
+}
+
+.admin-inline-form,
+.modal-content,
+.coaches-selector,
+.coaches-panel-footer,
+.operations-kpis,
+.athletes-filter-bar,
+.athletes-action-bar {
+  gap: 6px;
+  padding: 8px;
+}
+
+.form-grid,
+.athletes-filter-container,
+.athletes-main-container {
+  gap: 8px;
+}
+
+.auth-controls button,
+.sidebar-actions button,
+.form-actions button,
+.site-content-actions button,
+.operations-toolbar button,
+.athletes-toolbar button,
+.action-btn,
+.coaches-action-btn,
+.modal-btn,
+.link-result-row button {
+  padding: 5px 10px;
+  font-size: 0.78rem;
+  border-radius: 7px;
+}
+
+.admin-shell input,
+.admin-shell select,
+.admin-shell textarea {
+  font-size: 0.8rem;
+  padding: 5px 8px;
+  border-radius: 6px;
+}
+
+.admin-shell label,
+.filter-toggle-label,
+.coaches-filter-label,
+.modal-field label {
+  font-size: 0.76rem;
+}
+
+.athletes-table,
+.coaches-athletes-table {
+  font-size: 0.75rem;
+}
+
+.athletes-table th,
+.athletes-table td {
+  padding: 6px 8px;
+}
+
+.coaches-athletes-table th,
+.coaches-athletes-table td {
+  padding: 5px 7px;
+}
+
+.action-btn-sm {
+  width: 20px;
+  height: 20px;
+  font-size: 0.74rem;
+}
+
+.modal-header,
+.modal-footer {
+  padding: 8px;
+}
+
+.modal-header h3 {
+  font-size: 0.86rem;
+}
+
+@media (max-width: 768px) {
+  .admin-shell {
+    font-size: 0.82rem;
+  }
+
+  .admin-header {
+    padding: 12px 10px 8px;
+    gap: 8px;
+  }
+
+  .brand-logo {
+    width: 44px;
+    height: 44px;
+  }
+
+  .action-btn,
+  .coaches-action-btn,
+  .modal-btn {
+    padding: 5px 8px;
+  }
+}
+
+/* ============================================================================
+   MICRO COMPACT (Athletes & Coaches only)
+   ============================================================================ */
+
+#athletes-panel {
+  font-size: 0.8rem;
+}
+
+#athletes-panel .admin-notification {
+  padding: 8px 10px;
+  margin-bottom: 10px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+}
+
+#athletes-panel .athletes-filter-container,
+#athletes-panel .athletes-main-container,
+#athletes-panel .athletes-filter-bar,
+#athletes-panel .athletes-action-bar,
+#athletes-panel .coaches-selector,
+#athletes-panel .coaches-panel-footer,
+#athletes-panel .operations-kpis {
+  gap: 6px;
+}
+
+#athletes-panel .athletes-filter-bar,
+#athletes-panel .athletes-action-bar,
+#athletes-panel .coaches-selector,
+#athletes-panel .coaches-panel-header,
+#athletes-panel .coaches-panel-footer,
+#athletes-panel .operations-kpis {
+  padding: 7px;
+}
+
+#athletes-panel .action-btn,
+#athletes-panel .coaches-action-btn {
+  padding: 4px 8px;
+  font-size: 0.74rem;
+  border-radius: 6px;
+}
+
+#athletes-panel .filter-group label,
+#athletes-panel .filter-toggle-label,
+#athletes-panel .coaches-filter-label,
+#athletes-panel .coaches-panel-header h3 {
+  font-size: 0.72rem;
+}
+
+#athletes-panel .filter-search,
+#athletes-panel .filter-select,
+#athletes-panel .coaches-selector select {
+  font-size: 0.76rem;
+  padding: 4px 7px;
+  border-radius: 6px;
+}
+
+#athletes-panel .athletes-list-wrap,
+#athletes-panel .coaches-sidebar {
+  border-radius: 8px;
+}
+
+#athletes-panel .athletes-table,
+#athletes-panel .coaches-athletes-table {
+  font-size: 0.7rem;
+}
+
+#athletes-panel .athletes-table th,
+#athletes-panel .athletes-table td,
+#athletes-panel .coaches-athletes-table th,
+#athletes-panel .coaches-athletes-table td {
+  padding: 5px 6px;
+}
+
+#athletes-panel .action-btn-sm {
+  width: 18px;
+  height: 18px;
+  font-size: 0.66rem;
+  border-radius: 4px;
+}
+
+#athletes-panel #athletes-empty-state,
+#athletes-panel #coaches-panel-empty {
+  padding: 10px;
+  margin: 8px;
+}
+
+@media (max-width: 768px) {
+  #athletes-panel {
+    font-size: 0.76rem;
+  }
+
+  #athletes-panel .action-btn,
+  #athletes-panel .coaches-action-btn {
+    padding: 4px 6px;
+    font-size: 0.72rem;
+  }
+
+  #athletes-panel .athletes-table,
+  #athletes-panel .coaches-athletes-table {
+    font-size: 0.68rem;
   }
 }

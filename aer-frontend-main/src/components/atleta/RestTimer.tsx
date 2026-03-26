@@ -91,7 +91,7 @@ export function RestTimerBadge({
   return (
     <button
       onClick={onSkip}
-      className="relative flex items-center gap-1.5 rounded-full bg-orange-600/90 px-3 py-1 text-xs font-bold text-white active:bg-orange-700"
+      className="relative flex items-center gap-1.5 rounded-full bg-[#d4a54f] px-3 py-1 text-xs font-bold text-[#111111] active:brightness-95"
       aria-label="Saltar descanso"
     >
       {/* Progress ring */}
@@ -109,7 +109,7 @@ export function RestTimerBadge({
           cy="10"
           r="8"
           fill="none"
-          stroke="white"
+          stroke="#111111"
           strokeWidth="2"
           strokeDasharray={`${(pct / 100) * 50.27} 50.27`}
           strokeLinecap="round"
@@ -155,28 +155,28 @@ export function RestTimerScreen({
             cy="50"
             r="44"
             fill="none"
-            stroke="#f97316"
+            stroke="#d4a54f"
             strokeWidth="4"
             strokeDasharray={`${(pct / 100) * 276.46} 276.46`}
             strokeLinecap="round"
             className="transition-[stroke-dasharray] duration-1000 ease-linear"
           />
         </svg>
-        <span className="font-['Oswald'] text-6xl font-bold text-white tabular-nums">
+        <span className="font-['Oswald'] text-6xl font-bold text-[#f7f1e8] tabular-nums">
           {display}
         </span>
         {mins > 0 && (
-          <span className="absolute bottom-12 text-xs text-white/60">
+          <span className="absolute bottom-12 text-xs text-[#8f99a8]">
             {String(secs).padStart(2, "0")}
           </span>
         )}
       </div>
 
-      <p className="text-sm text-white/60">Descanso</p>
+      <p className="text-sm text-[#8f99a8]">Descanso</p>
 
       <button
         onClick={onSkip}
-        className="rounded-full bg-white/10 px-8 py-3 text-sm font-medium text-white active:bg-white/20"
+        className="rounded-full border border-[#d4a54f66] bg-[linear-gradient(180deg,#e3b861,#d4a54f_55%,#bf8e3e)] px-8 py-3 text-sm font-semibold text-[#111111]"
       >
         Saltar ›
       </button>

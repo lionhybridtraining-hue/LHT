@@ -108,6 +108,14 @@ export interface WorkoutSession {
   status: "in_progress" | "completed" | "cancelled";
 }
 
+export interface SessionSummary extends WorkoutSession {
+  sets: LogSet[];
+  totalSets: number;
+  totalVolume: number;
+  totalDuration: number;
+  uniqueExercises: number;
+}
+
 export interface AthletePlanResponse {
   status: "active" | "no_plan" | "pending";
   message?: string;

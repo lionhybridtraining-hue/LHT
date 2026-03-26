@@ -978,6 +978,7 @@
                 <option value="">— Selecionar plano —</option>
               </select>
               <button class="btn btn-small" id="newStrengthPlanBtn">+ Novo Plano</button>
+              <button class="btn btn-small btn-secondary" id="createDemoPlanBtn" title="Criar plano de demonstração com estrutura pronta">Plano Demo</button>
             </div>
           </div>
 
@@ -3764,6 +3765,223 @@
       document.getElementById("spStartDate").value = "";
       strengthPlanModal.classList.remove("hidden");
       document.getElementById("spName").focus();
+    });
+
+    function findDemoExercise(candidates, category, subcategory, usedIds) {
+      const normalizedCandidates = (candidates || []).map(c => normalizeForSearch(c));
+
+      // Priority 1: by candidate name and category/subcategory.
+      let match = strExercises.find((ex) => {
+        if (!ex || !ex.id || usedIds.has(ex.id)) return false;
+        const name = normalizeForSearch(ex.name || "");
+        const byName = normalizedCandidates.some((c) => c && name.includes(c));
+        if (!byName) return false;
+        if (category && ex.category !== category) return false;
+        if (subcategory && ex.subcategory !== subcategory) return false;
+        return true;
+      });
+
+      // Priority 2: by category/subcategory only.
+      if (!match) {
+        match = strExercises.find((ex) => {
+          if (!ex || !ex.id || usedIds.has(ex.id)) return false;
+          if (category && ex.category !== category) return false;
+          if (subcategory && ex.subcategory !== subcategory) return false;
+          return true;
+        });
+      }
+
+      // Priority 3: any unused exercise.
+      if (!match) {
+        match = strExercises.find((ex) => ex && ex.id && !usedIds.has(ex.id)) || null;
+      }
+
+      if (match && match.id) usedIds.add(match.id);
+      return match || null;
+    }
+
+    function demoPrescriptionFor(section, week) {
+      if (section === "warm_up") {
+        return {
+          prescription_type: "reps",
+          sets: 2,
+          reps: 10,
+          rest_seconds: 45,
+          rir: 4,
+          tempo: "2-1-2-1",
+          method: "standard"
+        };
+      }
+
+      if (section === "plyos_speed") {
+        return {
+          prescription_type: "reps",
+          sets: 3,
+          reps: 3,
+          rest_seconds: 60,
+          rir: null,
+          tempo: "X-0-X-0",
+          method: "standard"
+        };
+      }
+
+      if (section === "conditioning") {
+        return {
+          prescription_type: "duration",
+          sets: 1,
+          duration_seconds: 240,
+          rest_seconds: 0,
+          rir: null,
+          tempo: null,
+          method: "standard"
+        };
+      }
+
+      // Main work progression by week.
+      const weekMap = {
+        1: { sets: 3, reps: 10, rir: 3 },
+        2: { sets: 4, reps: 8, rir: 2 },
+        3: { sets: 4, reps: 6, rir: 1 },
+        4: { sets: 3, reps: 8, rir: 2 }
+      };
+      const w = weekMap[week] || weekMap[4];
+      return {
+        prescription_type: "reps",
+        sets: w.sets,
+        reps: w.reps,
+        rest_seconds: 120,
+        rir: w.rir,
+        tempo: "3-1-X-0",
+        method: "standard"
+      };
+    }
+
+    async function createPrefilledDemoPlan() {
+      await loadExerciseCatalog();
+      if (!Array.isArray(strExercises) || strExercises.length === 0) {
+        throw new Error("Sem exercícios no catálogo para gerar o plano demo.");
+      }
+
+      const demoBlueprint = [
+        { day_number: 1, section: "warm_up", exercise_order: 1, candidates: ["mobilidade", "world", "activation", "glute"], category: "mobility_activation" },
+        { day_number: 1, section: "main", exercise_order: 1, superset_group: "A", candidates: ["squat", "agachamento"], category: "main_movements" },
+        { day_number: 1, section: "main", exercise_order: 2, superset_group: "A", candidates: ["row", "remada"], category: "main_movements" },
+        { day_number: 1, section: "main", exercise_order: 3, candidates: ["rdl", "deadlift", "hinge"], category: "main_movements" },
+        { day_number: 1, section: "conditioning", exercise_order: 1, candidates: ["bike", "air bike", "erg", "cardio"], category: "rfd" },
+        { day_number: 2, section: "warm_up", exercise_order: 1, candidates: ["mobilidade", "activation", "core"], category: "mobility_activation" },
+        { day_number: 2, section: "plyos_speed", exercise_order: 1, candidates: ["jump", "salto", "bound"], category: "rfd" },
+        { day_number: 2, section: "main", exercise_order: 1, candidates: ["bench", "supino", "press"], category: "main_movements" },
+        { day_number: 2, section: "main", exercise_order: 2, candidates: ["split squat", "lunge", "passada"], category: "hypertrophy" },
+        { day_number: 2, section: "main", exercise_order: 3, candidates: ["plank", "core", "anti"], category: "core" }
+      ];
+
+      const usedIds = new Set();
+      const selected = [];
+      for (const slot of demoBlueprint) {
+        const ex = findDemoExercise(slot.candidates, slot.category, slot.subcategory, usedIds);
+        if (!ex) continue;
+        selected.push({ slot, ex });
+      }
+
+      if (selected.length < 6) {
+        throw new Error("Não foi possível montar estrutura mínima do plano demo (precisas de mais exercícios no catálogo).");
+      }
+
+      const now = new Date();
+      const stamp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+
+      // 1) Create plan
+      const created = await apiRequest("POST", "/.netlify/functions/strength-plan", {
+        name: `Plano Demo ${stamp}`,
+        description: "Plano de demonstração gerado automaticamente para testes.",
+        total_weeks: 4,
+        load_round: 2.5,
+        start_date: null,
+        training_program_id: null
+      });
+
+      if (!created || !created.plan || !created.plan.id) {
+        throw new Error("Falha ao criar plano demo.");
+      }
+      const planId = created.plan.id;
+
+      // 2) Add exercises
+      const exerciseRows = selected.map(({ slot, ex }) => ({
+        plan_id: planId,
+        exercise_id: ex.id,
+        day_number: slot.day_number,
+        section: slot.section,
+        exercise_order: slot.exercise_order,
+        superset_group: slot.superset_group || null,
+        each_side: !!ex.default_each_side,
+        weight_per_side: !!ex.default_weight_per_side,
+        plyo_mechanical_load: slot.section === "plyos_speed" ? "medium" : null
+      }));
+
+      await apiRequest("PUT", "/.netlify/functions/strength-plan", {
+        plan_id: planId,
+        exercises: exerciseRows
+      });
+
+      // 3) Build week prescriptions for each exercise
+      const full = await apiRequest("GET", `/.netlify/functions/strength-plan?planId=${encodeURIComponent(planId)}`);
+      const planExercises = Array.isArray(full.exercises) ? full.exercises : [];
+      const totalWeeks = (full.plan && full.plan.total_weeks) || 4;
+      const prescriptions = [];
+      for (const pe of planExercises) {
+        for (let week = 1; week <= totalWeeks; week++) {
+          const base = demoPrescriptionFor(pe.section, week);
+          prescriptions.push({
+            plan_exercise_id: pe.id,
+            week_number: week,
+            prescription_type: base.prescription_type,
+            sets: base.sets,
+            reps: base.reps != null ? base.reps : null,
+            duration_seconds: base.duration_seconds != null ? base.duration_seconds : null,
+            rest_seconds: base.rest_seconds != null ? base.rest_seconds : null,
+            rir: base.rir != null ? base.rir : null,
+            tempo: base.tempo != null ? base.tempo : null,
+            method: base.method || "standard",
+            coach_notes: week === 1 && pe.section === "main"
+              ? "Foco técnico e controlo do movimento."
+              : null
+          });
+        }
+      }
+
+      if (prescriptions.length > 0) {
+        await apiRequest("PUT", "/.netlify/functions/strength-plan", {
+          plan_id: planId,
+          prescriptions
+        });
+      }
+
+      // 4) Activate plan so it can be assigned immediately
+      await apiRequest("PATCH", "/.netlify/functions/strength-plan", {
+        plan_id: planId,
+        status: "active"
+      });
+
+      await loadStrengthPlans();
+      strengthPlanSelect.value = planId;
+      await loadStrengthPlanFull(planId);
+      showResult("Plano demo criado e ativado com sucesso. Já podes atribuir ao atleta.", "success");
+    }
+
+    document.getElementById("createDemoPlanBtn").addEventListener("click", async () => {
+      const btn = document.getElementById("createDemoPlanBtn");
+      const original = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = "A criar...";
+      try {
+        await createPrefilledDemoPlan();
+      } catch (e) {
+        console.error("Demo plan creation failed", e);
+        showResult("Erro ao criar plano demo: " + escapeHtml(e.message || "erro desconhecido"), "error");
+      } finally {
+        btn.disabled = false;
+        btn.textContent = original;
+      }
     });
 
     // Manual save button

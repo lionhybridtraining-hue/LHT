@@ -82,13 +82,28 @@ exports.handler = async (event) => {
           const owns = await verifyCoachOwnsAthlete(config, coachId, body.athlete_id);
           if (!owns) return json(403, { error: "Forbidden" });
         }
+
+        // Phase 5.1 — Snapshot plan data at assignment time
+        let planSnapshot = null;
+        try {
+          const full = await getStrengthPlanFull(config, body.plan_id);
+          if (full) {
+            planSnapshot = {
+              exercises: full.exercises,
+              prescriptions: full.prescriptions,
+              phaseNotes: full.phaseNotes || []
+            };
+          }
+        } catch (_) { /* best-effort — fall back to live data */ }
+
         const instance = await createStrengthPlanInstance(config, {
           plan_id: body.plan_id,
           athlete_id: body.athlete_id,
           start_date: body.start_date || null,
           load_round: body.load_round != null ? body.load_round : 2.5,
           status: "active",
-          assigned_by: coachId
+          assigned_by: coachId,
+          plan_snapshot: planSnapshot ? JSON.stringify(planSnapshot) : null
         });
         return json(201, { instance });
       }

@@ -1,5 +1,30 @@
+import { existsSync, readFileSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
+
+function loadEnvFile(envPath) {
+  if (!existsSync(envPath)) return;
+  const raw = readFileSync(envPath, "utf8");
+  for (const line of raw.split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const idx = trimmed.indexOf("=");
+    if (idx <= 0) continue;
+    const key = trimmed.slice(0, idx).trim();
+    if (!key || process.env[key] != null) continue;
+    let value = trimmed.slice(idx + 1).trim();
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1);
+    }
+    process.env[key] = value;
+  }
+}
+
+loadEnvFile(path.join(process.cwd(), ".env"));
+loadEnvFile(path.join(process.cwd(), ".env.local"));
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -65,7 +90,23 @@ await writeFile(outFile, JSON.stringify({ items }, null, 2), "utf8");
 
 console.log(`Generated: ${outFile} (${items.length} posts from Supabase)`);
 
-const siteUrl = process.env.URL || process.env.SITE_URL || "https://lionhybridtraining.com";
+function resolveSiteUrl() {
+  const raw = process.env.URL || process.env.SITE_URL || "https://lionhybridtraining.com";
+  const fallback = "https://lionhybridtraining.com";
+
+  try {
+    const parsed = new URL(raw);
+    const host = parsed.hostname.toLowerCase();
+    if (host === "localhost" || host === "127.0.0.1") {
+      return fallback;
+    }
+    return parsed.origin;
+  } catch {
+    return fallback;
+  }
+}
+
+const siteUrl = resolveSiteUrl();
 const today = new Date().toISOString().slice(0, 10);
 
 const staticPages = [

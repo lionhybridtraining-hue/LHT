@@ -31,17 +31,12 @@
             <p class="brand-subtitle">Painel interno para organizar, editar e publicar conteudo do blog com o mesmo rigor da marca.</p>
           </div>
         </div>
-        <div class="header-badges" aria-hidden="true">
-          <span class="surface-chip">Blog CMS</span>
-          <span class="surface-chip surface-chip-muted">Operacao editorial</span>
-        </div>
         <div class="admin-tabs" role="tablist" aria-label="Secoes do admin">
           <button id="tab-blog" class="admin-tab is-active" type="button" role="tab" aria-selected="true" aria-controls="blog-editor">Blog</button>
           <button id="tab-site-content" class="admin-tab" type="button" role="tab" aria-selected="false" aria-controls="site-content-panel">Conteudo do site</button>
-          <button id="tab-athletes" class="admin-tab" type="button" role="tab" aria-selected="false" aria-controls="athletes-panel">Gerir atletas</button>
+          <button id="tab-athletes" class="admin-tab" type="button" role="tab" aria-selected="false" aria-controls="athletes-panel">Athletes & Coaches</button>
           <button id="tab-programs" class="admin-tab" type="button" role="tab" aria-selected="false" aria-controls="programs-panel">Programas</button>
           <button id="tab-vendas" class="admin-tab" type="button" role="tab" aria-selected="false" aria-controls="vendas-panel">Vendas</button>
-          <button id="tab-coaches" class="admin-tab" type="button" role="tab" aria-selected="false" aria-controls="coaches-panel">Coaches</button>
           <button id="tab-leads" class="admin-tab" type="button" role="tab" aria-selected="false" aria-controls="leads-panel">Leads Meta</button>
           <button id="tab-ai" class="admin-tab" type="button" role="tab" aria-selected="false" aria-controls="ai-panel">IA</button>
           <button id="tab-operations" class="admin-tab" type="button" role="tab" aria-selected="false" aria-controls="operations-panel">Operacoes</button>
@@ -77,10 +72,6 @@
             <p class="section-eyebrow">Composer</p>
             <h2>Editor de artigos</h2>
             <p>CRUD autenticado para gerir artigos em Supabase com sessao editorial via Netlify Identity.</p>
-          </div>
-          <div class="editor-badges" aria-label="Servicos ligados ao painel">
-            <span class="service-badge">Supabase</span>
-            <span class="service-badge">Netlify Identity</span>
           </div>
         </div>
 
@@ -310,10 +301,6 @@
             <h2>Conteudo do site</h2>
             <p>Edita o conteudo dinamico da homepage e calendario sem Google Sheets.</p>
           </div>
-          <div class="editor-badges" aria-label="Servicos ligados ao painel de conteudo">
-            <span class="service-badge">Supabase</span>
-            <span class="service-badge">Netlify Functions</span>
-          </div>
         </div>
 
         <p id="site-content-message" class="message" role="status"></p>
@@ -469,73 +456,302 @@
       <section id="athletes-panel" class="admin-athletes" hidden>
         <div class="editor-top">
           <div>
-            <p class="section-eyebrow">Coach Ops</p>
-            <h2>Gerir atletas</h2>
-            <p>Atribui atletas sem coach para um coach existente e cria coaches sem sair do admin.</p>
-          </div>
-          <div class="editor-badges" aria-label="Servicos ligados ao painel de atletas">
-            <span class="service-badge">Supabase</span>
-            <span class="service-badge">Auth</span>
+            <p class="section-eyebrow">Coach & Athlete Ops</p>
+            <h2>Athletes & Coaches</h2>
+            <p>Gerir coaches, atletas e programa assignments com filtros e operacoes manuais.</p>
           </div>
         </div>
 
-        <p id="athletes-message" class="message" role="status"></p>
+        <!-- UNIFIED NOTIFICATION SYSTEM -->
+        <div id="admin-notification" class="admin-notification" role="status" aria-live="polite" aria-atomic="true" hidden></div>
 
-        <div class="athletes-toolbar">
-          <div class="field">
+        <!-- GLOBAL FILTER & ACTION BAR -->
+        <div class="athletes-filter-container">
+          <div class="athletes-filter-bar">
+            <!-- Search -->
+            <div class="filter-group">
+              <input id="athletes-search-input" type="text" class="filter-search" placeholder="Procurar atleta (nome/email)" />
+            </div>
+
+            <!-- Coach Filter -->
+            <div class="filter-group">
+              <label for="athletes-filter-coach" style="font-size: 0.85rem; color: var(--ink-soft);">Coach</label>
+              <select id="athletes-filter-coach" class="filter-select">
+                <option value="">Todos</option>
+              </select>
+            </div>
+
+            <!-- Status Filter -->
+            <div class="filter-group">
+              <label for="athletes-filter-status" style="font-size: 0.85rem; color: var(--ink-soft);">Estado</label>
+              <select id="athletes-filter-status" class="filter-select">
+                <option value="">Todos</option>
+                <option value="active">Ativo</option>
+                <option value="scheduled">Agendado</option>
+                <option value="paused">Pausado</option>
+                <option value="cancelled">Cancelado</option>
+              </select>
+            </div>
+
+            <!-- Payment Filter -->
+            <div class="filter-group">
+              <label for="athletes-filter-payment" style="font-size: 0.85rem; color: var(--ink-soft);">Pagamento</label>
+              <select id="athletes-filter-payment" class="filter-select">
+                <option value="">Todos</option>
+                <option value="paid">Pagante ativo</option>
+                <option value="unpaid">Sem pagamento</option>
+                <option value="expired">Expirado</option>
+              </select>
+            </div>
+
+            <!-- Program Filter -->
+            <div class="filter-group">
+              <label for="athletes-filter-program" style="font-size: 0.85rem; color: var(--ink-soft);">Programa</label>
+              <select id="athletes-filter-program" class="filter-select">
+                <option value="">Todos</option>
+              </select>
+            </div>
+
+            <!-- Toggles: Unassigned & Manual Access -->
+            <div class="filter-toggles">
+              <label class="filter-toggle-label">
+                <input id="athletes-filter-unassigned" type="checkbox" class="filter-toggle" />
+                Apenas nao atribuidos
+              </label>
+              <label class="filter-toggle-label">
+                <input id="athletes-filter-manual-access" type="checkbox" class="filter-toggle" />
+                Acesso manual ativo
+              </label>
+            </div>
+          </div>
+
+          <!-- GLOBAL ACTION BUTTONS -->
+          <div class="athletes-action-bar">
+            <button id="athletes-action-create-athlete" type="button" class="action-btn action-btn-primary">+ Novo atleta</button>
+            <button id="athletes-action-create-coach" type="button" class="action-btn action-btn-secondary">+ Novo coach</button>
+            <button id="athletes-action-refresh" type="button" class="action-btn action-btn-secondary">Atualizar</button>
+          </div>
+        </div>
+
+        <!-- MAIN ATHLETES VIEW -->
+        <div class="athletes-main-container">
+          <div id="athletes-main-view" class="athletes-view">
+            <div id="athletes-empty-state" class="athletes-empty" hidden>
+              <p>Sem atletas a mostrar com os filtros selecionados.</p>
+            </div>
+
+            <div class="athletes-list-wrap">
+              <table class="athletes-table">
+                <thead>
+                  <tr>
+                    <th>Nome</th>
+                    <th>Email</th>
+                    <th>Coach</th>
+                    <th>Estado</th>
+                    <th>Pagamento</th>
+                    <th>Programa</th>
+                    <th>Criado em</th>
+                    <th>Acoes</th>
+                  </tr>
+                </thead>
+                <tbody id="athletes-main-body"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- SECONDARY COACHES PANEL -->
+          <aside id="coaches-panel" class="coaches-sidebar">
+            <div class="coaches-panel-header">
+              <h3>Coaches</h3>
+              <button id="coaches-panel-toggle" type="button" class="sidebar-toggle" aria-label="Toggle coaches panel" title="Fechar painel">✕</button>
+            </div>
+
+            <div class="coaches-panel-content">
+              <div class="coaches-selector">
+                <label for="coaches-panel-select" style="font-size: 0.85rem; color: var(--ink-soft);">Selecionar coach</label>
+                <select id="coaches-panel-select">
+                  <option value="">A carregar coaches...</option>
+                </select>
+                <button id="coaches-panel-refresh-btn" type="button" class="coaches-action-btn">Ver atletas</button>
+                <label class="coaches-filter-label">
+                  <input id="coaches-panel-paying-filter" type="checkbox" />
+                  Apenas pagantes
+                </label>
+              </div>
+
+              <div id="coaches-panel-kpis" class="module-grid operations-kpis" hidden>
+                <article class="module-card">
+                  <h4>Total atletas</h4>
+                  <p id="coaches-panel-total-kpi">-</p>
+                </article>
+                <article class="module-card">
+                  <h4>Pagantes ativos</h4>
+                  <p id="coaches-panel-paying-kpi">-</p>
+                </article>
+                <article class="module-card">
+                  <h4>Sem pagamento</h4>
+                  <p id="coaches-panel-nonpaying-kpi">-</p>
+                </article>
+              </div>
+
+              <div id="coaches-panel-empty" class="athletes-empty" hidden>
+                <p>Sem atletas atribuidos.</p>
+              </div>
+
+              <div class="coaches-athletes-wrap">
+                <table class="coaches-athletes-table">
+                  <thead>
+                    <tr>
+                      <th>Nome</th>
+                      <th>Email</th>
+                      <th>Pagamento</th>
+                      <th>Acoes</th>
+                    </tr>
+                  </thead>
+                  <tbody id="coaches-panel-athletes-body"></tbody>
+                </table>
+              </div>
+
+              <div class="coaches-panel-footer">
+                <button id="coaches-create-btn" type="button" class="coaches-action-btn coaches-action-btn-primary">+ Novo coach</button>
+              </div>
+            </div>
+          </aside>
+        </div>
+
+        <!-- OPERATIONS WORKSPACE -->
+        <div id="athletes-ops-workspace">
+          <div id="create-athlete-box" class="admin-inline-form" hidden>
+            <div class="field">
+              <label for="new-athlete-name">Nome do atleta</label>
+              <input id="new-athlete-name" type="text" placeholder="Ex.: Joao Silva" />
+            </div>
+            <div class="field">
+              <label for="new-athlete-email">Email</label>
+              <input id="new-athlete-email" type="email" placeholder="Ex.: joao@email.com" />
+            </div>
+            <p class="microcopy">O atleta receberá um email de convite. Se ja tiver conta Google com este email, pode fazer login diretamente.</p>
+            <div class="form-actions">
+              <button id="create-athlete-btn" type="button">Convidar atleta</button>
+              <button id="cancel-create-athlete-btn" type="button">Cancelar</button>
+            </div>
+          </div>
+
+          <div id="create-coach-box" class="admin-inline-form" hidden>
+            <div class="field">
+              <label for="new-coach-name">Nome do coach</label>
+              <input id="new-coach-name" type="text" placeholder="Ex.: Pedro Libanio" />
+            </div>
+            <div class="field">
+              <label for="new-coach-email">Email</label>
+              <input id="new-coach-email" type="email" placeholder="Ex.: coach@lionhybridtraining.com" />
+            </div>
+            <div class="field">
+              <label for="new-coach-timezone">Timezone</label>
+              <input id="new-coach-timezone" type="text" value="Europe/Lisbon" />
+            </div>
+            <div class="field">
+              <label for="new-coach-capacity">Capacidade (opcional)</label>
+              <input id="new-coach-capacity" type="number" min="0" placeholder="Ex.: 25" />
+            </div>
+            <div class="form-actions">
+              <button id="create-coach-btn" type="button">Guardar coach</button>
+              <button id="cancel-create-coach-btn" type="button">Cancelar</button>
+            </div>
+          </div>
+
+          <!-- Legacy form elements for assignment operations (will be refactored) -->
+          <div class="admin-inline-form">
+            <div class="field field-wide">
+              <label for="assign-athlete-select">Atleta</label>
+              <select id="assign-athlete-select">
+                <option value="">A carregar atletas...</option>
+              </select>
+            </div>
+            <div class="field field-wide">
+              <label for="assign-coach-select">Coach</label>
+              <select id="assign-coach-select">
+                <option value="">A carregar coaches...</option>
+              </select>
+            </div>
+            <div class="field field-wide">
+              <label for="assign-program-id">Programa</label>
+              <select id="assign-program-id">
+                <option value="">A carregar programas...</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="assign-start-date">Data de inicio</label>
+              <input id="assign-start-date" type="date" />
+            </div>
+            <div class="field field-wide">
+              <label for="assign-notes">Notas (opcional)</label>
+              <input id="assign-notes" type="text" placeholder="Ex.: iniciado apos compra manual" />
+            </div>
+            <div class="form-actions">
+              <button id="assign-program-btn" type="button">Criar assignment</button>
+              <button id="cancel-assignment-btn" type="button">Cancelar assignment ativo</button>
+            </div>
+          </div>
+
+          <div id="assignment-current-summary" class="athletes-empty">
+            <p id="assignment-current-title">Seleciona um atleta para ver o estado do assignment.</p>
+            <span id="assignment-current-meta"></span>
+          </div>
+
+          <div class="admin-inline-form">
+            <div class="field field-wide">
+              <label for="grant-athlete-select">Atleta</label>
+              <select id="grant-athlete-select">
+                <option value="">A carregar atletas...</option>
+              </select>
+            </div>
+            <div class="field field-wide">
+              <label for="grant-program-id">Programa</label>
+              <select id="grant-program-id">
+                <option value="">A carregar programas...</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="grant-amount-cents">Valor (centimos, opcional)</label>
+              <input id="grant-amount-cents" type="number" min="0" placeholder="Ex.: 9700" />
+            </div>
+            <div class="field">
+              <label for="grant-currency">Moeda</label>
+              <input id="grant-currency" type="text" value="EUR" maxlength="3" />
+            </div>
+            <div class="field">
+              <label for="grant-expires-at">Expira em (opcional)</label>
+              <input id="grant-expires-at" type="datetime-local" />
+            </div>
+            <div class="form-actions">
+              <button id="grant-access-btn" type="button">Conceder acesso</button>
+            </div>
+          </div>
+
+          <!-- Legacy aliases for backward compatibility -->
+          <div id="unassigned-athletes-body" style="display: none;"></div>
+          <div id="athletes-athletes-view" style="display: none;"></div>
+          <div id="athletes-coaches-view" style="display: none;"></div>
+          <div id="unassigned-empty" style="display: none;"></div>
+          <div id="athletes-dual-pane" style="display: none;"></div>
+
+          <!-- Message areas (consolidated into single notification) -->
+          <p id="athletes-message" class="message" style="display: none;"></p>
+          <p id="assign-program-message" class="message" style="display: none;"></p>
+          <p id="program-grants-message" class="message" style="display: none;"></p>
+
+          <!-- Old form controls (migrate to filters) -->
+          <div class="field" style="display: none;">
             <label for="coach-select">Coach para atribuicao</label>
             <select id="coach-select">
               <option value="">A carregar coaches...</option>
             </select>
           </div>
-          <button id="open-create-coach-btn" type="button">Criar coach</button>
-          <button id="refresh-athletes-btn" type="button">Atualizar nao atribuidos</button>
-        </div>
 
-        <div id="create-coach-box" class="admin-inline-form" hidden>
-          <div class="field">
-            <label for="new-coach-name">Nome do coach</label>
-            <input id="new-coach-name" type="text" placeholder="Ex.: Pedro Libanio" />
-          </div>
-          <div class="field">
-            <label for="new-coach-email">Email</label>
-            <input id="new-coach-email" type="email" placeholder="Ex.: coach@lionhybridtraining.com" />
-          </div>
-          <div class="field">
-            <label for="new-coach-identity-id">UUID do utilizador Supabase</label>
-            <input id="new-coach-identity-id" type="text" placeholder="Ex.: a99b2131-..." />
-          </div>
-          <div class="field">
-            <label for="new-coach-timezone">Timezone</label>
-            <input id="new-coach-timezone" type="text" value="Europe/Lisbon" />
-          </div>
-          <div class="field">
-            <label for="new-coach-capacity">Capacidade (opcional)</label>
-            <input id="new-coach-capacity" type="number" min="0" placeholder="Ex.: 25" />
-          </div>
-          <div class="form-actions">
-            <button id="create-coach-btn" type="button">Guardar coach</button>
-            <button id="cancel-create-coach-btn" type="button">Cancelar</button>
-          </div>
-        </div>
-
-        <div id="unassigned-empty" class="athletes-empty" hidden>
-          <p>Sem atletas por atribuir.</p>
-          <span>Todos os atletas ja tem coach_identity_id.</span>
-        </div>
-
-        <div class="athletes-list-wrap">
-          <table class="athletes-table">
-            <thead>
-              <tr>
-                <th>Nome</th>
-                <th>Email</th>
-                <th>Criado em</th>
-                <th>Acoes</th>
-              </tr>
-            </thead>
-            <tbody id="unassigned-athletes-body"></tbody>
-          </table>
+          <button id="open-create-athlete-btn" type="button" style="display: none;">Criar atleta</button>
+          <button id="refresh-athletes-btn" type="button" style="display: none;">Atualizar nao atribuidos</button>
+          <button id="open-create-coach-btn" type="button" style="display: none;">+ Novo coach</button>
         </div>
       </section>
 
@@ -641,47 +857,6 @@
           </table>
         </div>
 
-        <div class="editor-top" style="margin-top: 18px;">
-          <div>
-            <p class="section-eyebrow">Manual Override</p>
-            <h3>Conceder acesso manual</h3>
-            <p>Usa este formulario para desbloquear onboarding para atletas existentes.</p>
-          </div>
-        </div>
-
-        <p id="program-grants-message" class="message" role="status"></p>
-
-        <div class="admin-inline-form">
-          <div class="field">
-            <label for="grant-athlete-email">Email do atleta (opcional)</label>
-            <input id="grant-athlete-email" type="email" placeholder="Ex.: atleta@email.com" />
-          </div>
-          <div class="field">
-            <label for="grant-identity-id">Identity ID (opcional)</label>
-            <input id="grant-identity-id" type="text" placeholder="Ex.: a99b2131-..." />
-          </div>
-          <div class="field field-wide">
-            <label for="grant-program-id">Programa</label>
-            <select id="grant-program-id">
-              <option value="">A carregar programas...</option>
-            </select>
-          </div>
-          <div class="field">
-            <label for="grant-amount-cents">Valor (centimos, opcional)</label>
-            <input id="grant-amount-cents" type="number" min="0" placeholder="Ex.: 9700" />
-          </div>
-          <div class="field">
-            <label for="grant-currency">Moeda</label>
-            <input id="grant-currency" type="text" value="EUR" maxlength="3" />
-          </div>
-          <div class="field">
-            <label for="grant-expires-at">Expira em (opcional)</label>
-            <input id="grant-expires-at" type="datetime-local" />
-          </div>
-          <div class="form-actions">
-            <button id="grant-access-btn" type="button">Conceder acesso</button>
-          </div>
-        </div>
       </section>
 
       <!-- VENDAS PANEL -->
@@ -975,77 +1150,12 @@
         </div>
       </section>
 
-      <section id="coaches-panel" class="admin-athletes" hidden>
-        <div class="editor-top">
-          <div>
-            <p class="section-eyebrow">Coach Ops</p>
-            <h2>Coaches</h2>
-            <p>Seleciona um coach para ver os atletas atribuidos e o estado de pagamento de cada um.</p>
-          </div>
-        </div>
-
-        <p id="coaches-panel-message" class="message" role="status"></p>
-
-        <div class="athletes-toolbar">
-          <div class="field">
-            <label for="coaches-panel-select">Coach</label>
-            <select id="coaches-panel-select">
-              <option value="">A carregar coaches...</option>
-            </select>
-          </div>
-          <button id="coaches-panel-refresh-btn" type="button">Ver atletas</button>
-          <label style="display:flex; align-items:center; gap:6px; font-size:14px; cursor:pointer;">
-            <input id="coaches-panel-paying-filter" type="checkbox" />
-            Apenas pagantes
-          </label>
-        </div>
-
-        <div id="coaches-panel-kpis" class="module-grid operations-kpis" hidden>
-          <article class="module-card">
-            <h3>Total atletas</h3>
-            <p id="coaches-panel-total-kpi">-</p>
-          </article>
-          <article class="module-card">
-            <h3>Pagantes ativos</h3>
-            <p id="coaches-panel-paying-kpi">-</p>
-          </article>
-          <article class="module-card">
-            <h3>Sem pagamento</h3>
-            <p id="coaches-panel-nonpaying-kpi">-</p>
-          </article>
-        </div>
-
-        <div id="coaches-panel-empty" class="athletes-empty" hidden>
-          <p>Sem atletas atribuidos a este coach.</p>
-        </div>
-
-        <div class="athletes-list-wrap">
-          <table class="athletes-table">
-            <thead>
-              <tr>
-                <th>Nome</th>
-                <th>Email</th>
-                <th>Estado pagamento</th>
-                <th>Tipo</th>
-                <th>Pago em</th>
-                <th>Expira em</th>
-              </tr>
-            </thead>
-            <tbody id="coaches-panel-athletes-body"></tbody>
-          </table>
-        </div>
-      </section>
-
       <section id="leads-panel" class="admin-athletes" hidden>
         <div class="editor-top">
           <div>
             <p class="section-eyebrow">Meta Lead Ads</p>
             <h2>Leads Meta</h2>
             <p>Leads captadas via Facebook e Instagram Lead Ads. Atualiza o estado de cada lead e acompanha o pipeline comercial.</p>
-          </div>
-          <div class="editor-badges" aria-label="Servicos ligados ao painel de leads">
-            <span class="service-badge">Meta Lead Ads</span>
-            <span class="service-badge">Supabase</span>
           </div>
         </div>
 
@@ -1181,10 +1291,6 @@
             <p class="section-eyebrow">AI Ops</p>
             <h2>Centro de IA</h2>
             <p>Controla prompts ativos, historico de versoes e logs de execucao da IA.</p>
-          </div>
-          <div class="editor-badges" aria-label="Servicos ligados ao painel de IA">
-            <span class="service-badge">Gemini</span>
-            <span class="service-badge">Supabase</span>
           </div>
         </div>
 
@@ -1350,6 +1456,7 @@
     const unassignedAthletesApiBase = '/.netlify/functions/admin-unassigned-athletes';
     const assignAthleteApiBase = '/.netlify/functions/admin-assign-athlete';
     const coachesApiBase = '/.netlify/functions/admin-coaches';
+    const adminCreateAthleteApiBase = '/.netlify/functions/admin-create-athlete';
     const leadsApiBase = '/.netlify/functions/admin-leads';
     const aiPromptsApiBase = '/.netlify/functions/admin-ai-prompts';
     const aiLogsApiBase = '/.netlify/functions/admin-ai-logs';
@@ -1357,6 +1464,7 @@
     const dataAuditApiBase = '/.netlify/functions/admin-athlete-data-audit';
     const adminAthletesListApiBase = '/.netlify/functions/admin-athletes-list';
     const adminProgramsApiBase = '/.netlify/functions/admin-programs';
+    const adminAssignProgramApiBase = '/.netlify/functions/admin-assign-program';
     const adminGrantAccessApiBase = '/.netlify/functions/admin-grant-access';
     const adminStripePurchasesApiBase = '/.netlify/functions/admin-stripe-purchases';
     const adminStripeRefundApiBase = '/.netlify/functions/admin-stripe-refund';
@@ -1365,6 +1473,7 @@
     const adminStripePricesApiBase = '/.netlify/functions/admin-stripe-prices';
     const adminStripeLinksApiBase = '/.netlify/functions/admin-stripe-links';
     const adminCoachAthletesApiBase = '/.netlify/functions/admin-coach-athletes';
+    const adminAthletesUnifiedApiBase = '/.netlify/functions/admin-athletes-unified';
     const state = {
       user: null,
       token: null,
@@ -1389,6 +1498,7 @@
       coupons: [],
       stripePrices: [],
       syncResults: [],
+      currentAssignment: null,
       activeVendasSubtab: 'purchases'
     };
 
@@ -1585,24 +1695,12 @@
       tabSiteContent: document.getElementById('tab-site-content'),
       tabAthletes: document.getElementById('tab-athletes'),
       tabPrograms: document.getElementById('tab-programs'),
-      tabCoaches: document.getElementById('tab-coaches'),
       tabOperations: document.getElementById('tab-operations'),
       blogSidebar: document.getElementById('blog-sidebar'),
       blogEditor: document.getElementById('blog-editor'),
       siteContentPanel: document.getElementById('site-content-panel'),
       athletesPanel: document.getElementById('athletes-panel'),
       programsPanel: document.getElementById('programs-panel'),
-      coachesPanel: document.getElementById('coaches-panel'),
-      coachesPanelMessage: document.getElementById('coaches-panel-message'),
-      coachesPanelSelect: document.getElementById('coaches-panel-select'),
-      coachesPanelRefreshBtn: document.getElementById('coaches-panel-refresh-btn'),
-      coachesPanelPayingFilter: document.getElementById('coaches-panel-paying-filter'),
-      coachesPanelKpis: document.getElementById('coaches-panel-kpis'),
-      coachesPanelTotalKpi: document.getElementById('coaches-panel-total-kpi'),
-      coachesPanelPayingKpi: document.getElementById('coaches-panel-paying-kpi'),
-      coachesPanelNonpayingKpi: document.getElementById('coaches-panel-nonpaying-kpi'),
-      coachesPanelEmpty: document.getElementById('coaches-panel-empty'),
-      coachesPanelAthletesBody: document.getElementById('coaches-panel-athletes-body'),
       operationsPanel: document.getElementById('operations-panel'),
       siteContentMessage: document.getElementById('site-content-message'),
       refreshSiteContentBtn: document.getElementById('refresh-site-content-btn'),
@@ -1618,19 +1716,34 @@
       metricsList: document.getElementById('metrics-list'),
       reviewsList: document.getElementById('reviews-list'),
       athletesMessage: document.getElementById('athletes-message'),
+      athletesOpsWorkspace: document.getElementById('athletes-ops-workspace'),
       coachSelect: document.getElementById('coach-select'),
       openCreateCoachBtn: document.getElementById('open-create-coach-btn'),
       createCoachBox: document.getElementById('create-coach-box'),
       newCoachName: document.getElementById('new-coach-name'),
       newCoachEmail: document.getElementById('new-coach-email'),
-      newCoachIdentityId: document.getElementById('new-coach-identity-id'),
       newCoachTimezone: document.getElementById('new-coach-timezone'),
       newCoachCapacity: document.getElementById('new-coach-capacity'),
       createCoachBtn: document.getElementById('create-coach-btn'),
       cancelCreateCoachBtn: document.getElementById('cancel-create-coach-btn'),
+      openCreateAthleteBtn: document.getElementById('open-create-athlete-btn'),
+      createAthleteBox: document.getElementById('create-athlete-box'),
+      newAthleteName: document.getElementById('new-athlete-name'),
+      newAthleteEmail: document.getElementById('new-athlete-email'),
+      createAthleteBtn: document.getElementById('create-athlete-btn'),
+      cancelCreateAthleteBtn: document.getElementById('cancel-create-athlete-btn'),
       refreshAthletesBtn: document.getElementById('refresh-athletes-btn'),
       unassignedEmpty: document.getElementById('unassigned-empty'),
       unassignedAthletesBody: document.getElementById('unassigned-athletes-body'),
+      coachesPanelSelect: document.getElementById('coaches-panel-select'),
+      coachesPanelRefreshBtn: document.getElementById('coaches-panel-refresh-btn'),
+      coachesPanelPayingFilter: document.getElementById('coaches-panel-paying-filter'),
+      coachesPanelKpis: document.getElementById('coaches-panel-kpis'),
+      coachesPanelTotalKpi: document.getElementById('coaches-panel-total-kpi'),
+      coachesPanelPayingKpi: document.getElementById('coaches-panel-paying-kpi'),
+      coachesPanelNonpayingKpi: document.getElementById('coaches-panel-nonpaying-kpi'),
+      coachesPanelEmpty: document.getElementById('coaches-panel-empty'),
+      coachesPanelAthletesBody: document.getElementById('coaches-panel-athletes-body'),
       tabLeads: document.getElementById('tab-leads'),
       leadsPanel: document.getElementById('leads-panel'),
       leadsMessage: document.getElementById('leads-message'),
@@ -1654,9 +1767,19 @@
       programStatus: document.getElementById('program-status'),
       programScheduledTemplate: document.getElementById('program-scheduled-template'),
       createProgramBtn: document.getElementById('create-program-btn'),
+      assignProgramMessage: document.getElementById('assign-program-message'),
+      assignAthleteSelect: document.getElementById('assign-athlete-select'),
+      assignCoachSelect: document.getElementById('assign-coach-select'),
+      assignProgramId: document.getElementById('assign-program-id'),
+      assignStartDate: document.getElementById('assign-start-date'),
+      assignNotes: document.getElementById('assign-notes'),
+      assignProgramBtn: document.getElementById('assign-program-btn'),
+      cancelAssignmentBtn: document.getElementById('cancel-assignment-btn'),
+      assignmentCurrentSummary: document.getElementById('assignment-current-summary'),
+      assignmentCurrentTitle: document.getElementById('assignment-current-title'),
+      assignmentCurrentMeta: document.getElementById('assignment-current-meta'),
       programGrantsMessage: document.getElementById('program-grants-message'),
-      grantAthleteEmail: document.getElementById('grant-athlete-email'),
-      grantIdentityId: document.getElementById('grant-identity-id'),
+      grantAthleteSelect: document.getElementById('grant-athlete-select'),
       grantProgramId: document.getElementById('grant-program-id'),
       grantAmountCents: document.getElementById('grant-amount-cents'),
       grantCurrency: document.getElementById('grant-currency'),
@@ -1784,10 +1907,6 @@
         tabEl: () => els.tabVendas,
         panels: () => [els.vendasPanel]
       },
-      coaches: {
-        tabEl: () => els.tabCoaches,
-        panels: () => [els.coachesPanel]
-      },
       leads: {
         tabEl: () => els.tabLeads,
         panels: () => [els.leadsPanel]
@@ -1820,6 +1939,18 @@
 
       if (activeTab === 'athletes' && state.user) {
         refreshAthletesData().catch((err) => showAthletesMessage(err.message, true));
+        refreshAuditAthletesCatalog().catch(() => {});
+        refreshProgramsData().catch(() => {});
+
+        // Step 5: Initialize event listeners once, always refresh dropdowns
+        setTimeout(() => {
+          populateFilterDropdowns();  // Always refresh coach/program options
+          if (!_step5Initialized) {
+            initializeModals();       // Wires filter listeners (sets _step5Initialized = true)
+            wireGlobalActions();
+            wireCoachesPanelActions();
+          }
+        }, 100);
       }
 
       if (activeTab === 'siteContent' && state.user) {
@@ -1850,10 +1981,6 @@
       if (activeTab === 'operations' && state.user) {
         refreshAuditAthletesCatalog().catch((err) => showOperationsMessage(err.message, true));
         showOperationsMessage('Preenche pelo menos um filtro e clica em "Auditar dados".', false);
-      }
-
-      if (activeTab === 'coaches' && state.user) {
-        loadCoachesPanelSelect().catch((err) => showCoachesPanelMessage(err.message, true));
       }
     }
 
@@ -2613,6 +2740,9 @@
       els.athletesMessage.textContent = text || '';
       els.athletesMessage.classList.toggle('error', Boolean(isError));
       els.athletesMessage.classList.toggle('success', !isError && Boolean(text));
+      if (text && isError) {
+        showNotification(text, true);
+      }
     }
 
     function showOperationsMessage(text, isError) {
@@ -2635,6 +2765,46 @@
         option.dataset.email = athlete.email || '';
         els.auditAthleteSelect.appendChild(option);
       });
+
+      if (els.grantAthleteSelect) {
+        const selected = (els.grantAthleteSelect.value || '').trim();
+        els.grantAthleteSelect.innerHTML = '';
+
+        const grantPlaceholder = document.createElement('option');
+        grantPlaceholder.value = '';
+        grantPlaceholder.textContent = state.athletesCatalog.length ? 'Seleciona um atleta' : 'Sem atletas disponiveis';
+        els.grantAthleteSelect.appendChild(grantPlaceholder);
+
+        state.athletesCatalog.forEach((athlete) => {
+          const option = document.createElement('option');
+          option.value = athlete.email || '';
+          option.textContent = `${athlete.name || athlete.email || athlete.id} (${athlete.email || '-'})`;
+          if (selected && selected === option.value) {
+            option.selected = true;
+          }
+          els.grantAthleteSelect.appendChild(option);
+        });
+      }
+
+      if (els.assignAthleteSelect) {
+        const selectedAssignmentAthlete = (els.assignAthleteSelect.value || '').trim();
+        els.assignAthleteSelect.innerHTML = '';
+
+        const assignmentPlaceholder = document.createElement('option');
+        assignmentPlaceholder.value = '';
+        assignmentPlaceholder.textContent = state.athletesCatalog.length ? 'Seleciona um atleta' : 'Sem atletas disponiveis';
+        els.assignAthleteSelect.appendChild(assignmentPlaceholder);
+
+        state.athletesCatalog.forEach((athlete) => {
+          const option = document.createElement('option');
+          option.value = athlete.id;
+          option.textContent = `${athlete.name || athlete.email || athlete.id} (${athlete.email || '-'})`;
+          if (selectedAssignmentAthlete && selectedAssignmentAthlete === option.value) {
+            option.selected = true;
+          }
+          els.assignAthleteSelect.appendChild(option);
+        });
+      }
     }
 
     async function refreshAuditAthletesCatalog() {
@@ -2642,6 +2812,7 @@
       const data = await apiRequest('GET', adminAthletesListApiBase);
       state.athletesCatalog = Array.isArray(data.athletes) ? data.athletes : [];
       renderAuditAthleteOptions();
+      await refreshCurrentAssignmentSummary();
     }
 
     function applySelectedAthleteToAuditFilters() {
@@ -2778,13 +2949,122 @@
         }
         els.coachSelect.appendChild(option);
       });
+
+      els.coachesPanelSelect.innerHTML = '';
+      const panelPlaceholder = document.createElement('option');
+      panelPlaceholder.value = '';
+      panelPlaceholder.textContent = state.coaches.length ? 'Seleciona um coach' : 'Sem coaches ativos';
+      els.coachesPanelSelect.appendChild(panelPlaceholder);
+
+      state.coaches.forEach((coach) => {
+        const option = document.createElement('option');
+        option.value = coach.identityId;
+        option.textContent = `${coach.name || coach.email} (${coach.email})`;
+        if (selectedIdentityId && coach.identityId === selectedIdentityId) {
+          option.selected = true;
+        }
+        els.coachesPanelSelect.appendChild(option);
+      });
+
+      if (els.assignCoachSelect) {
+        const selectedAssignmentCoach = (els.assignCoachSelect.value || '').trim();
+        els.assignCoachSelect.innerHTML = '';
+
+        const assignmentCoachPlaceholder = document.createElement('option');
+        assignmentCoachPlaceholder.value = '';
+        assignmentCoachPlaceholder.textContent = state.coaches.length ? 'Seleciona um coach' : 'Sem coaches ativos';
+        els.assignCoachSelect.appendChild(assignmentCoachPlaceholder);
+
+        state.coaches.forEach((coach) => {
+          const option = document.createElement('option');
+          option.value = coach.id;
+          option.textContent = `${coach.name || coach.email} (${coach.email})`;
+          if (selectedAssignmentCoach && selectedAssignmentCoach === coach.id) {
+            option.selected = true;
+          }
+          els.assignCoachSelect.appendChild(option);
+        });
+      }
     }
 
     async function loadCoaches(selectedIdentityId) {
       const data = await apiRequest('GET', coachesApiBase);
       state.coaches = Array.isArray(data.coaches) ? data.coaches : [];
       renderCoachOptions(selectedIdentityId);
+      renderCurrentAssignmentSummary();
+      // Update athletes filter dropdown with new coaches (if populateFilterDropdowns exists)
+      if (typeof populateFilterDropdowns === 'function') {
+        populateFilterDropdowns();
+      }
     }
+
+    // --- Coach athletes view for subtab ---
+    let coachesPanelAthletes = [];
+
+    function showCoachesPanelMessage(msg, isError) {
+      const msgEl = document.getElementById('coaches-panel-message');
+      if (msgEl) {
+        msgEl.textContent = msg;
+        msgEl.className = 'message' + (isError ? ' error' : '');
+      }
+    }
+
+    function renderCoachesPanelAthletes() {
+      const payingOnly = els.coachesPanelPayingFilter.checked;
+      const filtered = payingOnly ? coachesPanelAthletes.filter((a) => a.isPaying) : coachesPanelAthletes;
+      const payingCount = coachesPanelAthletes.filter((a) => a.isPaying).length;
+      const nonPayingCount = coachesPanelAthletes.length - payingCount;
+
+      els.coachesPanelKpis.hidden = false;
+      els.coachesPanelTotalKpi.textContent = coachesPanelAthletes.length;
+      els.coachesPanelPayingKpi.textContent = payingCount;
+      els.coachesPanelNonpayingKpi.textContent = nonPayingCount;
+
+      els.coachesPanelAthletesBody.innerHTML = '';
+      els.coachesPanelEmpty.hidden = filtered.length > 0;
+
+      if (!filtered.length) return;
+
+      const fragment = document.createDocumentFragment();
+      filtered.forEach((a) => {
+        const row = document.createElement('tr');
+        const statusBadge = a.isPaying
+          ? '<span class="badge badge-success">Pagante</span>'
+          : '<span class="badge badge-warn">Sem pagamento</span>';
+        row.innerHTML = `
+          <td>${a.name || '-'}</td>
+          <td>${a.email || '-'}</td>
+          <td>${statusBadge}</td>
+          <td>${a.billingType || '-'}</td>
+          <td>${a.paidAt ? formatDate(a.paidAt) : '-'}</td>
+          <td>${a.expiresAt ? formatDate(a.expiresAt) : 'Sem expiracao'}</td>
+        `;
+        fragment.appendChild(row);
+      });
+      els.coachesPanelAthletesBody.appendChild(fragment);
+    }
+
+    async function loadCoachesPanelAthletes() {
+      const coachIdentityId = (els.coachesPanelSelect.value || '').trim();
+      if (!coachIdentityId) {
+        showCoachesPanelMessage('Seleciona um coach primeiro.', true);
+        return;
+      }
+
+      showCoachesPanelMessage('A carregar atletas do coach...', false);
+      try {
+        const data = await apiRequest('GET', `${adminCoachAthletesApiBase}?coachIdentityId=${encodeURIComponent(coachIdentityId)}`);
+        coachesPanelAthletes = Array.isArray(data.athletes) ? data.athletes : [];
+        renderCoachesPanelAthletes();
+        const payingCount = data.payingCount || 0;
+        showCoachesPanelMessage(`${coachesPanelAthletes.length} atleta(s) encontrado(s), ${payingCount} pagante(s) ativo(s).`, false);
+      } catch (err) {
+        showCoachesPanelMessage(err.message || 'Erro ao carregar atletas', true);
+      }
+    }
+
+    els.coachesPanelRefreshBtn.addEventListener('click', loadCoachesPanelAthletes);
+    els.coachesPanelPayingFilter.addEventListener('change', renderCoachesPanelAthletes);
 
     function formatDate(iso) {
       if (!iso) return '-';
@@ -2832,6 +3112,67 @@
     async function refreshAthletesData(selectedIdentityId) {
       await loadCoaches(selectedIdentityId);
       await refreshUnassignedAthletes();
+      // Also refresh the unified athletes view
+      await refreshAthletesUnified();
+    }
+
+    async function refreshAthletesUnified() {
+      if (!state.user) return;
+      try {
+        const data = await apiRequest('GET', adminAthletesUnifiedApiBase);
+        state.athletesUnified = Array.isArray(data.athletes) ? data.athletes : [];
+        applyAthletesFilters();
+      } catch (err) {
+        console.warn('[Unified] Failed to load unified athletes:', err.message);
+        showNotification('Erro ao carregar dados completos dos atletas. A mostrar lista basica.', true);
+
+        try {
+          const data = await apiRequest('GET', adminAthletesListApiBase);
+          const athletesCatalog = Array.isArray(data.athletes) ? data.athletes : [];
+          state.athletesUnified = athletesCatalog.map((athlete) => ({
+            id: athlete.id,
+            identityId: athlete.identityId || null,
+            email: athlete.email || '',
+            name: athlete.name || '',
+            status: 'active',
+            coachIdentityId: null,
+            assignmentStatus: null,
+            trainingProgramId: null,
+            programName: null,
+            isPaying: false,
+            paymentExpired: false,
+            manualAccessActive: false,
+            createdAt: athlete.createdAt || null,
+            updatedAt: null
+          }));
+          applyAthletesFilters();
+        } catch (fallbackErr) {
+          console.warn('[Unified] Basic athletes fallback also failed:', fallbackErr.message);
+          buildAthletesUnifiedFromState();
+        }
+      }
+    }
+
+    function buildAthletesUnifiedFromState() {
+      // Fallback: combine unassigned athletes and coaches' athletes into unified list
+      const unassigned = (state.unassignedAthletes || []).map((a) => ({
+        id: a.id,
+        identityId: a.identityId || null,
+        email: a.email || '',
+        name: a.name || '',
+        status: 'active',
+        coachIdentityId: null,
+        assignmentStatus: null,
+        trainingProgramId: null,
+        programName: null,
+        isPaying: false,
+        paymentExpired: false,
+        manualAccessActive: false,
+        createdAt: a.createdAt || null,
+        updatedAt: null
+      }));
+      state.athletesUnified = unassigned;
+      applyAthletesFilters();
     }
 
     async function assignAthlete(athleteId) {
@@ -2847,12 +3188,13 @@
 
       showAthletesMessage('Atleta atribuido com sucesso.', false);
       await refreshUnassignedAthletes();
+      await refreshAthletesUnified();
+      showNotification('Atleta atribuido com sucesso.');
     }
 
     function clearCreateCoachForm() {
       els.newCoachName.value = '';
       els.newCoachEmail.value = '';
-      els.newCoachIdentityId.value = '';
       els.newCoachTimezone.value = 'Europe/Lisbon';
       els.newCoachCapacity.value = '';
     }
@@ -2860,28 +3202,72 @@
     async function createCoachFromAdmin() {
       const name = (els.newCoachName.value || '').trim();
       const email = (els.newCoachEmail.value || '').trim().toLowerCase();
-      const identityId = (els.newCoachIdentityId.value || '').trim();
       const timezone = (els.newCoachTimezone.value || '').trim() || 'Europe/Lisbon';
       const capacityRaw = (els.newCoachCapacity.value || '').trim();
       const capacityLimit = capacityRaw === '' ? null : Number(capacityRaw);
 
-      if (!name || !email || !identityId) {
-        throw new Error('Nome, email e UUID do utilizador Supabase sao obrigatorios.');
+      if (!name || !email) {
+        throw new Error('Nome e email sao obrigatorios.');
       }
 
-      await apiRequest('POST', coachesApiBase, {
+      const data = await apiRequest('POST', coachesApiBase, {
         name,
         email,
-        identityId,
         timezone,
         capacityLimit,
         followupType: 'standard'
       });
 
-      await refreshAthletesData(identityId);
+      await refreshAthletesData();
       els.createCoachBox.hidden = true;
       clearCreateCoachForm();
-      showAthletesMessage('Coach criado e selecionado com sucesso.', false);
+
+      const msg = data.inviteEmailSent
+        ? 'Coach criado. Email de convite enviado.'
+        : 'Coach criado. O utilizador pode fazer login com Google.';
+      showAthletesMessage(msg, false);
+      showNotification(msg, false);
+
+      if (els.athletesOpsWorkspace) {
+        els.athletesOpsWorkspace.hidden = false;
+      }
+    }
+
+    function clearCreateAthleteForm() {
+      els.newAthleteName.value = '';
+      els.newAthleteEmail.value = '';
+    }
+
+    async function createAthleteFromAdmin() {
+      const name = (els.newAthleteName.value || '').trim();
+      const email = (els.newAthleteEmail.value || '').trim().toLowerCase();
+      const coachIdentityId = (els.coachSelect.value || '').trim() || (state.athletesFilterInputs.coach || '').trim();
+
+      if (!name || !email) {
+        throw new Error('Nome e email sao obrigatorios.');
+      }
+
+      const body = { name, email };
+      if (coachIdentityId) body.coachIdentityId = coachIdentityId;
+
+      const data = await apiRequest('POST', adminCreateAthleteApiBase, body);
+
+      await refreshUnassignedAthletes();
+      if (coachIdentityId) {
+        await loadCoaches(coachIdentityId);
+      }
+      await refreshAthletesUnified();
+      els.createAthleteBox.hidden = true;
+      clearCreateAthleteForm();
+      const msg = data.inviteEmailSent
+        ? 'Atleta criado. Email de convite enviado.'
+        : 'Atleta criado. O utilizador pode fazer login com Google.';
+      showAthletesMessage(msg, false);
+      showNotification(msg, false);
+
+      if (els.athletesOpsWorkspace) {
+        els.athletesOpsWorkspace.hidden = false;
+      }
     }
 
     function showMessage(text, isError) {
@@ -3324,6 +3710,106 @@
       els.programGrantsMessage.textContent = text || '';
       els.programGrantsMessage.classList.toggle('error', Boolean(isError));
       els.programGrantsMessage.classList.toggle('success', !isError && Boolean(text));
+      if (text && isError) {
+        showNotification(text, true);
+      }
+    }
+
+    function showAssignProgramMessage(text, isError) {
+      els.assignProgramMessage.textContent = text || '';
+      els.assignProgramMessage.classList.toggle('error', Boolean(isError));
+      els.assignProgramMessage.classList.toggle('success', !isError && Boolean(text));
+      if (text && isError) {
+        showNotification(text, true);
+      }
+    }
+
+    function formatAssignmentDate(value) {
+      if (!value) return '-';
+      const parsed = new Date(value);
+      if (Number.isNaN(parsed.getTime())) return value;
+      return parsed.toLocaleDateString('pt-PT');
+    }
+
+    function getAssignmentStatusLabel(status) {
+      const normalized = (status || '').toLowerCase();
+      if (normalized === 'active') return 'Ativo';
+      if (normalized === 'scheduled') return 'Agendado';
+      if (normalized === 'paused') return 'Pausado';
+      if (normalized === 'cancelled') return 'Cancelado';
+      if (!normalized) return 'Desconhecido';
+      return status;
+    }
+
+    function renderCurrentAssignmentSummary() {
+      if (!els.assignmentCurrentSummary || !els.assignmentCurrentTitle || !els.assignmentCurrentMeta) {
+        return;
+      }
+
+      const athleteId = (els.assignAthleteSelect.value || '').trim();
+      const selectedProgramId = (els.assignProgramId.value || '').trim();
+      els.assignmentCurrentSummary.hidden = false;
+
+      if (!athleteId) {
+        els.assignmentCurrentTitle.textContent = 'Seleciona um atleta para ver o estado do assignment.';
+        els.assignmentCurrentMeta.textContent = '';
+        return;
+      }
+
+      if (!state.currentAssignment) {
+        els.assignmentCurrentTitle.textContent = 'Sem assignment encontrado para o filtro atual.';
+        els.assignmentCurrentMeta.textContent = selectedProgramId
+          ? 'Experimenta limpar o filtro de programa para ver o ultimo assignment do atleta.'
+          : '';
+        return;
+      }
+
+      const assignment = state.currentAssignment;
+      const program = state.programs.find((item) => item.id === assignment.trainingProgramId);
+      const coach = state.coaches.find((item) => item.id === assignment.coachId);
+      const programLabel = program ? program.name : (assignment.trainingProgramId || '-');
+      const coachLabel = coach
+        ? (coach.name || coach.email || coach.id)
+        : (assignment.coachId || '-');
+
+      els.assignmentCurrentTitle.textContent = `Estado atual: ${getAssignmentStatusLabel(assignment.status)}`;
+      els.assignmentCurrentMeta.textContent = [
+        `Programa: ${programLabel}`,
+        `Inicio: ${formatAssignmentDate(assignment.startDate)}`,
+        `Fim previsto: ${formatAssignmentDate(assignment.computedEndDate)}`,
+        `Fim real: ${formatAssignmentDate(assignment.actualEndDate)}`,
+        `Coach: ${coachLabel}`
+      ].join(' | ');
+    }
+
+    async function refreshCurrentAssignmentSummary() {
+      if (!state.user) {
+        state.currentAssignment = null;
+        renderCurrentAssignmentSummary();
+        return;
+      }
+
+      const athleteId = (els.assignAthleteSelect.value || '').trim();
+      const trainingProgramId = (els.assignProgramId.value || '').trim();
+      if (!athleteId) {
+        state.currentAssignment = null;
+        renderCurrentAssignmentSummary();
+        return;
+      }
+
+      els.assignmentCurrentSummary.hidden = false;
+      els.assignmentCurrentTitle.textContent = 'A carregar assignment atual...';
+      els.assignmentCurrentMeta.textContent = '';
+
+      const params = new URLSearchParams();
+      params.set('athleteId', athleteId);
+      if (trainingProgramId) {
+        params.set('trainingProgramId', trainingProgramId);
+      }
+
+      const data = await apiRequest('GET', `${adminAssignProgramApiBase}?${params.toString()}`);
+      state.currentAssignment = data && data.assignment ? data.assignment : null;
+      renderCurrentAssignmentSummary();
     }
 
     function formatCurrencyCents(value, currency) {
@@ -3333,6 +3819,516 @@
         style: 'currency',
         currency: (currency || 'EUR').toUpperCase()
       }).format(cents / 100);
+    }
+
+    // ============================================================================
+    // STEP 3: ATHLETES & COACHES DATA CONSOLIDATION & FILTERING
+    // ============================================================================
+
+    // Extended state for new IA
+    Object.assign(state, {
+      athletesUnified: [],           // Consolidated athletes list
+      athletesFiltered: [],          // After applying filters
+      athletesFilterInputs: {
+        search: '',
+        coach: '',
+        status: '',
+        payment: '',
+        program: '',
+        unassignedOnly: false,
+        manualAccessOnly: false
+      }
+    });
+
+    function showNotification(message, isError = false) {
+      const notif = document.getElementById('admin-notification');
+      if (!notif) return;
+
+      notif.textContent = message;
+      notif.className = `admin-notification ${isError ? 'error' : 'success'}`;
+      notif.hidden = false;
+
+      // Auto-hide after 4 seconds
+      setTimeout(() => {
+        notif.hidden = true;
+      }, 4000);
+    }
+
+    function applyAthletesFilters() {
+      // Consolidate all athletes into a unified list and apply filters
+      const { athletesUnified, athletesFilterInputs } = state;
+      let filtered = [...athletesUnified];
+
+      // 1. Search filter (name or email)
+      if (athletesFilterInputs.search.trim()) {
+        const q = athletesFilterInputs.search.toLowerCase().trim();
+        filtered = filtered.filter((a) => {
+          const name = (a.name || '').toLowerCase();
+          const email = (a.email || '').toLowerCase();
+          return name.includes(q) || email.includes(q);
+        });
+      }
+
+      // 2. Coach filter
+      if (athletesFilterInputs.coach) {
+        filtered = filtered.filter((a) => a.coachIdentityId === athletesFilterInputs.coach);
+      }
+
+      // 3. Assignment status filter
+      if (athletesFilterInputs.status) {
+        filtered = filtered.filter((a) => a.assignmentStatus === athletesFilterInputs.status);
+      }
+
+      // 4. Payment status filter
+      if (athletesFilterInputs.payment) {
+        if (athletesFilterInputs.payment === 'paid') {
+          filtered = filtered.filter((a) => a.isPaying === true);
+        } else if (athletesFilterInputs.payment === 'unpaid') {
+          filtered = filtered.filter((a) => a.isPaying === false);
+        } else if (athletesFilterInputs.payment === 'expired') {
+          filtered = filtered.filter((a) => a.paymentExpired === true);
+        }
+      }
+
+      // 5. Program filter
+      if (athletesFilterInputs.program) {
+        filtered = filtered.filter((a) => a.trainingProgramId === athletesFilterInputs.program);
+      }
+
+      // 6. Unassigned only
+      if (athletesFilterInputs.unassignedOnly) {
+        filtered = filtered.filter((a) => !a.coachIdentityId);
+      }
+
+      // 7. Manual access only
+      if (athletesFilterInputs.manualAccessOnly) {
+        filtered = filtered.filter((a) => a.manualAccessActive === true);
+      }
+
+      state.athletesFiltered = filtered;
+      renderAthletesMainTable();
+    }
+
+    function renderAthletesMainTable() {
+      const { athletesFiltered } = state;
+      const tbody = document.getElementById('athletes-main-body');
+      if (!tbody) return;
+
+      tbody.innerHTML = '';
+
+      if (athletesFiltered.length === 0) {
+        const emptyEl = document.getElementById('athletes-empty-state');
+        if (emptyEl) emptyEl.hidden = false;
+        return;
+      }
+
+      const emptyEl = document.getElementById('athletes-empty-state');
+      if (emptyEl) emptyEl.hidden = true;
+
+      const fragment = document.createDocumentFragment();
+
+      athletesFiltered.forEach((athlete) => {
+        const row = document.createElement('tr');
+        row.setAttribute('data-athlete-id', athlete.id);
+
+        const coachName = state.coaches.find((c) => c.identityId === athlete.coachIdentityId)?.name || '-';
+        const statusLabel = getAssignmentStatusLabel(athlete.assignmentStatus) || '-';
+        const paymentLabel = athlete.isPaying ? 'Pagante' : (athlete.paymentExpired ? 'Expirado' : 'Sem pagamento');
+
+        row.innerHTML = `
+          <td>${escapeHtml(athlete.name || '')}</td>
+          <td>${escapeHtml(athlete.email || '')}</td>
+          <td>${escapeHtml(coachName)}</td>
+          <td>${escapeHtml(statusLabel)}</td>
+          <td>${escapeHtml(paymentLabel)}</td>
+          <td>${escapeHtml(athlete.programName || '-')}</td>
+          <td>${escapeHtml(athlete.createdAt ? new Date(athlete.createdAt).toLocaleDateString('pt-PT') : '-')}</td>
+          <td>
+            <div class="athlete-row-actions">
+              <button class="action-btn-sm" data-action="edit" title="Editar atleta">🔧</button>
+              <button class="action-btn-sm" data-action="assign-coach" title="Atribuir coach">👨‍💼</button>
+              <button class="action-btn-sm" data-action="manage-assignment" title="Gerir assignment">📋</button>
+              <button class="action-btn-sm" data-action="archive" title="Arquivar atleta">🗑️</button>
+            </div>
+          </td>
+        `;
+
+        // Row action handlers
+        row.querySelectorAll('[data-action]').forEach((btn) => {
+          btn.addEventListener('click', (e) => {
+            const action = e.target.getAttribute('data-action');
+            handleAthleteRowAction(athlete, action);
+          });
+        });
+
+        fragment.appendChild(row);
+      });
+
+      tbody.appendChild(fragment);
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    /**
+     * Populate filter dropdown options from state data
+     * Called during initialization and whenever state data changes
+     */
+    function populateFilterDropdowns() {
+      const coachSelect = document.getElementById('athletes-filter-coach');
+      const programSelect = document.getElementById('athletes-filter-program');
+
+      if (!coachSelect || !programSelect) {
+        console.warn('[Step 5] Filter dropdown elements not found');
+        return;
+      }
+
+      // Populate coach dropdown
+      const selectedCoach = coachSelect.value;
+      coachSelect.innerHTML = '<option value="">Todos</option>';
+      
+      if (state.coaches && Array.isArray(state.coaches)) {
+        state.coaches.forEach((coach) => {
+          const option = document.createElement('option');
+          option.value = coach.identityId || coach.id;
+          option.textContent = coach.name || 'Coach sem nome';
+          coachSelect.appendChild(option);
+        });
+      }
+      
+      if (selectedCoach) coachSelect.value = selectedCoach;
+
+      // Populate program dropdown
+      const selectedProgram = programSelect.value;
+      programSelect.innerHTML = '<option value="">Todos</option>';
+      
+      if (state.programs && Array.isArray(state.programs)) {
+        state.programs.forEach((program) => {
+          const option = document.createElement('option');
+          option.value = program.id;
+          option.textContent = program.name || 'Programa sem nome';
+          programSelect.appendChild(option);
+        });
+      }
+      
+      if (selectedProgram) programSelect.value = selectedProgram;
+
+      console.log('[Step 5] Filter dropdowns populated');
+    }
+
+    // ============================================================================
+    // STEP 5: UI ACTION FLOWS WIRING
+    // ============================================================================
+
+    // Guard: prevents wiring listeners multiple times when tab is re-activated
+    let _step5Initialized = false;
+
+    // Modal element references
+    const modals = {
+      createCoach: null,
+      createAthlete: null,
+      assignCoach: null,
+      manageAssignment: null,
+      grantAccess: null,
+      archiveAthllete: null
+    };
+
+    function initializeModals() {
+      // Populate filter dropdown options on initialization
+      populateFilterDropdowns();
+
+      // Guard: only set up listeners once
+      if (_step5Initialized) return;
+      _step5Initialized = true;
+
+      // Create modals for each action (they'll be reused)
+      // For now, we'll use the legacy form containers and adapt them
+      // Step 5: Wire filter inputs to state and handlers
+      const filterInputs = {
+        search: document.getElementById('athletes-search-input'),
+        coach: document.getElementById('athletes-filter-coach'),
+        status: document.getElementById('athletes-filter-status'),
+        payment: document.getElementById('athletes-filter-payment'),
+        program: document.getElementById('athletes-filter-program'),
+        unassigned: document.getElementById('athletes-filter-unassigned'),
+        manualAccess: document.getElementById('athletes-filter-manual-access')
+      };
+
+      // Validate filter inputs exist
+      const filtersValid = Object.values(filterInputs).every(el => el);
+      if (!filtersValid) {
+        console.warn('[Step 5] Some filter elements not found in DOM');
+        return;
+      }
+
+      // Wire search input
+      filterInputs.search.addEventListener('input', (e) => {
+        state.athletesFilterInputs.search = e.target.value;
+        applyAthletesFilters();
+      });
+
+      // Wire coach filter
+      filterInputs.coach.addEventListener('change', (e) => {
+        state.athletesFilterInputs.coach = e.target.value;
+        applyAthletesFilters();
+      });
+
+      // Wire status filter
+      filterInputs.status.addEventListener('change', (e) => {
+        state.athletesFilterInputs.status = e.target.value;
+        applyAthletesFilters();
+      });
+
+      // Wire payment filter
+      filterInputs.payment.addEventListener('change', (e) => {
+        state.athletesFilterInputs.payment = e.target.value;
+        applyAthletesFilters();
+      });
+
+      // Wire program filter
+      filterInputs.program.addEventListener('change', (e) => {
+        state.athletesFilterInputs.program = e.target.value;
+        applyAthletesFilters();
+      });
+
+      // Wire unassigned toggle
+      filterInputs.unassigned.addEventListener('change', (e) => {
+        state.athletesFilterInputs.unassignedOnly = e.target.checked;
+        applyAthletesFilters();
+      });
+
+      // Wire manual access toggle
+      filterInputs.manualAccess.addEventListener('change', (e) => {
+        state.athletesFilterInputs.manualAccessOnly = e.target.checked;
+        applyAthletesFilters();
+      });
+
+      console.log('[Step 5] Filter inputs wired successfully');
+    }
+
+    function wireGlobalActions() {
+      const actionCreateAthlete = document.getElementById('athletes-action-create-athlete');
+      const actionCreateCoach = document.getElementById('athletes-action-create-coach');
+      const actionRefresh = document.getElementById('athletes-action-refresh');
+
+      if (actionCreateAthlete) {
+        actionCreateAthlete.addEventListener('click', async () => {
+          if (els.athletesOpsWorkspace) {
+            els.athletesOpsWorkspace.hidden = false;
+          }
+          els.createCoachBox.hidden = true;
+          els.createAthleteBox.hidden = false;
+          els.createAthleteBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          els.newAthleteName.focus();
+        });
+      }
+
+      if (actionCreateCoach) {
+        actionCreateCoach.addEventListener('click', async () => {
+          if (els.athletesOpsWorkspace) {
+            els.athletesOpsWorkspace.hidden = false;
+          }
+          els.createAthleteBox.hidden = true;
+          els.createCoachBox.hidden = false;
+          els.createCoachBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          els.newCoachName.focus();
+        });
+      }
+
+      if (actionRefresh) {
+        actionRefresh.addEventListener('click', async () => {
+          try {
+            showNotification('Atualizando dados...');
+            await refreshAthletesData();
+            showNotification('Dados atualizados com sucesso');
+          } catch (err) {
+            showNotification(`Erro ao atualizar: ${err.message}`, true);
+          }
+        });
+      }
+
+      console.log('[Step 5] Global actions wired');
+    }
+
+    function wireCoachesPanelActions() {
+      const coachesCreateBtn = document.getElementById('coaches-create-btn');
+
+      if (coachesCreateBtn && !coachesCreateBtn.dataset.bound) {
+        coachesCreateBtn.dataset.bound = '1';
+        coachesCreateBtn.addEventListener('click', () => {
+          if (els.athletesOpsWorkspace) {
+            els.athletesOpsWorkspace.hidden = false;
+          }
+          els.createAthleteBox.hidden = true;
+          els.createCoachBox.hidden = false;
+          els.createCoachBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          els.newCoachName.focus();
+        });
+      }
+
+      // Note: coaches-panel-refresh-btn is already wired via els.coachesPanelRefreshBtn listener
+      // defined at module initialization level (line below loadCoachesPanelAthletes definition)
+
+      console.log('[Step 5] Coaches panel actions wired');
+    }
+
+    // Helper to format dates for input fields
+    function formatDateForInput(dateStr) {
+      if (!dateStr) return '';
+      try {
+        // Assuming ISO format dateStr like '2026-03-25'
+        return dateStr.split('T')[0];
+      } catch {
+        return '';
+      }
+    }
+
+    // Helper to show assignment history modal for an athlete
+    async function openAssignmentHistoryModal(athleteId) {
+      const athlete = state.athletesUnified.find((a) => a.id === athleteId) || { id: athleteId, name: 'Atleta' };
+      
+      try {
+        showNotification(`A carregar histórico de assignments...`);
+        const response = await apiRequest('GET', `${adminAssignProgramApiBase}?athleteId=${athleteId}&action=history&limit=50`);
+        const assignments = Array.isArray(response && response.assignments) ? response.assignments : [];
+
+        // Build modal content
+        const rows = assignments.map((a) => {
+          const statusClass = a.status === 'active' ? 'badge-success' : a.status === 'cancelled' ? 'badge-error' : 'badge-warn';
+          const start = a.startDate ? new Date(a.startDate).toLocaleDateString('pt-PT') : '-';
+          const end = a.computedEndDate ? new Date(a.computedEndDate).toLocaleDateString('pt-PT') : '-';
+          return `<tr>
+            <td><span class="badge ${statusClass}">${a.status || '-'}</span></td>
+            <td>${start}</td>
+            <td>${end}</td>
+            <td>${a.durationWeeks ? `${a.durationWeeks}sem.` : '-'}</td>
+            <td style="font-size:0.8rem;max-width:200px;overflow:hidden;text-overflow:ellipsis;">${a.notes || '-'}</td>
+          </tr>`;
+        }).join('');
+
+        const modalHtml = `
+          <dialog id="assignment-history-dialog" style="max-width:700px;width:90%;border-radius:8px;border:1px solid var(--ink-ghost);padding:0;">
+            <div style="padding:1.5rem;border-bottom:1px solid var(--ink-ghost);display:flex;align-items:center;justify-content:space-between;">
+              <h3 style="margin:0;font-size:1.1rem;">Histórico de Assignments — ${escapeHtml(athlete.name || athlete.id)}</h3>
+              <button onclick="document.getElementById('assignment-history-dialog').close(); document.getElementById('assignment-history-dialog').remove();" style="background:none;border:none;cursor:pointer;font-size:1.4rem;">✕</button>
+            </div>
+            <div style="padding:1.5rem;max-height:60vh;overflow-y:auto;">
+              ${assignments.length === 0
+                ? '<p style="color:var(--ink-soft);">Nenhum assignment encontrado para este atleta.</p>'
+                : `<table style="width:100%;border-collapse:collapse;font-size:0.9rem;">
+                    <thead>
+                      <tr style="text-align:left;border-bottom:1px solid var(--ink-ghost);">
+                        <th style="padding:0.4rem 0.5rem;">Estado</th>
+                        <th style="padding:0.4rem 0.5rem;">Início</th>
+                        <th style="padding:0.4rem 0.5rem;">Fim calc.</th>
+                        <th style="padding:0.4rem 0.5rem;">Semanas</th>
+                        <th style="padding:0.4rem 0.5rem;">Notas</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${rows}
+                    </tbody>
+                  </table>`
+              }
+            </div>
+          </dialog>`;
+
+        // Remove existing dialog if present
+        const existing = document.getElementById('assignment-history-dialog');
+        if (existing) existing.remove();
+
+        // Insert and open dialog
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        document.getElementById('assignment-history-dialog').showModal();
+        showNotification(`${assignments.length} assignment(s) carregado(s) para ${athlete.name}`);
+      } catch (err) {
+        showNotification(`Erro ao carregar histórico: ${err.message}`, true);
+      }
+    }
+
+    // Action handler for row buttons (enhanced)
+    function handleAthleteRowAction(athlete, action) {
+      switch (action) {
+        case 'edit':
+          openAthleteAssignmentPanel(athlete);
+          break;
+
+        case 'assign-coach':
+          openAthleteAssignmentPanel(athlete);
+          break;
+
+        case 'manage-assignment':
+          openAssignmentHistoryModal(athlete.id);
+          break;
+
+        case 'archive':
+          if (confirm(`Tem a certeza que pretende arquivar o atleta "${athlete.name}"?\n\nEsta ação é reversível.`)) {
+            archiveAthleteAction(athlete);
+          }
+          break;
+      }
+    }
+
+    /**
+     * Opens the assignment/coach panel for a specific athlete.
+     * Pre-populates the assign-athlete-select and scrolls into view.
+     */
+    function openAthleteAssignmentPanel(athlete) {
+      // Populate the assignment form with this athlete pre-selected
+      if (els.assignAthleteSelect) {
+        // Find matching option or create it
+        let option = els.assignAthleteSelect.querySelector(`option[value="${athlete.id}"]`);
+        if (!option) {
+          option = document.createElement('option');
+          option.value = athlete.id;
+          option.textContent = `${athlete.name || athlete.email} (${athlete.email})`;
+          els.assignAthleteSelect.appendChild(option);
+        }
+        els.assignAthleteSelect.value = athlete.id;
+        // Trigger change event to update dependent fields
+        els.assignAthleteSelect.dispatchEvent(new Event('change'));
+      }
+
+      // Pre-select coach if athlete already has one
+      if (athlete.coachIdentityId && els.assignCoachSelect) {
+        const selectedCoach = state.coaches.find((coach) => coach.identityId === athlete.coachIdentityId);
+        if (selectedCoach && selectedCoach.id) {
+          els.assignCoachSelect.value = selectedCoach.id;
+        }
+      }
+
+      // Load current assignment summary  
+      refreshCurrentAssignmentSummary().catch(() => {});
+
+      // Scroll the assignment form into view
+      const assignForm = document.getElementById('assignment-current-summary');
+      if (assignForm) {
+        assignForm.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+
+      showNotification(`Atleta "${athlete.name}" selecionado. Configura o assignment abaixo.`);
+    }
+
+    async function archiveAthleteAction(athlete) {
+      try {
+        showNotification(`Arquivando atleta: ${athlete.name}...`);
+        const response = await apiRequest(
+          'PATCH',
+          `/.netlify/functions/admin-archive-athlete?athleteId=${athlete.id}`,
+          { confirmArchive: true }
+        );
+
+        if (response && response.athlete) {
+          showNotification(`Atleta "${athlete.name}" arquivado com sucesso`);
+          await refreshAthletesData();
+        }
+      } catch (err) {
+        showNotification(`Erro ao arquivar atleta: ${err.message}`, true);
+        console.error('[Archive] Error:', err);
+      }
     }
 
     function renderProgramOptions() {
@@ -3353,6 +4349,26 @@
         }
         els.grantProgramId.appendChild(option);
       });
+
+      const selectedAssignmentProgram = (els.assignProgramId.value || '').trim();
+      els.assignProgramId.innerHTML = '';
+
+      const assignmentPlaceholder = document.createElement('option');
+      assignmentPlaceholder.value = '';
+      assignmentPlaceholder.textContent = state.programs.length ? 'Seleciona um programa' : 'Sem programas disponiveis';
+      els.assignProgramId.appendChild(assignmentPlaceholder);
+
+      state.programs.forEach((program) => {
+        const option = document.createElement('option');
+        option.value = program.id;
+        option.textContent = `${program.name} (${formatCurrencyCents(program.priceCents, program.currency)})`;
+        if (selectedAssignmentProgram && selectedAssignmentProgram === program.id) {
+          option.selected = true;
+        }
+        els.assignProgramId.appendChild(option);
+      });
+
+      renderCurrentAssignmentSummary();
     }
 
     function renderProgramsTable() {
@@ -3456,6 +4472,8 @@
       state.programs = Array.isArray(data.programs) ? data.programs : [];
       renderProgramsTable();
       renderProgramOptions();
+      // Update athletes filter dropdown with new programs
+      populateFilterDropdowns();
       showProgramsMessage(`Programas carregados: ${state.programs.length}.`, false);
     }
 
@@ -3468,8 +4486,7 @@
     }
 
     function collectGrantPayload() {
-      const email = (els.grantAthleteEmail.value || '').trim().toLowerCase();
-      const identityId = (els.grantIdentityId.value || '').trim();
+      const email = (els.grantAthleteSelect.value || '').trim().toLowerCase();
       const programId = (els.grantProgramId.value || '').trim();
       const amountRaw = (els.grantAmountCents.value || '').trim();
       const amountCents = amountRaw === '' ? null : Number(amountRaw);
@@ -3477,8 +4494,8 @@
       const expiresRaw = (els.grantExpiresAt.value || '').trim();
       const expiresAt = expiresRaw ? new Date(expiresRaw).toISOString() : null;
 
-      if (!email && !identityId) {
-        throw new Error('Indica email ou identity_id.');
+      if (!email) {
+        throw new Error('Seleciona um atleta.');
       }
       if (!programId) {
         throw new Error('Seleciona um programa.');
@@ -3489,7 +4506,6 @@
 
       return {
         email: email || undefined,
-        identity_id: identityId || undefined,
         program_id: programId,
         amount_cents: amountCents == null ? undefined : amountCents,
         currency,
@@ -3497,15 +4513,96 @@
       };
     }
 
+    function collectAssignmentPayload() {
+      const athleteId = (els.assignAthleteSelect.value || '').trim();
+      const coachId = (els.assignCoachSelect.value || '').trim();
+      const trainingProgramId = (els.assignProgramId.value || '').trim();
+      const startDate = (els.assignStartDate.value || '').trim();
+      const notes = (els.assignNotes.value || '').trim();
+
+      if (!athleteId) {
+        throw new Error('Seleciona um atleta.');
+      }
+      if (!coachId) {
+        throw new Error('Seleciona um coach.');
+      }
+      if (!trainingProgramId) {
+        throw new Error('Seleciona um programa.');
+      }
+
+      const selectedProgram = state.programs.find((program) => program.id === trainingProgramId);
+      if (!selectedProgram) {
+        throw new Error('Programa selecionado nao encontrado no catalogo.');
+      }
+
+      const durationWeeks = Number(selectedProgram.durationWeeks || 0);
+      const priceCentsSnapshot = Number(selectedProgram.priceCents || 0);
+      const currencySnapshot = (selectedProgram.currency || 'EUR').toString().trim().toUpperCase() || 'EUR';
+      const followupTypeSnapshot = (selectedProgram.followupType || 'standard').toString().trim() || 'standard';
+
+      if (!Number.isInteger(durationWeeks) || durationWeeks <= 0) {
+        throw new Error('Programa sem duracao valida (semanas).');
+      }
+      if (!Number.isInteger(priceCentsSnapshot) || priceCentsSnapshot < 0) {
+        throw new Error('Programa sem preco valido.');
+      }
+
+      return {
+        athleteId,
+        coachId,
+        trainingProgramId,
+        startDate: startDate || undefined,
+        durationWeeks,
+        priceCentsSnapshot,
+        currencySnapshot,
+        followupTypeSnapshot,
+        notes: notes || undefined
+      };
+    }
+
+    async function createProgramAssignmentFromAdmin() {
+      const payload = collectAssignmentPayload();
+      showAssignProgramMessage('A criar assignment...', false);
+      await apiRequest('POST', adminAssignProgramApiBase, payload);
+      showAssignProgramMessage('Program assignment criado com sucesso.', false);
+      els.assignStartDate.value = '';
+      els.assignNotes.value = '';
+      await refreshCurrentAssignmentSummary();
+      await refreshAthletesUnified();
+      showNotification('Program assignment criado com sucesso.', false);
+    }
+
+    async function cancelProgramAssignmentFromAdmin() {
+      const athleteId = (els.assignAthleteSelect.value || '').trim();
+      const trainingProgramId = (els.assignProgramId.value || '').trim();
+      const notes = (els.assignNotes.value || '').trim();
+
+      if (!athleteId) {
+        throw new Error('Seleciona um atleta para cancelar assignment.');
+      }
+
+      showAssignProgramMessage('A cancelar assignment ativo...', false);
+      await apiRequest('PATCH', adminAssignProgramApiBase, {
+        athleteId,
+        trainingProgramId: trainingProgramId || undefined,
+        notes: notes || undefined
+      });
+      showAssignProgramMessage('Assignment cancelado com sucesso.', false);
+      await refreshCurrentAssignmentSummary();
+      await refreshAthletesUnified();
+      showNotification('Assignment cancelado com sucesso.', false);
+    }
+
     async function grantProgramAccessFromAdmin() {
       const payload = collectGrantPayload();
       showProgramGrantsMessage('A conceder acesso...', false);
       await apiRequest('POST', adminGrantAccessApiBase, payload);
       showProgramGrantsMessage('Acesso concedido com sucesso.', false);
-      els.grantIdentityId.value = '';
-      els.grantAthleteEmail.value = '';
+      els.grantAthleteSelect.value = '';
       els.grantAmountCents.value = '';
       els.grantExpiresAt.value = '';
+      await refreshAthletesUnified();
+      showNotification('Acesso concedido com sucesso.', false);
     }
 
     async function saveLeadUpdate(leadId) {
@@ -3630,8 +4727,14 @@
       els.refreshLeadsBtn.disabled = !canUseApi;
       els.refreshProgramsBtn.disabled = !canUseApi;
       els.createProgramBtn.disabled = !canUseApi;
-      els.grantAthleteEmail.disabled = !canUseApi;
-      els.grantIdentityId.disabled = !canUseApi;
+      els.assignAthleteSelect.disabled = !canUseApi;
+      els.assignCoachSelect.disabled = !canUseApi;
+      els.assignProgramId.disabled = !canUseApi;
+      els.assignStartDate.disabled = !canUseApi;
+      els.assignNotes.disabled = !canUseApi;
+      els.assignProgramBtn.disabled = !canUseApi;
+      els.cancelAssignmentBtn.disabled = !canUseApi;
+      els.grantAthleteSelect.disabled = !canUseApi;
       els.grantProgramId.disabled = !canUseApi;
       els.grantAmountCents.disabled = !canUseApi;
       els.grantCurrency.disabled = !canUseApi;
@@ -3918,6 +5021,7 @@
         state.coupons = [];
         state.stripePrices = [];
         state.syncResults = [];
+        state.currentAssignment = null;
         renderList();
         renderUnassignedAthletes();
         renderCoachOptions();
@@ -3939,6 +5043,7 @@
         showProgramGrantsMessage('Faz login para conceder acessos manuais.', false);
         showAiMessage('Faz login para gerir prompts e logs de IA.', false);
         showOperationsMessage('Faz login para usar a auditoria de dados.', false);
+        renderCurrentAssignmentSummary();
         resetBlogProductionPanel();
       }
     }
@@ -4023,25 +5128,64 @@
         }
       });
 
-      els.openCreateCoachBtn.addEventListener('click', () => {
-        els.createCoachBox.hidden = !els.createCoachBox.hidden;
-      });
+    }
 
-      els.cancelCreateCoachBtn.addEventListener('click', () => {
-        clearCreateCoachForm();
-        els.createCoachBox.hidden = true;
-      });
+    function bindAdminCoachAthleteButtons() {
+      if (els.openCreateCoachBtn && !els.openCreateCoachBtn.dataset.bound) {
+        els.openCreateCoachBtn.dataset.bound = '1';
+        els.openCreateCoachBtn.addEventListener('click', () => {
+          els.createCoachBox.hidden = !els.createCoachBox.hidden;
+        });
+      }
 
-      els.createCoachBtn.addEventListener('click', async () => {
-        try {
-          await createCoachFromAdmin();
-        } catch (err) {
-          showAthletesMessage(err.message, true);
-        }
-      });
+      if (els.cancelCreateCoachBtn && !els.cancelCreateCoachBtn.dataset.bound) {
+        els.cancelCreateCoachBtn.dataset.bound = '1';
+        els.cancelCreateCoachBtn.addEventListener('click', () => {
+          clearCreateCoachForm();
+          els.createCoachBox.hidden = true;
+        });
+      }
+
+      if (els.createCoachBtn && !els.createCoachBtn.dataset.bound) {
+        els.createCoachBtn.dataset.bound = '1';
+        els.createCoachBtn.addEventListener('click', async () => {
+          try {
+            await createCoachFromAdmin();
+          } catch (err) {
+            showAthletesMessage(err.message, true);
+          }
+        });
+      }
+
+      if (els.openCreateAthleteBtn && !els.openCreateAthleteBtn.dataset.bound) {
+        els.openCreateAthleteBtn.dataset.bound = '1';
+        els.openCreateAthleteBtn.addEventListener('click', () => {
+          els.createAthleteBox.hidden = !els.createAthleteBox.hidden;
+        });
+      }
+
+      if (els.cancelCreateAthleteBtn && !els.cancelCreateAthleteBtn.dataset.bound) {
+        els.cancelCreateAthleteBtn.dataset.bound = '1';
+        els.cancelCreateAthleteBtn.addEventListener('click', () => {
+          clearCreateAthleteForm();
+          els.createAthleteBox.hidden = true;
+        });
+      }
+
+      if (els.createAthleteBtn && !els.createAthleteBtn.dataset.bound) {
+        els.createAthleteBtn.dataset.bound = '1';
+        els.createAthleteBtn.addEventListener('click', async () => {
+          try {
+            await createAthleteFromAdmin();
+          } catch (err) {
+            showAthletesMessage(err.message, true);
+          }
+        });
+      }
     }
 
     // Inicializar auth
+    bindAdminCoachAthleteButtons();
     initializeAuth();
 
     els.refreshBtn.addEventListener('click', async () => {
@@ -4174,6 +5318,38 @@
         await createProgramFromAdmin();
       } catch (err) {
         showProgramsMessage(err.message, true);
+      }
+    });
+
+    els.assignProgramBtn.addEventListener('click', async () => {
+      try {
+        await createProgramAssignmentFromAdmin();
+      } catch (err) {
+        showAssignProgramMessage(err.message, true);
+      }
+    });
+
+    els.cancelAssignmentBtn.addEventListener('click', async () => {
+      try {
+        await cancelProgramAssignmentFromAdmin();
+      } catch (err) {
+        showAssignProgramMessage(err.message, true);
+      }
+    });
+
+    els.assignAthleteSelect.addEventListener('change', async () => {
+      try {
+        await refreshCurrentAssignmentSummary();
+      } catch (err) {
+        showAssignProgramMessage(err.message, true);
+      }
+    });
+
+    els.assignProgramId.addEventListener('change', async () => {
+      try {
+        await refreshCurrentAssignmentSummary();
+      } catch (err) {
+        showAssignProgramMessage(err.message, true);
       }
     });
 
@@ -4795,97 +5971,20 @@
       clearDataAudit();
     });
 
-    // --- Coaches panel logic ---
-    let coachesPanelAthletes = [];
-
-    function showCoachesPanelMessage(msg, isError) {
-      els.coachesPanelMessage.textContent = msg;
-      els.coachesPanelMessage.className = 'message' + (isError ? ' error' : '');
+    function configureUnifiedAthletesPanel() {
+      const athletesAthletesView = document.getElementById('athletes-athletes-view');
+      const athletesCoachesView = document.getElementById('athletes-coaches-view');
+      if (athletesAthletesView) athletesAthletesView.hidden = false;
+      if (athletesCoachesView) athletesCoachesView.hidden = false;
     }
 
-    async function loadCoachesPanelSelect() {
-      try {
-        const data = await apiRequest('GET', coachesApiBase);
-        const coaches = Array.isArray(data.coaches) ? data.coaches : [];
-        els.coachesPanelSelect.innerHTML = '';
-        const defaultOpt = document.createElement('option');
-        defaultOpt.value = '';
-        defaultOpt.textContent = coaches.length ? 'Seleciona um coach' : 'Sem coaches registados';
-        els.coachesPanelSelect.appendChild(defaultOpt);
-        coaches.forEach((c) => {
-          const opt = document.createElement('option');
-          opt.value = c.identityId || '';
-          opt.textContent = `${c.name || c.email} (${c.email})`;
-          els.coachesPanelSelect.appendChild(opt);
-        });
-      } catch (err) {
-        els.coachesPanelSelect.innerHTML = '<option value="">Erro ao carregar coaches</option>';
-      }
-    }
-
-    function renderCoachesPanelAthletes() {
-      const payingOnly = els.coachesPanelPayingFilter.checked;
-      const filtered = payingOnly ? coachesPanelAthletes.filter((a) => a.isPaying) : coachesPanelAthletes;
-      const payingCount = coachesPanelAthletes.filter((a) => a.isPaying).length;
-      const nonPayingCount = coachesPanelAthletes.length - payingCount;
-
-      els.coachesPanelKpis.hidden = false;
-      els.coachesPanelTotalKpi.textContent = coachesPanelAthletes.length;
-      els.coachesPanelPayingKpi.textContent = payingCount;
-      els.coachesPanelNonpayingKpi.textContent = nonPayingCount;
-
-      els.coachesPanelAthletesBody.innerHTML = '';
-      els.coachesPanelEmpty.hidden = filtered.length > 0;
-
-      if (!filtered.length) return;
-
-      const fragment = document.createDocumentFragment();
-      filtered.forEach((a) => {
-        const row = document.createElement('tr');
-        const statusBadge = a.isPaying
-          ? '<span class="badge badge-success">Pagante</span>'
-          : '<span class="badge badge-warn">Sem pagamento</span>';
-        row.innerHTML = `
-          <td>${a.name || '-'}</td>
-          <td>${a.email || '-'}</td>
-          <td>${statusBadge}</td>
-          <td>${a.billingType || '-'}</td>
-          <td>${a.paidAt ? formatDate(a.paidAt) : '-'}</td>
-          <td>${a.expiresAt ? formatDate(a.expiresAt) : 'Sem expiracao'}</td>
-        `;
-        fragment.appendChild(row);
-      });
-      els.coachesPanelAthletesBody.appendChild(fragment);
-    }
-
-    async function loadCoachesPanelAthletes() {
-      const coachIdentityId = (els.coachesPanelSelect.value || '').trim();
-      if (!coachIdentityId) {
-        showCoachesPanelMessage('Seleciona um coach primeiro.', true);
-        return;
-      }
-
-      showCoachesPanelMessage('A carregar atletas do coach...', false);
-      try {
-        const data = await apiRequest('GET', `${adminCoachAthletesApiBase}?coachIdentityId=${encodeURIComponent(coachIdentityId)}`);
-        coachesPanelAthletes = Array.isArray(data.athletes) ? data.athletes : [];
-        renderCoachesPanelAthletes();
-        const payingCount = data.payingCount || 0;
-        showCoachesPanelMessage(`${coachesPanelAthletes.length} atleta(s) encontrado(s), ${payingCount} pagante(s) ativo(s).`, false);
-      } catch (err) {
-        showCoachesPanelMessage(err.message || 'Erro ao carregar atletas', true);
-      }
-    }
-
-    els.coachesPanelRefreshBtn.addEventListener('click', loadCoachesPanelAthletes);
-    els.coachesPanelPayingFilter.addEventListener('change', renderCoachesPanelAthletes);
+    configureUnifiedAthletesPanel();
 
     els.tabBlog.addEventListener('click', () => setActiveTab('blog'));
     els.tabSiteContent.addEventListener('click', () => setActiveTab('siteContent'));
     els.tabAthletes.addEventListener('click', () => setActiveTab('athletes'));
     els.tabPrograms.addEventListener('click', () => setActiveTab('programs'));
     els.tabVendas.addEventListener('click', () => setActiveTab('vendas'));
-    els.tabCoaches.addEventListener('click', () => setActiveTab('coaches'));
     els.tabLeads.addEventListener('click', () => setActiveTab('leads'));
     els.tabAi.addEventListener('click', () => setActiveTab('ai'));
     els.tabOperations.addEventListener('click', () => setActiveTab('operations'));
@@ -4906,6 +6005,7 @@
     showAiMessage('Faz login para gerir prompts e logs de IA.', false);
     showOperationsMessage('Faz login para usar a auditoria de dados.', false);
     renderAuditAthleteOptions();
+    renderCurrentAssignmentSummary();
     setAiSubtab('prompts');
     renderDataAuditResult();
     resetForm();

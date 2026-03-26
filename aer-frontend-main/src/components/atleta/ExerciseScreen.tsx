@@ -4,7 +4,7 @@ import { formatPrescription } from "@/lib/workout-engine";
 
 interface Props {
   step: WorkoutStep;
-  previousLoad?: number | null;
+  previousLoad?: { load: number; reps: number | null; suggestIncrease?: boolean } | null;
   onSubmitSet: (data: SetData) => void;
 }
 
@@ -27,7 +27,7 @@ export default function ExerciseScreen({
   const detail = exercise.exercise;
 
   // Determine initial load: from prescription or previous log
-  const defaultLoad = rx.loadKg ?? previousLoad ?? null;
+  const defaultLoad = rx.loadKg ?? previousLoad?.load ?? null;
   const defaultReps =
     rx.reps_min && rx.reps_max
       ? Math.round((rx.reps_min + rx.reps_max) / 2)
@@ -46,7 +46,7 @@ export default function ExerciseScreen({
 
   // Reset form when step changes
   useEffect(() => {
-    const newLoad = rx.loadKg ?? previousLoad ?? null;
+    const newLoad = rx.loadKg ?? previousLoad?.load ?? null;
     setLoadKg(newLoad != null ? String(newLoad) : "");
     setReps(
       String(
@@ -78,25 +78,25 @@ export default function ExerciseScreen({
     <div className="flex h-full flex-col px-5 pb-8 pt-4">
       {/* Exercise info header */}
       <div className="mb-6 text-center">
-        <h2 className="font-['Oswald'] text-xl font-bold text-white">
+        <h2 className="font-['Oswald'] text-3xl font-bold text-[#f7f1e8]">
           {detail.name}
         </h2>
-        <p className="mt-1 text-xs text-white/50">{prescriptionText}</p>
+        <p className="mt-1 text-xs tracking-wider text-[#8f99a8]">{prescriptionText}</p>
 
         {/* Tags */}
         <div className="mt-2 flex flex-wrap justify-center gap-1.5">
           {exercise.superset_group && (
-            <span className="rounded-full bg-orange-600/20 px-2.5 py-0.5 text-[10px] font-semibold text-orange-400">
+            <span className="rounded-full bg-[#d4a54f22] px-2.5 py-0.5 text-[10px] font-semibold text-[#d4a54f]">
               Superset {exercise.superset_group}
             </span>
           )}
           {exercise.each_side && (
-            <span className="rounded-full bg-blue-600/20 px-2.5 py-0.5 text-[10px] font-semibold text-blue-400">
+            <span className="rounded-full bg-[#8fc3ff22] px-2.5 py-0.5 text-[10px] font-semibold text-[#8fc3ff]">
               Cada lado
             </span>
           )}
           {rx.method && rx.method !== "standard" && (
-            <span className="rounded-full bg-purple-600/20 px-2.5 py-0.5 text-[10px] font-semibold text-purple-400">
+            <span className="rounded-full bg-[#d4a54f22] px-2.5 py-0.5 text-[10px] font-semibold text-[#d6c298]">
               {rx.method.replace(/_/g, " ")}
             </span>
           )}
@@ -104,14 +104,14 @@ export default function ExerciseScreen({
 
         {/* Tempo */}
         {rx.tempo && (
-          <p className="mt-2 font-mono text-lg tracking-widest text-orange-300/80">
+          <p className="mt-2 font-mono text-lg tracking-widest text-[#d4a54f]">
             {rx.tempo}
           </p>
         )}
 
         {/* Coach notes */}
         {rx.coach_notes && (
-          <div className="mt-3 rounded-lg bg-white/5 px-3 py-2 text-left text-xs text-white/60">
+          <div className="mt-3 rounded-lg border-l-[3px] border-[#d4a54f] bg-[#171717] px-3 py-2 text-left text-xs text-[#c8cfda]">
             {rx.coach_notes}
           </div>
         )}
@@ -123,7 +123,7 @@ export default function ExerciseScreen({
           href={detail.video_url}
           target="_blank"
           rel="noopener noreferrer"
-          className="mb-4 flex items-center justify-center gap-2 rounded-lg bg-white/5 py-2.5 text-sm text-orange-400 active:bg-white/10"
+          className="mb-4 flex items-center justify-center gap-2 rounded-xl border border-[#d4a54f22] bg-[#171717] py-2.5 text-sm text-[#d4a54f] active:bg-[#232323]"
         >
           <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
             <path d="M8 5v14l11-7z" />
@@ -139,7 +139,7 @@ export default function ExerciseScreen({
       <div className="space-y-4">
         {/* Set indicator */}
         <div className="text-center">
-          <span className="text-xs font-semibold uppercase tracking-wider text-white/40">
+          <span className="text-xs font-semibold uppercase tracking-wider text-[#8f99a8]">
             Set {step.setNumber}/{step.totalSets}
           </span>
         </div>
@@ -158,7 +158,7 @@ export default function ExerciseScreen({
           <>
             {/* Load — big central input */}
             <div className="text-center">
-              <label className="mb-1 block text-[10px] uppercase tracking-wider text-white/40">
+              <label className="mb-1 block text-[10px] uppercase tracking-wider text-[#8f99a8]">
                 Carga (kg)
               </label>
               <input
@@ -169,10 +169,20 @@ export default function ExerciseScreen({
                 value={loadKg}
                 onChange={(e) => setLoadKg(e.target.value)}
                 placeholder="—"
-                className="w-32 border-b-2 border-orange-500/50 bg-transparent text-center font-['Oswald'] text-5xl font-bold text-white outline-none placeholder:text-white/20 focus:border-orange-500"
+                className="w-32 border-b-2 border-[#d4a54f] bg-transparent text-center font-['Oswald'] text-6xl font-bold text-[#f7f1e8] outline-none placeholder:text-[#8f99a8] focus:border-[#d4a54f]"
               />
+              {previousLoad != null && (
+                <p className="mt-1 text-[10px] text-[#d4a54f]/70">
+                  Última vez: {previousLoad.load}kg{previousLoad.reps != null ? ` × ${previousLoad.reps}` : ""}
+                </p>
+              )}
+              {previousLoad?.suggestIncrease && (
+                <p className="mt-1 text-[10px] font-semibold text-green-400">
+                  💪 Podes aumentar carga
+                </p>
+              )}
               {exercise.weight_per_side && (
-                <p className="mt-1 text-[10px] text-white/30">peso por lado</p>
+                <p className="mt-1 text-[10px] text-[#8f99a8]">peso por lado</p>
               )}
             </div>
 
@@ -202,7 +212,7 @@ export default function ExerciseScreen({
       {/* Submit button */}
       <button
         onClick={handleSubmit}
-        className="mt-6 w-full rounded-xl bg-orange-600 py-4 font-['Oswald'] text-lg font-semibold text-white shadow-lg shadow-orange-600/20 active:scale-[0.98] active:bg-orange-700"
+        className="mt-6 w-full rounded-2xl border border-[#d4a54f66] bg-[linear-gradient(180deg,#e3b861,#d4a54f_55%,#bf8e3e)] py-4 font-['Oswald'] text-lg font-semibold text-[#111111] shadow-lg shadow-[#00000066] active:scale-[0.98]"
       >
         {step.setNumber === step.totalSets &&
         !step.supersetGroup
@@ -229,14 +239,14 @@ function InputField({
   inputMode?: "numeric" | "decimal";
 }) {
   return (
-    <div className="flex items-center justify-between rounded-lg bg-white/5 px-4 py-3">
-      <span className="text-sm text-white/60">{label}</span>
+    <div className="flex items-center justify-between rounded-xl border border-[#d4a54f22] bg-[#171717] px-4 py-3">
+      <span className="text-sm text-[#c8cfda]">{label}</span>
       <input
         type={type}
         inputMode={inputMode}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-20 bg-transparent text-right text-lg font-semibold text-white outline-none"
+        className="w-20 bg-transparent text-right text-lg font-semibold text-[#f7f1e8] outline-none"
       />
     </div>
   );

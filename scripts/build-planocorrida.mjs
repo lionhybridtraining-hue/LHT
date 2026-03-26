@@ -14,7 +14,8 @@ function quoteArg(arg) {
   return arg;
 }
 
-function runCommand(command, args, cwd) {
+function runCommand(command, args, cwd, extraEnv = {}) {
+  const env = { ...process.env, ...extraEnv };
   const result = process.platform === "win32"
     ? spawnSync(
         "cmd.exe",
@@ -22,11 +23,13 @@ function runCommand(command, args, cwd) {
         {
           cwd,
           stdio: "inherit",
+          env,
         }
       )
     : spawnSync(command, args, {
         cwd,
         stdio: "inherit",
+      env,
       });
 
   if (result.status !== 0) {
@@ -42,7 +45,15 @@ function main() {
   runCommand("npm", ["ci", "--no-audit", "--no-fund"], frontendDir);
 
   console.log("[planocorrida] Building frontend...");
-  runCommand("npm", ["run", "build"], frontendDir);
+  runCommand(
+    "npm",
+    ["run", "build"],
+    frontendDir,
+    {
+      VITE_ROUTER_BASENAME: "/planocorrida",
+      VITE_ASSET_BASE_PATH: "/planocorrida/",
+    }
+  );
 
   if (!existsSync(frontendDistDir)) {
     throw new Error("Frontend build output not found at aer-frontend-main/dist");

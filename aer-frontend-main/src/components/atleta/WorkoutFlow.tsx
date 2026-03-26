@@ -8,7 +8,14 @@ import {
   submitSets,
   startSession,
   finishSession,
+  cancelSession,
 } from "@/services/athlete-strength";
+import {
+  saveWorkoutState,
+  clearWorkoutState,
+  type SavedWorkoutState,
+} from "@/lib/workout-storage";
+import { getPendingCount, subscribe } from "@/lib/offline-queue";
 
 interface Props {
   steps: WorkoutStep[];
@@ -16,8 +23,9 @@ interface Props {
   weekNumber: number;
   dayNumber: number;
   existingLogs: LogSet[];
-  onComplete: (session: WorkoutSession) => void;
+  onComplete: (session: WorkoutSession, loggedSets: SetData[]) => void;
   onExit: () => void;
+  resumeState?: SavedWorkoutState;
 }
 
 export default function WorkoutFlow({
@@ -28,11 +36,21 @@ export default function WorkoutFlow({
   existingLogs,
   onComplete,
   onExit,
+  resumeState,
 }: Props) {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [session, setSession] = useState<WorkoutSession | null>(null);
-  const [loggedSets, setLoggedSets] = useState<SetData[]>([]);
+  const [currentIndex, setCurrentIndex] = useState(
+    resumeState?.currentIndex ?? 0
+  );
+  const [session, setSession] = useState<WorkoutSession | null>(
+    resumeState
+      ? ({ id: resumeState.sessionId } as WorkoutSession)
+      : null
+  );
+  const [loggedSets, setLoggedSets] = useState<SetData[]>(
+    resumeState?.loggedSets ?? []
+  );
   const [submitting, setSubmitting] = useState(false);
+  const [pendingCount, setPendingCount] = useState(getPendingCount);
 
   // Touch tracking for swipe
   const touchStartX = useRef(0);
@@ -44,14 +62,88 @@ export default function WorkoutFlow({
     // Timer complete — no auto-navigation here (auto-swipe happens on START)
   });
 
-  // ── Start session on mount ──
+  // ── Start session on mount (skip if resuming) ──
   useEffect(() => {
+    if (resumeState) return; // Already have session from resume
     startSession({
       plan_id: planId,
       week_number: weekNumber,
       day_number: dayNumber,
-    }).then((res) => setSession(res.session));
-  }, [planId, weekNumber, dayNumber]);
+    }).then((res) => {
+      setSession(res.session);
+
+      // If backend returned an existing in-progress session with sets, restore them
+      if (res.resumed && res.sets && res.sets.length > 0) {
+        const restored = res.sets.map((s) => ({
+          planExerciseId: s.plan_exercise_id,
+          setNumber: s.set_number,
+          reps: s.reps ?? 0,
+          loadKg: s.load_kg,
+          rir: s.rir,
+          durationSeconds: s.duration_seconds,
+        }));
+        setLoggedSets(restored);
+        // Advance step index past already-completed sets
+        const lastLogged = restored[restored.length - 1];
+        const resumeIdx = steps.findIndex(
+          (st) =>
+            st.type === "exercise" &&
+            st.planExerciseId === lastLogged.planExerciseId &&
+            st.setNumber === lastLogged.setNumber
+        );
+        const nextIdx = resumeIdx >= 0 ? Math.min(resumeIdx + 1, steps.length - 1) : 0;
+        goTo(nextIdx);
+        saveWorkoutState({
+          sessionId: res.session.id,
+          planId,
+          weekNumber,
+          dayNumber,
+          currentIndex: nextIdx,
+          loggedSets: restored,
+          startedAt: res.session.started_at,
+        });
+      } else {
+        saveWorkoutState({
+          sessionId: res.session.id,
+          planId,
+          weekNumber,
+          dayNumber,
+          currentIndex: 0,
+          loggedSets: [],
+          startedAt: new Date().toISOString(),
+        });
+      }
+    });
+  }, [planId, weekNumber, dayNumber, resumeState]);
+
+  // ── Persist state to localStorage on changes ──
+  useEffect(() => {
+    if (!session) return;
+    saveWorkoutState({
+      sessionId: session.id,
+      planId,
+      weekNumber,
+      dayNumber,
+      currentIndex,
+      loggedSets,
+      startedAt: resumeState?.startedAt ?? new Date().toISOString(),
+    });
+  }, [currentIndex, loggedSets, session, planId, weekNumber, dayNumber, resumeState]);
+
+  // ── Offline queue pending count ──
+  useEffect(() => {
+    return subscribe(setPendingCount);
+  }, []);
+
+  // ── Navigation protection (beforeunload) ──
+  useEffect(() => {
+    if (!session) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [session]);
 
   // ── Navigation ──
   const goTo = useCallback(
@@ -124,13 +216,33 @@ export default function WorkoutFlow({
   // ── Finish workout ──
   const handleFinish = useCallback(async () => {
     if (!session) return;
+    clearWorkoutState();
     try {
       const res = await finishSession(session.id);
-      onComplete(res.session);
+      onComplete(res.session, loggedSets);
     } catch {
-      onComplete(session);
+      onComplete(session, loggedSets);
     }
-  }, [session, onComplete]);
+  }, [session, onComplete, loggedSets]);
+
+  const handleExit = useCallback(async () => {
+    if (session) {
+      if (loggedSets.length > 0) {
+        const shouldExit = window.confirm(
+          `Tens ${loggedSets.length} sets registados. Sair cancela esta sessão.`
+        );
+        if (!shouldExit) return;
+      }
+
+      try {
+        await cancelSession(session.id);
+      } catch {
+        // Ignore cancel errors and allow user to exit.
+      }
+    }
+    clearWorkoutState();
+    onExit();
+  }, [session, loggedSets, onExit]);
 
   // ── Timer skip ──
   const handleSkipTimer = useCallback(() => {
@@ -163,13 +275,13 @@ export default function WorkoutFlow({
   }, [goNext, goTo, currentIndex]);
 
   // ── Get previous load for current exercise ──
-  const getPreviousLoad = (step: WorkoutStep): number | null => {
+  const getPreviousLoad = (step: WorkoutStep): { load: number; reps: number | null; suggestIncrease: boolean } | null => {
     if (!step.planExerciseId) return null;
     // Check logged sets from this session first
     const sessionLog = loggedSets
       .filter((s) => s.planExerciseId === step.planExerciseId)
       .pop();
-    if (sessionLog?.loadKg) return sessionLog.loadKg;
+    if (sessionLog?.loadKg) return { load: sessionLog.loadKg, reps: sessionLog.reps ?? null, suggestIncrease: false };
     // Then check existing logs
     const existing = existingLogs
       .filter((l) => l.plan_exercise_id === step.planExerciseId)
@@ -177,7 +289,20 @@ export default function WorkoutFlow({
         (a, b) =>
           new Date(b.submitted_at).getTime() - new Date(a.submitted_at).getTime()
       )[0];
-    return existing?.load_kg ?? null;
+    if (!existing?.load_kg) return null;
+
+    // Check if athlete should increase load: hit top of rep range with RIR ≤ 2
+    let suggestIncrease = false;
+    const rx = step.prescription;
+    if (rx && existing.reps != null && existing.rir != null && existing.rir <= 2) {
+      if (rx.reps_max && existing.reps >= rx.reps_max) {
+        suggestIncrease = true;
+      } else if (rx.reps && !rx.reps_max && existing.reps >= rx.reps) {
+        suggestIncrease = true;
+      }
+    }
+
+    return { load: existing.load_kg, reps: existing.reps ?? null, suggestIncrease };
   };
 
   const currentStep = steps[currentIndex];
@@ -190,8 +315,8 @@ export default function WorkoutFlow({
         currentIndex={currentIndex}
         timer={timer}
         onSkipTimer={handleSkipTimer}
-        onNavigate={goTo}
-        onExit={onExit}
+        onExit={handleExit}
+        pendingCount={pendingCount}
       />
 
       {/* Main content area with padding for top bar */}

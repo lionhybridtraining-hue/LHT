@@ -5,13 +5,20 @@ import type {
   LogSet,
 } from "@/types/strength";
 import { buildStepQueue, getAvailableDays } from "@/lib/workout-engine";
-import { fetchAthletePlan } from "@/services/athlete-strength";
+import { fetchAthletePlan, cancelSession } from "@/services/athlete-strength";
+import {
+  loadWorkoutState,
+  clearWorkoutState,
+  type SavedWorkoutState,
+} from "@/lib/workout-storage";
 import AthleteAuthGuard from "@/components/atleta/AthleteAuthGuard";
 import WorkoutFlow from "@/components/atleta/WorkoutFlow";
 import QuickModeView from "@/components/atleta/QuickModeView";
 import CompletionScreen from "@/components/atleta/CompletionScreen";
+import SessionHistory from "@/components/atleta/SessionHistory";
+import type { SetData } from "@/components/atleta/ExerciseScreen";
 
-type View = "plan" | "workout" | "quick" | "complete";
+type View = "plan" | "workout" | "complete" | "history";
 
 export default function ForcaPage() {
   return (
@@ -26,22 +33,28 @@ function ForcaContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [selectedWeek, setSelectedWeek] = useState<number>(1);
   const [selectedDay, setSelectedDay] = useState<number>(1);
   const [view, setView] = useState<View>("plan");
   const [completedSession, setCompletedSession] =
     useState<WorkoutSession | null>(null);
+  const [completedLoggedSets, setCompletedLoggedSets] = useState<SetData[]>([]);
+  const [savedWorkout, setSavedWorkout] = useState<SavedWorkoutState | null>(
+    null
+  );
+
+  // Check for interrupted workout on mount
+  useEffect(() => {
+    const saved = loadWorkoutState();
+    if (saved) setSavedWorkout(saved);
+  }, []);
 
   // Fetch plan
-  const load = useCallback(async (week?: number) => {
+  const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetchAthletePlan(week);
+      const res = await fetchAthletePlan();
       setData(res);
-      if (res.plan) {
-        setSelectedWeek(res.plan.current_week || 1);
-      }
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Erro ao carregar plano");
     } finally {
@@ -52,13 +65,6 @@ function ForcaContent() {
   useEffect(() => {
     load();
   }, [load]);
-
-  // Re-fetch when week changes
-  useEffect(() => {
-    if (data?.plan && selectedWeek !== data.plan.current_week) {
-      load(selectedWeek);
-    }
-  }, [selectedWeek]);
 
   // ── Loading ──
   if (loading) {
@@ -123,18 +129,20 @@ function ForcaContent() {
     return (
       <CompletionScreen
         session={completedSession}
-        loggedSets={[]}
+        loggedSets={completedLoggedSets}
         onClose={() => {
           setView("plan");
           setCompletedSession(null);
-          load(selectedWeek);
+          setCompletedLoggedSets([]);
+          load();
         }}
       />
     );
   }
 
   // ── Active plan ──
-  const { plan, exercises, prescriptions, logs } = data;
+  const { plan, exercises, prescriptions, logs, phaseNotes } = data;
+  const currentWeek = plan.current_week || 1;
   const availableDays = getAvailableDays(exercises);
 
   // Ensure selected day is valid
@@ -147,84 +155,160 @@ function ForcaContent() {
     exercises,
     prescriptions ?? [],
     selectedDay,
-    selectedWeek
+    currentWeek
   );
 
-  const handleComplete = (session: WorkoutSession) => {
+  const handleResume = () => {
+    if (!savedWorkout) return;
+    setSelectedDay(savedWorkout.dayNumber);
+    setView("workout");
+  };
+
+  const handleDiscard = () => {
+    if (!savedWorkout) return;
+    clearWorkoutState();
+    cancelSession(savedWorkout.sessionId).catch(() => {});
+    setSavedWorkout(null);
+  };
+
+  const handleComplete = (session: WorkoutSession, loggedSets: SetData[]) => {
     setCompletedSession(session);
+    setCompletedLoggedSets(loggedSets);
     setView("complete");
   };
 
   // ── Workout flow (fullscreen) ──
   if (view === "workout") {
+    // Quick mode — simplified checklist UI
+    if (plan.quick_mode) {
+      return (
+        <QuickModeView
+          exercises={exercises}
+          prescriptions={prescriptions ?? []}
+          planId={plan.id}
+          weekNumber={currentWeek}
+          dayNumber={selectedDay}
+          onComplete={(session) => {
+            setCompletedSession(session);
+            setCompletedLoggedSets([]);
+            setView("complete");
+          }}
+          onExit={() => setView("plan")}
+        />
+      );
+    }
+
+    const isResuming =
+      savedWorkout &&
+      savedWorkout.planId === plan.id &&
+      savedWorkout.weekNumber === currentWeek &&
+      savedWorkout.dayNumber === selectedDay;
+
+    const activeSteps = isResuming
+      ? buildStepQueue(
+          exercises,
+          prescriptions ?? [],
+          savedWorkout.dayNumber,
+          savedWorkout.weekNumber
+        )
+      : steps;
+
     return (
       <WorkoutFlow
-        steps={steps}
+        steps={activeSteps}
         planId={plan.id}
-        weekNumber={selectedWeek}
+        weekNumber={currentWeek}
         dayNumber={selectedDay}
         existingLogs={(logs as LogSet[]) ?? []}
         onComplete={handleComplete}
-        onExit={() => setView("plan")}
-      />
-    );
-  }
-
-  // ── Quick mode (fullscreen) ──
-  if (view === "quick") {
-    return (
-      <QuickModeView
-        exercises={exercises}
-        prescriptions={prescriptions ?? []}
-        planId={plan.id}
-        weekNumber={selectedWeek}
-        dayNumber={selectedDay}
-        onComplete={handleComplete}
-        onExit={() => setView("plan")}
+        onExit={() => {
+          setSavedWorkout(null);
+          setView("plan");
+        }}
+        resumeState={isResuming ? savedWorkout : undefined}
       />
     );
   }
 
   // ── Plan overview / day selector ──
   return (
-    <div className="min-h-screen bg-[#0a0a0f] px-4 pb-10 pt-14 safe-area-top">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(212,165,79,0.14),#1a1a1a_46%,#090909)] px-4 pb-10 pt-14 safe-area-top">
+      {/* Resume interrupted workout dialog */}
+      {savedWorkout &&
+        savedWorkout.planId === plan.id &&
+        savedWorkout.weekNumber === currentWeek && (
+          <div className="mb-6 rounded-2xl border border-[#d4a54f66] bg-[#171717] p-5">
+            <div className="mb-1 flex items-center gap-2">
+              <span className="text-lg">⚡</span>
+              <h3 className="font-['Oswald'] text-lg font-bold text-[#f7f1e8]">
+                Treino em curso
+              </h3>
+            </div>
+            <p className="mb-4 text-sm text-[#8f99a8]">
+              Dia {savedWorkout.dayNumber} · Semana {savedWorkout.weekNumber} ·{" "}
+              {savedWorkout.loggedSets.length} set
+              {savedWorkout.loggedSets.length !== 1 ? "s" : ""} registado
+              {savedWorkout.loggedSets.length !== 1 ? "s" : ""}
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={handleResume}
+                className="flex-1 rounded-xl border border-[#d4a54f66] bg-[linear-gradient(180deg,#e3b861,#d4a54f_55%,#bf8e3e)] py-2.5 font-['Oswald'] text-sm font-semibold text-[#111111] active:scale-[0.98]"
+              >
+                Continuar
+              </button>
+              <button
+                onClick={handleDiscard}
+                className="flex-1 rounded-xl border border-[#d4a54f22] bg-[#232323] py-2.5 font-['Oswald'] text-sm font-semibold text-[#8f99a8] active:bg-[#2a2a2a]"
+              >
+                Descartar
+              </button>
+            </div>
+          </div>
+        )}
+
       {/* Header */}
       <div className="mb-6 text-center">
-        <h1 className="font-['Oswald'] text-2xl font-bold text-white">
+        <h1 className="font-['Oswald'] text-3xl font-bold text-[#f7f1e8]">
           {plan.name}
         </h1>
         {plan.description && (
-          <p className="mt-1 text-xs text-white/50">{plan.description}</p>
+          <p className="mt-1 text-sm text-[#8f99a8]">{plan.description}</p>
         )}
-      </div>
-
-      {/* Week selector */}
-      <div className="mb-6">
-        <label className="mb-2 block text-center text-[10px] uppercase tracking-wider text-white/40">
-          Semana
-        </label>
-        <div className="flex justify-center gap-2 overflow-x-auto pb-1">
-          {Array.from({ length: plan.total_weeks }, (_, i) => i + 1).map(
-            (w) => (
-              <button
-                key={w}
-                onClick={() => setSelectedWeek(w)}
-                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold transition-colors ${
-                  w === selectedWeek
-                    ? "bg-orange-600 text-white"
-                    : "bg-white/5 text-white/60 active:bg-white/10"
-                }`}
-              >
-                {w}
-              </button>
-            )
-          )}
+        <div className="mt-3 inline-flex rounded-full border border-[#d4a54f44] bg-[#171717] px-4 py-1.5 text-[11px] uppercase tracking-widest text-[#d4a54f]">
+          Semana {currentWeek}/{plan.total_weeks}
         </div>
       </div>
 
+      {/* Tab toggle: Plano / Histórico */}
+      <div className="mb-5 flex justify-center">
+        <div className="inline-flex rounded-full border border-[#d4a54f22] bg-[#171717] p-0.5">
+          {(["plan", "history"] as const).map((t) => (
+            <button
+              key={t}
+              onClick={() => setView(t)}
+              className={`rounded-full px-5 py-1.5 text-xs font-semibold transition-colors ${
+                view === t
+                  ? "bg-[#d4a54f] text-[#111111]"
+                  : "text-[#8f99a8]"
+              }`}
+            >
+              {t === "plan" ? "Plano" : "Histórico"}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* History view */}
+      {view === "history" && (
+        <SessionHistory planId={plan.id} />
+      )}
+
+      {/* Plan view content */}
+      {view === "plan" && <>
       {/* Day selector */}
       <div className="mb-6">
-        <label className="mb-2 block text-center text-[10px] uppercase tracking-wider text-white/40">
+        <label className="mb-2 block text-center text-[10px] uppercase tracking-wider text-[#8f99a8]">
           Dia
         </label>
         <div className="flex justify-center gap-2 overflow-x-auto pb-1">
@@ -234,8 +318,8 @@ function ForcaContent() {
               onClick={() => setSelectedDay(d)}
               className={`flex h-9 min-w-[2.25rem] shrink-0 items-center justify-center rounded-full px-3 text-sm font-semibold transition-colors ${
                 d === selectedDay
-                  ? "bg-orange-600 text-white"
-                  : "bg-white/5 text-white/60 active:bg-white/10"
+                  ? "bg-[#d4a54f] text-[#111111]"
+                  : "border border-[#d4a54f22] bg-[#171717] text-[#c8cfda] active:bg-[#232323]"
               }`}
             >
               {d}
@@ -243,6 +327,25 @@ function ForcaContent() {
           ))}
         </div>
       </div>
+
+      {/* Coach notes for this day/week */}
+      {phaseNotes && phaseNotes
+        .filter((n) => n.day_number === selectedDay && n.week_number === currentWeek)
+        .map((n) => (
+          <div
+            key={n.id}
+            className="mb-4 rounded-2xl border border-[#d4a54f44] bg-[#171717] px-4 py-3"
+          >
+            <div className="mb-1 flex items-center gap-2">
+              <span className="text-xs">📝</span>
+              <span className="text-[10px] uppercase tracking-wider text-[#d4a54f]">
+                Nota do coach
+              </span>
+            </div>
+            <p className="whitespace-pre-line text-sm text-[#c8cfda]">{n.notes}</p>
+          </div>
+        ))
+      }
 
       {/* Exercise preview list */}
       <div className="mb-6 space-y-2">
@@ -253,24 +356,24 @@ function ForcaContent() {
             const rx = prescriptions?.find(
               (p) =>
                 p.plan_exercise_id === ex.id &&
-                p.week_number === selectedWeek
+                p.week_number === currentWeek
             );
             return (
               <div
                 key={ex.id}
-                className="flex items-center gap-3 rounded-xl bg-white/5 px-4 py-3"
+                className="flex items-center gap-3 rounded-2xl border border-[#d4a54f22] bg-[#171717] px-4 py-3"
               >
                 {ex.superset_group && (
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-orange-600/20 text-xs font-bold text-orange-400">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-[#d4a54f22] text-xs font-bold text-[#d4a54f]">
                     {ex.superset_group}
                   </span>
                 )}
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-white">
+                  <p className="truncate font-['Oswald'] text-base font-medium text-[#f7f1e8]">
                     {ex.exercise.name}
                   </p>
                   {rx && (
-                    <p className="mt-0.5 truncate text-xs text-white/40">
+                    <p className="mt-0.5 truncate text-xs text-[#8f99a8]">
                       {rx.sets} × {rx.reps_min && rx.reps_max ? `${rx.reps_min}-${rx.reps_max}` : rx.reps ?? "—"}{" "}
                       {rx.loadKg ? `· ${rx.loadKg}kg` : ""}
                     </p>
@@ -281,7 +384,7 @@ function ForcaContent() {
                     href={ex.exercise.video_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="shrink-0 text-orange-400/60"
+                    className="shrink-0 text-[#d4a54f]/70"
                     onClick={(e) => e.stopPropagation()}
                   >
                     <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
@@ -299,20 +402,12 @@ function ForcaContent() {
         <button
           onClick={() => setView("workout")}
           disabled={steps.length === 0}
-          className="w-full rounded-xl bg-orange-600 py-4 font-['Oswald'] text-lg font-semibold text-white shadow-lg shadow-orange-600/20 active:scale-[0.98] active:bg-orange-700 disabled:opacity-40"
+          className="w-full rounded-2xl border border-[#d4a54f66] bg-[linear-gradient(180deg,#e3b861,#d4a54f_55%,#bf8e3e)] py-4 font-['Oswald'] text-lg font-semibold text-[#111111] shadow-lg shadow-[#00000066] active:scale-[0.98] disabled:opacity-40"
         >
           Iniciar treino
         </button>
-
-        {plan.quick_mode && (
-          <button
-            onClick={() => setView("quick")}
-            className="w-full rounded-xl bg-white/5 py-3.5 text-sm font-medium text-white/70 active:bg-white/10"
-          >
-            Modo rápido ⚡
-          </button>
-        )}
       </div>
+      </>}
     </div>
   );
 }
