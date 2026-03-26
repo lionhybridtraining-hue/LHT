@@ -126,6 +126,55 @@ function estimateTokens(...parts) {
   return Math.ceil(text.length / 4);
 }
 
+function buildModelCandidates(primaryModel) {
+  const candidates = [
+    primaryModel,
+    "gemini-2.5-flash",
+    "gemini-2.0-flash",
+    "gemini-1.5-flash",
+  ]
+    .map((m) => (m || "").trim())
+    .filter(Boolean);
+
+  return Array.from(new Set(candidates));
+}
+
+async function callGeminiWithFallback({ apiKey, modelCandidates, requestBody }) {
+  const attempts = [];
+
+  for (const model of modelCandidates) {
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-goog-api-key": apiKey,
+      },
+      body: JSON.stringify(requestBody),
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      return {
+        ok: true,
+        model,
+        data,
+        attempts,
+      };
+    }
+
+    const errorText = await response.text();
+    attempts.push({ model, status: response.status, errorText });
+  }
+
+  return {
+    ok: false,
+    model: modelCandidates[0] || "unknown",
+    data: null,
+    attempts,
+  };
+}
+
 async function safeInsertAiLog(config, payload) {
   try {
     if (!config || !config.supabaseUrl || !config.supabaseServiceRoleKey) return;
@@ -231,7 +280,7 @@ exports.handler = async (event) => {
 
     // ── Build Gemini request ─────────────────────────────────────────────
     const modelName = config.geminiModel || "gemini-2.5-flash";
-    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`;
+    const modelCandidates = buildModelCandidates(modelName);
 
     // Merge system prompt into first user turn (Gemini pattern used elsewhere)
     const prompt = `${systemPrompt}\n\n--- MENSAGEM DO ATLETA ---\n${message}`;
@@ -244,13 +293,10 @@ exports.handler = async (event) => {
       { role: "user", parts: [{ text: prompt }] },
     ];
 
-    const geminiResponse = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-goog-api-key": apiKey,
-      },
-      body: JSON.stringify({
+    const geminiCall = await callGeminiWithFallback({
+      apiKey,
+      modelCandidates,
+      requestBody: {
         contents,
         generationConfig: {
           temperature: 0.7,
@@ -263,17 +309,26 @@ exports.handler = async (event) => {
             threshold: "BLOCK_MEDIUM_AND_ABOVE",
           },
         ],
-      }),
+      },
     });
 
-    if (!geminiResponse.ok) {
-      const errorText = await geminiResponse.text();
-      console.error("Gemini API error:", geminiResponse.status, errorText);
+    if (!geminiCall.ok) {
+      const lastAttempt = geminiCall.attempts[geminiCall.attempts.length - 1] || null;
+      const status = lastAttempt ? lastAttempt.status : 500;
+      const detail = lastAttempt && lastAttempt.errorText
+        ? String(lastAttempt.errorText).slice(0, 400)
+        : "unknown_error";
+
+      console.error("Gemini API error (all models failed):", {
+        status,
+        attempts: geminiCall.attempts.map((a) => ({ model: a.model, status: a.status })),
+        detail,
+      });
 
       await safeInsertAiLog(config, {
         feature: FEATURE,
         athlete_id: athleteId,
-        model: modelName,
+        model: `fallback_chain:${modelCandidates.join(",")}`,
         system_prompt_snapshot: basePrompt,
         user_prompt_snapshot: message,
         input_data: { athleteContext },
@@ -281,13 +336,14 @@ exports.handler = async (event) => {
         tokens_estimated: estimateTokens(prompt),
         duration_ms: Date.now() - startTime,
         success: false,
-        error: `Gemini HTTP ${geminiResponse.status}`,
+        error: `Gemini HTTP ${status}`,
       });
 
-      return json(500, { error: "Error calling Gemini API" });
+      return json(500, { error: `Error calling Gemini API (HTTP ${status})` });
     }
 
-    const geminiData = await geminiResponse.json();
+    const geminiData = geminiCall.data;
+    const usedModel = geminiCall.model;
 
     const candidate =
       geminiData.candidates && geminiData.candidates[0] && geminiData.candidates[0].content
@@ -298,7 +354,7 @@ exports.handler = async (event) => {
       await safeInsertAiLog(config, {
         feature: FEATURE,
         athlete_id: athleteId,
-        model: modelName,
+        model: usedModel,
         system_prompt_snapshot: basePrompt,
         user_prompt_snapshot: message,
         input_data: { athleteContext },
@@ -323,7 +379,7 @@ exports.handler = async (event) => {
     await safeInsertAiLog(config, {
       feature: FEATURE,
       athlete_id: athleteId,
-      model: modelName,
+      model: usedModel,
       system_prompt_snapshot: basePrompt,
       user_prompt_snapshot: message,
       input_data: { athleteContext, conversationLength: conversationHistory.length },

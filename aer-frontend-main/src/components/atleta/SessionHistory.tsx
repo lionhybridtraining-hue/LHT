@@ -1,16 +1,92 @@
 import { useState, useEffect } from "react";
-import type { SessionSummary } from "@/types/strength";
+import type { PlanExercise, SessionSummary } from "@/types/strength";
 import { fetchSessionHistory } from "@/services/athlete-strength";
+import {
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
 interface Props {
   planId?: string;
+  exercises?: PlanExercise[];
 }
 
-export default function SessionHistory({ planId }: Props) {
+const CHART_COLORS = ["#d4a54f", "#5dc8ff", "#7ddf87", "#f28b82"];
+
+function estimate1rm(loadKg: number, reps: number) {
+  return loadKg * (1 + reps / 30);
+}
+
+export default function SessionHistory({ planId, exercises }: Props) {
   const [sessions, setSessions] = useState<SessionSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  const exerciseNameByPlanExercise = new Map<string, string>();
+  for (const ex of exercises || []) {
+    exerciseNameByPlanExercise.set(ex.id, ex.exercise.name);
+  }
+
+  const seriesPointsByExercise = new Map<string, Array<{ date: string; value: number }>>();
+  for (const session of sessions) {
+    const day = session.session_date || session.started_at?.slice(0, 10);
+    if (!day) continue;
+
+    const bestPerExercise = new Map<string, number>();
+    for (const set of session.sets) {
+      if (!set.plan_exercise_id || set.load_kg == null || set.reps == null || set.reps <= 0) continue;
+      const exerciseName =
+        exerciseNameByPlanExercise.get(set.plan_exercise_id) || `Exercício ${set.plan_exercise_id.slice(0, 6)}`;
+      const estimate = estimate1rm(set.load_kg, set.reps);
+      const current = bestPerExercise.get(exerciseName) || 0;
+      if (estimate > current) bestPerExercise.set(exerciseName, estimate);
+    }
+
+    for (const [exerciseName, bestEstimate] of bestPerExercise.entries()) {
+      if (!seriesPointsByExercise.has(exerciseName)) {
+        seriesPointsByExercise.set(exerciseName, []);
+      }
+      seriesPointsByExercise.get(exerciseName)!.push({
+        date: day,
+        value: Math.round(bestEstimate * 10) / 10,
+      });
+    }
+  }
+
+  const topExercises = Array.from(seriesPointsByExercise.entries())
+    .sort((a, b) => b[1].length - a[1].length)
+    .slice(0, 4)
+    .map(([name]) => name);
+
+  const allDates = Array.from(
+    new Set(
+      topExercises.flatMap((name) =>
+        (seriesPointsByExercise.get(name) || []).map((p) => p.date)
+      )
+    )
+  ).sort();
+
+  const chartData = allDates.map((date) => {
+    const point: Record<string, string | number | null> = {
+      date,
+      label: new Date(`${date}T00:00:00`).toLocaleDateString("pt-PT", {
+        day: "numeric",
+        month: "short",
+      }),
+    };
+
+    for (const name of topExercises) {
+      const found = (seriesPointsByExercise.get(name) || []).find((p) => p.date === date);
+      point[name] = found ? found.value : null;
+    }
+
+    return point;
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -53,6 +129,43 @@ export default function SessionHistory({ planId }: Props) {
 
   return (
     <div className="space-y-3">
+      {chartData.length > 1 && topExercises.length > 0 && (
+        <div className="rounded-2xl border border-[#d4a54f22] bg-[#171717] p-4">
+          <div className="mb-3">
+            <h3 className="font-['Oswald'] text-lg text-[#f7f1e8]">Evolução estimada de 1RM</h3>
+            <p className="text-xs text-[#8f99a8]">Melhor set do dia por exercício ($1RM = carga \times (1 + reps/30)$).</p>
+          </div>
+          <div className="h-52 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={chartData}>
+                <XAxis dataKey="label" tick={{ fill: "#8f99a8", fontSize: 11 }} axisLine={{ stroke: "#2f2f2f" }} tickLine={false} />
+                <YAxis tick={{ fill: "#8f99a8", fontSize: 11 }} axisLine={{ stroke: "#2f2f2f" }} tickLine={false} width={38} />
+                <Tooltip
+                  contentStyle={{
+                    background: "#111111",
+                    border: "1px solid #3b3b3b",
+                    borderRadius: "12px",
+                    color: "#f7f1e8",
+                  }}
+                />
+                {topExercises.map((name, idx) => (
+                  <Line
+                    key={name}
+                    type="monotone"
+                    dataKey={name}
+                    connectNulls
+                    stroke={CHART_COLORS[idx % CHART_COLORS.length]}
+                    strokeWidth={2}
+                    dot={{ r: 2 }}
+                    activeDot={{ r: 4 }}
+                  />
+                ))}
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+
       {sessions.map((s) => {
         const expanded = expandedId === s.id;
         const date = new Date(s.started_at);

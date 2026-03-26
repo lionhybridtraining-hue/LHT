@@ -301,7 +301,7 @@ function ForcaContent() {
 
       {/* History view */}
       {view === "history" && (
-        <SessionHistory planId={plan.id} />
+        <SessionHistory planId={plan.id} exercises={exercises} />
       )}
 
       {/* Plan view content */}
