@@ -1,4 +1,6 @@
+import { useEffect, useState } from "react";
 import { MessageCircle } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 import "./ai-assistant-fab.css";
 
 type AiAssistantFabProps = {
@@ -7,6 +9,24 @@ type AiAssistantFabProps = {
 };
 
 export default function AiAssistantFab({ onActivate, isOpen = false }: AiAssistantFabProps) {
+  const [hasSession, setHasSession] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setHasSession(!!session);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setHasSession(!!session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  if (!hasSession) return null;
+
   return (
     <div className="ai-fab-wrap" aria-live="polite">
       <span className="ai-fab-label">{isOpen ? "Fechar chat" : "Assistente IA"}</span>

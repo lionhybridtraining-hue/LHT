@@ -1837,6 +1837,15 @@ async function getStrengthLogSetsForSessions(config, sessionIds) {
   });
 }
 
+async function getOnboardingIntakeByIdentity(config, identityId) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `onboarding_intake?identity_id=eq.${encodeURIComponent(identityId)}&select=id,identity_id,athlete_id,email,full_name,goal_distance,weekly_frequency,experience_level,consistency_level,funnel_stage,plan_generated_at,answers,submitted_at&limit=1`
+  });
+  return Array.isArray(rows) && rows.length ? rows[0] : null;
+}
+
 module.exports = {
   insertTrainingSessions,
   findExistingSessions,
@@ -1969,5 +1978,6 @@ module.exports = {
   findActiveStrengthSession,
   cancelOrphanedSessions,
   getStrengthSessionHistory,
-  getStrengthLogSetsForSessions
+  getStrengthLogSetsForSessions,
+  getOnboardingIntakeByIdentity
 };

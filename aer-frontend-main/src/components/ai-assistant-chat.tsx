@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
+import { getAccessToken } from "@/lib/supabase";
 import "./ai-assistant-chat.css";
 
 type AiAssistantChatProps = {
@@ -17,6 +18,8 @@ const QUICK_PROMPTS = [
   "Como usar este plano?",
   "Como ajustar carga semanal?",
   "Como evitar lesao?",
+  "O que dizem os meus check-ins?",
+  "Como esta a minha carga de treino?",
 ];
 
 export default function AiAssistantChat({ isOpen, onClose }: AiAssistantChatProps) {
@@ -25,7 +28,7 @@ export default function AiAssistantChat({ isOpen, onClose }: AiAssistantChatProp
       id: "welcome",
       role: "assistant",
       content:
-        "Sou o assistente LHT. Pergunta sobre estrutura do plano, progressao ou estrategia de treino.",
+        "Sou o assistente LHT. Tenho acesso aos teus dados de treino, check-ins e planos. Pergunta o que quiseres!",
     },
   ]);
   const [draft, setDraft] = useState("");
@@ -41,38 +44,48 @@ export default function AiAssistantChat({ isOpen, onClose }: AiAssistantChatProp
   async function fetchAssistantReply(userMessage: string): Promise<string> {
     try {
       setError(null);
-      
-      // Prepare conversation history for context
-      const conversationHistory = messages.map(msg => ({
+
+      const token = await getAccessToken();
+      if (!token) {
+        setError("Faz login para usar o assistente.");
+        return "Precisas de estar autenticado para eu poder aceder aos teus dados. Faz login primeiro.";
+      }
+
+      const conversationHistory = messages.map((msg) => ({
         role: msg.role,
-        content: msg.content
+        content: msg.content,
       }));
 
       const response = await fetch("/.netlify/functions/chat-message", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           message: userMessage,
-          conversationHistory: conversationHistory
-        })
+          conversationHistory,
+        }),
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({ error: "Erro de rede" }));
+        if (response.status === 401) {
+          throw new Error("Sessao expirada. Faz login novamente.");
+        }
         throw new Error(errorData.error || "Erro ao comunicar com o assistente");
       }
 
       const data = await response.json();
-      
+
       if (!data.success) {
         throw new Error(data.error || "Erro ao processar a mensagem");
       }
 
       return data.message;
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Erro desconhecido ao contactar o assistente";
+      const errorMessage =
+        err instanceof Error ? err.message : "Erro desconhecido ao contactar o assistente";
       setError(errorMessage);
       console.error("Chat error:", err);
       return "Desculpa, nao consegui processar a tua pergunta neste momento. Tenta novamente em alguns instantes.";
