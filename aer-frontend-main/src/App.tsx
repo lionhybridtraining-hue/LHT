@@ -1,14 +1,25 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Route, Routes } from "react-router-dom";
-import { Navigate } from "react-router-dom";
 import { lazy, Suspense } from "react";
 import PlanForm from "./pages/plan-form";
 import PlanEntry from "./pages/plan-entry";
 import AiAssistantFab from "./components/ai-assistant-fab";
 import AiAssistantChat from "./components/ai-assistant-chat";
 
+const AtletaPage = lazy(() => import("./pages/atleta/index"));
 const ForcaPage = lazy(() => import("./pages/atleta/forca"));
-const CoachForcaPage = lazy(() => import("./pages/coach/forca"));
+
+function CoachHtmlRedirect() {
+  useEffect(() => {
+    window.location.replace("/coach/");
+  }, []);
+
+  return (
+    <div className="flex min-h-screen items-center justify-center">
+      <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#d4a54f] border-t-transparent" />
+    </div>
+  );
+}
 
 function App() {
   const [isAiChatOpen, setIsAiChatOpen] = useState(false);
@@ -19,7 +30,16 @@ function App() {
         <Route path="/" element={<PlanEntry />} />
         <Route path="/formulario" element={<PlanForm />} />
         <Route path="/formlario" element={<PlanForm />} />
-        <Route path="/coach" element={<Navigate to="/coach/forca" replace />} />
+        <Route path="/atleta" element={
+          <Suspense fallback={
+            <div className="flex min-h-screen items-center justify-center">
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#d4a54f] border-t-transparent" />
+            </div>
+          }>
+            <AtletaPage />
+          </Suspense>
+        } />
+        <Route path="/coach" element={<CoachHtmlRedirect />} />
         <Route
           path="/atleta/forca"
           element={
@@ -34,20 +54,7 @@ function App() {
             </Suspense>
           }
         />
-        <Route
-          path="/coach/forca"
-          element={
-            <Suspense
-              fallback={
-                <div className="flex min-h-screen items-center justify-center">
-                  <div className="h-8 w-8 animate-spin rounded-full border-2 border-orange-500 border-t-transparent" />
-                </div>
-              }
-            >
-              <CoachForcaPage />
-            </Suspense>
-          }
-        />
+        <Route path="/coach/forca" element={<CoachHtmlRedirect />} />
       </Routes>
       <AiAssistantFab
         isOpen={isAiChatOpen}

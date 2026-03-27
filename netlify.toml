@@ -44,6 +44,16 @@
   status = 301
 
 [[redirects]]
+  from = "/planocorrida/coach"
+  to = "/coach/"
+  status = 301
+
+[[redirects]]
+  from = "/planocorrida/coach/forca"
+  to = "/coach/"
+  status = 301
+
+[[redirects]]
   from = "/planocorrida"
   to = "/planocorrida/index.html"
   status = 200

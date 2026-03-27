@@ -1006,6 +1006,22 @@
               <div id="strengthInstancesList" style="margin-top:4px;"></div>
             </div>
 
+            <!-- Monitoring panel for selected athlete -->
+            <div id="strengthMonitorPanel" style="margin-bottom:8px; padding:8px 12px; border:1px solid var(--line); border-radius:var(--radius-md); background:var(--surface-2);">
+              <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
+                <span class="microcopy" style="font-weight:600;">Monitorização de Força (atleta selecionado)</span>
+                <button class="btn btn-small btn-ghost" id="refreshStrengthMonitorBtn" type="button" title="Atualizar monitorização">↻</button>
+              </div>
+              <div id="strengthMonitorMeta" class="microcopy" style="margin-top:4px;">Seleciona atleta e plano para ver monitorização.</div>
+              <div style="margin-top:8px; display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:8px;">
+                <div class="vol-metric"><span class="vol-label">Aderência</span><span id="smCompliance" class="vol-value">—</span></div>
+                <div class="vol-metric"><span class="vol-label">Planeado (kg)</span><span id="smPlannedKg" class="vol-value">—</span></div>
+                <div class="vol-metric"><span class="vol-label">Executado (kg)</span><span id="smActualKg" class="vol-value">—</span></div>
+                <div class="vol-metric"><span class="vol-label">Sessões</span><span id="smSessions" class="vol-value">—</span></div>
+              </div>
+              <div id="strengthMonitorSessions" class="microcopy" style="margin-top:8px;">Sem sessões para apresentar.</div>
+            </div>
+
             <!-- Day tabs -->
             <div id="strengthDayTabs" style="display:flex; gap:4px; flex-wrap:wrap; margin-bottom:8px;"></div>
 
@@ -2093,6 +2109,7 @@
         setSelectedTrainingLoadWeekStart("");
         syncTrainingLoadWeekControls();
         renderTrainingLoadSummary(null, "Sem dados calculados ainda.");
+        renderStrengthMonitoring();
         return;
       }
       const athlete = athletes.find((item) => item.id === selectedAthleteId);
@@ -2105,6 +2122,12 @@
         ? `${athlete.name} (${athlete.email || athlete.id})`
         : (athlete.email || athlete.id);
       syncTrainingLoadWeekControls();
+
+      if (strCurrentPlan && strCurrentPlan.plan) {
+        loadStrengthMonitoring(strCurrentPlan.plan.id, selectedAthleteId);
+      } else {
+        renderStrengthMonitoring();
+      }
     }
 
     async function loadAthletes(preselectId) {
@@ -2698,6 +2721,7 @@
     let strOneRms = {};  // exerciseId → value_kg
     let strOneRmRecords = []; // full records from API for modal display
     let strLoadedInstances = []; // active instances for current plan
+    let strMonitor = { loading: false, error: null, progression: null, sessions: [] };
 
     // DOM refs
     const strengthPlanSelect = document.getElementById("strengthPlanSelect");
@@ -2707,6 +2731,8 @@
     const strengthSections = document.getElementById("strengthSections");
     const strengthDayTabs = document.getElementById("strengthDayTabs");
     const strengthWeekTabs = document.getElementById("strengthWeekTabs");
+    const strengthMonitorMeta = document.getElementById("strengthMonitorMeta");
+    const strengthMonitorSessions = document.getElementById("strengthMonitorSessions");
     const strengthPlanModal = document.getElementById("strengthPlanModal");
     const strengthPlanForm = document.getElementById("strengthPlanForm");
     const spProgramSelect = document.getElementById("spProgram");
@@ -3009,6 +3035,11 @@
         renderDayTabs();
         renderWeekTabs();
         renderDayView();
+        if (selectedAthleteId) {
+          loadStrengthMonitoring(planId, selectedAthleteId);
+        } else {
+          renderStrengthMonitoring();
+        }
       } catch (e) {
         console.error("Failed to load plan", e);
         strCurrentPlan = null;
@@ -3017,7 +3048,136 @@
         renderDayTabs();
         renderWeekTabs();
         renderDayView();
+        renderStrengthMonitoring();
       }
+    }
+
+    function formatMonitorDate(value) {
+      if (!value) return "—";
+      const d = new Date(value);
+      if (Number.isNaN(d.getTime())) return "—";
+      return d.toLocaleDateString("pt-PT", { day: "2-digit", month: "2-digit", year: "2-digit" });
+    }
+
+    function renderStrengthMonitoring() {
+      const complianceEl = document.getElementById("smCompliance");
+      const plannedEl = document.getElementById("smPlannedKg");
+      const actualEl = document.getElementById("smActualKg");
+      const sessionsEl = document.getElementById("smSessions");
+
+      if (!strCurrentPlan || !strCurrentPlan.plan) {
+        strengthMonitorMeta.textContent = "Seleciona um plano para ver monitorização.";
+        strengthMonitorSessions.textContent = "Sem sessões para apresentar.";
+        complianceEl.textContent = "—";
+        plannedEl.textContent = "—";
+        actualEl.textContent = "—";
+        sessionsEl.textContent = "—";
+        return;
+      }
+
+      if (!selectedAthleteId) {
+        strengthMonitorMeta.textContent = "Seleciona um atleta para ver monitorização.";
+        strengthMonitorSessions.textContent = "Sem sessões para apresentar.";
+        complianceEl.textContent = "—";
+        plannedEl.textContent = "—";
+        actualEl.textContent = "—";
+        sessionsEl.textContent = "—";
+        return;
+      }
+
+      if (strMonitor.loading) {
+        strengthMonitorMeta.textContent = "A carregar monitorização…";
+        strengthMonitorSessions.textContent = "A carregar sessões…";
+        return;
+      }
+
+      if (strMonitor.error) {
+        strengthMonitorMeta.textContent = `Erro de monitorização: ${strMonitor.error}`;
+        strengthMonitorSessions.textContent = "Sem sessões para apresentar.";
+        complianceEl.textContent = "—";
+        plannedEl.textContent = "—";
+        actualEl.textContent = "—";
+        sessionsEl.textContent = "—";
+        return;
+      }
+
+      const weeklyPlanned = (strMonitor.progression && strMonitor.progression.weeklyPlanned) || {};
+      const weeklyActual = (strMonitor.progression && strMonitor.progression.weeklyActual) || {};
+      let plannedKg = 0;
+      let actualKg = 0;
+      let plannedWeeks = 0;
+      let completedWeeks = 0;
+
+      for (const week of Object.keys(weeklyPlanned)) {
+        const planned = Number((weeklyPlanned[week] && weeklyPlanned[week].totalKg) || 0);
+        const actual = Number((weeklyActual[week] && weeklyActual[week].totalKg) || 0);
+        const setCount = Number((weeklyActual[week] && weeklyActual[week].setCount) || 0);
+        plannedKg += planned;
+        actualKg += actual;
+        if (planned > 0) plannedWeeks += 1;
+        if (setCount > 0) completedWeeks += 1;
+      }
+
+      const compliance = plannedKg > 0 ? (actualKg / plannedKg) * 100 : 0;
+      const sessions = Array.isArray(strMonitor.sessions) ? strMonitor.sessions : [];
+
+      complianceEl.textContent = plannedKg > 0 ? `${compliance.toFixed(0)}%` : "—";
+      plannedEl.textContent = plannedKg > 0 ? plannedKg.toFixed(0) : "—";
+      actualEl.textContent = actualKg > 0 ? actualKg.toFixed(0) : "—";
+      sessionsEl.textContent = String(sessions.length);
+
+      const athlete = athletes.find((a) => a.id === selectedAthleteId);
+      const athleteName = athlete ? (athlete.name || athlete.email || athlete.id) : selectedAthleteId;
+      strengthMonitorMeta.textContent = `${athleteName} · ${completedWeeks}/${plannedWeeks || 0} semana(s) com execução.`;
+
+      if (!sessions.length) {
+        strengthMonitorSessions.textContent = "Sem sessões concluídas para este plano.";
+        return;
+      }
+
+      const lines = sessions.slice(0, 5).map((s) => {
+        const date = formatMonitorDate(s.session_date || s.started_at || s.created_at);
+        const totalSets = Number(s.totalSets || 0);
+        const totalVolume = Number(s.totalVolume || 0);
+        const uniqueExercises = Number(s.uniqueExercises || 0);
+        return `${date} · ${uniqueExercises} exerc. · ${totalSets} sets · ${totalVolume.toFixed(0)} kg`;
+      });
+      strengthMonitorSessions.innerHTML = lines.map((line) => `<div>${escapeHtml(line)}</div>`).join("");
+    }
+
+    async function loadStrengthMonitoring(planId, athleteId) {
+      if (!planId || !athleteId) {
+        strMonitor = { loading: false, error: null, progression: null, sessions: [] };
+        renderStrengthMonitoring();
+        return;
+      }
+
+      strMonitor = { loading: true, error: null, progression: null, sessions: [] };
+      renderStrengthMonitoring();
+
+      try {
+        const encodedAthleteId = encodeURIComponent(athleteId);
+        const encodedPlanId = encodeURIComponent(planId);
+        const [progression, sessionHistory] = await Promise.all([
+          apiRequest("GET", `/.netlify/functions/strength-progression?athleteId=${encodedAthleteId}&planId=${encodedPlanId}`),
+          apiRequest("GET", `/.netlify/functions/strength-log?action=sessions&athleteId=${encodedAthleteId}&planId=${encodedPlanId}&limit=8`)
+        ]);
+        strMonitor = {
+          loading: false,
+          error: null,
+          progression,
+          sessions: (sessionHistory && sessionHistory.sessions) || []
+        };
+      } catch (e) {
+        strMonitor = {
+          loading: false,
+          error: (e && e.message) ? e.message : "erro inesperado",
+          progression: null,
+          sessions: []
+        };
+      }
+
+      renderStrengthMonitoring();
     }
 
     function renderPlanHeader() {
@@ -4092,7 +4252,16 @@
         renderDayTabs();
         renderWeekTabs();
         renderDayView();
+        renderStrengthMonitoring();
       }
+    });
+
+    document.getElementById("refreshStrengthMonitorBtn").addEventListener("click", () => {
+      if (!strCurrentPlan || !strCurrentPlan.plan || !selectedAthleteId) {
+        renderStrengthMonitoring();
+        return;
+      }
+      loadStrengthMonitoring(strCurrentPlan.plan.id, selectedAthleteId);
     });
 
     document.getElementById("activatePlanBtn").addEventListener("click", async () => {

@@ -2,7 +2,9 @@ const { json, parseJsonBody } = require("./_lib/http");
 const { getConfig } = require("./_lib/config");
 const { requireAuthenticatedUser } = require("./_lib/authz");
 const {
+  getAthleteById,
   getAthleteByIdentity,
+  verifyCoachOwnsAthlete,
   insertStrengthLogSets,
   getStrengthLogs,
   insertAthlete1rm,
@@ -30,7 +32,26 @@ exports.handler = async (event) => {
     // GET — fetch logs for a plan/week
     if (event.httpMethod === "GET") {
       const qs = event.queryStringParameters || {};
-      const athlete = await getAthleteByIdentity(config, identityId);
+      const roles = Array.isArray(auth.roles) ? auth.roles : [];
+      const isCoach = roles.includes("coach");
+      const isAdmin = roles.includes("admin");
+
+      let athlete = null;
+
+      // Coach/admin mode: explicit athleteId query param.
+      if (qs.athleteId && (isCoach || isAdmin)) {
+        athlete = await getAthleteById(config, qs.athleteId);
+        if (!athlete) return json(404, { error: "Athlete not found" });
+
+        if (isCoach && !isAdmin) {
+          const ownsAthlete = await verifyCoachOwnsAthlete(config, identityId, athlete.id);
+          if (!ownsAthlete) return json(403, { error: "Forbidden" });
+        }
+      } else {
+        // Athlete mode: resolve athlete by own identity.
+        athlete = await getAthleteByIdentity(config, identityId);
+      }
+
       if (!athlete) return json(404, { error: "Athlete not found" });
 
       // Session history mode

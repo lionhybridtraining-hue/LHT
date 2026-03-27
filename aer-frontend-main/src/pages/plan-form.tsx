@@ -509,7 +509,7 @@ function PlanForm() {
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#d4a54f]">
             Plano de Corrida LHT
           </p>
-          <h1 className="mt-2 font-serif text-3xl font-semibold uppercase tracking-[0.03em] text-[#f4f6fa]">
+          <h1 className="mt-2 font-['Oswald'] text-3xl font-semibold uppercase tracking-[0.03em] text-[#f4f6fa]">
             Falta entrares com Google para guardar o teu plano.
           </h1>
           <p className="mt-3 text-sm leading-relaxed text-[#c9ced9]">
@@ -558,7 +558,7 @@ function PlanForm() {
             <p className="text-[#d4a54f] text-xs font-semibold uppercase tracking-[0.18em] mb-1">
               Lion Hybrid Training
             </p>
-            <h1 className="font-serif text-3xl font-semibold uppercase tracking-[0.03em] text-[#f4f6fa]">
+            <h1 className="font-['Oswald'] text-3xl font-semibold uppercase tracking-[0.03em] text-[#f4f6fa]">
               Plano de Corrida LHT
             </h1>
             <p className="text-[#c9ced9] mt-1">

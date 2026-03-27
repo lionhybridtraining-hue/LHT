@@ -235,7 +235,7 @@ export default function PlanLanding() {
           <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[#d4a54f]">
             Lion Hybrid Training
           </p>
-          <h1 className="mt-4 max-w-2xl font-serif text-5xl font-semibold uppercase leading-[0.98] tracking-[0.03em] text-[#f7f1e8] md:text-6xl">
+          <h1 className="mt-4 max-w-2xl font-['Oswald'] text-5xl font-semibold uppercase leading-[0.98] tracking-[0.03em] text-[#f7f1e8] md:text-6xl">
             Plano de corrida personalizado em poucos passos.
           </h1>
           <p className="mt-5 max-w-xl text-base leading-7 text-[#c8cfda] md:text-lg">

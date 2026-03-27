@@ -389,7 +389,7 @@ export default function CoachForcaPage() {
           Entra com a tua conta Google para gerir templates de treino de força.
         </p>
         <button
-          onClick={() => signInWithGoogle("/coach/forca")}
+          onClick={() => signInWithGoogle("/coach")}
           className="rounded-full bg-white px-6 py-3 text-sm font-medium text-gray-900 shadow-[0_12px_30px_rgba(0,0,0,0.4)]"
         >
           Entrar com Google
