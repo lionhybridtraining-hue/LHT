@@ -1,3 +1,7 @@
+const FALLBACK_SUPABASE_URL = "https://rlivxjarqpqmvjtgmxhh.supabase.co";
+const FALLBACK_SUPABASE_ANON_KEY =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJsaXZ4amFycXBxbXZqdGdteGhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MDk3NzcsImV4cCI6MjA4OTE4NTc3N30.MHwkQnytSCOBleYVOF5hJHWiV8d_-2V9UGIqsLTgjIY";
+
 function requireEnv(name) {
   const value = process.env[name];
   if (!value) {
@@ -8,8 +12,8 @@ function requireEnv(name) {
 
 function getConfig() {
   return {
-    supabaseUrl: requireEnv("SUPABASE_URL"),
-    supabaseAnonKey: process.env.SUPABASE_ANON_KEY || "",
+    supabaseUrl: process.env.SUPABASE_URL || FALLBACK_SUPABASE_URL,
+    supabaseAnonKey: process.env.SUPABASE_ANON_KEY || FALLBACK_SUPABASE_ANON_KEY,
     supabaseServiceRoleKey: requireEnv("SUPABASE_SERVICE_ROLE_KEY"),
     stripeSecretKey: process.env.STRIPE_SECRET_KEY || "",
     stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET || "",

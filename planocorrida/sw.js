@@ -1,4 +1,4 @@
-const CACHE_NAME = "lht-v2";
+const CACHE_NAME = "lht-v1";
 const PRECACHE = [
   "/planocorrida/",
   "/planocorrida/index.html",

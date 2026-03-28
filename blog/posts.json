@@ -41,6 +41,27 @@
       "date": "2026-03-22",
       "category": "Artigo",
       "excerpt": ""
+    },
+    {
+      "slug": "sapatilhas-para-hyrox",
+      "title": "Sapatilhas para Hyrox: O Teu Guia Essencial para Dominar a Prova Híbrida",
+      "date": "2026-03-28",
+      "category": "Artigo",
+      "excerpt": "A escolha das sapatilhas certas é um fator muitas vezes subestimado, mas crucial para o sucesso e segurança no Hyrox. Descobre como selecionar o calçado ideal para otimizar a tua performance e prevenir lesões neste desafio híbrido."
+    },
+    {
+      "slug": "filosofia-lht-treino-hibrido",
+      "title": "TREINO HÍBRIDO - Filosofia LHT",
+      "date": "2026-03-27",
+      "category": "Artigo",
+      "excerpt": "O conceito de Treino Híbrido: desenvolver força e resistência em simultâneo. Descobre a filosofia LHT e como o treino híbrido pode transformar a tua vida."
+    },
+    {
+      "slug": "guia-inicial-treino-hibrido",
+      "title": "Guia Inicial de Treino Híbrido (sem complicar)",
+      "date": "2026-03-27",
+      "category": "Treino Híbrido",
+      "excerpt": "Um passo-a-passo simples para começares a combinar força e corrida com consistência, sem entrares em overthinking."
     }
   ]
 }
