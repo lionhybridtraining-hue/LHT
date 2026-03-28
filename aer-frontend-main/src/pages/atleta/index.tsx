@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase, signInWithGoogle } from "@/lib/supabase";
+import { enforceSessionMaxAge, supabase, signInWithGoogle } from "@/lib/supabase";
 import type { Session } from "@supabase/supabase-js";
 
 const BG = "radial-gradient(circle at top, rgba(212,165,79,0.14) 0%, #1a1a1a 46%, #090909 100%)";
@@ -44,13 +44,15 @@ export default function AtletaReceptionPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session: s } }) => {
-      setSession(s);
+    supabase.auth.getSession().then(async ({ data: { session: s } }) => {
+      const wasExpired = await enforceSessionMaxAge(s);
+      setSession(wasExpired ? null : s);
       setLoading(false);
     });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
-      setSession(s);
-      if (s) setLoading(false);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, s) => {
+      const wasExpired = await enforceSessionMaxAge(s);
+      setSession(wasExpired ? null : s);
+      setLoading(false);
     });
     return () => subscription.unsubscribe();
   }, []);

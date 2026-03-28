@@ -15,12 +15,19 @@ function normalizeProgramPayload(payload) {
   const stripeProductId = payload.stripeProductId == null ? null : payload.stripeProductId.toString().trim() || null;
   const stripePriceId = payload.stripePriceId == null ? null : payload.stripePriceId.toString().trim() || null;
   const billingType = (payload.billingType || "one_time").toString().trim().toLowerCase() || "one_time";
+  const accessModel = (payload.accessModel || "coached_one_time").toString().trim().toLowerCase() || "coached_one_time";
   const status = (payload.status || "draft").toString().trim().toLowerCase();
 
   if (!name) throw new Error("name is required");
   if (!Number.isInteger(durationWeeks) || durationWeeks <= 0) throw new Error("durationWeeks must be a positive integer");
   if (!Number.isInteger(priceCents) || priceCents < 0) throw new Error("priceCents must be a non-negative integer");
   if (!["one_time", "recurring"].includes(billingType)) throw new Error("billingType must be one_time or recurring");
+  if (!["self_serve", "coached_one_time", "coached_recurring"].includes(accessModel)) {
+    throw new Error("accessModel must be self_serve, coached_one_time or coached_recurring");
+  }
+  if (accessModel === "coached_recurring" && billingType !== "recurring") {
+    throw new Error("accessModel coached_recurring requires billingType recurring");
+  }
   if (!["draft", "active", "archived"].includes(status)) throw new Error("status must be draft, active or archived");
 
   return {
@@ -34,6 +41,7 @@ function normalizeProgramPayload(payload) {
     stripe_product_id: stripeProductId,
     stripe_price_id: stripePriceId,
     billing_type: billingType,
+    access_model: accessModel,
     status
   };
 }
@@ -51,6 +59,7 @@ function mapProgram(row) {
     stripeProductId: row.stripe_product_id || null,
     stripePriceId: row.stripe_price_id || null,
     billingType: row.billing_type || "one_time",
+    accessModel: row.access_model || "coached_one_time",
     followupType: row.followup_type || "standard",
     status: row.status,
     isScheduledTemplate: Boolean(row.is_scheduled_template),
@@ -138,7 +147,16 @@ exports.handler = async (event) => {
       if (patch.status && !["draft", "active", "archived"].includes(patch.status)) {
         return json(400, { error: "Invalid status value" });
       }
-      const updated = await updateTrainingProgram(config, id, patch);
+      // Normalise camelCase fields from the frontend to snake_case for the DB
+      const dbPatch = { ...patch };
+      if (dbPatch.accessModel !== undefined) {
+        if (!["self_serve", "coached_one_time", "coached_recurring"].includes(dbPatch.accessModel)) {
+          return json(400, { error: "Invalid accessModel value" });
+        }
+        dbPatch.access_model = dbPatch.accessModel;
+        delete dbPatch.accessModel;
+      }
+      const updated = await updateTrainingProgram(config, id, dbPatch);
       if (!updated) return json(404, { error: "Program not found" });
       return json(200, { program: mapProgram(updated) });
     }

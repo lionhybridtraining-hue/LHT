@@ -6,11 +6,18 @@ const {
   listBlogArticlesAdmin,
   createBlogArticle,
   updateBlogArticle,
-  softDeleteBlogArticle
+  softDeleteBlogArticle,
+  getBlogArticleBySlugAny,
+  archiveDeletedBlogArticleSlug
 } = require("./_lib/supabase");
 const { requireRole } = require("./_lib/authz");
 
 class ValidationError extends Error {}
+
+function isSlugConflictError(err) {
+  const message = err && err.message ? String(err.message).toLowerCase() : "";
+  return message.includes("blog_articles_slug") || message.includes("duplicate key value");
+}
 
 function normalizeStatus(rawStatus) {
   if (!rawStatus) return undefined;
@@ -107,7 +114,23 @@ exports.handler = async (event) => {
     if (method === "POST") {
       const payload = parseJsonBody(event);
       const normalized = normalizePayload(payload, { isCreate: true });
-      const created = await createBlogArticle(config, normalized);
+      let created;
+      try {
+        created = await createBlogArticle(config, normalized);
+      } catch (err) {
+        if (!isSlugConflictError(err) || !normalized.slug) {
+          throw err;
+        }
+
+        const existing = await getBlogArticleBySlugAny(config, normalized.slug);
+        const isDeleted = Boolean(existing && existing.deleted_at);
+        if (!existing || !isDeleted) {
+          throw err;
+        }
+
+        await archiveDeletedBlogArticleSlug(config, existing.id);
+        created = await createBlogArticle(config, normalized);
+      }
       return json(201, { article: mapArticle(created) });
     }
 

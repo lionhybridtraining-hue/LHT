@@ -378,6 +378,32 @@ async function listWeeklyCheckinsByAthlete(config, athleteId) {
   });
 }
 
+async function listWeeklyCheckinsByAthleteIds(config, athleteIds, { from, to, limit } = {}) {
+  if (!Array.isArray(athleteIds) || athleteIds.length === 0) return [];
+  const validIds = athleteIds
+    .filter((id) => typeof id === "string" && id.length > 0)
+    .slice(0, 1000);
+  if (validIds.length === 0) return [];
+
+  const params = [
+    `athlete_id=in.(${validIds.map((id) => encodeURIComponent(id)).join(",")})`,
+    "select=id,athlete_id,week_start,status,responded_at,approved_at,strength_planned_done_count,strength_planned_not_done_count",
+    "order=week_start.desc"
+  ];
+
+  if (from) params.push(`week_start=gte.${encodeURIComponent(from)}`);
+  if (to) params.push(`week_start=lte.${encodeURIComponent(to)}`);
+  if (Number.isFinite(limit) && limit > 0) {
+    params.push(`limit=${Math.min(limit, 10000)}`);
+  }
+
+  return supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `weekly_checkins?${params.join("&")}`
+  });
+}
+
 async function getWeeklyCheckinDetail(config, checkinId) {
   const rows = await supabaseRequest({
     url: config.supabaseUrl,
@@ -432,6 +458,15 @@ async function listBlogArticlesAdmin(config) {
   });
 }
 
+async function getBlogArticleBySlugAny(config, slug) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `blog_articles?slug=eq.${encodeURIComponent(slug)}&select=id,slug,deleted_at&order=created_at.asc&limit=1`
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
 async function createBlogArticle(config, payload) {
   const rows = await supabaseRequest({
     url: config.supabaseUrl,
@@ -457,17 +492,52 @@ async function updateBlogArticle(config, id, patch) {
 }
 
 async function softDeleteBlogArticle(config, id) {
+  const current = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `blog_articles?id=eq.${encodeURIComponent(id)}&deleted_at=is.null&select=id,slug&limit=1`
+  });
+  const currentRow = Array.isArray(current) ? current[0] || null : null;
+  const slug = currentRow && currentRow.slug ? String(currentRow.slug).trim() : "";
+  const archivedSuffix = `--deleted-${String(id).slice(0, 8).toLowerCase()}`;
+  const archivedSlug = slug ? `${slug}${archivedSuffix}` : null;
+
   const rows = await supabaseRequest({
     url: config.supabaseUrl,
     serviceRoleKey: config.supabaseServiceRoleKey,
     path: `blog_articles?id=eq.${encodeURIComponent(id)}&deleted_at=is.null`,
     method: "PATCH",
     body: {
-      deleted_at: new Date().toISOString()
+      deleted_at: new Date().toISOString(),
+      ...(archivedSlug ? { slug: archivedSlug } : {})
     },
     prefer: "return=representation"
   });
   return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function archiveDeletedBlogArticleSlug(config, id) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `blog_articles?id=eq.${encodeURIComponent(id)}&deleted_at=not.is.null&select=id,slug&limit=1`
+  });
+  const row = Array.isArray(rows) ? rows[0] || null : null;
+  if (!row || !row.slug) return null;
+
+  const currentSlug = String(row.slug).trim();
+  if (currentSlug.includes("--deleted-")) return row;
+
+  const archivedSlug = `${currentSlug}--deleted-${String(id).slice(0, 8).toLowerCase()}`;
+  const updated = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `blog_articles?id=eq.${encodeURIComponent(id)}&deleted_at=not.is.null`,
+    method: "PATCH",
+    body: { slug: archivedSlug },
+    prefer: "return=representation"
+  });
+  return Array.isArray(updated) ? updated[0] || null : null;
 }
 
 async function getBlogContentProductionByArticle(config, articleId) {
@@ -480,13 +550,38 @@ async function getBlogContentProductionByArticle(config, articleId) {
 }
 
 async function upsertBlogContentProduction(config, payload) {
+  if (!payload || !payload.article_id) {
+    const rows = await supabaseRequest({
+      url: config.supabaseUrl,
+      serviceRoleKey: config.supabaseServiceRoleKey,
+      path: "blog_content_production",
+      method: "POST",
+      body: [payload],
+      prefer: "return=representation"
+    });
+    return Array.isArray(rows) ? rows[0] || null : null;
+  }
+
+  const existing = await getBlogContentProductionByArticle(config, payload.article_id);
+  if (existing && existing.id) {
+    const rows = await supabaseRequest({
+      url: config.supabaseUrl,
+      serviceRoleKey: config.supabaseServiceRoleKey,
+      path: `blog_content_production?id=eq.${encodeURIComponent(existing.id)}`,
+      method: "PATCH",
+      body: payload,
+      prefer: "return=representation"
+    });
+    return Array.isArray(rows) ? rows[0] || null : null;
+  }
+
   const rows = await supabaseRequest({
     url: config.supabaseUrl,
     serviceRoleKey: config.supabaseServiceRoleKey,
-    path: "blog_content_production?on_conflict=article_id",
+    path: "blog_content_production",
     method: "POST",
     body: [payload],
-    prefer: "return=representation,resolution=merge-duplicates"
+    prefer: "return=representation"
   });
   return Array.isArray(rows) ? rows[0] || null : null;
 }
@@ -540,7 +635,7 @@ async function listStandaloneProductions(config, limit) {
   const rows = await supabaseRequest({
     url: config.supabaseUrl,
     serviceRoleKey: config.supabaseServiceRoleKey,
-    path: `blog_content_production?article_id=is.null&select=id,status,briefing_data,whatsapp_variants,selected_variant,generation_mode,extra_instructions,manual_shared_at,updated_at,created_at&order=updated_at.desc&limit=${limit || 20}`
+    path: `blog_content_production?article_id=is.null&select=*&order=updated_at.desc&limit=${limit || 20}`
   });
   return Array.isArray(rows) ? rows : [];
 }
@@ -1046,10 +1141,20 @@ async function getActiveStripePurchaseForIdentity(config, { identityId, programI
   }
 
   const comparisonTime = atIso || new Date().toISOString();
-  const rows = await supabaseRequest({
+
+  // Check paid (one-time: null expires_at; recurring: not yet expired)
+  let rows = await supabaseRequest({
     url: config.supabaseUrl,
     serviceRoleKey: config.supabaseServiceRoleKey,
     path: `stripe_purchases?identity_id=eq.${encodeURIComponent(identityId)}&program_id=eq.${encodeURIComponent(programId)}&status=eq.paid&or=(expires_at.is.null,expires_at.gt.${encodeURIComponent(comparisonTime)})&select=*&order=paid_at.desc.nullslast,created_at.desc&limit=1`
+  });
+  if (Array.isArray(rows) && rows[0]) return rows[0];
+
+  // Check payment_failed but within grace period
+  rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `stripe_purchases?identity_id=eq.${encodeURIComponent(identityId)}&program_id=eq.${encodeURIComponent(programId)}&status=eq.payment_failed&grace_period_ends_at=gt.${encodeURIComponent(comparisonTime)}&select=*&order=created_at.desc&limit=1`
   });
   return Array.isArray(rows) ? rows[0] || null : null;
 }
@@ -1301,6 +1406,323 @@ async function insertMetaLead(config, lead) {
   });
 }
 
+const CENTRAL_LEAD_STAGE_RANK = {
+  landing: 0,
+  landing_submitted: 1,
+  meta_received: 1,
+  onboarding_submitted: 2,
+  plan_generated: 3,
+  coach_application: 3,
+  qualified: 4,
+  converted: 5,
+  disqualified: 6
+};
+
+const CENTRAL_LEAD_STATUS_RANK = {
+  new: 0,
+  contacted: 1,
+  qualified: 2,
+  converted: 3,
+  disqualified: 4
+};
+
+function normalizeLeadEmail(value) {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const trimmed = value.trim().toLowerCase();
+  return trimmed || null;
+}
+
+function normalizeLeadPhone(value) {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const digits = value.replace(/\D/g, "").trim();
+  return digits || null;
+}
+
+function normalizeLeadText(value) {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const trimmed = value.trim();
+  return trimmed || null;
+}
+
+function normalizeLeadSource(value) {
+  const allowed = new Set([
+    "planocorrida_landing",
+    "planocorrida_form",
+    "planocorrida_generated",
+    "meta_ads",
+    "coach_landing",
+    "onboarding",
+    "manual"
+  ]);
+  return allowed.has(value) ? value : "manual";
+}
+
+function normalizeLeadSourceOptional(value) {
+  if (value === undefined || value === null || value === "") {
+    return null;
+  }
+  return normalizeLeadSource(value);
+}
+
+function normalizeLeadStage(value) {
+  const allowed = new Set(Object.keys(CENTRAL_LEAD_STAGE_RANK));
+  return allowed.has(value) ? value : "landing";
+}
+
+function normalizeLeadStageOptional(value) {
+  if (value === undefined || value === null || value === "") {
+    return null;
+  }
+  return normalizeLeadStage(value);
+}
+
+function normalizeLeadStatus(value) {
+  const allowed = new Set(Object.keys(CENTRAL_LEAD_STATUS_RANK));
+  return allowed.has(value) ? value : "new";
+}
+
+function normalizeLeadStatusOptional(value) {
+  if (value === undefined || value === null || value === "") {
+    return null;
+  }
+  return normalizeLeadStatus(value);
+}
+
+function mergeLeadStage(existingStage, incomingStage) {
+  if (!incomingStage) {
+    return normalizeLeadStage(existingStage);
+  }
+  const safeExisting = normalizeLeadStage(existingStage);
+  const safeIncoming = normalizeLeadStage(incomingStage);
+  return (CENTRAL_LEAD_STAGE_RANK[safeIncoming] || 0) >= (CENTRAL_LEAD_STAGE_RANK[safeExisting] || 0)
+    ? safeIncoming
+    : safeExisting;
+}
+
+function mergeLeadStatus(existingStatus, incomingStatus) {
+  if (!incomingStatus) {
+    return normalizeLeadStatus(existingStatus);
+  }
+  const safeExisting = normalizeLeadStatus(existingStatus);
+  const safeIncoming = normalizeLeadStatus(incomingStatus);
+
+  if (safeExisting === "disqualified" && safeIncoming !== "converted") {
+    return safeExisting;
+  }
+  if (safeIncoming === "disqualified") {
+    return safeIncoming;
+  }
+
+  return (CENTRAL_LEAD_STATUS_RANK[safeIncoming] || 0) >= (CENTRAL_LEAD_STATUS_RANK[safeExisting] || 0)
+    ? safeIncoming
+    : safeExisting;
+}
+
+function mergeLeadJson(existingValue, incomingValue) {
+  const safeExisting = existingValue && typeof existingValue === "object" && !Array.isArray(existingValue)
+    ? existingValue
+    : {};
+  const safeIncoming = incomingValue && typeof incomingValue === "object" && !Array.isArray(incomingValue)
+    ? incomingValue
+    : {};
+  return {
+    ...safeExisting,
+    ...safeIncoming
+  };
+}
+
+function mergeLeadBoolean(existingValue, incomingValue) {
+  return Boolean(existingValue) || Boolean(incomingValue);
+}
+
+function normalizeLeadInput(input = {}) {
+  return {
+    athleteId: normalizeLeadText(input.athleteId),
+    identityId: normalizeLeadText(input.identityId),
+    metaLeadId: normalizeLeadText(input.metaLeadId),
+    source: normalizeLeadSourceOptional(input.source),
+    sourceRefId: normalizeLeadText(input.sourceRefId),
+    email: normalizeLeadText(input.email),
+    emailNormalized: normalizeLeadEmail(input.email),
+    phone: normalizeLeadText(input.phone),
+    phoneNormalized: normalizeLeadPhone(input.phone),
+    fullName: normalizeLeadText(input.fullName),
+    consentEmail: input.consentEmail === true,
+    consentWhatsapp: input.consentWhatsapp === true,
+    consentVersion: normalizeLeadText(input.consentVersion),
+    consentedAt: normalizeLeadText(input.consentedAt),
+    funnelStage: normalizeLeadStageOptional(input.funnelStage),
+    leadStatus: normalizeLeadStatusOptional(input.leadStatus),
+    leadScore: Number.isFinite(Number(input.leadScore)) ? Number(input.leadScore) : 0,
+    lastActivityAt: normalizeLeadText(input.lastActivityAt) || new Date().toISOString(),
+    lastActivityType: normalizeLeadText(input.lastActivityType),
+    attribution: input.attribution,
+    profile: input.profile,
+    rawPayload: input.rawPayload
+  };
+}
+
+async function getCentralLeadByIdentity(config, identityId) {
+  const normalized = normalizeLeadText(identityId);
+  if (!normalized) return null;
+
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `leads_central?identity_id=eq.${encodeURIComponent(normalized)}&select=*&limit=1`
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function getCentralLeadByEmail(config, email) {
+  const normalized = normalizeLeadEmail(email);
+  if (!normalized) return null;
+
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `leads_central?email_normalized=eq.${encodeURIComponent(normalized)}&select=*&order=last_activity_at.desc&limit=1`
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function getCentralLeadByPhone(config, phone) {
+  const normalized = normalizeLeadPhone(phone);
+  if (!normalized) return null;
+
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `leads_central?phone_normalized=eq.${encodeURIComponent(normalized)}&select=*&order=last_activity_at.desc&limit=1`
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function getCentralLeadBySourceRef(config, source, sourceRefId) {
+  const normalizedSource = normalizeLeadSourceOptional(source);
+  const normalizedRef = normalizeLeadText(sourceRefId);
+  if (!normalizedRef || !normalizedSource) return null;
+
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `leads_central?source=eq.${encodeURIComponent(normalizedSource)}&source_ref_id=eq.${encodeURIComponent(normalizedRef)}&select=*&limit=1`
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function getCentralLeadById(config, leadId) {
+  const normalizedId = normalizeLeadText(leadId);
+  if (!normalizedId) return null;
+
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `leads_central?id=eq.${encodeURIComponent(normalizedId)}&select=*&limit=1`
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+function buildCentralLeadPayload(existing, input) {
+  const normalized = normalizeLeadInput(input);
+  const now = normalized.lastActivityAt || new Date().toISOString();
+
+  return {
+    athlete_id: normalized.athleteId || (existing ? existing.athlete_id || null : null),
+    identity_id: normalized.identityId || (existing ? existing.identity_id || null : null),
+    meta_lead_id: normalized.metaLeadId || (existing ? existing.meta_lead_id || null : null),
+    source: existing && existing.source ? existing.source : (normalized.source || "manual"),
+    last_source: normalized.source || (existing ? existing.last_source || existing.source : "manual"),
+    source_ref_id: (existing && existing.source_ref_id) || normalized.sourceRefId,
+    email: normalized.email || (existing ? existing.email || null : null),
+    email_normalized: normalized.emailNormalized || (existing ? existing.email_normalized || null : null),
+    phone: normalized.phone || (existing ? existing.phone || null : null),
+    phone_normalized: normalized.phoneNormalized || (existing ? existing.phone_normalized || null : null),
+    full_name: normalized.fullName || (existing ? existing.full_name || null : null),
+    consent_email: mergeLeadBoolean(existing ? existing.consent_email : false, normalized.consentEmail),
+    consent_whatsapp: mergeLeadBoolean(existing ? existing.consent_whatsapp : false, normalized.consentWhatsapp),
+    consent_version: normalized.consentVersion || (existing ? existing.consent_version || null : null),
+    consented_at: normalized.consentedAt || (existing ? existing.consented_at || null : null),
+    funnel_stage: mergeLeadStage(existing ? existing.funnel_stage : null, normalized.funnelStage),
+    lead_status: mergeLeadStatus(existing ? existing.lead_status : null, normalized.leadStatus),
+    lead_score: Math.max(
+      Number.isFinite(Number(existing && existing.lead_score)) ? Number(existing.lead_score) : 0,
+      normalized.leadScore
+    ),
+    last_activity_at: now,
+    last_activity_type: normalized.lastActivityType || (existing ? existing.last_activity_type || null : null),
+    attribution: mergeLeadJson(existing ? existing.attribution : null, normalized.attribution),
+    profile: mergeLeadJson(existing ? existing.profile : null, normalized.profile),
+    raw_payload: normalized.rawPayload !== undefined
+      ? normalized.rawPayload
+      : (existing ? existing.raw_payload || null : null)
+  };
+}
+
+async function createCentralLead(config, input) {
+  const payload = buildCentralLeadPayload(null, input);
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: "leads_central",
+    method: "POST",
+    body: [payload],
+    prefer: "return=representation"
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function updateCentralLead(config, leadId, input, existingLead = null) {
+  const existing = existingLead || await getCentralLeadById(config, leadId);
+  const payload = buildCentralLeadPayload(existing, input);
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `leads_central?id=eq.${encodeURIComponent(leadId)}`,
+    method: "PATCH",
+    body: payload,
+    prefer: "return=representation"
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function findCentralLeadCandidate(config, input) {
+  const normalized = normalizeLeadInput(input);
+
+  return (
+    await getCentralLeadBySourceRef(config, normalized.source, normalized.sourceRefId)
+  ) || (
+    await getCentralLeadByIdentity(config, normalized.identityId)
+  ) || (
+    await getCentralLeadByEmail(config, normalized.email)
+  ) || (
+    await getCentralLeadByPhone(config, normalized.phone)
+  ) || null;
+}
+
+async function upsertCentralLead(config, input) {
+  const existing = await findCentralLeadCandidate(config, input);
+  if (existing) {
+    return updateCentralLead(config, existing.id, input, existing);
+  }
+
+  try {
+    return await createCentralLead(config, input);
+  } catch (err) {
+    const retry = await findCentralLeadCandidate(config, input);
+    if (retry) {
+      return updateCentralLead(config, retry.id, input, retry);
+    }
+    throw err;
+  }
+}
+
 async function listMetaLeads(config) {
   return supabaseRequest({
     url: config.supabaseUrl,
@@ -1464,7 +1886,7 @@ async function updateExercise(config, id, patch) {
 }
 
 async function listStrengthPlans(config, filters) {
-  const params = ['select=id,name,description,total_weeks,load_round,start_date,status,training_program_id,created_by,created_at,updated_at', 'order=created_at.desc'];
+  const params = ['select=id,name,description,total_weeks,start_date,status,training_program_id,created_by,created_at,updated_at', 'order=created_at.desc'];
   if (filters && filters.status) params.push(`status=eq.${encodeURIComponent(filters.status)}`);
   if (filters && filters.trainingProgramId) params.push(`training_program_id=eq.${encodeURIComponent(filters.trainingProgramId)}`);
   if (filters && filters.createdBy) params.push(`created_by=eq.${encodeURIComponent(filters.createdBy)}`);
@@ -1476,7 +1898,7 @@ async function listStrengthPlans(config, filters) {
 }
 
 async function listStrengthPlanInstances(config, filters) {
-  const params = ['select=*,plan:strength_plans(id,name,total_weeks,load_round,training_program_id,status)', 'order=created_at.desc'];
+  const params = ['select=*,plan:strength_plans(id,name,total_weeks,training_program_id,status)', 'order=created_at.desc'];
   if (filters && filters.athleteId) params.push(`athlete_id=eq.${encodeURIComponent(filters.athleteId)}`);
   if (filters && filters.status) params.push(`status=eq.${encodeURIComponent(filters.status)}`);
   if (filters && filters.planId) params.push(`plan_id=eq.${encodeURIComponent(filters.planId)}`);
@@ -1846,6 +2268,87 @@ async function getOnboardingIntakeByIdentity(config, identityId) {
   return Array.isArray(rows) && rows.length ? rows[0] : null;
 }
 
+async function getOnboardingFormResponsesByIdentity(config, identityId) {
+  try {
+    const rows = await supabaseRequest({
+      url: config.supabaseUrl,
+      serviceRoleKey: config.supabaseServiceRoleKey,
+      path: `onboarding_form_responses?identity_id=eq.${encodeURIComponent(identityId)}&select=nome_completo,sexo,data_nascimento,peso_kg,altura_m,massa_gorda_percent,perimetro_abdominal_cm,nivel_atividade_diaria,horas_sono_media,qualidade_sono,qualidade_alimentacao,litros_agua_dia,suplementos,condicao_saude_diagnosticada,medicacao_diaria,lesao_atual,dores_regulares,sintomas_treino,condicao_mental_emocional,treina_ginasio_atualmente,experiencia_ginasio,desporto_regular,porque_agora,mudanca_desejada,maior_objetivo&limit=1`
+    });
+    return Array.isArray(rows) && rows.length ? rows[0] : null;
+  } catch (_err) {
+    return null;
+  }
+}
+
+// ── Self-serve athlete: purchases and instances ──
+
+async function getStripePurchasesForIdentity(config, identityId) {
+  const now = new Date().toISOString();
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `stripe_purchases?identity_id=eq.${encodeURIComponent(identityId)}&select=*,training_programs(id,name,access_model,duration_weeks,billing_type)&or=(status.eq.paid,and(status.eq.payment_failed,grace_period_ends_at.gt.${encodeURIComponent(now)}))&order=created_at.desc`
+  });
+  return Array.isArray(rows) ? rows : [];
+}
+
+async function getAllInstancesForAthlete(config, athleteId) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `strength_plan_instances?athlete_id=eq.${encodeURIComponent(athleteId)}&select=*,plan:strength_plans(id,name,total_weeks,training_program_id)&order=created_at.desc`
+  });
+  return Array.isArray(rows) ? rows : [];
+}
+
+// ── Webhook: subscription lifecycle sync ──
+
+async function getStripePurchasesBySubscriptionId(config, subscriptionId) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `stripe_purchases?stripe_subscription_id=eq.${encodeURIComponent(subscriptionId)}&select=*`
+  });
+  return Array.isArray(rows) ? rows : [];
+}
+
+async function pauseInstancesByStripeSubscription(config, subscriptionId) {
+  const purchases = await getStripePurchasesBySubscriptionId(config, subscriptionId);
+  if (!purchases.length) return [];
+  const paused = [];
+  for (const purchase of purchases) {
+    const rows = await supabaseRequest({
+      url: config.supabaseUrl,
+      serviceRoleKey: config.supabaseServiceRoleKey,
+      path: `strength_plan_instances?stripe_purchase_id=eq.${encodeURIComponent(purchase.id)}&status=eq.active`,
+      method: 'PATCH',
+      body: { status: 'paused' },
+      prefer: 'return=representation'
+    });
+    if (Array.isArray(rows)) paused.push(...rows);
+  }
+  return paused;
+}
+
+async function resumeInstancesByStripeSubscription(config, subscriptionId) {
+  const purchases = await getStripePurchasesBySubscriptionId(config, subscriptionId);
+  if (!purchases.length) return [];
+  const resumed = [];
+  for (const purchase of purchases) {
+    const rows = await supabaseRequest({
+      url: config.supabaseUrl,
+      serviceRoleKey: config.supabaseServiceRoleKey,
+      path: `strength_plan_instances?stripe_purchase_id=eq.${encodeURIComponent(purchase.id)}&status=eq.paused&access_model=eq.coached_recurring`,
+      method: 'PATCH',
+      body: { status: 'active' },
+      prefer: 'return=representation'
+    });
+    if (Array.isArray(rows)) resumed.push(...rows);
+  }
+  return resumed;
+}
+
 module.exports = {
   insertTrainingSessions,
   findExistingSessions,
@@ -1918,15 +2421,18 @@ module.exports = {
   getWeeklyCheckinById,
   getWeeklyCheckinByBatch,
   listWeeklyCheckinsByAthlete,
+  listWeeklyCheckinsByAthleteIds,
   getWeeklyCheckinDetail,
   updateWeeklyCheckin,
   listPublishedBlogArticles,
   getPublishedBlogArticleBySlug,
   getBlogArticleById,
+  getBlogArticleBySlugAny,
   listBlogArticlesAdmin,
   createBlogArticle,
   updateBlogArticle,
   softDeleteBlogArticle,
+  archiveDeletedBlogArticleSlug,
   getBlogContentProductionByArticle,
   upsertBlogContentProduction,
   updateBlogContentProductionByArticle,
@@ -1935,6 +2441,14 @@ module.exports = {
   insertBlogContentProduction,
   listStandaloneProductions,
   insertMetaLead,
+  getCentralLeadByIdentity,
+  getCentralLeadByEmail,
+  getCentralLeadByPhone,
+  getCentralLeadBySourceRef,
+  getCentralLeadById,
+  createCentralLead,
+  updateCentralLead,
+  upsertCentralLead,
   listMetaLeads,
   updateMetaLead,
   listAiPrompts,
@@ -1979,5 +2493,11 @@ module.exports = {
   cancelOrphanedSessions,
   getStrengthSessionHistory,
   getStrengthLogSetsForSessions,
-  getOnboardingIntakeByIdentity
+  getOnboardingIntakeByIdentity,
+  getOnboardingFormResponsesByIdentity,
+  getStripePurchasesForIdentity,
+  getAllInstancesForAthlete,
+  getStripePurchasesBySubscriptionId,
+  pauseInstancesByStripeSubscription,
+  resumeInstancesByStripeSubscription,
 };

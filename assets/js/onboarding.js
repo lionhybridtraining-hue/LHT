@@ -1,9 +1,8 @@
 // Onboarding Stepper — Lion Hybrid Training
 (function(){
-  const SUPABASE_URL = 'https://rlivxjarqpqmvjtgmxhh.supabase.co';
-  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJsaXZ4amFycXBxbXZqdGdteGhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MDk3NzcsImV4cCI6MjA4OTE4NTc3N30.MHwkQnytSCOBleYVOF5hJHWiV8d_-2V9UGIqsLTgjIY';
   const COACH_LINK = 'https://home.trainingpeaks.com/attachtocoach?sharedKey=MV4HA6K2QLXYI';
   const COMMUNITY_LINK = 'https://chat.whatsapp.com/IIeEUlwh5oXCa87bNxWM5w';
+  const DEFAULT_AUTH_MAX_SESSION_SECONDS = 24 * 60 * 60;
 
   const STORAGE_KEY = 'lht_onboarding_state_v1';
   const INTAKE_SCHEMA = [
@@ -121,6 +120,7 @@
 
   let currentIndex = clampIndex(steps.findIndex(s => s.id === state.current) >= 0 ? steps.findIndex(s => s.id === state.current) : 0);
   let supabaseClient = null;
+  let publicConfig = null;
   let currentUser = null;
   let accessToken = '';
   let intakeDraft = null;
@@ -167,6 +167,46 @@
     else { console.info('[onboarding.event]', name, meta||{}); }
   }
 
+  async function loadPublicConfig(){
+    if(publicConfig) return publicConfig;
+    const response = await fetch('/.netlify/functions/public-config');
+    const payload = await response.json().catch(() => ({}));
+    if(!response.ok){
+      throw new Error((payload && payload.error) ? payload.error : 'Nao foi possivel carregar configuracao publica.');
+    }
+    publicConfig = {
+      supabaseUrl: payload.supabaseUrl,
+      supabaseAnonKey: payload.supabaseAnonKey,
+      authMaxSessionSeconds: Number(payload.authMaxSessionSeconds) || DEFAULT_AUTH_MAX_SESSION_SECONDS
+    };
+    return publicConfig;
+  }
+
+  function getSessionIssuedAt(session){
+    return session && session.user
+      ? (session.user.last_sign_in_at || session.user.created_at || null)
+      : null;
+  }
+
+  function isSessionOverMaxAge(session){
+    const issuedAt = getSessionIssuedAt(session);
+    if(!issuedAt) return false;
+    const issuedMs = new Date(issuedAt).getTime();
+    if(!Number.isFinite(issuedMs)) return false;
+    const maxAge = publicConfig && publicConfig.authMaxSessionSeconds
+      ? publicConfig.authMaxSessionSeconds
+      : DEFAULT_AUTH_MAX_SESSION_SECONDS;
+    return Math.floor((Date.now() - issuedMs) / 1000) > maxAge;
+  }
+
+  async function enforceSessionMaxAge(session){
+    if(supabaseClient && isSessionOverMaxAge(session)){
+      await supabaseClient.auth.signOut({ scope: 'local' });
+      return true;
+    }
+    return false;
+  }
+
   function setProgress(){
     const el = document.getElementById('onb-progress');
     if(!el) return;
@@ -193,14 +233,17 @@
       return;
     }
 
-    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const config = await loadPublicConfig();
+    supabaseClient = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
 
     const { data: { session } } = await supabaseClient.auth.getSession();
     authReady = true;
-    setSession(session || null);
+    const expired = await enforceSessionMaxAge(session || null);
+    setSession(expired ? null : (session || null));
 
-    supabaseClient.auth.onAuthStateChange((_event, sessionState) => {
-      setSession(sessionState || null);
+    supabaseClient.auth.onAuthStateChange(async (_event, sessionState) => {
+      const nextExpired = await enforceSessionMaxAge(sessionState || null);
+      setSession(nextExpired ? null : (sessionState || null));
     });
   }
 
@@ -216,8 +259,22 @@
     render();
   }
 
+  async function getValidAccessToken(){
+    if(!supabaseClient) return '';
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    const expired = await enforceSessionMaxAge(session || null);
+    if(expired || !session || !session.access_token){
+      setSession(null);
+      return '';
+    }
+    currentUser = session.user || null;
+    accessToken = session.access_token || '';
+    return accessToken;
+  }
+
   async function refreshAccessState(){
-    if(!currentUser || !accessToken){
+    const token = await getValidAccessToken();
+    if(!currentUser || !token){
       accessState = { status: 'idle', program: null, purchase: null, message: '' };
       render();
       return;
@@ -229,7 +286,7 @@
     try {
       const response = await fetch('/.netlify/functions/check-access?' + buildProgramQuery(), {
         method: 'GET',
-        headers: { Authorization: 'Bearer ' + accessToken }
+        headers: { Authorization: 'Bearer ' + token }
       });
       const payload = await response.json();
       if(!response.ok){
@@ -274,12 +331,13 @@
   }
 
   async function loadIntakeDraft(){
-    if(!accessToken) return;
+    const token = await getValidAccessToken();
+    if(!token) return;
     loadingIntake = true;
     try {
       const response = await fetch('/.netlify/functions/onboarding-intake?' + buildProgramQuery(), {
         method: 'GET',
-        headers: { Authorization: 'Bearer ' + accessToken }
+        headers: { Authorization: 'Bearer ' + token }
       });
       if(response.ok){
         const payload = await response.json();

@@ -19,6 +19,7 @@ const {
 } = require("./_lib/ai");
 
 const VALID_MODES = ["full", "abc_from_article", "draft_from_idea", "abc_standalone"];
+const VALID_WORKFLOW_STAGES = ["idea", "draft_ready", "article_saved", "published", "abc_ready", "variant_selected", "shared_manual"];
 
 class ValidationError extends Error {}
 
@@ -70,6 +71,56 @@ function normalizeVariants(raw) {
   });
 }
 
+function normalizeWorkflowStage(value) {
+  const stage = safeString(value).toLowerCase();
+  if (!stage) return "";
+  if (!VALID_WORKFLOW_STAGES.includes(stage)) {
+    throw new ValidationError(`workflowStage must be one of: ${VALID_WORKFLOW_STAGES.join(", ")}`);
+  }
+  return stage;
+}
+
+function deriveWorkflowStage(row) {
+  const stored = safeString(row && row.workflow_stage).toLowerCase();
+  if (VALID_WORKFLOW_STAGES.includes(stored)) return stored;
+
+  const status = safeString(row && row.status).toLowerCase();
+  const selectedVariant = safeString(row && row.selected_variant).toUpperCase();
+  const generatedBlog = row && row.generated_blog && typeof row.generated_blog === "object" ? row.generated_blog : {};
+  const hasGeneratedBlog = Boolean(safeString(generatedBlog.title) || safeString(generatedBlog.content));
+  const hasVariants = normalizeVariants(row && row.whatsapp_variants).some((item) => item.text);
+
+  if (row && row.manual_shared_at) return "shared_manual";
+  if (["A", "B", "C"].includes(selectedVariant)) return "variant_selected";
+  if (hasVariants || status === "generated" || status === "failed_generation") return "abc_ready";
+  if (row && row.article_id) return "article_saved";
+  if (hasGeneratedBlog) return "draft_ready";
+  return "idea";
+}
+
+function isMissingWorkflowColumnError(error) {
+  const message = safeString(error && error.message).toLowerCase();
+  return message.includes("workflow_stage") && (message.includes("column") || message.includes("schema cache"));
+}
+
+function withoutWorkflowColumn(payload) {
+  if (!payload || typeof payload !== "object") return payload;
+  const next = { ...payload };
+  delete next.workflow_stage;
+  return next;
+}
+
+async function runProductionMutation(operation, payload) {
+  try {
+    return await operation(payload);
+  } catch (error) {
+    if (!isMissingWorkflowColumnError(error) || !payload || payload.workflow_stage === undefined) {
+      throw error;
+    }
+    return operation(withoutWorkflowColumn(payload));
+  }
+}
+
 function mapProduction(row) {
   if (!row) return null;
   const generatedBlog = row.generated_blog && typeof row.generated_blog === "object" ? row.generated_blog : {};
@@ -78,6 +129,7 @@ function mapProduction(row) {
     articleId: row.article_id || null,
     status: row.status || "not_generated",
     generationMode: row.generation_mode || "full",
+    workflowStage: deriveWorkflowStage(row),
     briefing: row.briefing_data && typeof row.briefing_data === "object" ? row.briefing_data : {},
     generatedBlog: {
       title: safeString(generatedBlog.title),
@@ -99,11 +151,16 @@ function mapProduction(row) {
 async function loadArticleSeed(config, articleId) {
   const article = await getBlogArticleById(config, articleId);
   if (!article) throw new ValidationError("Article not found");
+  const baseUrl = safeString(config && config.siteUrl).replace(/\/+$/, "");
+  const slug = safeString(article.slug);
+  const articleUrl = baseUrl && slug ? `${baseUrl}/blog/${encodeURIComponent(slug)}` : "";
   return {
     title: safeString(article.title),
     excerpt: safeString(article.excerpt),
     category: safeString(article.category) || "Artigo",
-    content: article.content == null ? "" : String(article.content)
+    content: article.content == null ? "" : String(article.content),
+    slug,
+    url: articleUrl
   };
 }
 
@@ -143,6 +200,7 @@ async function handlePostFull(config, payload) {
     return json(200, {
       production: {
         id: null, articleId: null, status, generationMode: "full",
+        workflowStage: "draft_ready",
         briefing, generatedBlog: generated.blog,
         whatsappVariants: normalizeVariants(generated.whatsappVariants),
         selectedVariant: null, regenerateOnPublish, extraInstructions,
@@ -152,14 +210,15 @@ async function handlePostFull(config, payload) {
     });
   }
 
-  const saved = await upsertBlogContentProduction(config, {
+  const saved = await runProductionMutation((nextPayload) => upsertBlogContentProduction(config, nextPayload), {
     article_id: articleId, status, generation_mode: "full",
     briefing_data: briefing, generated_blog: generated.blog,
     whatsapp_variants: normalizeVariants(generated.whatsappVariants),
     regenerate_on_publish: regenerateOnPublish,
     extra_instructions: extraInstructions,
     generation_error: error, selected_variant: null,
-    manual_shared_at: null, updated_at: new Date().toISOString()
+    manual_shared_at: null, updated_at: new Date().toISOString(),
+    workflow_stage: "abc_ready"
   });
   return json(200, { production: mapProduction(saved) });
 }
@@ -185,14 +244,21 @@ async function handlePostAbcFromArticle(config, payload) {
   const status = generated.generationSource === "fallback" ? "failed_generation" : "generated";
   const error = generated.generationSource === "fallback" ? "Fallback generation used" : null;
 
-  const saved = await upsertBlogContentProduction(config, {
+  const existing = await getBlogContentProductionByArticle(config, articleId);
+  const preservedGeneratedBlog = existing && existing.generated_blog && typeof existing.generated_blog === "object"
+    ? existing.generated_blog
+    : {};
+  const preservedSelectedVariant = existing ? safeString(existing.selected_variant).toUpperCase() || null : null;
+
+  const saved = await runProductionMutation((nextPayload) => upsertBlogContentProduction(config, nextPayload), {
     article_id: articleId, status, generation_mode: "abc_from_article",
-    briefing_data: briefing, generated_blog: {},
+    briefing_data: briefing, generated_blog: preservedGeneratedBlog,
     whatsapp_variants: normalizeVariants(generated.whatsappVariants),
     regenerate_on_publish: false,
     extra_instructions: extraInstructions,
-    generation_error: error, selected_variant: null,
-    manual_shared_at: null, updated_at: new Date().toISOString()
+    generation_error: error, selected_variant: preservedSelectedVariant,
+    manual_shared_at: null, updated_at: new Date().toISOString(),
+    workflow_stage: preservedSelectedVariant ? "variant_selected" : "abc_ready"
   });
   return json(200, { production: mapProduction(saved) });
 }
@@ -214,14 +280,15 @@ async function handlePostDraftFromIdea(config, payload) {
   const status = generated.generationSource === "fallback" ? "failed_generation" : "generated";
   const error = generated.generationSource === "fallback" ? "Fallback generation used" : null;
 
-  const saved = await insertBlogContentProduction(config, {
+  const saved = await runProductionMutation((nextPayload) => insertBlogContentProduction(config, nextPayload), {
     article_id: null, status, generation_mode: "draft_from_idea",
     briefing_data: briefing, generated_blog: generated.blog,
     whatsapp_variants: [],
     regenerate_on_publish: false,
     extra_instructions: extraInstructions,
     generation_error: error, selected_variant: null,
-    manual_shared_at: null, updated_at: new Date().toISOString()
+    manual_shared_at: null, updated_at: new Date().toISOString(),
+    workflow_stage: "draft_ready"
   });
   return json(200, { production: mapProduction(saved) });
 }
@@ -243,14 +310,15 @@ async function handlePostAbcStandalone(config, payload) {
   const status = generated.generationSource === "fallback" ? "failed_generation" : "generated";
   const error = generated.generationSource === "fallback" ? "Fallback generation used" : null;
 
-  const saved = await insertBlogContentProduction(config, {
+  const saved = await runProductionMutation((nextPayload) => insertBlogContentProduction(config, nextPayload), {
     article_id: null, status, generation_mode: "abc_standalone",
     briefing_data: briefing, generated_blog: {},
     whatsapp_variants: normalizeVariants(generated.whatsappVariants),
     regenerate_on_publish: false,
     extra_instructions: extraInstructions,
     generation_error: error, selected_variant: null,
-    manual_shared_at: null, updated_at: new Date().toISOString()
+    manual_shared_at: null, updated_at: new Date().toISOString(),
+    workflow_stage: "abc_ready"
   });
   return json(200, { production: mapProduction(saved) });
 }
@@ -319,12 +387,28 @@ exports.handler = async (event) => {
       patch.regenerate_on_publish = parseBoolean(payload.regenerateOnPublish, true);
     }
 
+    const workflowStage = normalizeWorkflowStage(payload.workflowStage);
+    if (workflowStage) {
+      patch.workflow_stage = workflowStage;
+    }
+
+    const linkArticleId = safeString(payload.linkArticleId);
+    if (linkArticleId) {
+      patch.article_id = linkArticleId;
+      if (!patch.workflow_stage) {
+        patch.workflow_stage = "article_saved";
+      }
+    }
+
     const selectedVariant = safeString(payload.selectedVariant).toUpperCase();
     if (selectedVariant) {
       if (!["A", "B", "C"].includes(selectedVariant)) {
         throw new ValidationError("selectedVariant must be A, B or C");
       }
       patch.selected_variant = selectedVariant;
+      if (!patch.workflow_stage) {
+        patch.workflow_stage = "variant_selected";
+      }
     }
 
     if (Array.isArray(payload.whatsappVariants)) {
@@ -334,6 +418,7 @@ exports.handler = async (event) => {
     if (parseBoolean(payload.markShared, false)) {
       patch.status = "shared_manual";
       patch.manual_shared_at = new Date().toISOString();
+      patch.workflow_stage = "shared_manual";
     }
 
     if (!Object.keys(patch).length) {
@@ -344,11 +429,11 @@ exports.handler = async (event) => {
 
     let updated;
     if (recordId) {
-      updated = await updateBlogContentProductionById(config, recordId, patch);
+      updated = await runProductionMutation((nextPayload) => updateBlogContentProductionById(config, recordId, nextPayload), patch);
     } else {
-      updated = await updateBlogContentProductionByArticle(config, articleId, patch);
+      updated = await runProductionMutation((nextPayload) => updateBlogContentProductionByArticle(config, articleId, nextPayload), patch);
       if (!updated) {
-        updated = await upsertBlogContentProduction(config, {
+        updated = await runProductionMutation((nextPayload) => upsertBlogContentProduction(config, nextPayload), {
           article_id: articleId,
           status: patch.status || "not_generated",
           generation_mode: "full",
@@ -360,7 +445,8 @@ exports.handler = async (event) => {
           extra_instructions: "",
           manual_shared_at: patch.manual_shared_at || null,
           generation_error: null,
-          updated_at: patch.updated_at
+          updated_at: patch.updated_at,
+          workflow_stage: patch.workflow_stage || (patch.selected_variant ? "variant_selected" : (patch.manual_shared_at ? "shared_manual" : "article_saved"))
         });
       }
     }

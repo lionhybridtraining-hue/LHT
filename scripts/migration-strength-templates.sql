@@ -69,5 +69,5 @@ create index if not exists strength_log_sets_instance_idx
 on strength_log_sets (instance_id, week_number)
 where instance_id is not null;
 
--- 5. Move load_round from strength_plans default to instance-level
--- (keep it on plans as default, instance overrides it)
+-- 5. Remove legacy plan-level load rounding
+alter table strength_plans drop column if exists load_round;

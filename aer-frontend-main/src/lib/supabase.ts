@@ -1,15 +1,38 @@
 import { createClient } from "@supabase/supabase-js";
+import type { Session } from "@supabase/supabase-js";
 
-const FALLBACK_SUPABASE_URL = "https://rlivxjarqpqmvjtgmxhh.supabase.co";
-const FALLBACK_SUPABASE_ANON_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJsaXZ4amFycXBxbXZqdGdteGhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MDk3NzcsImV4cCI6MjA4OTE4NTc3N30.MHwkQnytSCOBleYVOF5hJHWiV8d_-2V9UGIqsLTgjIY";
+function requireEnv(name: "VITE_SUPABASE_URL" | "VITE_SUPABASE_ANON_KEY") {
+  const value = import.meta.env[name];
+  if (!value) {
+    throw new Error(`Missing environment variable: ${name}`);
+  }
+  return value as string;
+}
 
-const supabaseUrl =
-  import.meta.env.VITE_SUPABASE_URL || FALLBACK_SUPABASE_URL;
-const supabaseAnonKey =
-  import.meta.env.VITE_SUPABASE_ANON_KEY || FALLBACK_SUPABASE_ANON_KEY;
+const MAX_SESSION_AGE_SECONDS = Number(import.meta.env.VITE_AUTH_MAX_SESSION_SECONDS || 24 * 60 * 60);
+
+const supabaseUrl = requireEnv("VITE_SUPABASE_URL");
+const supabaseAnonKey = requireEnv("VITE_SUPABASE_ANON_KEY");
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+export function isSessionOverMaxAge(session: Session | null) {
+  if (!session?.user) return false;
+  const issuedAt = session.user.last_sign_in_at || session.user.created_at || null;
+  if (!issuedAt) return false;
+  const issuedMs = new Date(issuedAt).getTime();
+  if (!Number.isFinite(issuedMs)) return false;
+  const ageSeconds = Math.floor((Date.now() - issuedMs) / 1000);
+  return ageSeconds > MAX_SESSION_AGE_SECONDS;
+}
+
+export async function enforceSessionMaxAge(session: Session | null) {
+  if (isSessionOverMaxAge(session)) {
+    await supabase.auth.signOut({ scope: "local" });
+    return true;
+  }
+  return false;
+}
 
 export function buildAppRedirectUrl(path: string) {
   const basename = import.meta.env.VITE_ROUTER_BASENAME || "/";
@@ -34,5 +57,7 @@ export async function getAccessToken() {
   const {
     data: { session },
   } = await supabase.auth.getSession();
+  const expiredByPolicy = await enforceSessionMaxAge(session);
+  if (expiredByPolicy) return "";
   return session?.access_token || "";
 }

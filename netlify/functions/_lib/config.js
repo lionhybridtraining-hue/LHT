@@ -9,6 +9,7 @@ function requireEnv(name) {
 function getConfig() {
   return {
     supabaseUrl: requireEnv("SUPABASE_URL"),
+    supabaseAnonKey: process.env.SUPABASE_ANON_KEY || "",
     supabaseServiceRoleKey: requireEnv("SUPABASE_SERVICE_ROLE_KEY"),
     stripeSecretKey: process.env.STRIPE_SECRET_KEY || "",
     stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET || "",

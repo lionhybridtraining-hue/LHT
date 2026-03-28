@@ -94,17 +94,27 @@
       justify-content: space-between;
       gap: 16px;
       padding: 14px 18px;
-      border: 1px solid var(--line);
-      border-radius: 999px;
-      background: rgba(17, 17, 17, 0.74);
-      backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--line);
     }
 
     .top-bar {
-      position: sticky;
-      top: 0;
-      z-index: 50;
+      position: relative;
+      z-index: 30;
       margin-bottom: 24px;
+      width: 100vw;
+      margin-left: calc(50% - 50vw);
+      padding: 12px 16px 0;
+    }
+
+    .top-bar-shell {
+      width: min(1200px, 100%);
+      margin: 0 auto;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: linear-gradient(180deg, rgba(18, 18, 18, 0.9), rgba(10, 10, 10, 0.96));
+      backdrop-filter: blur(14px);
+      box-shadow: 0 14px 34px rgba(0, 0, 0, 0.42);
+      overflow: hidden;
     }
 
     .brand { display: flex; align-items: center; gap: 14px; }
@@ -523,6 +533,10 @@
       .form-actions,
       .modal-actions { flex-direction: column; align-items: flex-start; }
 
+      .top-bar {
+        padding: 10px 10px 0;
+      }
+
       .brandbar-right {
         flex-direction: column;
         align-items: flex-start;
@@ -577,7 +591,10 @@
 
       .brandbar {
         padding: 12px 14px;
-        border-radius: 18px;
+      }
+
+      .top-bar-shell {
+        border-radius: 16px;
       }
 
       .brand img { width: 40px; height: 40px; }
@@ -625,46 +642,54 @@
 
     .coach-tabs {
       display: flex;
-      gap: 0;
-      padding: 0;
-      border-bottom: 2px solid var(--line);
-      background: rgba(12,12,12,0.97);
-      backdrop-filter: blur(10px);
-      border-radius: 0 0 var(--radius-md) var(--radius-md);
+      gap: 6px;
+      padding: 8px;
+      margin-top: 0;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      background: rgba(8, 8, 8, 0.55);
+      overflow-x: auto;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(212, 165, 79, 0.5) transparent;
     }
 
     .coach-tab-btn {
       position: relative;
-      border: none;
-      background: transparent;
+      border: 1px solid transparent;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.015);
       color: var(--muted);
-      padding: 16px 28px;
-      font-size: 14px;
+      padding: 10px 14px;
+      font-size: 13px;
       font-family: "Oswald", sans-serif;
       text-transform: uppercase;
-      letter-spacing: 0.08em;
+      letter-spacing: 0.06em;
       cursor: pointer;
-      transition: color 0.2s ease;
+      transition: color 0.2s ease, background 0.2s ease, border-color 0.2s ease;
       white-space: nowrap;
+      flex: 1 0 auto;
     }
 
     .coach-tab-btn:hover {
       color: var(--text);
+      background: rgba(255, 255, 255, 0.04);
     }
 
     .coach-tab-btn.active {
       color: var(--gold);
       font-weight: 600;
+      border-color: var(--line-strong);
+      background: linear-gradient(180deg, rgba(212, 165, 79, 0.16), rgba(212, 165, 79, 0.05));
     }
 
     .coach-tab-btn.active::after {
       content: "";
       position: absolute;
-      bottom: -1px;
-      left: 0;
-      right: 0;
+      bottom: 5px;
+      left: 10px;
+      right: 10px;
       height: 2px;
       background: var(--gold);
+      border-radius: 999px;
     }
     .str-section-header .phase-note { font-size:11px; color:var(--muted); max-width:400px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer; border-bottom:1px dashed transparent; padding:2px 4px; border-radius:3px; min-width:60px; }
     .str-section-header .phase-note:hover { border-bottom-color:var(--muted); background:rgba(255,255,255,0.04); }
@@ -753,6 +778,44 @@
 
     .str-add-btn { padding:2px 8px; font-size:11px; border-radius:6px; cursor:pointer; }
     .str-rm-btn { background:none; border:none; color:var(--error); cursor:pointer; font-size:14px; padding:0 4px; }
+    .str-order-cell { display:flex; align-items:center; gap:6px; }
+    .str-drag-handle {
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      width:16px;
+      color:var(--muted);
+      cursor:grab;
+      user-select:none;
+      font-size:11px;
+      line-height:1;
+    }
+    .str-drag-handle:hover { color:var(--gold); }
+    .str-drag-handle:active { cursor:grabbing; }
+    .str-row-dragging { opacity:0.45; }
+    .str-row-drop-target td { box-shadow: inset 0 2px 0 rgba(212, 165, 79, 0.7); }
+    .str-touch-move { display:none; align-items:center; gap:2px; }
+    .str-move-btn {
+      width:16px;
+      height:16px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      padding:0;
+      border:1px solid var(--line);
+      border-radius:4px;
+      background:rgba(255,255,255,0.04);
+      color:var(--text-soft);
+      font-size:10px;
+      line-height:1;
+      cursor:pointer;
+    }
+    .str-move-btn:hover { border-color:var(--line-strong); color:var(--gold); }
+
+    @media (pointer: coarse) {
+      .str-touch-move { display:inline-flex; }
+      .str-drag-handle { display:none; }
+    }
 
     .status-badge {
       display:inline-block; padding:2px 8px; border-radius:8px; font-size:11px; font-weight:600; text-transform:uppercase;
@@ -773,34 +836,44 @@
     </div>
   </section>
 
+  <section id="coach-unauthorized-gate" class="auth-gate" hidden>
+    <div class="auth-gate-card">
+      <span class="eyebrow">Acesso negado</span>
+      <h2>Sem permissão</h2>
+      <p>A tua conta não tem autorização para aceder ao painel de coach.</p>
+      <button id="coach-unauth-logout-btn" type="button" class="btn btn-secondary">Terminar sessão</button>
+    </div>
+  </section>
+
   <div id="protected-content" class="page-shell" hidden>
     <header class="top-bar">
-    <div class="brandbar">
-      <div class="brand">
-        <img src="../assets/img/logo-lht.png" alt="Lion Hybrid Training" />
-        <div>
-          <span class="eyebrow">Lion Hybrid Training</span>
-          <p class="brand-title">Coach Upload</p>
-        </div>
-      </div>
-      <div class="brandbar-right">
-        <div class="brand-badge">TrainingPeaks weekly import</div>
-        <div class="brandbar-auth">
-          <span id="auth-status">Não autenticado</span>
-          <div class="brandbar-auth-controls">
-            <button id="login-btn" type="button" class="btn btn-secondary" style="padding:8px 14px; font-size:12px;">Entrar</button>
-            <button id="logout-btn" type="button" class="btn btn-secondary" style="padding:8px 14px; font-size:12px;" disabled>Sair</button>
+      <div class="top-bar-shell">
+        <div class="brandbar">
+          <div class="brand">
+            <img src="../assets/img/logo-lht.png" alt="Lion Hybrid Training" />
+            <div>
+              <span class="eyebrow">Lion Hybrid Training</span>
+              <p class="brand-title">Coach Upload</p>
+            </div>
+          </div>
+          <div class="brandbar-right">
+            <div class="brandbar-auth">
+              <span id="auth-status">Não autenticado</span>
+              <div class="brandbar-auth-controls">
+                <button id="login-btn" type="button" class="btn btn-secondary" style="padding:8px 14px; font-size:12px;">Entrar</button>
+                <button id="logout-btn" type="button" class="btn btn-secondary" style="padding:8px 14px; font-size:12px;" disabled>Sair</button>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
-    </div>
 
-    <div class="coach-tabs" id="coachTabs">
-      <button class="coach-tab-btn active" type="button" data-coach-tab="athlete">Atleta</button>
-      <button class="coach-tab-btn" type="button" data-coach-tab="general">Geral</button>
-      <button class="coach-tab-btn" type="button" data-coach-tab="strength">Treino de Força</button>
-      <button class="coach-tab-btn" type="button" data-coach-tab="exercises">Exercícios</button>
-    </div>
+        <div class="coach-tabs" id="coachTabs">
+          <button class="coach-tab-btn active" type="button" data-coach-tab="athlete">Atleta</button>
+          <button class="coach-tab-btn" type="button" data-coach-tab="general">Geral</button>
+          <button class="coach-tab-btn" type="button" data-coach-tab="strength">Treino de Força</button>
+          <button class="coach-tab-btn" type="button" data-coach-tab="exercises">Exercícios</button>
+        </div>
+      </div>
     </header>
 
     <main class="layout">
@@ -993,7 +1066,8 @@
               <button class="btn btn-small btn-ghost" id="editPlanMetaBtn" title="Editar plano">✏</button>
               <button class="btn btn-small" id="activatePlanBtn" hidden>Ativar</button>
               <button class="btn btn-small btn-ghost" id="archivePlanBtn" hidden>Arquivar</button>
-              <button class="btn btn-small" id="assignPlanBtn" hidden>Atribuir a Atleta</button>
+              <button class="btn btn-small" id="unarchivePlanBtn" hidden>Desarquivar</button>
+              <button class="btn btn-small" id="assignPlanBtn" hidden>Criar Instância</button>
               <span class="save-area">
                 <span id="strSaveStatus" class="save-status idle"></span>
                 <button class="btn btn-small btn-primary" id="strSaveBtn" title="Guardar alterações (Ctrl+S)">💾 Guardar</button>
@@ -1002,7 +1076,8 @@
 
             <!-- Active instances for this plan -->
             <div id="strengthPlanInstances" hidden style="margin-bottom:8px; padding:8px 12px; border:1px solid var(--line); border-radius:var(--radius-md); background:var(--surface-2);">
-              <span class="microcopy" style="font-weight:600;">Atribuições ativas:</span>
+              <span class="microcopy" style="font-weight:600;">Instâncias ativas:</span>
+              <div class="microcopy" style="margin-top:4px;">A atribuição comercial do programa é feita no admin. No coach geres apenas instâncias de força dos teus atletas.</div>
               <div id="strengthInstancesList" style="margin-top:4px;"></div>
             </div>
 
@@ -1138,10 +1213,10 @@
     </div>
   </div>
 
-  <!-- Assign Plan to Athlete Modal -->
+  <!-- Create Strength Instance Modal -->
   <div id="assignPlanModal" class="modal-backdrop hidden" role="dialog" aria-modal="true">
     <div class="modal">
-      <h3>Atribuir Plano a Atleta</h3>
+      <h3>Criar Instância de Força</h3>
       <p id="assignPlanLabel" class="microcopy"></p>
       <form id="assignPlanForm">
         <div class="form-grid">
@@ -1150,6 +1225,7 @@
             <select id="assignAthleteSelect" required>
               <option value="">— Selecionar atleta —</option>
             </select>
+            <small class="field-hint">Só podes criar instâncias para atletas que já estão atribuídos a ti. A atribuição do programa comercial é admin-only.</small>
           </div>
           <div class="field">
             <label for="assignStartDate">Data início (opcional)</label>
@@ -1161,7 +1237,7 @@
           </div>
         </div>
         <div class="modal-actions">
-          <button class="btn btn-primary" type="submit" id="assignSaveBtn">Atribuir</button>
+          <button class="btn btn-primary" type="submit" id="assignSaveBtn">Criar Instância</button>
           <button class="btn btn-secondary" type="button" id="assignCancelBtn">Cancelar</button>
         </div>
       </form>
@@ -1338,6 +1414,7 @@
     const athleteSearchInput = document.getElementById("athleteSearch");
     const filterPayingOnly = document.getElementById("filterPayingOnly");
     const authGate = document.getElementById("coach-auth-gate");
+    const unauthorizedGate = document.getElementById("coach-unauthorized-gate");
     const protectedContent = document.getElementById("protected-content");
     const gateLoginBtn = document.getElementById("gate-login-btn");
     const athleteFilterMeta = document.getElementById("athleteFilterMeta");
@@ -1386,10 +1463,10 @@
     const loginBtn = document.getElementById("login-btn");
     const logoutBtn = document.getElementById("logout-btn");
 
-    const SUPABASE_URL = 'https://rlivxjarqpqmvjtgmxhh.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJsaXZ4amFycXBxbXZqdGdteGhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MDk3NzcsImV4cCI6MjA4OTE4NTc3N30.MHwkQnytSCOBleYVOF5hJHWiV8d_-2V9UGIqsLTgjIY';
+    const DEFAULT_AUTH_MAX_SESSION_SECONDS = 24 * 60 * 60;
     
     let supabaseClient = null;
+    let publicConfig = null;
 
     let athletes = [];
     let selectedAthleteId = "";
@@ -1397,8 +1474,49 @@
     let allCheckins = [];
     let state = {
       user: null,
-      token: null
+      token: null,
+      roles: []
     };
+
+    async function loadPublicConfig() {
+      if (publicConfig) return publicConfig;
+      const response = await fetch('/.netlify/functions/public-config');
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error((payload && payload.error) ? payload.error : 'Nao foi possivel carregar configuracao publica.');
+      }
+      publicConfig = {
+        supabaseUrl: payload.supabaseUrl,
+        supabaseAnonKey: payload.supabaseAnonKey,
+        authMaxSessionSeconds: Number(payload.authMaxSessionSeconds) || DEFAULT_AUTH_MAX_SESSION_SECONDS
+      };
+      return publicConfig;
+    }
+
+    function getSessionIssuedAt(session) {
+      return session && session.user
+        ? (session.user.last_sign_in_at || session.user.created_at || null)
+        : null;
+    }
+
+    function isSessionOverMaxAge(session) {
+      const issuedAt = getSessionIssuedAt(session);
+      if (!issuedAt) return false;
+      const issuedMs = new Date(issuedAt).getTime();
+      if (!Number.isFinite(issuedMs)) return false;
+      const maxAge = publicConfig && publicConfig.authMaxSessionSeconds
+        ? publicConfig.authMaxSessionSeconds
+        : DEFAULT_AUTH_MAX_SESSION_SECONDS;
+      return Math.floor((Date.now() - issuedMs) / 1000) > maxAge;
+    }
+
+    async function enforceSessionMaxAge(session) {
+      if (supabaseClient && isSessionOverMaxAge(session)) {
+        await supabaseClient.auth.signOut({ scope: 'local' });
+        return true;
+      }
+      return false;
+    }
 
     async function getToken() {
       if (state.token) {
@@ -1406,6 +1524,11 @@
       }
 
       const { data: { session } } = await supabaseClient.auth.getSession();
+      const expired = await enforceSessionMaxAge(session || null);
+      if (expired) {
+        await handleAuthChange(null, null);
+        throw new Error('Sessao expirada. Faz login novamente.');
+      }
       if (!session || !session.access_token) {
         throw new Error('Nao autenticado. Faz login novamente.');
       }
@@ -1439,10 +1562,12 @@
     }
 
     function setAuthUI() {
-      const viewingAllowed = Boolean(state.user);
-      const canUseApi = Boolean(state.user);
+      const isAuthorized = Boolean(state.user) && (state.roles.includes('coach') || state.roles.includes('admin'));
+      const viewingAllowed = isAuthorized;
+      const canUseApi = isAuthorized;
 
-      authGate.hidden = viewingAllowed;
+      authGate.hidden = Boolean(state.user);
+      unauthorizedGate.hidden = !(Boolean(state.user) && !isAuthorized);
       protectedContent.hidden = !viewingAllowed;
       document.body.classList.toggle("auth-locked", !viewingAllowed);
 
@@ -1472,9 +1597,19 @@
           email: supabaseUser.email
         };
         state.token = session && session.access_token ? session.access_token : null;
+        try {
+          const rolesRes = await fetch('/.netlify/functions/get-my-roles', {
+            headers: { Authorization: 'Bearer ' + state.token }
+          });
+          const rolesData = await rolesRes.json().catch(() => ({}));
+          state.roles = Array.isArray(rolesData.roles) ? rolesData.roles : [];
+        } catch (_) {
+          state.roles = [];
+        }
       } else {
         state.user = null;
         state.token = null;
+        state.roles = [];
       }
       
       setAuthUI();
@@ -2007,6 +2142,9 @@
         return;
       }
 
+      const confirmed = window.confirm("Aprovar este check-in com o feedback final atual?");
+      if (!confirmed) return;
+
       checkinApproveBtn.disabled = true;
       checkinApproveBtn.textContent = "A aprovar...";
 
@@ -2483,8 +2621,11 @@
     async function checkAuthOnLoad() {
       if (!supabaseClient) return;
       const { data: { session } } = await supabaseClient.auth.getSession();
-      if (session?.user) {
+      const expired = await enforceSessionMaxAge(session || null);
+      if (!expired && session?.user) {
         await handleAuthChange(session.user, session);
+      } else if (expired) {
+        await handleAuthChange(null, null);
       }
     }
 
@@ -2503,14 +2644,16 @@
 
       // Inicializar o client Supabase
       if (!supabaseClient) {
-        supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const config = await loadPublicConfig();
+        supabaseClient = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
         console.log('Supabase inicializado');
       }
 
       // Monitor de auth state changes
       supabaseClient.auth.onAuthStateChange(async (_event, session) => {
         try {
-          if (session?.user) {
+          const expired = await enforceSessionMaxAge(session || null);
+          if (!expired && session?.user) {
             await handleAuthChange(session.user, session);
           } else {
             await handleAuthChange(null, null);
@@ -2557,6 +2700,13 @@
           await handleAuthChange(null, null);
           window.location.replace('/coach');
         }
+      });
+
+      document.getElementById('coach-unauth-logout-btn').addEventListener('click', async () => {
+        try {
+          await supabaseClient.auth.signOut({ scope: 'local' });
+        } catch (_) {}
+        await handleAuthChange(null, null);
       });
     }
 
@@ -2722,6 +2872,78 @@
     let strOneRmRecords = []; // full records from API for modal display
     let strLoadedInstances = []; // active instances for current plan
     let strMonitor = { loading: false, error: null, progression: null, sessions: [] };
+    let strDragState = { peId: null, section: null };
+
+    function resetDragIndicators(root) {
+      const scope = root || document;
+      scope.querySelectorAll(".str-row-drop-target").forEach((el) => el.classList.remove("str-row-drop-target"));
+      scope.querySelectorAll(".str-row-dragging").forEach((el) => el.classList.remove("str-row-dragging"));
+    }
+
+    function normalizeSupersetAfterReorder(exercises) {
+      const groupCounts = {};
+      for (const ex of exercises) {
+        if (ex.superset_group) {
+          groupCounts[ex.superset_group] = (groupCounts[ex.superset_group] || 0) + 1;
+        }
+      }
+      const lastIdx = exercises.length - 1;
+      for (let i = 0; i < exercises.length; i++) {
+        const ex = exercises[i];
+        if (ex.superset_group && groupCounts[ex.superset_group] === 1 && i !== lastIdx) {
+          queueExerciseChange(ex.id, "superset_group", "");
+          ex.superset_group = "";
+        }
+      }
+    }
+
+    async function reorderSectionExercises(day, section, sourcePeId, targetPeId, insertAfter) {
+      if (!strCurrentPlan || !sourcePeId || !targetPeId || sourcePeId === targetPeId) return;
+
+      const ordered = getExercisesForDaySection(day, section);
+      const sourceIndex = ordered.findIndex((ex) => ex.id === sourcePeId);
+      const targetIndex = ordered.findIndex((ex) => ex.id === targetPeId);
+      if (sourceIndex < 0 || targetIndex < 0) return;
+
+      const reordered = [...ordered];
+      const [moved] = reordered.splice(sourceIndex, 1);
+      const adjustedTargetIndex = reordered.findIndex((ex) => ex.id === targetPeId);
+      const nextIndex = Math.max(0, adjustedTargetIndex + (insertAfter ? 1 : 0));
+      reordered.splice(nextIndex, 0, moved);
+
+      let hasAnyChange = false;
+      for (let i = 0; i < reordered.length; i++) {
+        const expectedOrder = i + 1;
+        if (reordered[i].exercise_order !== expectedOrder) {
+          queueExerciseChange(reordered[i].id, "exercise_order", expectedOrder);
+          reordered[i].exercise_order = expectedOrder;
+          hasAnyChange = true;
+        }
+      }
+
+      normalizeSupersetAfterReorder(reordered);
+
+      if (!hasAnyChange) return;
+
+      if (saveTimer) {
+        clearTimeout(saveTimer);
+        saveTimer = null;
+      }
+      await flushSave();
+      renderDayView();
+    }
+
+    async function moveSectionExerciseByOffset(day, section, sourcePeId, offset) {
+      if (!strCurrentPlan || !sourcePeId || !offset) return;
+      const ordered = getExercisesForDaySection(day, section);
+      const sourceIndex = ordered.findIndex((ex) => ex.id === sourcePeId);
+      if (sourceIndex < 0) return;
+      const targetIndex = sourceIndex + offset;
+      if (targetIndex < 0 || targetIndex >= ordered.length) return;
+      const targetPeId = ordered[targetIndex].id;
+      const insertAfter = offset > 0;
+      await reorderSectionExercises(day, section, sourcePeId, targetPeId, insertAfter);
+    }
 
     // DOM refs
     const strengthPlanSelect = document.getElementById("strengthPlanSelect");
@@ -3188,6 +3410,7 @@
         document.getElementById("strengthPlanWeeks").textContent = "";
         document.getElementById("activatePlanBtn").hidden = true;
         document.getElementById("archivePlanBtn").hidden = true;
+        document.getElementById("unarchivePlanBtn").hidden = true;
         document.getElementById("assignPlanBtn").hidden = true;
         return;
       }
@@ -3199,6 +3422,7 @@
       document.getElementById("strengthPlanWeeks").textContent = `${p.total_weeks} semanas · Carga arred. ${getEffectiveLoadRound()}kg`;
       document.getElementById("activatePlanBtn").hidden = p.status !== "draft";
       document.getElementById("archivePlanBtn").hidden = (p.status === "archived");
+      document.getElementById("unarchivePlanBtn").hidden = (p.status !== "archived");
       document.getElementById("assignPlanBtn").hidden = (p.status !== "active");
       loadPlanInstances(p.id);
     }
@@ -3347,6 +3571,8 @@
         const oneRm = strOneRms[exId];
         const loadRound = getEffectiveLoadRound();
         const row = document.createElement("tr");
+        row.setAttribute("data-peid", pe.id);
+        row.setAttribute("data-section", section);
         const lbl = orderLabels[ei] || { label: "?-", groupLetter: "?", index: 0 };
         if (lbl.index > 0) row.className = "superset-" + lbl.groupLetter;
         // Build order dropdown: current label + valid alternatives
@@ -3354,10 +3580,11 @@
         const allOpts = [lbl.label];
         for (const o of validOpts) { if (o !== lbl.label) allOpts.push(o); }
         const orderSelect = `<select data-field="order_label" data-peid="${pe.id}" data-eidx="${ei}" data-section="${section}" style="width:50px; font-size:12px; font-weight:600;">${allOpts.map(o => `<option value="${o}" ${o===lbl.label?"selected":""}>${o}</option>`).join("")}</select>`;
+        const moveButtons = `<span class="str-touch-move"><button type="button" class="str-move-btn" data-move-peid="${pe.id}" data-section="${section}" data-dir="-1" title="Mover para cima" aria-label="Mover para cima">↑</button><button type="button" class="str-move-btn" data-move-peid="${pe.id}" data-section="${section}" data-dir="1" title="Mover para baixo" aria-label="Mover para baixo">↓</button></span>`;
 
         if (section === "observations") {
           row.innerHTML = `
-            <td>${pe.exercise_order}</td>
+            <td><div class="str-order-cell"><span class="str-drag-handle" draggable="true" data-drag-peid="${pe.id}" data-section="${section}" title="Arrastar para reordenar">⋮⋮</span>${moveButtons}<span>${pe.exercise_order}</span></div></td>
             <td title="${exName}">${exName}</td>
             <td><input value="${rx.coach_notes || ''}" data-field="coach_notes" data-peid="${pe.id}" data-week="${week}" /></td>
             <td><button class="str-rm-btn" data-rmpe="${pe.id}" title="Remover">✕</button></td>
@@ -3365,7 +3592,7 @@
         } else if (section === "warm_up" || section === "conditioning") {
           const isDur = rx.prescription_type === "duration";
           row.innerHTML = `
-            <td>${orderSelect}</td>
+            <td><div class="str-order-cell"><span class="str-drag-handle" draggable="true" data-drag-peid="${pe.id}" data-section="${section}" title="Arrastar para reordenar">⋮⋮</span>${moveButtons}${orderSelect}</div></td>
             <td title="${exName}">${exName}</td>
             <td><input type="number" value="${rx.sets||''}" data-field="sets" data-peid="${pe.id}" data-week="${week}" min="1" /></td>
             <td><div class="reps-dur-cell">
@@ -3379,7 +3606,7 @@
         } else if (section === "plyos_speed") {
           const isDur = rx.prescription_type === "duration";
           row.innerHTML = `
-            <td>${orderSelect}</td>
+            <td><div class="str-order-cell"><span class="str-drag-handle" draggable="true" data-drag-peid="${pe.id}" data-section="${section}" title="Arrastar para reordenar">⋮⋮</span>${moveButtons}${orderSelect}</div></td>
             <td title="${exName}">${exName}</td>
             <td><input type="number" value="${rx.sets||''}" data-field="sets" data-peid="${pe.id}" data-week="${week}" min="1" /></td>
             <td><div class="reps-dur-cell">
@@ -3413,7 +3640,7 @@
           const { rmPercent, loadKg } = resolveLoad(rx, pe, oneRm, loadRound, week);
           const loadPlaceholder = loadKg != null ? loadKg.toFixed(1) : (oneRm ? "" : "sem 1RM");
           row.innerHTML = `
-            <td>${orderSelect}</td>
+            <td><div class="str-order-cell"><span class="str-drag-handle" draggable="true" data-drag-peid="${pe.id}" data-section="${section}" title="Arrastar para reordenar">⋮⋮</span>${moveButtons}${orderSelect}</div></td>
             <td title="${exName}${oneRm ? ' · 1RM: '+oneRm+'kg' : ''}">${exName}</td>
             <td><input type="number" value="${rx.sets||''}" data-field="sets" data-peid="${pe.id}" data-week="${week}" min="1" /></td>
             <td><div class="reps-dur-cell">
@@ -3442,6 +3669,11 @@
       table.addEventListener("change", handleTableChange);
       table.addEventListener("input", handleTableInput);
       table.addEventListener("click", handleTableClick);
+      table.addEventListener("dragstart", handleTableDragStart);
+      table.addEventListener("dragover", handleTableDragOver);
+      table.addEventListener("dragleave", handleTableDragLeave);
+      table.addEventListener("drop", handleTableDrop);
+      table.addEventListener("dragend", handleTableDragEnd);
 
       return table;
     }
@@ -3778,7 +4010,80 @@
       }
     }
 
+    function handleTableDragStart(e) {
+      const handle = e.target.closest(".str-drag-handle");
+      if (!handle) return;
+      const peId = handle.getAttribute("data-drag-peid");
+      const section = handle.getAttribute("data-section");
+      if (!peId || !section) return;
+
+      strDragState = { peId, section };
+      if (e.dataTransfer) {
+        e.dataTransfer.effectAllowed = "move";
+        e.dataTransfer.setData("text/plain", peId);
+      }
+      const row = handle.closest("tr");
+      if (row) row.classList.add("str-row-dragging");
+    }
+
+    function handleTableDragOver(e) {
+      if (!strDragState.peId || !strDragState.section) return;
+      const targetRow = e.target.closest("tr[data-peid]");
+      if (!targetRow) return;
+      if (targetRow.getAttribute("data-section") !== strDragState.section) return;
+      if (targetRow.getAttribute("data-peid") === strDragState.peId) return;
+
+      e.preventDefault();
+      if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
+      const table = targetRow.closest("table");
+      resetDragIndicators(table);
+      targetRow.classList.add("str-row-drop-target");
+    }
+
+    function handleTableDragLeave(e) {
+      const related = e.relatedTarget;
+      const currentTable = e.currentTarget;
+      if (!currentTable || (related && currentTable.contains(related))) return;
+      resetDragIndicators(currentTable);
+    }
+
+    async function handleTableDrop(e) {
+      if (!strDragState.peId || !strDragState.section) return;
+      const targetRow = e.target.closest("tr[data-peid]");
+      if (!targetRow) return;
+      if (targetRow.getAttribute("data-section") !== strDragState.section) return;
+
+      e.preventDefault();
+      const targetPeId = targetRow.getAttribute("data-peid");
+      if (!targetPeId || targetPeId === strDragState.peId) {
+        resetDragIndicators(e.currentTarget);
+        return;
+      }
+
+      const rect = targetRow.getBoundingClientRect();
+      const insertAfter = e.clientY > (rect.top + rect.height / 2);
+      await reorderSectionExercises(strSelectedDay, strDragState.section, strDragState.peId, targetPeId, insertAfter);
+      resetDragIndicators(e.currentTarget);
+      strDragState = { peId: null, section: null };
+    }
+
+    function handleTableDragEnd(e) {
+      resetDragIndicators(e.currentTarget);
+      strDragState = { peId: null, section: null };
+    }
+
     async function handleTableClick(e) {
+      const moveBtn = e.target.closest("[data-move-peid]");
+      if (moveBtn) {
+        const peId = moveBtn.getAttribute("data-move-peid");
+        const section = moveBtn.getAttribute("data-section");
+        const dir = Number(moveBtn.getAttribute("data-dir") || 0);
+        if (peId && section && (dir === -1 || dir === 1)) {
+          await moveSectionExerciseByOffset(strSelectedDay, section, peId, dir);
+        }
+        return;
+      }
+
       // Toggle reps ↔ duration
       const toggle = e.target.closest(".reps-dur-toggle");
       if (toggle) {
@@ -4125,10 +4430,12 @@
       await loadStrengthPlans();
       strengthPlanSelect.value = planId;
       await loadStrengthPlanFull(planId);
-      showResult("Plano demo criado e ativado com sucesso. Já podes atribuir ao atleta.", "success");
+      showResult("Plano demo criado e ativado com sucesso. Já podes criar uma instância para um atleta teu.", "success");
     }
 
     document.getElementById("createDemoPlanBtn").addEventListener("click", async () => {
+      const confirmed = window.confirm("Criar um plano demo pre-preenchido e ativá-lo automaticamente?");
+      if (!confirmed) return;
       const btn = document.getElementById("createDemoPlanBtn");
       const original = btn.textContent;
       btn.disabled = true;
@@ -4266,6 +4573,8 @@
 
     document.getElementById("activatePlanBtn").addEventListener("click", async () => {
       if (!strCurrentPlan) return;
+      const confirmed = window.confirm(`Ativar o plano ${strCurrentPlan.plan.name || "selecionado"}?`);
+      if (!confirmed) return;
       try {
         await apiRequest("PATCH", "/.netlify/functions/strength-plan", {
           plan_id: strCurrentPlan.plan.id, status: "active"
@@ -4276,6 +4585,8 @@
 
     document.getElementById("archivePlanBtn").addEventListener("click", async () => {
       if (!strCurrentPlan) return;
+      const confirmed = window.confirm(`Arquivar o plano ${strCurrentPlan.plan.name || "selecionado"}?`);
+      if (!confirmed) return;
       try {
         await apiRequest("PATCH", "/.netlify/functions/strength-plan", {
           plan_id: strCurrentPlan.plan.id, status: "archived"
@@ -4284,7 +4595,19 @@
       } catch (e) { alert("Erro: " + (e.message || "")); }
     });
 
-    // ── Plan Instance Assignment ──
+    document.getElementById("unarchivePlanBtn").addEventListener("click", async () => {
+      if (!strCurrentPlan) return;
+      const confirmed = window.confirm(`Desarquivar o plano ${strCurrentPlan.plan.name || "selecionado"} e voltar para draft?`);
+      if (!confirmed) return;
+      try {
+        await apiRequest("PATCH", "/.netlify/functions/strength-plan", {
+          plan_id: strCurrentPlan.plan.id, status: "draft"
+        });
+        await loadStrengthPlanFull(strCurrentPlan.plan.id);
+      } catch (e) { alert("Erro: " + (e.message || "")); }
+    });
+
+    // ── Strength Instance Management ──
     const assignPlanModal = document.getElementById("assignPlanModal");
     const assignPlanForm = document.getElementById("assignPlanForm");
     const assignAthleteSelect = document.getElementById("assignAthleteSelect");
@@ -4329,6 +4652,16 @@
       else if (btn.dataset.instanceComplete) { instanceId = btn.dataset.instanceComplete; status = "completed"; }
       else if (btn.dataset.instanceCancel) { instanceId = btn.dataset.instanceCancel; status = "cancelled"; }
       if (!instanceId || !status) return;
+      const inst = strLoadedInstances.find((item) => item.id === instanceId);
+      const ath = inst ? athletes.find((a) => a.id === inst.athlete_id) : null;
+      const athleteLabel = ath ? (ath.name || ath.email || ath.id) : "este atleta";
+      const actionLabel = status === "paused"
+        ? "pausar"
+        : status === "completed"
+          ? "marcar como concluida"
+          : "cancelar";
+      const confirmed = window.confirm(`Confirmas ${actionLabel} a instância de força de ${athleteLabel}?`);
+      if (!confirmed) return;
       try {
         await apiRequest("PATCH", "/.netlify/functions/strength-plan", { instance_id: instanceId, status });
         if (strCurrentPlan) await loadPlanInstances(strCurrentPlan.plan.id);
@@ -4337,13 +4670,16 @@
 
     document.getElementById("assignPlanBtn").addEventListener("click", () => {
       if (!strCurrentPlan) return;
-      document.getElementById("assignPlanLabel").textContent = `Plano: ${strCurrentPlan.plan.name}`;
+      document.getElementById("assignPlanLabel").textContent = `Template: ${strCurrentPlan.plan.name}. Isto cria apenas uma instância de força; a atribuição do programa é gerida no admin.`;
       assignAthleteSelect.innerHTML = '<option value="">— Selecionar atleta —</option>';
       for (const ath of athletes) {
         const opt = document.createElement("option");
         opt.value = ath.id;
         opt.textContent = ath.name || ath.email || ath.id;
         assignAthleteSelect.appendChild(opt);
+      }
+      if (selectedAthleteId) {
+        assignAthleteSelect.value = selectedAthleteId;
       }
       document.getElementById("assignLoadRound").value = strCurrentPlan.plan.load_round || 2.5;
       document.getElementById("assignStartDate").value = "";
@@ -4361,6 +4697,10 @@
       if (!athleteId) return;
       const startDate = document.getElementById("assignStartDate").value || null;
       const loadRound = parseFloat(document.getElementById("assignLoadRound").value) || 2.5;
+      const athleteOption = assignAthleteSelect.options[assignAthleteSelect.selectedIndex];
+      const athleteLabel = athleteOption ? athleteOption.textContent : athleteId;
+      const confirmed = window.confirm(`Criar uma instância do template ${strCurrentPlan.plan.name || "selecionado"} para ${athleteLabel}?`);
+      if (!confirmed) return;
       try {
         await apiRequest("POST", "/.netlify/functions/strength-plan", {
           action: "assign",
@@ -4372,7 +4712,7 @@
         assignPlanModal.classList.add("hidden");
         await loadPlanInstances(strCurrentPlan.plan.id);
       } catch (e) {
-        alert("Erro ao atribuir plano: " + (e.message || "O atleta pode já ter um plano ativo."));
+        alert("Erro ao criar instância: " + (e.message || "O atleta pode já ter uma instância ativa."));
       }
     });
 

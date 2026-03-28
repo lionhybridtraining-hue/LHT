@@ -2,7 +2,7 @@ const { parseJsonBody, json } = require("./_lib/http");
 const { getConfig } = require("./_lib/config");
 const { getAuthenticatedUser } = require("./_lib/auth-supabase");
 const { getProgramAccess } = require("./_lib/program-access");
-const { upsertAthleteByIdentity } = require("./_lib/supabase");
+const { upsertAthleteByIdentity, upsertCentralLead } = require("./_lib/supabase");
 
 async function supabaseRequest({ url, serviceRoleKey, path, method = "GET", body, prefer }) {
   const response = await fetch(`${url}/rest/v1/${path}`, {
@@ -324,6 +324,21 @@ function normalizeLegacyFieldValue(value, type) {
   return undefined;
 }
 
+function inferLeadSource(answers) {
+  const root = asObject(answers);
+  if (root.plan_generation || root.planocorrida_landing) {
+    return "planocorrida_landing";
+  }
+  return "onboarding";
+}
+
+function inferLeadStatus(funnelStage) {
+  if (funnelStage === "plan_generated" || funnelStage === "onboarding_submitted") {
+    return "qualified";
+  }
+  return "new";
+}
+
 exports.handler = async (event) => {
   if (event.httpMethod !== "GET" && event.httpMethod !== "POST") {
     return json(405, { error: "Method not allowed" });
@@ -336,21 +351,7 @@ exports.handler = async (event) => {
       return json(401, { error: "Authentication required" });
     }
 
-    const query = event.queryStringParameters || {};
-    const access = await getProgramAccess(config, {
-      identityId: user.id,
-      programId: query.program_id,
-      programExternalId: query.program || query.program_external_id
-    });
-
-    if (!access.program) {
-      return json(404, { error: "Programa nao encontrado" });
-    }
-
-    if (!access.hasAccess) {
-      return json(403, { error: "Pagamento necessario para aceder ao onboarding" });
-    }
-
+    // GET: apenas autenticação necessária (prefill de landing, pré-pagamento)
     if (event.httpMethod === "GET") {
       const existing = await getExistingByIdentity(config, user.id);
       return json(200, {
@@ -379,6 +380,20 @@ exports.handler = async (event) => {
     const answers = payload.answers;
     if (!answers || typeof answers !== "object" || Array.isArray(answers)) {
       return json(400, { error: "Invalid answers payload" });
+    }
+
+    // POST: verifica acesso ao programa (pagamento necessário)
+    const query = event.queryStringParameters || {};
+    const access = await getProgramAccess(config, {
+      identityId: user.id,
+      programId: query.program_id,
+      programExternalId: query.program || query.program_external_id
+    });
+    if (!access.program) {
+      return json(404, { error: "Programa nao encontrado" });
+    }
+    if (!access.hasAccess) {
+      return json(403, { error: "Pagamento necessario para aceder ao onboarding" });
     }
 
     const existing = await getExistingByIdentity(config, user.id);
@@ -436,6 +451,31 @@ exports.handler = async (event) => {
       email: user.email,
       answers: mergedAnswers,
       submittedAt: record ? record.submitted_at : row.submitted_at
+    });
+
+    await upsertCentralLead(config, {
+      athleteId: athlete.id,
+      identityId: user.id,
+      source: inferLeadSource(mergedAnswers),
+      email: user.email,
+      phone: row.phone,
+      fullName: row.full_name,
+      funnelStage: row.funnel_stage,
+      leadStatus: inferLeadStatus(row.funnel_stage),
+      lastActivityAt: now,
+      lastActivityType: "onboarding_intake_submitted",
+      profile: {
+        goalDistance: row.goal_distance,
+        weeklyFrequency: row.weekly_frequency,
+        experienceLevel: row.experience_level,
+        consistencyLevel: row.consistency_level,
+        answersKeys: Object.keys(mergedAnswers).sort()
+      },
+      rawPayload: {
+        onboardingIntakeId: record ? record.id || null : null,
+        funnelStage: row.funnel_stage,
+        submittedAt: record ? record.submitted_at : row.submitted_at
+      }
     });
 
     return json(200, {

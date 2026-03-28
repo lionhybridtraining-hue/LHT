@@ -20,6 +20,15 @@
     </div>
   </section>
 
+  <section id="admin-unauthorized-gate" class="auth-gate" hidden>
+    <div class="auth-gate-card">
+      <p class="auth-gate-eyebrow">Acesso negado</p>
+      <h2>Sem permissao</h2>
+      <p>A tua conta nao tem autorizacao para aceder ao painel de administracao.</p>
+      <button id="admin-unauth-logout-btn" type="button">Terminar sessao</button>
+    </div>
+  </section>
+
   <div id="protected-content" class="admin-shell" hidden>
     <header class="admin-header">
       <div class="header-brand">
@@ -131,11 +140,41 @@
 
             <p id="blog-ai-message" class="message" role="status"></p>
 
+            <section class="blog-ai-flow-card" aria-labelledby="blog-ai-flow-title">
+              <div class="blog-ai-flow-head">
+                <div>
+                  <p class="section-eyebrow">Ciclo Guiado</p>
+                  <h4 id="blog-ai-flow-title">Ideia -> artigo -> ABC -> partilha</h4>
+                </div>
+                <span id="blog-ai-flow-stage" class="surface-chip">Ideia</span>
+              </div>
+
+              <p id="blog-ai-flow-next" class="blog-ai-flow-next">Preenche o tema no tab Draft de Ideia e gera um draft.</p>
+              <p id="blog-ai-flow-note" class="blog-ai-flow-note">O fluxo guiado reaproveita os campos e ferramentas já disponíveis abaixo.</p>
+
+              <div class="blog-ai-flow-steps" id="blog-ai-flow-steps">
+                <span class="blog-ai-flow-step is-current" data-flow-step="1">1. Ideia</span>
+                <span class="blog-ai-flow-step" data-flow-step="2">2. Draft</span>
+                <span class="blog-ai-flow-step" data-flow-step="3">3. Artigo</span>
+                <span class="blog-ai-flow-step" data-flow-step="4">4. ABC</span>
+                <span class="blog-ai-flow-step" data-flow-step="5">5. Partilha</span>
+              </div>
+
+              <div class="blog-ai-flow-actions">
+                <button id="blog-ai-flow-generate-draft-btn" type="button">Gerar draft</button>
+                <button id="blog-ai-flow-apply-draft-btn" type="button">Aplicar draft</button>
+                <button id="blog-ai-flow-save-article-btn" type="button">Guardar artigo</button>
+                <button id="blog-ai-flow-publish-btn" type="button">Publicar</button>
+                <button id="blog-ai-flow-generate-abc-btn" type="button">Gerar ABC</button>
+                <button id="blog-ai-flow-mark-shared-btn" type="button">Marcar partilhado</button>
+              </div>
+            </section>
+
             <!-- Mode tabs -->
             <div class="blog-ai-mode-tabs" role="tablist">
-              <button class="blog-ai-mode-tab active" data-mode="abc_from_article" role="tab" id="tab-abc-article" aria-controls="pane-abc-article" aria-selected="true">ABC do Artigo</button>
-              <button class="blog-ai-mode-tab" data-mode="draft_from_idea" role="tab" id="tab-draft-idea" aria-controls="pane-draft-idea" aria-selected="false">Draft de Ideia</button>
-              <button class="blog-ai-mode-tab" data-mode="abc_standalone" role="tab" id="tab-abc-standalone" aria-controls="pane-abc-standalone" aria-selected="false">ABC Avulso</button>
+              <button class="blog-ai-mode-tab active" type="button" data-mode="abc_from_article" role="tab" id="tab-abc-article" aria-controls="pane-abc-article" aria-selected="true">ABC do Artigo</button>
+              <button class="blog-ai-mode-tab" type="button" data-mode="draft_from_idea" role="tab" id="tab-draft-idea" aria-controls="pane-draft-idea" aria-selected="false">Draft de Ideia</button>
+              <button class="blog-ai-mode-tab" type="button" data-mode="abc_standalone" role="tab" id="tab-abc-standalone" aria-controls="pane-abc-standalone" aria-selected="false">ABC Avulso</button>
             </div>
 
             <!-- Tab 1: ABC from selected article -->
@@ -460,11 +499,22 @@
             <h2>Athletes & Coaches</h2>
             <p>Gerir coaches, atletas e programa assignments com filtros e operacoes manuais.</p>
           </div>
+          <div style="display:flex;gap:8px;align-items:flex-start;flex-shrink:0;">
+            <button id="athletes-action-create-athlete" type="button" class="action-btn action-btn-primary">+ Novo atleta</button>
+            <button id="athletes-action-create-coach" type="button" class="action-btn action-btn-secondary">+ Novo coach</button>
+            <button id="athletes-action-refresh" type="button" class="action-btn action-btn-secondary">Atualizar</button>
+          </div>
         </div>
 
         <!-- UNIFIED NOTIFICATION SYSTEM -->
         <div id="admin-notification" class="admin-notification" role="status" aria-live="polite" aria-atomic="true" hidden></div>
 
+        <div class="athletes-subtabs" role="tablist" aria-label="Secoes de operacao">
+          <button id="athletes-subtab-athletes" class="athletes-subtab is-active" type="button" role="tab" aria-selected="true">Athletes</button>
+          <button id="athletes-subtab-coaches" class="athletes-subtab" type="button" role="tab" aria-selected="false">Coaches</button>
+        </div>
+
+        <div id="athletes-subview-athletes">
         <!-- GLOBAL FILTER & ACTION BAR -->
         <div class="athletes-filter-container">
           <div class="athletes-filter-bar">
@@ -524,18 +574,11 @@
               </label>
             </div>
           </div>
-
-          <!-- GLOBAL ACTION BUTTONS -->
-          <div class="athletes-action-bar">
-            <button id="athletes-action-create-athlete" type="button" class="action-btn action-btn-primary">+ Novo atleta</button>
-            <button id="athletes-action-create-coach" type="button" class="action-btn action-btn-secondary">+ Novo coach</button>
-            <button id="athletes-action-refresh" type="button" class="action-btn action-btn-secondary">Atualizar</button>
-          </div>
         </div>
 
         <!-- MAIN ATHLETES VIEW -->
         <div class="athletes-main-container">
-          <div id="athletes-main-view" class="athletes-view">
+          <section id="athletes-main-view" class="athletes-view athletes-section-card">
             <div id="athletes-empty-state" class="athletes-empty" hidden>
               <p>Sem atletas a mostrar com os filtros selecionados.</p>
             </div>
@@ -557,29 +600,46 @@
                 <tbody id="athletes-main-body"></tbody>
               </table>
             </div>
-          </div>
 
-          <!-- SECONDARY COACHES PANEL -->
-          <aside id="coaches-panel" class="coaches-sidebar">
+
+          </section>
+        </div>
+        </div>
+
+        <div id="athletes-subview-coaches" hidden>
+        <div class="athletes-main-container">
+          <section id="coaches-panel" class="coaches-sidebar athletes-section-card">
             <div class="coaches-panel-header">
               <h3>Coaches</h3>
-              <button id="coaches-panel-toggle" type="button" class="sidebar-toggle" aria-label="Toggle coaches panel" title="Fechar painel">✕</button>
             </div>
 
             <div class="coaches-panel-content">
-              <div class="coaches-selector">
-                <label for="coaches-panel-select" style="font-size: 0.85rem; color: var(--ink-soft);">Selecionar coach</label>
-                <select id="coaches-panel-select">
-                  <option value="">A carregar coaches...</option>
-                </select>
-                <button id="coaches-panel-refresh-btn" type="button" class="coaches-action-btn">Ver atletas</button>
-                <label class="coaches-filter-label">
-                  <input id="coaches-panel-paying-filter" type="checkbox" />
-                  Apenas pagantes
-                </label>
-              </div>
+              <div class="coaches-top-row">
+                <div class="coaches-selector">
+                  <label for="coaches-panel-select" style="font-size: 0.85rem; color: var(--ink-soft);">Selecionar coach</label>
+                  <select id="coaches-panel-select">
+                    <option value="">A carregar coaches...</option>
+                  </select>
+                  <div class="coaches-analytics-filter-row">
+                    <select id="coaches-analytics-preset" class="coaches-analytics-select">
+                      <option value="7d">Ultimos 7 dias</option>
+                      <option value="30d" selected>Ultimos 30 dias</option>
+                      <option value="month">Este mes</option>
+                      <option value="all">Tudo</option>
+                      <option value="custom">Custom</option>
+                    </select>
+                    <input id="coaches-analytics-from" type="date" class="coaches-analytics-date" disabled />
+                    <input id="coaches-analytics-to" type="date" class="coaches-analytics-date" disabled />
+                  </div>
+                  <button id="coaches-analytics-apply-btn" type="button" class="coaches-action-btn">Atualizar analytics</button>
+                  <button id="coaches-panel-refresh-btn" type="button" class="coaches-action-btn">Ver atletas</button>
+                  <label class="coaches-filter-label">
+                    <input id="coaches-panel-paying-filter" type="checkbox" />
+                    Apenas pagantes
+                  </label>
+                </div>
 
-              <div id="coaches-panel-kpis" class="module-grid operations-kpis" hidden>
+                <div id="coaches-panel-kpis" class="module-grid operations-kpis" hidden>
                 <article class="module-card">
                   <h4>Total atletas</h4>
                   <p id="coaches-panel-total-kpi">-</p>
@@ -592,6 +652,62 @@
                   <h4>Sem pagamento</h4>
                   <p id="coaches-panel-nonpaying-kpi">-</p>
                 </article>
+                </div>
+              </div>
+
+              <p id="coaches-panel-message" class="message" role="status"></p>
+
+              <div id="coaches-analytics-kpis" class="module-grid coaches-analytics-kpis" hidden>
+                <article class="module-card">
+                  <h4>Assignments ativos</h4>
+                  <p id="coaches-analytics-assignments-kpi">-</p>
+                </article>
+                <article class="module-card">
+                  <h4>Forca ativa</h4>
+                  <p id="coaches-analytics-strength-kpi">-</p>
+                </article>
+                <article class="module-card">
+                  <h4>Recorrencia ativa</h4>
+                  <p id="coaches-analytics-recurring-kpi">-</p>
+                </article>
+                <article class="module-card">
+                  <h4>Check-ins por responder</h4>
+                  <p id="coaches-analytics-pending-kpi">-</p>
+                </article>
+                <article class="module-card">
+                  <h4>Check-ins respondidos</h4>
+                  <p id="coaches-analytics-answered-kpi">-</p>
+                </article>
+                <article class="module-card">
+                  <h4>Planos forca no periodo</h4>
+                  <p id="coaches-analytics-plans-range-kpi">-</p>
+                </article>
+                <article class="module-card">
+                  <h4>Planos forca total</h4>
+                  <p id="coaches-analytics-plans-total-kpi">-</p>
+                </article>
+                <article class="module-card">
+                  <h4>Aderencia forca</h4>
+                  <p id="coaches-analytics-adherence-kpi">-</p>
+                </article>
+              </div>
+
+              <div class="coaches-analytics-wrap">
+                <table class="coaches-athletes-table">
+                  <thead>
+                    <tr>
+                      <th>Coach</th>
+                      <th>Atletas</th>
+                      <th>Assignments</th>
+                      <th>Forca ativa</th>
+                      <th>Recorrencia</th>
+                      <th>Pendentes</th>
+                      <th>Respondidos</th>
+                      <th>Aderencia</th>
+                    </tr>
+                  </thead>
+                  <tbody id="coaches-analytics-body"></tbody>
+                </table>
               </div>
 
               <div id="coaches-panel-empty" class="athletes-empty" hidden>
@@ -605,129 +721,153 @@
                       <th>Nome</th>
                       <th>Email</th>
                       <th>Pagamento</th>
-                      <th>Acoes</th>
+                      <th>Faturacao</th>
+                      <th>Pago em</th>
+                      <th>Expira</th>
                     </tr>
                   </thead>
                   <tbody id="coaches-panel-athletes-body"></tbody>
                 </table>
               </div>
 
-              <div class="coaches-panel-footer">
-                <button id="coaches-create-btn" type="button" class="coaches-action-btn coaches-action-btn-primary">+ Novo coach</button>
-              </div>
             </div>
-          </aside>
+          </section>
+        </div>
         </div>
 
         <!-- OPERATIONS WORKSPACE -->
-        <div id="athletes-ops-workspace">
-          <div id="create-athlete-box" class="admin-inline-form" hidden>
-            <div class="field">
-              <label for="new-athlete-name">Nome do atleta</label>
-              <input id="new-athlete-name" type="text" placeholder="Ex.: Joao Silva" />
+        <div id="athletes-ops-workspace" style="display:contents">
+          <dialog id="create-athlete-dialog" class="admin-action-dialog">
+            <div class="modal-header">
+              <h3>Novo atleta</h3>
+              <button id="close-create-athlete-dialog-btn" type="button" class="modal-close-btn" aria-label="Fechar">✕</button>
             </div>
-            <div class="field">
-              <label for="new-athlete-email">Email</label>
-              <input id="new-athlete-email" type="email" placeholder="Ex.: joao@email.com" />
+            <div class="modal-content">
+              <div id="create-athlete-box" class="admin-inline-form">
+                <div class="field">
+                  <label for="new-athlete-name">Nome do atleta</label>
+                  <input id="new-athlete-name" type="text" placeholder="Ex.: Joao Silva" />
+                </div>
+                <div class="field">
+                  <label for="new-athlete-email">Email</label>
+                  <input id="new-athlete-email" type="email" placeholder="Ex.: joao@email.com" />
+                </div>
+                <p class="microcopy">O atleta receberá um email de convite. Se ja tiver conta Google com este email, pode fazer login diretamente.</p>
+                <div class="form-actions">
+                  <button id="create-athlete-btn" type="button">Convidar atleta</button>
+                  <button id="cancel-create-athlete-btn" type="button">Cancelar</button>
+                </div>
+              </div>
             </div>
-            <p class="microcopy">O atleta receberá um email de convite. Se ja tiver conta Google com este email, pode fazer login diretamente.</p>
-            <div class="form-actions">
-              <button id="create-athlete-btn" type="button">Convidar atleta</button>
-              <button id="cancel-create-athlete-btn" type="button">Cancelar</button>
-            </div>
-          </div>
+          </dialog>
 
-          <div id="create-coach-box" class="admin-inline-form" hidden>
-            <div class="field">
-              <label for="new-coach-name">Nome do coach</label>
-              <input id="new-coach-name" type="text" placeholder="Ex.: Pedro Libanio" />
+          <dialog id="create-coach-dialog" class="admin-action-dialog">
+            <div class="modal-header">
+              <h3>Novo coach</h3>
+              <button id="close-create-coach-dialog-btn" type="button" class="modal-close-btn" aria-label="Fechar">✕</button>
             </div>
-            <div class="field">
-              <label for="new-coach-email">Email</label>
-              <input id="new-coach-email" type="email" placeholder="Ex.: coach@lionhybridtraining.com" />
+            <div class="modal-content">
+              <div id="create-coach-box" class="admin-inline-form">
+                <div class="field">
+                  <label for="new-coach-name">Nome do coach</label>
+                  <input id="new-coach-name" type="text" placeholder="Ex.: Pedro Libanio" />
+                </div>
+                <div class="field">
+                  <label for="new-coach-email">Email</label>
+                  <input id="new-coach-email" type="email" placeholder="Ex.: coach@lionhybridtraining.com" />
+                </div>
+                <div class="field">
+                  <label for="new-coach-timezone">Timezone</label>
+                  <input id="new-coach-timezone" type="text" value="Europe/Lisbon" />
+                </div>
+                <div class="field">
+                  <label for="new-coach-capacity">Capacidade (opcional)</label>
+                  <input id="new-coach-capacity" type="number" min="0" placeholder="Ex.: 25" />
+                </div>
+                <div class="form-actions">
+                  <button id="create-coach-btn" type="button">Guardar coach</button>
+                  <button id="cancel-create-coach-btn" type="button">Cancelar</button>
+                </div>
+              </div>
             </div>
-            <div class="field">
-              <label for="new-coach-timezone">Timezone</label>
-              <input id="new-coach-timezone" type="text" value="Europe/Lisbon" />
-            </div>
-            <div class="field">
-              <label for="new-coach-capacity">Capacidade (opcional)</label>
-              <input id="new-coach-capacity" type="number" min="0" placeholder="Ex.: 25" />
-            </div>
-            <div class="form-actions">
-              <button id="create-coach-btn" type="button">Guardar coach</button>
-              <button id="cancel-create-coach-btn" type="button">Cancelar</button>
-            </div>
-          </div>
+          </dialog>
 
-          <!-- Legacy form elements for assignment operations (will be refactored) -->
-          <div class="admin-inline-form">
-            <div class="field field-wide">
-              <label for="assign-athlete-select">Atleta</label>
-              <select id="assign-athlete-select">
-                <option value="">A carregar atletas...</option>
-              </select>
+          <dialog id="assignment-dialog" class="admin-action-dialog admin-action-dialog-wide">
+            <div class="modal-header">
+              <h3 id="assignment-dialog-title">Gerir atleta</h3>
+              <button id="close-assignment-dialog-btn" type="button" class="modal-close-btn" aria-label="Fechar">✕</button>
             </div>
-            <div class="field field-wide">
-              <label for="assign-coach-select">Coach</label>
-              <select id="assign-coach-select">
-                <option value="">A carregar coaches...</option>
-              </select>
-            </div>
-            <div class="field field-wide">
-              <label for="assign-program-id">Programa</label>
-              <select id="assign-program-id">
-                <option value="">A carregar programas...</option>
-              </select>
-            </div>
-            <div class="field">
-              <label for="assign-start-date">Data de inicio</label>
-              <input id="assign-start-date" type="date" />
-            </div>
-            <div class="field field-wide">
-              <label for="assign-notes">Notas (opcional)</label>
-              <input id="assign-notes" type="text" placeholder="Ex.: iniciado apos compra manual" />
-            </div>
-            <div class="form-actions">
-              <button id="assign-program-btn" type="button">Criar assignment</button>
-              <button id="cancel-assignment-btn" type="button">Cancelar assignment ativo</button>
-            </div>
-          </div>
+            <div class="modal-content">
+              <div class="admin-inline-form">
+                <div class="field field-wide">
+                  <label for="assign-athlete-select">Atleta</label>
+                  <select id="assign-athlete-select">
+                    <option value="">A carregar atletas...</option>
+                  </select>
+                </div>
+                <div class="field field-wide">
+                  <label for="assign-coach-select">Coach</label>
+                  <select id="assign-coach-select">
+                    <option value="">A carregar coaches...</option>
+                  </select>
+                </div>
+                <div class="field field-wide">
+                  <label for="assign-program-id">Programa</label>
+                  <select id="assign-program-id">
+                    <option value="">A carregar programas...</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="assign-start-date">Data de inicio</label>
+                  <input id="assign-start-date" type="date" />
+                </div>
+                <div class="field field-wide">
+                  <label for="assign-notes">Notas (opcional)</label>
+                  <input id="assign-notes" type="text" placeholder="Ex.: iniciado apos compra manual" />
+                </div>
+                <div class="form-actions">
+                  <button id="assign-program-btn" type="button">Criar assignment</button>
+                  <button id="cancel-assignment-btn" type="button">Cancelar assignment ativo</button>
+                </div>
+              </div>
 
-          <div id="assignment-current-summary" class="athletes-empty">
-            <p id="assignment-current-title">Seleciona um atleta para ver o estado do assignment.</p>
-            <span id="assignment-current-meta"></span>
-          </div>
+              <div id="assignment-current-summary" class="athletes-empty">
+                <p id="assignment-current-title">Seleciona um atleta para ver o estado do assignment.</p>
+                <span id="assignment-current-meta"></span>
+              </div>
 
-          <div class="admin-inline-form">
-            <div class="field field-wide">
-              <label for="grant-athlete-select">Atleta</label>
-              <select id="grant-athlete-select">
-                <option value="">A carregar atletas...</option>
-              </select>
+              <div class="admin-inline-form">
+                <div class="field field-wide">
+                  <label for="grant-athlete-select">Atleta</label>
+                  <select id="grant-athlete-select">
+                    <option value="">A carregar atletas...</option>
+                  </select>
+                </div>
+                <div class="field field-wide">
+                  <label for="grant-program-id">Programa</label>
+                  <select id="grant-program-id">
+                    <option value="">A carregar programas...</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="grant-amount-cents">Valor (centimos, opcional)</label>
+                  <input id="grant-amount-cents" type="number" min="0" placeholder="Ex.: 9700" />
+                </div>
+                <div class="field">
+                  <label for="grant-currency">Moeda</label>
+                  <input id="grant-currency" type="text" value="EUR" maxlength="3" />
+                </div>
+                <div class="field">
+                  <label for="grant-expires-at">Expira em (opcional)</label>
+                  <input id="grant-expires-at" type="datetime-local" />
+                </div>
+                <div class="form-actions">
+                  <button id="grant-access-btn" type="button">Conceder acesso</button>
+                  <button id="assignment-history-btn" type="button" class="action-btn action-btn-secondary">Ver historico</button>
+                </div>
+              </div>
             </div>
-            <div class="field field-wide">
-              <label for="grant-program-id">Programa</label>
-              <select id="grant-program-id">
-                <option value="">A carregar programas...</option>
-              </select>
-            </div>
-            <div class="field">
-              <label for="grant-amount-cents">Valor (centimos, opcional)</label>
-              <input id="grant-amount-cents" type="number" min="0" placeholder="Ex.: 9700" />
-            </div>
-            <div class="field">
-              <label for="grant-currency">Moeda</label>
-              <input id="grant-currency" type="text" value="EUR" maxlength="3" />
-            </div>
-            <div class="field">
-              <label for="grant-expires-at">Expira em (opcional)</label>
-              <input id="grant-expires-at" type="datetime-local" />
-            </div>
-            <div class="form-actions">
-              <button id="grant-access-btn" type="button">Conceder acesso</button>
-            </div>
-          </div>
+          </dialog>
 
           <!-- Legacy aliases for backward compatibility -->
           <div id="unassigned-athletes-body" style="display: none;"></div>
@@ -817,6 +957,17 @@
           </div>
           <div class="field">
             <label for="program-followup-type">Follow-up</label>
+                      <div class="field">
+                        <label for="program-access-model">Modelo de acesso</label>
+                        <select id="program-access-model">
+                          <option value="coached_one_time">coached_one_time — acompanhamento com data de fim</option>
+                          <option value="self_serve">self_serve — atleta gere a instância sozinho</option>
+                          <option value="coached_recurring">coached_recurring — ativo enquanto subscrição paga</option>
+                        </select>
+                        <small class="field-hint">Define quem controla a instância e como o acesso é gerido após o pagamento.</small>
+                      </div>
+                      <div class="field">
+                        <label for="program-followup-type">Follow-up</label>
             <input id="program-followup-type" type="text" value="standard" />
             <small class="field-hint">Tipo de acompanhamento do programa. Usa <code>standard</code> na maioria dos casos. Este valor e guardado como snapshot quando um atleta e atribuido ao programa.</small>
           </div>
@@ -1447,10 +1598,10 @@
   </div>
 
   <script>
-    const SUPABASE_URL = 'https://rlivxjarqpqmvjtgmxhh.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJsaXZ4amFycXBxbXZqdGdteGhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MDk3NzcsImV4cCI6MjA4OTE4NTc3N30.MHwkQnytSCOBleYVOF5hJHWiV8d_-2V9UGIqsLTgjIY';
+    const DEFAULT_AUTH_MAX_SESSION_SECONDS = 24 * 60 * 60;
     
     let supabaseClient = null;
+    let publicConfig = null;
     const apiBase = '/.netlify/functions/blog-articles';
     const siteContentApiBase = '/.netlify/functions/admin-site-content';
     const unassignedAthletesApiBase = '/.netlify/functions/admin-unassigned-athletes';
@@ -1473,10 +1624,12 @@
     const adminStripePricesApiBase = '/.netlify/functions/admin-stripe-prices';
     const adminStripeLinksApiBase = '/.netlify/functions/admin-stripe-links';
     const adminCoachAthletesApiBase = '/.netlify/functions/admin-coach-athletes';
+    const adminCoachAnalyticsApiBase = '/.netlify/functions/admin-coach-analytics';
     const adminAthletesUnifiedApiBase = '/.netlify/functions/admin-athletes-unified';
     const state = {
       user: null,
       token: null,
+      roles: [],
       articles: [],
       selectedId: null,
       siteContent: null,
@@ -1490,6 +1643,9 @@
       selectedAiLogId: null,
       activeAiSubtab: 'prompts',
       blogProduction: null,
+      blogDraft: null,
+      blogStandalone: null,
+      blogDraftApplied: false,
       dataAudit: null,
       athletesCatalog: [],
       programs: [],
@@ -1499,8 +1655,51 @@
       stripePrices: [],
       syncResults: [],
       currentAssignment: null,
-      activeVendasSubtab: 'purchases'
+      activeVendasSubtab: 'purchases',
+      activeAthletesSubview: 'athletes',
+      coachAnalyticsRows: [],
+      coachAnalyticsMeta: null
     };
+
+    async function loadPublicConfig() {
+      if (publicConfig) return publicConfig;
+      const response = await fetch('/.netlify/functions/public-config');
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error((payload && payload.error) ? payload.error : 'Nao foi possivel carregar configuracao publica.');
+      }
+      publicConfig = {
+        supabaseUrl: payload.supabaseUrl,
+        supabaseAnonKey: payload.supabaseAnonKey,
+        authMaxSessionSeconds: Number(payload.authMaxSessionSeconds) || DEFAULT_AUTH_MAX_SESSION_SECONDS
+      };
+      return publicConfig;
+    }
+
+    function getSessionIssuedAt(session) {
+      return session && session.user
+        ? (session.user.last_sign_in_at || session.user.created_at || null)
+        : null;
+    }
+
+    function isSessionOverMaxAge(session) {
+      const issuedAt = getSessionIssuedAt(session);
+      if (!issuedAt) return false;
+      const issuedMs = new Date(issuedAt).getTime();
+      if (!Number.isFinite(issuedMs)) return false;
+      const maxAge = publicConfig && publicConfig.authMaxSessionSeconds
+        ? publicConfig.authMaxSessionSeconds
+        : DEFAULT_AUTH_MAX_SESSION_SECONDS;
+      return Math.floor((Date.now() - issuedMs) / 1000) > maxAge;
+    }
+
+    async function enforceSessionMaxAge(session) {
+      if (supabaseClient && isSessionOverMaxAge(session)) {
+        await supabaseClient.auth.signOut({ scope: 'local' });
+        return true;
+      }
+      return false;
+    }
 
     const SITE_METADATA_PRESETS = [
       ['site_name', 'Lion Hybrid Training'],
@@ -1633,6 +1832,7 @@
 
     const els = {
       authGate: document.getElementById('admin-auth-gate'),
+      unauthorizedGate: document.getElementById('admin-unauthorized-gate'),
       protectedContent: document.getElementById('protected-content'),
       gateLoginBtn: document.getElementById('gate-login-btn'),
       authStatus: document.getElementById('auth-status'),
@@ -1654,6 +1854,15 @@
       publishNowBtn: document.getElementById('publish-now-btn'),
       deleteBtn: document.getElementById('delete-btn'),
       blogAiMessage: document.getElementById('blog-ai-message'),
+      blogAiFlowStage: document.getElementById('blog-ai-flow-stage'),
+      blogAiFlowNext: document.getElementById('blog-ai-flow-next'),
+      blogAiFlowNote: document.getElementById('blog-ai-flow-note'),
+      blogAiFlowGenerateDraftBtn: document.getElementById('blog-ai-flow-generate-draft-btn'),
+      blogAiFlowApplyDraftBtn: document.getElementById('blog-ai-flow-apply-draft-btn'),
+      blogAiFlowSaveArticleBtn: document.getElementById('blog-ai-flow-save-article-btn'),
+      blogAiFlowPublishBtn: document.getElementById('blog-ai-flow-publish-btn'),
+      blogAiFlowGenerateAbcBtn: document.getElementById('blog-ai-flow-generate-abc-btn'),
+      blogAiFlowMarkSharedBtn: document.getElementById('blog-ai-flow-mark-shared-btn'),
       // Tab 1 — ABC from article
       blogAiCtxTitle: document.getElementById('blog-ai-ctx-title'),
       blogAiCtxExcerpt: document.getElementById('blog-ai-ctx-excerpt'),
@@ -1700,6 +1909,10 @@
       blogEditor: document.getElementById('blog-editor'),
       siteContentPanel: document.getElementById('site-content-panel'),
       athletesPanel: document.getElementById('athletes-panel'),
+      athletesSubviewAthletes: document.getElementById('athletes-subview-athletes'),
+      athletesSubviewCoaches: document.getElementById('athletes-subview-coaches'),
+      athletesSubtabAthletes: document.getElementById('athletes-subtab-athletes'),
+      athletesSubtabCoaches: document.getElementById('athletes-subtab-coaches'),
       programsPanel: document.getElementById('programs-panel'),
       operationsPanel: document.getElementById('operations-panel'),
       siteContentMessage: document.getElementById('site-content-message'),
@@ -1720,6 +1933,8 @@
       coachSelect: document.getElementById('coach-select'),
       openCreateCoachBtn: document.getElementById('open-create-coach-btn'),
       createCoachBox: document.getElementById('create-coach-box'),
+      createCoachDialog: document.getElementById('create-coach-dialog'),
+      closeCreateCoachDialogBtn: document.getElementById('close-create-coach-dialog-btn'),
       newCoachName: document.getElementById('new-coach-name'),
       newCoachEmail: document.getElementById('new-coach-email'),
       newCoachTimezone: document.getElementById('new-coach-timezone'),
@@ -1728,6 +1943,8 @@
       cancelCreateCoachBtn: document.getElementById('cancel-create-coach-btn'),
       openCreateAthleteBtn: document.getElementById('open-create-athlete-btn'),
       createAthleteBox: document.getElementById('create-athlete-box'),
+      createAthleteDialog: document.getElementById('create-athlete-dialog'),
+      closeCreateAthleteDialogBtn: document.getElementById('close-create-athlete-dialog-btn'),
       newAthleteName: document.getElementById('new-athlete-name'),
       newAthleteEmail: document.getElementById('new-athlete-email'),
       createAthleteBtn: document.getElementById('create-athlete-btn'),
@@ -1738,12 +1955,32 @@
       coachesPanelSelect: document.getElementById('coaches-panel-select'),
       coachesPanelRefreshBtn: document.getElementById('coaches-panel-refresh-btn'),
       coachesPanelPayingFilter: document.getElementById('coaches-panel-paying-filter'),
+      coachesPanelMessage: document.getElementById('coaches-panel-message'),
       coachesPanelKpis: document.getElementById('coaches-panel-kpis'),
       coachesPanelTotalKpi: document.getElementById('coaches-panel-total-kpi'),
       coachesPanelPayingKpi: document.getElementById('coaches-panel-paying-kpi'),
       coachesPanelNonpayingKpi: document.getElementById('coaches-panel-nonpaying-kpi'),
+      coachesAnalyticsPreset: document.getElementById('coaches-analytics-preset'),
+      coachesAnalyticsFrom: document.getElementById('coaches-analytics-from'),
+      coachesAnalyticsTo: document.getElementById('coaches-analytics-to'),
+      coachesAnalyticsApplyBtn: document.getElementById('coaches-analytics-apply-btn'),
+      coachesAnalyticsKpis: document.getElementById('coaches-analytics-kpis'),
+      coachesAnalyticsAssignmentsKpi: document.getElementById('coaches-analytics-assignments-kpi'),
+      coachesAnalyticsStrengthKpi: document.getElementById('coaches-analytics-strength-kpi'),
+      coachesAnalyticsRecurringKpi: document.getElementById('coaches-analytics-recurring-kpi'),
+      coachesAnalyticsPendingKpi: document.getElementById('coaches-analytics-pending-kpi'),
+      coachesAnalyticsAnsweredKpi: document.getElementById('coaches-analytics-answered-kpi'),
+      coachesAnalyticsPlansRangeKpi: document.getElementById('coaches-analytics-plans-range-kpi'),
+      coachesAnalyticsPlansTotalKpi: document.getElementById('coaches-analytics-plans-total-kpi'),
+      coachesAnalyticsAdherenceKpi: document.getElementById('coaches-analytics-adherence-kpi'),
+      coachesAnalyticsBody: document.getElementById('coaches-analytics-body'),
       coachesPanelEmpty: document.getElementById('coaches-panel-empty'),
       coachesPanelAthletesBody: document.getElementById('coaches-panel-athletes-body'),
+      coachesPanelRefreshBtnBottom: document.getElementById('coaches-panel-refresh-btn-bottom'),
+      athletesActionEditSelected: document.getElementById('athletes-action-edit-selected'),
+      athletesActionAssignSelected: document.getElementById('athletes-action-assign-selected'),
+      athletesActionManageSelected: document.getElementById('athletes-action-manage-selected'),
+      athletesActionArchiveSelected: document.getElementById('athletes-action-archive-selected'),
       tabLeads: document.getElementById('tab-leads'),
       leadsPanel: document.getElementById('leads-panel'),
       leadsMessage: document.getElementById('leads-message'),
@@ -1763,6 +2000,7 @@
       programStripeProductId: document.getElementById('program-stripe-product-id'),
       programStripePriceId: document.getElementById('program-stripe-price-id'),
       programBillingType: document.getElementById('program-billing-type'),
+      programAccessModel: document.getElementById('program-access-model'),
       programFollowupType: document.getElementById('program-followup-type'),
       programStatus: document.getElementById('program-status'),
       programScheduledTemplate: document.getElementById('program-scheduled-template'),
@@ -1775,6 +2013,10 @@
       assignNotes: document.getElementById('assign-notes'),
       assignProgramBtn: document.getElementById('assign-program-btn'),
       cancelAssignmentBtn: document.getElementById('cancel-assignment-btn'),
+      assignmentDialog: document.getElementById('assignment-dialog'),
+      assignmentDialogTitle: document.getElementById('assignment-dialog-title'),
+      closeAssignmentDialogBtn: document.getElementById('close-assignment-dialog-btn'),
+      assignmentHistoryBtn: document.getElementById('assignment-history-btn'),
       assignmentCurrentSummary: document.getElementById('assignment-current-summary'),
       assignmentCurrentTitle: document.getElementById('assignment-current-title'),
       assignmentCurrentMeta: document.getElementById('assignment-current-meta'),
@@ -1925,6 +2167,7 @@
 
     function setActiveTab(tab) {
       activeTab = tabConfig[tab] ? tab : 'blog';
+      location.hash = activeTab;
 
       Object.keys(tabConfig).forEach((key) => {
         const current = tabConfig[key];
@@ -2590,6 +2833,10 @@
 
     async function createAiPromptFromEditor() {
       const payload = collectAiPromptPayload();
+      if (payload.isActive) {
+        const confirmed = window.confirm('Criar este prompt como ativo? O prompt ativo atual desta feature pode ser desativado.');
+        if (!confirmed) return;
+      }
       showAiMessage('A criar prompt...', false);
       const data = await apiRequest('POST', aiPromptsApiBase, payload);
       showAiMessage('Prompt criado com sucesso.', false);
@@ -2604,6 +2851,10 @@
         throw new Error('Seleciona primeiro um prompt para criar nova versao.');
       }
       const payload = collectAiPromptPayload();
+      if (payload.isActive) {
+        const confirmed = window.confirm('Guardar esta nova versao como ativa? O prompt ativo atual desta feature pode ser desativado.');
+        if (!confirmed) return;
+      }
       showAiMessage('A guardar nova versao do prompt...', false);
       await apiRequest('PATCH', aiPromptsApiBase, {
         id: state.selectedAiPromptId,
@@ -2626,6 +2877,8 @@
       if (!Number.isInteger(restoreVersion) || restoreVersion <= 0) {
         throw new Error('Seleciona uma versao valida para restaurar.');
       }
+      const confirmed = window.confirm(`Restaurar a versao v${restoreVersion} deste prompt e ativa-la?`);
+      if (!confirmed) return;
 
       showAiMessage(`A restaurar versao v${restoreVersion}...`, false);
       await apiRequest('PATCH', aiPromptsApiBase, {
@@ -2996,13 +3249,17 @@
       if (typeof populateFilterDropdowns === 'function') {
         populateFilterDropdowns();
       }
+
+      if (state.activeAthletesSubview === 'coaches') {
+        loadCoachesAnalytics().catch(() => {});
+      }
     }
 
     // --- Coach athletes view for subtab ---
     let coachesPanelAthletes = [];
 
     function showCoachesPanelMessage(msg, isError) {
-      const msgEl = document.getElementById('coaches-panel-message');
+      const msgEl = els.coachesPanelMessage;
       if (msgEl) {
         msgEl.textContent = msg;
         msgEl.className = 'message' + (isError ? ' error' : '');
@@ -3044,6 +3301,144 @@
       els.coachesPanelAthletesBody.appendChild(fragment);
     }
 
+    function getCoachAnalyticsFilterParams() {
+      const params = new URLSearchParams();
+      const preset = (els.coachesAnalyticsPreset && els.coachesAnalyticsPreset.value
+        ? els.coachesAnalyticsPreset.value
+        : '30d').trim();
+      const from = (els.coachesAnalyticsFrom && els.coachesAnalyticsFrom.value
+        ? els.coachesAnalyticsFrom.value
+        : '').trim();
+      const to = (els.coachesAnalyticsTo && els.coachesAnalyticsTo.value
+        ? els.coachesAnalyticsTo.value
+        : '').trim();
+
+      params.set('preset', preset);
+      if (preset === 'custom') {
+        if (!from || !to) {
+          throw new Error('Seleciona as duas datas no filtro custom.');
+        }
+        if (from > to) {
+          throw new Error('A data inicial nao pode ser maior que a data final.');
+        }
+        params.set('from', from);
+        params.set('to', to);
+      }
+      return params;
+    }
+
+    function syncCoachesAnalyticsDateInputs() {
+      if (!els.coachesAnalyticsPreset) return;
+      const isCustom = els.coachesAnalyticsPreset.value === 'custom';
+      if (els.coachesAnalyticsFrom) {
+        els.coachesAnalyticsFrom.disabled = !isCustom;
+      }
+      if (els.coachesAnalyticsTo) {
+        els.coachesAnalyticsTo.disabled = !isCustom;
+      }
+    }
+
+    function renderCoachAnalyticsTable() {
+      if (!els.coachesAnalyticsBody) return;
+      const selectedCoachIdentityId = (els.coachesPanelSelect.value || '').trim();
+      const rows = Array.isArray(state.coachAnalyticsRows) ? state.coachAnalyticsRows : [];
+      els.coachesAnalyticsBody.innerHTML = '';
+
+      if (!rows.length) {
+        const row = document.createElement('tr');
+        row.innerHTML = '<td colspan="8" style="color:var(--ink-soft);">Sem dados de analytics para o filtro atual.</td>';
+        els.coachesAnalyticsBody.appendChild(row);
+        return;
+      }
+
+      const fragment = document.createDocumentFragment();
+      rows.forEach((item) => {
+        const row = document.createElement('tr');
+        if (selectedCoachIdentityId && item.coachIdentityId === selectedCoachIdentityId) {
+          row.classList.add('is-selected');
+        }
+        const adherenceLabel = item.strengthAdherencePct == null
+          ? '-'
+          : `${item.strengthAdherencePct}% (${item.strengthCompletedSessions}/${item.strengthPlannedSessions})`;
+        row.innerHTML = `
+          <td>${escapeHtml(item.coachName || item.coachEmail || '-')}</td>
+          <td>${item.totalAthletes || 0}</td>
+          <td>${item.activeAssignments || 0}</td>
+          <td>${item.activeStrengthInstances || 0}</td>
+          <td>${item.recurringBillingActiveAthletes || 0}</td>
+          <td>${item.checkinsPending || 0}</td>
+          <td>${item.checkinsAnswered || 0}</td>
+          <td>${escapeHtml(adherenceLabel)}</td>
+        `;
+        fragment.appendChild(row);
+      });
+
+      els.coachesAnalyticsBody.appendChild(fragment);
+    }
+
+    function renderCoachAnalyticsSummary() {
+      if (!els.coachesAnalyticsKpis) return;
+      const rows = Array.isArray(state.coachAnalyticsRows) ? state.coachAnalyticsRows : [];
+      const selectedCoachIdentityId = (els.coachesPanelSelect.value || '').trim();
+      const selected = selectedCoachIdentityId
+        ? rows.find((item) => item.coachIdentityId === selectedCoachIdentityId)
+        : null;
+
+      const source = selected || (state.coachAnalyticsMeta && state.coachAnalyticsMeta.totals) || null;
+      els.coachesAnalyticsKpis.hidden = false;
+
+      if (!source) {
+        els.coachesAnalyticsAssignmentsKpi.textContent = '-';
+        els.coachesAnalyticsStrengthKpi.textContent = '-';
+        els.coachesAnalyticsRecurringKpi.textContent = '-';
+        els.coachesAnalyticsPendingKpi.textContent = '-';
+        els.coachesAnalyticsAnsweredKpi.textContent = '-';
+        els.coachesAnalyticsPlansRangeKpi.textContent = '-';
+        els.coachesAnalyticsPlansTotalKpi.textContent = '-';
+        els.coachesAnalyticsAdherenceKpi.textContent = '-';
+        return;
+      }
+
+      els.coachesAnalyticsAssignmentsKpi.textContent = source.activeAssignments || 0;
+      els.coachesAnalyticsStrengthKpi.textContent = source.activeStrengthInstances || 0;
+      els.coachesAnalyticsRecurringKpi.textContent = source.recurringBillingActiveAthletes || 0;
+      els.coachesAnalyticsPendingKpi.textContent = source.checkinsPending || 0;
+      els.coachesAnalyticsAnsweredKpi.textContent = source.checkinsAnswered || 0;
+      els.coachesAnalyticsPlansRangeKpi.textContent = source.strengthPlansCreatedInRange || 0;
+      els.coachesAnalyticsPlansTotalKpi.textContent = source.strengthPlansCreatedTotal || 0;
+
+      if (source.strengthAdherencePct == null) {
+        els.coachesAnalyticsAdherenceKpi.textContent = '-';
+      } else {
+        const completed = source.strengthCompletedSessions || 0;
+        const planned = source.strengthPlannedSessions || 0;
+        els.coachesAnalyticsAdherenceKpi.textContent = `${source.strengthAdherencePct}% (${completed}/${planned})`;
+      }
+    }
+
+    async function loadCoachesAnalytics() {
+      try {
+        syncCoachesAnalyticsDateInputs();
+        const params = getCoachAnalyticsFilterParams();
+        const selectedCoachIdentityId = (els.coachesPanelSelect.value || '').trim();
+        if (selectedCoachIdentityId) {
+          params.set('coachIdentityId', selectedCoachIdentityId);
+        }
+
+        const data = await apiRequest('GET', `${adminCoachAnalyticsApiBase}?${params.toString()}`);
+        state.coachAnalyticsRows = Array.isArray(data.coaches) ? data.coaches : [];
+        state.coachAnalyticsMeta = {
+          totals: data && data.totals ? data.totals : null,
+          meta: data && data.meta ? data.meta : null
+        };
+
+        renderCoachAnalyticsSummary();
+        renderCoachAnalyticsTable();
+      } catch (err) {
+        showCoachesPanelMessage(err.message || 'Erro ao carregar analytics dos coaches', true);
+      }
+    }
+
     async function loadCoachesPanelAthletes() {
       const coachIdentityId = (els.coachesPanelSelect.value || '').trim();
       if (!coachIdentityId) {
@@ -3056,6 +3451,7 @@
         const data = await apiRequest('GET', `${adminCoachAthletesApiBase}?coachIdentityId=${encodeURIComponent(coachIdentityId)}`);
         coachesPanelAthletes = Array.isArray(data.athletes) ? data.athletes : [];
         renderCoachesPanelAthletes();
+        await loadCoachesAnalytics();
         const payingCount = data.payingCount || 0;
         showCoachesPanelMessage(`${coachesPanelAthletes.length} atleta(s) encontrado(s), ${payingCount} pagante(s) ativo(s).`, false);
       } catch (err) {
@@ -3065,6 +3461,9 @@
 
     els.coachesPanelRefreshBtn.addEventListener('click', loadCoachesPanelAthletes);
     els.coachesPanelPayingFilter.addEventListener('change', renderCoachesPanelAthletes);
+    els.coachesPanelSelect.addEventListener('change', () => {
+      loadCoachesAnalytics().catch(() => {});
+    });
 
     function formatDate(iso) {
       if (!iso) return '-';
@@ -3181,6 +3580,11 @@
         throw new Error('Seleciona um coach para atribuir.');
       }
 
+      const coachOption = els.coachSelect.options[els.coachSelect.selectedIndex];
+      const coachLabel = coachOption ? coachOption.textContent : coachIdentityId;
+      const confirmed = window.confirm(`Atribuir este atleta ao coach ${coachLabel}?`);
+      if (!confirmed) return;
+
       await apiRequest('POST', assignAthleteApiBase, {
         athleteId,
         coachIdentityId
@@ -3197,6 +3601,47 @@
       els.newCoachEmail.value = '';
       els.newCoachTimezone.value = 'Europe/Lisbon';
       els.newCoachCapacity.value = '';
+    }
+
+    function openDialog(dialog) {
+      if (!dialog || typeof dialog.showModal !== 'function') return;
+      if (!dialog.open) {
+        dialog.showModal();
+      }
+    }
+
+    function closeDialog(dialog) {
+      if (dialog && dialog.open) {
+        dialog.close();
+      }
+    }
+
+    function closeCreateCoachDialog() {
+      closeDialog(els.createCoachDialog);
+    }
+
+    function closeCreateAthleteDialog() {
+      closeDialog(els.createAthleteDialog);
+    }
+
+    function closeAssignmentDialog() {
+      closeDialog(els.assignmentDialog);
+    }
+
+    function openCreateCoachDialog() {
+      clearCreateCoachForm();
+      openDialog(els.createCoachDialog);
+      window.requestAnimationFrame(() => {
+        els.newCoachName.focus();
+      });
+    }
+
+    function openCreateAthleteDialog() {
+      clearCreateAthleteForm();
+      openDialog(els.createAthleteDialog);
+      window.requestAnimationFrame(() => {
+        els.newAthleteName.focus();
+      });
     }
 
     async function createCoachFromAdmin() {
@@ -3219,7 +3664,7 @@
       });
 
       await refreshAthletesData();
-      els.createCoachBox.hidden = true;
+      closeCreateCoachDialog();
       clearCreateCoachForm();
 
       const msg = data.inviteEmailSent
@@ -3227,10 +3672,6 @@
         : 'Coach criado. O utilizador pode fazer login com Google.';
       showAthletesMessage(msg, false);
       showNotification(msg, false);
-
-      if (els.athletesOpsWorkspace) {
-        els.athletesOpsWorkspace.hidden = false;
-      }
     }
 
     function clearCreateAthleteForm() {
@@ -3257,17 +3698,13 @@
         await loadCoaches(coachIdentityId);
       }
       await refreshAthletesUnified();
-      els.createAthleteBox.hidden = true;
+      closeCreateAthleteDialog();
       clearCreateAthleteForm();
       const msg = data.inviteEmailSent
         ? 'Atleta criado. Email de convite enviado.'
         : 'Atleta criado. O utilizador pode fazer login com Google.';
       showAthletesMessage(msg, false);
       showNotification(msg, false);
-
-      if (els.athletesOpsWorkspace) {
-        els.athletesOpsWorkspace.hidden = false;
-      }
     }
 
     function showMessage(text, isError) {
@@ -3282,6 +3719,130 @@
       els.blogAiMessage.classList.toggle('success', !isError && Boolean(text));
     }
 
+    const BLOG_WORKFLOW_STAGE_LABELS = {
+      idea: 'Ideia',
+      draft_ready: 'Draft pronto',
+      article_saved: 'Artigo guardado',
+      published: 'Artigo publicado',
+      abc_ready: 'ABC pronto',
+      variant_selected: 'Variação escolhida',
+      shared_manual: 'Partilhado'
+    };
+
+    function getBlogWorkflowMeta() {
+      const articleId = (els.id.value || '').trim();
+      const articleStatus = (els.status.value || 'draft').trim();
+      const production = state.blogProduction;
+      const draft = state.blogDraft;
+      const hasDraftContent = Boolean(draft && draft.generatedBlog && (draft.generatedBlog.title || draft.generatedBlog.content));
+
+      let stage = 'idea';
+      if (production && production.workflowStage) {
+        stage = production.workflowStage;
+      } else if (articleId) {
+        stage = articleStatus === 'published' ? 'published' : 'article_saved';
+      } else if (hasDraftContent) {
+        stage = draft.workflowStage || 'draft_ready';
+      }
+
+      let next = 'Preenche o tema no tab Draft de Ideia e gera um draft.';
+      let note = 'O fluxo guiado reaproveita os campos e ferramentas já disponíveis abaixo.';
+
+      if (stage === 'draft_ready') {
+        next = state.blogDraftApplied
+          ? 'O draft já foi aplicado. Guarda agora o artigo no editor principal.'
+          : 'Revê o draft gerado e aplica-o ao editor.';
+        note = state.blogDraftApplied
+          ? 'Ainda não há artigo persistido. Guardar o artigo liga esta peça ao blog.'
+          : 'Gera o draft no tab Draft de Ideia e usa Aplicar no editor.';
+      } else if (stage === 'article_saved') {
+        next = 'Revê o artigo e, quando fizer sentido, publica-o ou segue para gerar o ABC.';
+        note = 'Neste MVP, publicar continua explícito. Gerar ABC é uma decisão editorial, não automática.';
+      } else if (stage === 'published') {
+        next = 'Gera agora o ABC do artigo para preparar a distribuição.';
+        note = 'A publicação pública já está feita. Falta preparar a distribuição manual.';
+      } else if (stage === 'abc_ready') {
+        next = 'Escolhe uma variação, copia a mensagem e prepara a partilha.';
+        note = 'A escolha da variação é guardada assim que mudares o seletor ou copiares uma opção.';
+      } else if (stage === 'variant_selected') {
+        next = 'Depois de partilhar no WhatsApp, marca a partilha manualmente.';
+        note = 'O envio continua manual neste MVP, mas o registo da escolha já fica persistido.';
+      } else if (stage === 'shared_manual') {
+        next = 'Fluxo concluído. Podes iterar nova ideia ou regenerar o ABC se precisares.';
+        note = 'O registo da partilha manual ficou associado à peça atual.';
+      } else if (stage === 'idea' && articleId) {
+        next = 'Tens um artigo guardado. Gera um ABC quando estiver pronto para distribuição.';
+        note = 'Se quiseres começar da ideia, usa primeiro o tab Draft de Ideia.';
+      }
+
+      return { stage, next, note };
+    }
+
+    function getBlogWorkflowStepNumber(stage) {
+      if (stage === 'draft_ready') return 2;
+      if (stage === 'article_saved' || stage === 'published') return 3;
+      if (stage === 'abc_ready' || stage === 'variant_selected') return 4;
+      if (stage === 'shared_manual') return 5;
+      return 1;
+    }
+
+    function renderBlogWorkflowSummary() {
+      const meta = getBlogWorkflowMeta();
+      const step = getBlogWorkflowStepNumber(meta.stage);
+      const hasArticle = Boolean((els.id.value || '').trim());
+      const hasDraft = Boolean(state.blogDraft && state.blogDraft.generatedBlog && (state.blogDraft.generatedBlog.title || state.blogDraft.generatedBlog.content));
+      const hasSelectedVariant = Boolean(state.blogProduction && state.blogProduction.selectedVariant);
+      const canUseApi = Boolean(state.user);
+
+      els.blogAiFlowStage.textContent = BLOG_WORKFLOW_STAGE_LABELS[meta.stage] || BLOG_WORKFLOW_STAGE_LABELS.idea;
+      els.blogAiFlowNext.textContent = meta.next;
+      els.blogAiFlowNote.textContent = meta.note;
+
+      document.querySelectorAll('[data-flow-step]').forEach((item) => {
+        const itemStep = Number(item.getAttribute('data-flow-step') || 0);
+        item.classList.toggle('is-complete', itemStep < step);
+        item.classList.toggle('is-current', itemStep === step);
+      });
+
+      els.blogAiFlowGenerateDraftBtn.disabled = !canUseApi;
+      els.blogAiFlowApplyDraftBtn.disabled = !canUseApi || !hasDraft;
+      els.blogAiFlowSaveArticleBtn.disabled = !canUseApi || !els.title.value.trim() || !els.content.value.trim();
+      els.blogAiFlowPublishBtn.disabled = !canUseApi || !hasArticle;
+      els.blogAiFlowGenerateAbcBtn.disabled = !canUseApi || !hasArticle;
+      els.blogAiFlowMarkSharedBtn.disabled = !canUseApi || !hasArticle || !hasSelectedVariant;
+    }
+
+    async function syncProductionAfterArticleSave(article) {
+      const nextStage = article && article.status === 'published' ? 'published' : 'article_saved';
+      const draftProductionId = state.blogDraft && state.blogDraft.id && !state.blogDraft.articleId
+        ? state.blogDraft.id
+        : '';
+
+      if (draftProductionId) {
+        const data = await apiRequest('PATCH', blogProductionApiBase, {
+          id: draftProductionId,
+          linkArticleId: article.id,
+          workflowStage: nextStage
+        });
+        state.blogProduction = data.production || null;
+        state.blogDraft = null;
+        state.blogDraftApplied = false;
+        return data.production || null;
+      }
+
+      if (state.blogProduction && article && article.id) {
+        const data = await apiRequest('PATCH', blogProductionApiBase, {
+          articleId: article.id,
+          workflowStage: nextStage
+        });
+        state.blogProduction = data.production || null;
+        return data.production || null;
+      }
+
+      state.blogDraftApplied = false;
+      return null;
+    }
+
     /* ------------------------------------------------------------------ */
     /* Tab switching                                                       */
     /* ------------------------------------------------------------------ */
@@ -3289,17 +3850,24 @@
     const blogAiPanes = document.querySelectorAll('.blog-ai-pane');
     let blogAiActiveMode = 'abc_from_article';
 
+    function getBlogAiPaneId(mode) {
+      const activeTab = Array.from(blogAiModeTabs).find((tab) => tab.dataset.mode === mode);
+      return activeTab ? activeTab.getAttribute('aria-controls') : null;
+    }
+
     function switchBlogAiMode(mode) {
       blogAiActiveMode = mode;
+      const targetPaneId = getBlogAiPaneId(mode);
       blogAiModeTabs.forEach((tab) => {
         const isActive = tab.dataset.mode === mode;
         tab.classList.toggle('active', isActive);
         tab.setAttribute('aria-selected', String(isActive));
       });
       blogAiPanes.forEach((pane) => {
-        pane.classList.toggle('active', pane.id === 'pane-' + mode.replace(/_/g, '-'));
+        pane.classList.toggle('active', Boolean(targetPaneId) && pane.id === targetPaneId);
       });
       showBlogAiMessage('', false);
+      renderBlogWorkflowSummary();
     }
 
     function updateAbcArticleTabState() {
@@ -3314,10 +3882,12 @@
         els.blogAiCtxExcerpt.textContent = '';
         if (blogAiActiveMode === 'abc_from_article') switchBlogAiMode('draft_from_idea');
       }
+      renderBlogWorkflowSummary();
     }
 
     blogAiModeTabs.forEach((tab) => {
-      tab.addEventListener('click', () => {
+      tab.addEventListener('click', (event) => {
+        event.preventDefault();
         if (tab.disabled) return;
         switchBlogAiMode(tab.dataset.mode);
       });
@@ -3362,6 +3932,7 @@
 
       const sel = prefix === 't1' ? els.blogAiT1SelectedVariant : els.blogAiT3SelectedVariant;
       sel.value = label;
+      sel.dispatchEvent(new Event('change', { bubbles: true }));
       showBlogAiMessage(`Variacao ${label} copiada.`, false);
     }
 
@@ -3374,6 +3945,7 @@
         els.blogAiT1Status.textContent = 'Sem geracao ainda.';
         els.blogAiT1SelectedVariant.value = '';
         setVariantText('t1', 'A', ''); setVariantText('t1', 'B', ''); setVariantText('t1', 'C', '');
+        renderBlogWorkflowSummary();
         return;
       }
       const briefing = production.briefing || {};
@@ -3390,6 +3962,7 @@
         ? ` | Partilhado em ${new Date(production.manualSharedAt).toLocaleString('pt-PT')}`
         : '';
       els.blogAiT1Status.textContent = `Estado: ${production.status || 'not_generated'}${shared}`;
+      renderBlogWorkflowSummary();
     }
 
     async function refreshBlogProductionForCurrentArticle() {
@@ -3423,10 +3996,14 @@
     async function saveT1ManualShare() {
       const articleId = (els.id.value || '').trim();
       if (!articleId) throw new Error('Guarda o artigo antes de marcar partilha.');
+      const selectedVariant = (els.blogAiT1SelectedVariant.value || '').trim().toUpperCase();
+      if (!selectedVariant) throw new Error('Escolhe primeiro uma variacao para registar a partilha.');
+      const confirmed = window.confirm('Marcar esta partilha ABC como feita manualmente?');
+      if (!confirmed) return;
 
       const payload = {
         articleId,
-        selectedVariant: (els.blogAiT1SelectedVariant.value || '').trim() || undefined,
+        selectedVariant,
         whatsappVariants: buildVariantArrayFromTab('t1'),
         markShared: true
       };
@@ -3441,9 +4018,11 @@
     /* ------------------------------------------------------------------ */
     function renderT2Production(production) {
       state.blogDraft = production || null;
+      state.blogDraftApplied = false;
       if (!production || !production.generatedBlog || !production.generatedBlog.title) {
         els.blogAiDraftPreview.hidden = true;
         els.blogAiT2Status.textContent = 'Sem draft ainda.';
+        renderBlogWorkflowSummary();
         return;
       }
       const blog = production.generatedBlog;
@@ -3452,6 +4031,7 @@
       els.blogAiDraftContent.textContent = blog.content || '';
       els.blogAiDraftPreview.hidden = false;
       els.blogAiT2Status.textContent = `Draft gerado (${production.status || 'generated'}).`;
+      renderBlogWorkflowSummary();
     }
 
     async function generateDraftFromIdea() {
@@ -3482,6 +4062,9 @@
       if (blog.excerpt) els.excerpt.value = blog.excerpt;
       if (blog.category) els.category.value = blog.category;
       if (blog.content) els.content.value = blog.content;
+      state.blogDraftApplied = true;
+      updateAbcArticleTabState();
+      renderBlogWorkflowSummary();
       showBlogAiMessage('Draft aplicado no editor.', false);
     }
 
@@ -3494,6 +4077,7 @@
         els.blogAiT3Status.textContent = 'Sem geracao ainda.';
         els.blogAiT3SelectedVariant.value = '';
         setVariantText('t3', 'A', ''); setVariantText('t3', 'B', ''); setVariantText('t3', 'C', '');
+        renderBlogWorkflowSummary();
         return;
       }
       els.blogAiT3SelectedVariant.value = production.selectedVariant || '';
@@ -3507,6 +4091,7 @@
         ? ` | Partilhado em ${new Date(production.manualSharedAt).toLocaleString('pt-PT')}`
         : '';
       els.blogAiT3Status.textContent = `Estado: ${production.status || 'not_generated'}${shared}`;
+      renderBlogWorkflowSummary();
     }
 
     async function generateAbcStandalone() {
@@ -3533,10 +4118,14 @@
     async function saveT3ManualShare() {
       const prod = state.blogStandalone;
       if (!prod || !prod.id) throw new Error('Gera ABC avulso primeiro.');
+      const selectedVariant = (els.blogAiT3SelectedVariant.value || '').trim().toUpperCase();
+      if (!selectedVariant) throw new Error('Escolhe primeiro uma variacao para registar a partilha.');
+      const confirmed = window.confirm('Marcar esta partilha ABC avulsa como feita manualmente?');
+      if (!confirmed) return;
 
       const payload = {
         id: prod.id,
-        selectedVariant: (els.blogAiT3SelectedVariant.value || '').trim() || undefined,
+        selectedVariant,
         whatsappVariants: buildVariantArrayFromTab('t3'),
         markShared: true
       };
@@ -3587,6 +4176,7 @@
       state.blogProduction = null;
       state.blogDraft = null;
       state.blogStandalone = null;
+      state.blogDraftApplied = false;
       // Tab 1
       els.blogAiT1Cta.value = '';
       els.blogAiT1Instructions.value = '';
@@ -3595,6 +4185,7 @@
       els.blogAiT1Status.textContent = 'Sem geracao ainda.';
       // Tab 2
       els.blogAiT2Topic.value = '';
+      renderBlogWorkflowSummary();
       els.blogAiT2Objective.value = '';
       els.blogAiT2Tone.value = '';
       els.blogAiT2Instructions.value = '';
@@ -3829,6 +4420,7 @@
     Object.assign(state, {
       athletesUnified: [],           // Consolidated athletes list
       athletesFiltered: [],          // After applying filters
+      selectedAthleteId: null,
       athletesFilterInputs: {
         search: '',
         coach: '',
@@ -3905,8 +4497,28 @@
         filtered = filtered.filter((a) => a.manualAccessActive === true);
       }
 
+      if (state.selectedAthleteId && !filtered.some((athlete) => athlete.id === state.selectedAthleteId)) {
+        state.selectedAthleteId = null;
+      }
+
       state.athletesFiltered = filtered;
       renderAthletesMainTable();
+    }
+
+    function getSelectedAthlete() {
+      return (state.athletesFiltered || []).find((athlete) => athlete.id === state.selectedAthleteId)
+        || (state.athletesUnified || []).find((athlete) => athlete.id === state.selectedAthleteId)
+        || null;
+    }
+
+    function updateAthleteSelectionActions() {
+      const selectedAthlete = getSelectedAthlete();
+      const disabled = !selectedAthlete;
+
+      if (els.athletesActionEditSelected) els.athletesActionEditSelected.disabled = disabled;
+      if (els.athletesActionAssignSelected) els.athletesActionAssignSelected.disabled = disabled;
+      if (els.athletesActionManageSelected) els.athletesActionManageSelected.disabled = disabled;
+      if (els.athletesActionArchiveSelected) els.athletesActionArchiveSelected.disabled = disabled;
     }
 
     function renderAthletesMainTable() {
@@ -3930,6 +4542,7 @@
       athletesFiltered.forEach((athlete) => {
         const row = document.createElement('tr');
         row.setAttribute('data-athlete-id', athlete.id);
+        row.classList.toggle('is-selected', athlete.id === state.selectedAthleteId);
 
         const coachName = state.coaches.find((c) => c.identityId === athlete.coachIdentityId)?.name || '-';
         const statusLabel = getAssignmentStatusLabel(athlete.assignmentStatus) || '-';
@@ -3943,21 +4556,18 @@
           <td>${escapeHtml(paymentLabel)}</td>
           <td>${escapeHtml(athlete.programName || '-')}</td>
           <td>${escapeHtml(athlete.createdAt ? new Date(athlete.createdAt).toLocaleDateString('pt-PT') : '-')}</td>
-          <td>
-            <div class="athlete-row-actions">
-              <button class="action-btn-sm" data-action="edit" title="Editar atleta">🔧</button>
-              <button class="action-btn-sm" data-action="assign-coach" title="Atribuir coach">👨‍💼</button>
-              <button class="action-btn-sm" data-action="manage-assignment" title="Gerir assignment">📋</button>
-              <button class="action-btn-sm" data-action="archive" title="Arquivar atleta">🗑️</button>
-            </div>
+          <td class="athletes-row-actions">
+            <button class="action-btn-sm" data-action="edit" title="Editar" aria-label="Editar"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+            <button class="action-btn-sm" data-action="assign-coach" title="Atribuir coach" aria-label="Atribuir coach"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg></button>
+            <button class="action-btn-sm" data-action="manage-assignment" title="Gerir assignment" aria-label="Gerir assignment"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M4.93 4.93a10 10 0 0 0 0 14.14"/></svg></button>
+            <button class="action-btn-sm action-btn-sm-danger" data-action="archive" title="Arquivar" aria-label="Arquivar"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg></button>
           </td>
         `;
 
-        // Row action handlers
         row.querySelectorAll('[data-action]').forEach((btn) => {
           btn.addEventListener('click', (e) => {
-            const action = e.target.getAttribute('data-action');
-            handleAthleteRowAction(athlete, action);
+            e.stopPropagation();
+            handleAthleteRowAction(athlete, btn.dataset.action);
           });
         });
 
@@ -3965,6 +4575,7 @@
       });
 
       tbody.appendChild(fragment);
+      updateAthleteSelectionActions();
     }
 
     function escapeHtml(text) {
@@ -4116,25 +4727,13 @@
 
       if (actionCreateAthlete) {
         actionCreateAthlete.addEventListener('click', async () => {
-          if (els.athletesOpsWorkspace) {
-            els.athletesOpsWorkspace.hidden = false;
-          }
-          els.createCoachBox.hidden = true;
-          els.createAthleteBox.hidden = false;
-          els.createAthleteBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-          els.newAthleteName.focus();
+          openCreateAthleteDialog();
         });
       }
 
       if (actionCreateCoach) {
         actionCreateCoach.addEventListener('click', async () => {
-          if (els.athletesOpsWorkspace) {
-            els.athletesOpsWorkspace.hidden = false;
-          }
-          els.createAthleteBox.hidden = true;
-          els.createCoachBox.hidden = false;
-          els.createCoachBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-          els.newCoachName.focus();
+          openCreateCoachDialog();
         });
       }
 
@@ -4150,6 +4749,34 @@
         });
       }
 
+      if (els.athletesActionEditSelected) {
+        els.athletesActionEditSelected.addEventListener('click', () => {
+          const athlete = getSelectedAthlete();
+          if (athlete) handleAthleteRowAction(athlete, 'edit');
+        });
+      }
+
+      if (els.athletesActionAssignSelected) {
+        els.athletesActionAssignSelected.addEventListener('click', () => {
+          const athlete = getSelectedAthlete();
+          if (athlete) handleAthleteRowAction(athlete, 'assign-coach');
+        });
+      }
+
+      if (els.athletesActionManageSelected) {
+        els.athletesActionManageSelected.addEventListener('click', () => {
+          const athlete = getSelectedAthlete();
+          if (athlete) handleAthleteRowAction(athlete, 'manage-assignment');
+        });
+      }
+
+      if (els.athletesActionArchiveSelected) {
+        els.athletesActionArchiveSelected.addEventListener('click', () => {
+          const athlete = getSelectedAthlete();
+          if (athlete) handleAthleteRowAction(athlete, 'archive');
+        });
+      }
+
       console.log('[Step 5] Global actions wired');
     }
 
@@ -4159,13 +4786,43 @@
       if (coachesCreateBtn && !coachesCreateBtn.dataset.bound) {
         coachesCreateBtn.dataset.bound = '1';
         coachesCreateBtn.addEventListener('click', () => {
-          if (els.athletesOpsWorkspace) {
-            els.athletesOpsWorkspace.hidden = false;
-          }
-          els.createAthleteBox.hidden = true;
-          els.createCoachBox.hidden = false;
-          els.createCoachBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-          els.newCoachName.focus();
+          openCreateCoachDialog();
+        });
+      }
+
+      if (els.coachesPanelRefreshBtnBottom && !els.coachesPanelRefreshBtnBottom.dataset.bound) {
+        els.coachesPanelRefreshBtnBottom.dataset.bound = '1';
+        els.coachesPanelRefreshBtnBottom.addEventListener('click', loadCoachesPanelAthletes);
+      }
+
+      if (els.coachesAnalyticsPreset && !els.coachesAnalyticsPreset.dataset.bound) {
+        els.coachesAnalyticsPreset.dataset.bound = '1';
+        els.coachesAnalyticsPreset.addEventListener('change', syncCoachesAnalyticsDateInputs);
+      }
+
+      if (els.coachesAnalyticsFrom && !els.coachesAnalyticsFrom.dataset.bound) {
+        els.coachesAnalyticsFrom.dataset.bound = '1';
+        els.coachesAnalyticsFrom.addEventListener('change', () => {
+          if (els.coachesPanelMessage && !els.coachesPanelMessage.classList.contains('error')) return;
+          showCoachesPanelMessage('', false);
+        });
+      }
+
+      if (els.coachesAnalyticsTo && !els.coachesAnalyticsTo.dataset.bound) {
+        els.coachesAnalyticsTo.dataset.bound = '1';
+        els.coachesAnalyticsTo.addEventListener('change', () => {
+          if (els.coachesPanelMessage && !els.coachesPanelMessage.classList.contains('error')) return;
+          showCoachesPanelMessage('', false);
+        });
+      }
+
+      syncCoachesAnalyticsDateInputs();
+
+      if (els.coachesAnalyticsApplyBtn && !els.coachesAnalyticsApplyBtn.dataset.bound) {
+        els.coachesAnalyticsApplyBtn.dataset.bound = '1';
+        els.coachesAnalyticsApplyBtn.addEventListener('click', async () => {
+          await loadCoachesAnalytics();
+          showCoachesPanelMessage('Analytics atualizados.', false);
         });
       }
 
@@ -4261,7 +4918,7 @@
           break;
 
         case 'manage-assignment':
-          openAssignmentHistoryModal(athlete.id);
+          openAthleteAssignmentPanel(athlete);
           break;
 
         case 'archive':
@@ -4277,6 +4934,10 @@
      * Pre-populates the assign-athlete-select and scrolls into view.
      */
     function openAthleteAssignmentPanel(athlete) {
+      if (els.assignmentDialogTitle) {
+        els.assignmentDialogTitle.textContent = `Gerir atleta - ${athlete.name || athlete.email || athlete.id}`;
+      }
+
       // Populate the assignment form with this athlete pre-selected
       if (els.assignAthleteSelect) {
         // Find matching option or create it
@@ -4303,11 +4964,18 @@
       // Load current assignment summary  
       refreshCurrentAssignmentSummary().catch(() => {});
 
-      // Scroll the assignment form into view
-      const assignForm = document.getElementById('assignment-current-summary');
-      if (assignForm) {
-        assignForm.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      if (els.grantAthleteSelect) {
+        let grantOption = els.grantAthleteSelect.querySelector(`option[value="${athlete.id}"]`);
+        if (!grantOption) {
+          grantOption = document.createElement('option');
+          grantOption.value = athlete.id;
+          grantOption.textContent = `${athlete.name || athlete.email} (${athlete.email || athlete.id})`;
+          els.grantAthleteSelect.appendChild(grantOption);
+        }
+        els.grantAthleteSelect.value = athlete.id;
       }
+
+      openDialog(els.assignmentDialog);
 
       showNotification(`Atleta "${athlete.name}" selecionado. Configura o assignment abaixo.`);
     }
@@ -4404,6 +5072,12 @@
         });
         statusSelect.addEventListener('change', async (e) => {
           const newStatus = statusSelect.value;
+          const previousStatus = program.status;
+          const confirmed = window.confirm(`Alterar o estado do programa ${program.name || program.id} de ${previousStatus} para ${newStatus}?`);
+          if (!confirmed) {
+            statusSelect.value = previousStatus;
+            return;
+          }
           statusSelect.disabled = true;
           try {
             await apiRequest('PATCH', `${adminProgramsApiBase}/${program.id}`, { status: newStatus });
@@ -4434,6 +5108,7 @@
       const stripeProductId = (els.programStripeProductId.value || '').trim() || null;
       const stripePriceId = (els.programStripePriceId.value || '').trim() || null;
       const billingType = (els.programBillingType.value || 'one_time').trim();
+      const accessModel = (els.programAccessModel.value || 'coached_one_time').trim();
       const followupType = (els.programFollowupType.value || 'standard').trim() || 'standard';
       const status = (els.programStatus.value || 'draft').trim();
       const isScheduledTemplate = Boolean(els.programScheduledTemplate.checked);
@@ -4458,6 +5133,7 @@
         stripeProductId,
         stripePriceId,
         billingType,
+        accessModel,
         followupType,
         status,
         isScheduledTemplate,
@@ -4562,6 +5238,14 @@
 
     async function createProgramAssignmentFromAdmin() {
       const payload = collectAssignmentPayload();
+      const athleteOption = els.assignAthleteSelect.options[els.assignAthleteSelect.selectedIndex];
+      const programOption = els.assignProgramId.options[els.assignProgramId.selectedIndex];
+      const coachOption = els.assignCoachSelect.options[els.assignCoachSelect.selectedIndex];
+      const athleteLabel = athleteOption ? athleteOption.textContent : payload.athleteId;
+      const programLabel = programOption ? programOption.textContent : payload.trainingProgramId;
+      const coachLabel = coachOption ? coachOption.textContent : payload.coachId;
+      const confirmed = window.confirm(`Criar assignment de ${programLabel} para ${athleteLabel} com o coach ${coachLabel}?`);
+      if (!confirmed) return;
       showAssignProgramMessage('A criar assignment...', false);
       await apiRequest('POST', adminAssignProgramApiBase, payload);
       showAssignProgramMessage('Program assignment criado com sucesso.', false);
@@ -4581,6 +5265,13 @@
         throw new Error('Seleciona um atleta para cancelar assignment.');
       }
 
+      const athleteOption = els.assignAthleteSelect.options[els.assignAthleteSelect.selectedIndex];
+      const programOption = els.assignProgramId.options[els.assignProgramId.selectedIndex];
+      const athleteLabel = athleteOption ? athleteOption.textContent : athleteId;
+      const programLabel = programOption ? programOption.textContent : (trainingProgramId || 'o programa selecionado');
+      const confirmed = window.confirm(`Cancelar o assignment ativo de ${programLabel} para ${athleteLabel}?`);
+      if (!confirmed) return;
+
       showAssignProgramMessage('A cancelar assignment ativo...', false);
       await apiRequest('PATCH', adminAssignProgramApiBase, {
         athleteId,
@@ -4595,6 +5286,12 @@
 
     async function grantProgramAccessFromAdmin() {
       const payload = collectGrantPayload();
+      const athleteOption = els.grantAthleteSelect.options[els.grantAthleteSelect.selectedIndex];
+      const programOption = els.grantProgramId.options[els.grantProgramId.selectedIndex];
+      const athleteLabel = athleteOption ? athleteOption.textContent : payload.email;
+      const programLabel = programOption ? programOption.textContent : payload.program_id;
+      const confirmed = window.confirm(`Conceder acesso manual a ${programLabel} para ${athleteLabel}?`);
+      if (!confirmed) return;
       showProgramGrantsMessage('A conceder acesso...', false);
       await apiRequest('POST', adminGrantAccessApiBase, payload);
       showProgramGrantsMessage('Acesso concedido com sucesso.', false);
@@ -4642,6 +5339,11 @@
       }
 
       const { data: { session } } = await supabaseClient.auth.getSession();
+      const expired = await enforceSessionMaxAge(session || null);
+      if (expired) {
+        await handleAuthChange(null, null);
+        throw new Error('Sessao expirada. Faz login novamente.');
+      }
       if (!session || !session.access_token) {
         throw new Error('Nao autenticado. Faz login novamente.');
       }
@@ -4672,10 +5374,12 @@
     }
 
     function setAuthUI() {
-      const viewingAllowed = Boolean(state.user);
-      const canUseApi = Boolean(state.user);
+      const isAuthorized = Boolean(state.user) && state.roles.includes('admin');
+      const viewingAllowed = isAuthorized;
+      const canUseApi = isAuthorized;
 
-      els.authGate.hidden = viewingAllowed;
+      els.authGate.hidden = Boolean(state.user);
+      els.unauthorizedGate.hidden = !(Boolean(state.user) && !isAuthorized);
       els.protectedContent.hidden = !viewingAllowed;
       document.body.classList.toggle('auth-locked', !viewingAllowed);
 
@@ -4708,6 +5412,12 @@
       els.blogAiT2Instructions.disabled = !canUseApi;
       els.blogAiT2GenerateBtn.disabled = !canUseApi;
       els.blogAiT2ApplyBtn.disabled = !canUseApi;
+      els.blogAiFlowGenerateDraftBtn.disabled = !canUseApi;
+      els.blogAiFlowApplyDraftBtn.disabled = !canUseApi;
+      els.blogAiFlowSaveArticleBtn.disabled = !canUseApi;
+      els.blogAiFlowPublishBtn.disabled = !canUseApi;
+      els.blogAiFlowGenerateAbcBtn.disabled = !canUseApi;
+      els.blogAiFlowMarkSharedBtn.disabled = !canUseApi;
       // Tab 3
       els.blogAiT3Topic.disabled = !canUseApi;
       els.blogAiT3Cta.disabled = !canUseApi;
@@ -4750,6 +5460,7 @@
       els.programStripeProductId.disabled = !canUseApi;
       els.programStripePriceId.disabled = !canUseApi;
       els.programBillingType.disabled = !canUseApi;
+      els.programAccessModel.disabled = !canUseApi;
       els.programFollowupType.disabled = !canUseApi;
       els.programStatus.disabled = !canUseApi;
       els.programScheduledTemplate.disabled = !canUseApi;
@@ -4786,6 +5497,7 @@
       // Desabilitar todos os inputs/textareas dentro do form do blog
       const formInputs = els.form.querySelectorAll('input, select, textarea');
       formInputs.forEach(input => input.disabled = !canUseApi);
+      renderBlogWorkflowSummary();
     }
 
     function resetForm() {
@@ -4885,18 +5597,27 @@
 
     async function saveArticle() {
       const payload = collectPayload();
+      let article;
 
       if (payload.id) {
         const data = await apiRequest('PATCH', apiBase, payload);
         showMessage('Artigo atualizado com sucesso.', false);
         await refreshList();
-        fillForm(data.article);
+        article = data.article;
       } else {
         const data = await apiRequest('POST', apiBase, payload);
         showMessage('Artigo criado com sucesso.', false);
         await refreshList();
-        fillForm(data.article);
+        article = data.article;
       }
+
+      const linkedProduction = article ? await syncProductionAfterArticleSave(article) : null;
+      fillForm(article);
+      if (linkedProduction) {
+        renderT1Production(linkedProduction);
+      }
+      renderBlogWorkflowSummary();
+      return article;
     }
 
     async function publishNow() {
@@ -4904,6 +5625,8 @@
       if (!id) {
         throw new Error('Guarda o artigo antes de publicar.');
       }
+      const confirmed = window.confirm('Publicar este artigo agora?');
+      if (!confirmed) return;
 
       const patch = {
         id,
@@ -4914,13 +5637,16 @@
       const data = await apiRequest('PATCH', apiBase, patch);
       showMessage('Artigo publicado.', false);
       await refreshList();
+      let linkedProduction = null;
+      if (state.blogProduction || state.blogDraft) {
+        linkedProduction = await syncProductionAfterArticleSave(data.article);
+      }
       fillForm(data.article);
-
-      // Auto-regenerate ABC after publish if tab 1 has data
-      try {
-        await generateAbcFromArticle();
-        showBlogAiMessage('ABC regenerado apos publicacao.', false);
-      } catch (_) { /* ignore – article may not have ABC yet */ }
+      if (linkedProduction) {
+        renderT1Production(linkedProduction);
+      }
+      showBlogAiMessage('Artigo publicado. Gera o ABC quando estiveres pronto para distribuir.', false);
+      renderBlogWorkflowSummary();
     }
 
     async function deleteArticle() {
@@ -4944,9 +5670,19 @@
           email: supabaseUser.email
         };
         state.token = session && session.access_token ? session.access_token : null;
+        try {
+          const rolesRes = await fetch('/.netlify/functions/get-my-roles', {
+            headers: { Authorization: 'Bearer ' + state.token }
+          });
+          const rolesData = await rolesRes.json().catch(() => ({}));
+          state.roles = Array.isArray(rolesData.roles) ? rolesData.roles : [];
+        } catch (_) {
+          state.roles = [];
+        }
       } else {
         state.user = null;
         state.token = null;
+        state.roles = [];
       }
       
       setAuthUI();
@@ -5013,6 +5749,9 @@
         state.selectedAiPromptId = null;
         state.selectedAiLogId = null;
         state.blogProduction = null;
+        state.blogDraft = null;
+        state.blogStandalone = null;
+        state.blogDraftApplied = false;
         state.dataAudit = null;
         state.athletesCatalog = [];
         state.programs = [];
@@ -5052,8 +5791,11 @@
     async function checkAuthOnLoad() {
       if (!supabaseClient) return;
       const { data: { session } } = await supabaseClient.auth.getSession();
-      if (session?.user) {
+      const expired = await enforceSessionMaxAge(session || null);
+      if (!expired && session?.user) {
         await handleAuthChange(session.user, session);
+      } else if (expired) {
+        await handleAuthChange(null, null);
       }
     }
 
@@ -5072,14 +5814,16 @@
 
       // Inicializar o client Supabase
       if (!supabaseClient) {
-        supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const config = await loadPublicConfig();
+        supabaseClient = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
         console.log('Supabase inicializado');
       }
 
       // Monitor de auth state changes
       supabaseClient.auth.onAuthStateChange(async (_event, session) => {
         try {
-          if (session?.user) {
+          const expired = await enforceSessionMaxAge(session || null);
+          if (!expired && session?.user) {
             await handleAuthChange(session.user, session);
           } else {
             await handleAuthChange(null, null);
@@ -5128,13 +5872,20 @@
         }
       });
 
+      document.getElementById('admin-unauth-logout-btn').addEventListener('click', async () => {
+        try {
+          await supabaseClient.auth.signOut({ scope: 'local' });
+        } catch (_) {}
+        await handleAuthChange(null, null);
+      });
+
     }
 
     function bindAdminCoachAthleteButtons() {
       if (els.openCreateCoachBtn && !els.openCreateCoachBtn.dataset.bound) {
         els.openCreateCoachBtn.dataset.bound = '1';
         els.openCreateCoachBtn.addEventListener('click', () => {
-          els.createCoachBox.hidden = !els.createCoachBox.hidden;
+          openCreateCoachDialog();
         });
       }
 
@@ -5142,8 +5893,13 @@
         els.cancelCreateCoachBtn.dataset.bound = '1';
         els.cancelCreateCoachBtn.addEventListener('click', () => {
           clearCreateCoachForm();
-          els.createCoachBox.hidden = true;
+          closeCreateCoachDialog();
         });
+      }
+
+      if (els.closeCreateCoachDialogBtn && !els.closeCreateCoachDialogBtn.dataset.bound) {
+        els.closeCreateCoachDialogBtn.dataset.bound = '1';
+        els.closeCreateCoachDialogBtn.addEventListener('click', closeCreateCoachDialog);
       }
 
       if (els.createCoachBtn && !els.createCoachBtn.dataset.bound) {
@@ -5160,7 +5916,7 @@
       if (els.openCreateAthleteBtn && !els.openCreateAthleteBtn.dataset.bound) {
         els.openCreateAthleteBtn.dataset.bound = '1';
         els.openCreateAthleteBtn.addEventListener('click', () => {
-          els.createAthleteBox.hidden = !els.createAthleteBox.hidden;
+          openCreateAthleteDialog();
         });
       }
 
@@ -5168,7 +5924,29 @@
         els.cancelCreateAthleteBtn.dataset.bound = '1';
         els.cancelCreateAthleteBtn.addEventListener('click', () => {
           clearCreateAthleteForm();
-          els.createAthleteBox.hidden = true;
+          closeCreateAthleteDialog();
+        });
+      }
+
+      if (els.closeCreateAthleteDialogBtn && !els.closeCreateAthleteDialogBtn.dataset.bound) {
+        els.closeCreateAthleteDialogBtn.dataset.bound = '1';
+        els.closeCreateAthleteDialogBtn.addEventListener('click', closeCreateAthleteDialog);
+      }
+
+      if (els.closeAssignmentDialogBtn && !els.closeAssignmentDialogBtn.dataset.bound) {
+        els.closeAssignmentDialogBtn.dataset.bound = '1';
+        els.closeAssignmentDialogBtn.addEventListener('click', closeAssignmentDialog);
+      }
+
+      if (els.assignmentHistoryBtn && !els.assignmentHistoryBtn.dataset.bound) {
+        els.assignmentHistoryBtn.dataset.bound = '1';
+        els.assignmentHistoryBtn.addEventListener('click', async () => {
+          const athleteId = (els.assignAthleteSelect.value || '').trim();
+          if (!athleteId) {
+            showAssignProgramMessage('Seleciona um atleta para ver o historico.', true);
+            return;
+          }
+          await openAssignmentHistoryModal(athleteId);
         });
       }
 
@@ -5258,6 +6036,34 @@
       try { applyDraftToEditor(); } catch (err) { showBlogAiMessage(err.message, true); }
     });
 
+    els.blogAiFlowGenerateDraftBtn.addEventListener('click', async () => {
+      switchBlogAiMode('draft_from_idea');
+      try { await generateDraftFromIdea(); } catch (err) { showBlogAiMessage(err.message, true); }
+    });
+
+    els.blogAiFlowApplyDraftBtn.addEventListener('click', () => {
+      switchBlogAiMode('draft_from_idea');
+      try { applyDraftToEditor(); } catch (err) { showBlogAiMessage(err.message, true); }
+    });
+
+    els.blogAiFlowSaveArticleBtn.addEventListener('click', async () => {
+      try { await saveArticle(); } catch (err) { showMessage(err.message, true); }
+    });
+
+    els.blogAiFlowPublishBtn.addEventListener('click', async () => {
+      try { await publishNow(); } catch (err) { showMessage(err.message, true); }
+    });
+
+    els.blogAiFlowGenerateAbcBtn.addEventListener('click', async () => {
+      switchBlogAiMode('abc_from_article');
+      try { await generateAbcFromArticle(); } catch (err) { showBlogAiMessage(err.message, true); }
+    });
+
+    els.blogAiFlowMarkSharedBtn.addEventListener('click', async () => {
+      switchBlogAiMode('abc_from_article');
+      try { await saveT1ManualShare(); } catch (err) { showBlogAiMessage(err.message, true); }
+    });
+
     els.blogAiT3GenerateBtn.addEventListener('click', async () => {
       try { await generateAbcStandalone(); } catch (err) { showBlogAiMessage(err.message, true); }
     });
@@ -5288,6 +6094,7 @@
 
     // Load standalone history on first auth
     loadStandaloneHistory();
+    renderBlogWorkflowSummary();
 
     els.refreshAthletesBtn.addEventListener('click', async () => {
       try {
@@ -5972,10 +6779,38 @@
     });
 
     function configureUnifiedAthletesPanel() {
-      const athletesAthletesView = document.getElementById('athletes-athletes-view');
-      const athletesCoachesView = document.getElementById('athletes-coaches-view');
-      if (athletesAthletesView) athletesAthletesView.hidden = false;
-      if (athletesCoachesView) athletesCoachesView.hidden = false;
+      const setSubview = (view) => {
+        const isAthletes = view !== 'coaches';
+        state.activeAthletesSubview = isAthletes ? 'athletes' : 'coaches';
+
+        if (els.athletesSubviewAthletes) {
+          els.athletesSubviewAthletes.hidden = !isAthletes;
+        }
+        if (els.athletesSubviewCoaches) {
+          els.athletesSubviewCoaches.hidden = isAthletes;
+        }
+        if (els.athletesSubtabAthletes) {
+          els.athletesSubtabAthletes.classList.toggle('is-active', isAthletes);
+          els.athletesSubtabAthletes.setAttribute('aria-selected', String(isAthletes));
+        }
+        if (els.athletesSubtabCoaches) {
+          els.athletesSubtabCoaches.classList.toggle('is-active', !isAthletes);
+          els.athletesSubtabCoaches.setAttribute('aria-selected', String(!isAthletes));
+        }
+
+        if (!isAthletes && state.user) {
+          loadCoachesAnalytics().catch(() => {});
+        }
+      };
+
+      if (els.athletesSubtabAthletes) {
+        els.athletesSubtabAthletes.addEventListener('click', () => setSubview('athletes'));
+      }
+      if (els.athletesSubtabCoaches) {
+        els.athletesSubtabCoaches.addEventListener('click', () => setSubview('coaches'));
+      }
+
+      setSubview(state.activeAthletesSubview || 'athletes');
     }
 
     configureUnifiedAthletesPanel();
@@ -5990,7 +6825,8 @@
     els.tabOperations.addEventListener('click', () => setActiveTab('operations'));
 
     setAuthUI();
-    setActiveTab('blog');
+    const initialTab = location.hash.replace('#', '') || 'blog';
+    setActiveTab(initialTab);
     renderUnassignedAthletes();
     renderLeads();
     renderProgramsTable();

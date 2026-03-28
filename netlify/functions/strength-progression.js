@@ -5,6 +5,7 @@ const {
   getStrengthPlanFull,
   getStrengthLogs,
   getAthlete1rmLatest,
+  getActiveInstanceForAthlete,
   verifyCoachOwnsAthlete
 } = require("./_lib/supabase");
 const { resolveLoad, resolveReps, calculateStimulatingReps, calculateTUT, calculatePlyoLoad } = require("./_lib/strength");
@@ -47,7 +48,10 @@ exports.handler = async (event) => {
       oneRmMap[r.exercise_id] = r.value_kg;
     }
 
-    const loadRound = full.plan.load_round || 2.5;
+    const activeInstance = await getActiveInstanceForAthlete(config, qs.athleteId);
+    const loadRound = activeInstance && activeInstance.plan_id === qs.planId
+      ? (activeInstance.load_round || 2.5)
+      : 2.5;
 
     // Build prescription map: plan_exercise_id → { week_number → prescription }
     const rxMap = {};

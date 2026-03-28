@@ -3,12 +3,12 @@
 //
 // Env vars (set in Netlify Dashboard):
 // - META_WEBHOOK_VERIFY_TOKEN : random token registered in Meta App Dashboard (required)
-// - META_APP_SECRET           : Meta App Secret for signature verification (recommended)
+// - META_APP_SECRET           : Meta App Secret for signature verification (required for POST)
 // - META_PAGE_ACCESS_TOKEN    : Page Access Token to fetch full lead field data via Graph API (optional)
 
 const crypto = require("crypto");
 const { getConfig } = require("./_lib/config");
-const { insertMetaLead } = require("./_lib/supabase");
+const { insertMetaLead, upsertCentralLead } = require("./_lib/supabase");
 const { sendCAPIEvent, buildUserData } = require("./_lib/meta-capi");
 
 function safeCompare(a, b) {
@@ -49,6 +49,13 @@ function extractCommonFields(fieldData) {
   return { name, email, phone };
 }
 
+function deriveMetaLeadStatus({ name, email, phone }) {
+  if (name && (email || phone)) {
+    return "qualified";
+  }
+  return "new";
+}
+
 exports.handler = async (event) => {
   const method = event.httpMethod;
 
@@ -75,19 +82,23 @@ exports.handler = async (event) => {
       ? Buffer.from(event.body || "", "base64").toString("utf8")
       : event.body || "";
 
-    // Verify signature if app secret is configured
+    // Verify signature for all POST requests
     const appSecret = process.env.META_APP_SECRET;
-    if (appSecret) {
-      const sigHeader =
-        event.headers["x-hub-signature-256"] ||
-        event.headers["X-Hub-Signature-256"] ||
-        "";
-      const expected =
-        "sha256=" +
-        crypto.createHmac("sha256", appSecret).update(rawBody, "utf8").digest("hex");
-      if (!safeCompare(sigHeader, expected)) {
-        return { statusCode: 401, body: "Invalid signature" };
-      }
+    if (!appSecret) {
+      return { statusCode: 500, body: "Missing META_APP_SECRET" };
+    }
+    const sigHeader =
+      event.headers["x-hub-signature-256"] ||
+      event.headers["X-Hub-Signature-256"] ||
+      "";
+    if (!sigHeader) {
+      return { statusCode: 401, body: "Missing signature" };
+    }
+    const expected =
+      "sha256=" +
+      crypto.createHmac("sha256", appSecret).update(rawBody, "utf8").digest("hex");
+    if (!safeCompare(sigHeader, expected)) {
+      return { statusCode: 401, body: "Invalid signature" };
     }
 
     let payload;
@@ -117,6 +128,7 @@ exports.handler = async (event) => {
         let name = null;
         let email = null;
         let phone = null;
+        const receivedAt = new Date().toISOString();
 
         // Fetch full lead data from Graph API when token is available
         if (accessToken && leadgenId) {
@@ -134,6 +146,7 @@ exports.handler = async (event) => {
         }
 
         try {
+          const autoStatus = deriveMetaLeadStatus({ name, email, phone });
           const result = await insertMetaLead(config, {
             leadgen_id: leadgenId,
             form_id: formId,
@@ -145,11 +158,46 @@ exports.handler = async (event) => {
             email,
             phone,
             field_data: fieldData,
-            raw_payload: val
+            raw_payload: val,
+            status: autoStatus
           });
           if (!result || (Array.isArray(result) && !result.length)) {
             console.log(`meta-webhook: duplicate leadgen_id skipped: ${leadgenId}`);
           }
+
+          const insertedLead = Array.isArray(result) ? result[0] || null : result || null;
+          await upsertCentralLead(config, {
+            metaLeadId: insertedLead ? insertedLead.id || null : null,
+            source: "meta_ads",
+            sourceRefId: leadgenId,
+            email,
+            phone,
+            fullName: name,
+            funnelStage: "meta_received",
+            leadStatus: autoStatus,
+            leadScore: autoStatus === "qualified" ? 60 : 20,
+            lastActivityAt: receivedAt,
+            lastActivityType: "meta_lead_received",
+            attribution: {
+              pageId,
+              formId,
+              formName,
+              adId,
+              adName
+            },
+            profile: {
+              formName,
+              adName,
+              fieldCount: Array.isArray(fieldData) ? fieldData.length : 0
+            },
+            rawPayload: {
+              entryId: entry.id || null,
+              leadgenId,
+              formId,
+              adId,
+              pageId
+            }
+          });
         } catch (err) {
           console.error("meta-webhook: failed to insert lead:", err.message);
           errors.push(err.message);

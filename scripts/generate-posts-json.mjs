@@ -45,7 +45,7 @@ function normalizePost(row) {
   return {
     slug: row.slug,
     title: row.title || row.slug,
-    date: isoDate(row.published_at),
+    date: isoDate(row.published_at || row.updated_at || row.created_at),
     category: row.category || "Artigo",
     excerpt: row.excerpt || ""
   };
@@ -76,10 +76,29 @@ async function supabaseRequest(pathAndQuery) {
 }
 
 function urlEntry(loc, lastmod, changefreq, priority) {
-  return `  <url>\n    <loc>${loc}</loc>\n    <lastmod>${lastmod}</lastmod>\n    <changefreq>${changefreq}</changefreq>\n    <priority>${priority}</priority>\n  </url>`;
+  return `  <url>\n    <loc>${escapeXml(loc)}</loc>\n    <lastmod>${lastmod}</lastmod>\n    <changefreq>${changefreq}</changefreq>\n    <priority>${priority}</priority>\n  </url>`;
 }
 
-const rows = await supabaseRequest("blog_articles?deleted_at=is.null&status=eq.published&select=slug,title,excerpt,category,published_at&order=published_at.desc");
+function escapeXml(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&apos;");
+}
+
+function encodePathSegment(value) {
+  if (!value) return "";
+
+  try {
+    return encodeURIComponent(decodeURIComponent(value));
+  } catch {
+    return encodeURIComponent(value);
+  }
+}
+
+const rows = await supabaseRequest("blog_articles?deleted_at=is.null&status=eq.published&select=slug,title,excerpt,category,published_at,updated_at,created_at&order=published_at.desc");
 const items = rows.map(normalizePost);
 
 const outDir = path.join(process.cwd(), "blog");
@@ -113,7 +132,13 @@ const staticPages = [
   { path: "/", changefreq: "weekly", priority: "1.0" },
   { path: "/onboarding", changefreq: "monthly", priority: "0.7" },
   { path: "/sobre", changefreq: "monthly", priority: "0.7" },
+  { path: "/artigo", changefreq: "monthly", priority: "0.6" },
+  { path: "/calendario", changefreq: "monthly", priority: "0.6" },
+  { path: "/programas", changefreq: "weekly", priority: "0.7" },
   { path: "/blog", changefreq: "weekly", priority: "0.8" },
+  { path: "/check-in", changefreq: "weekly", priority: "0.6" },
+  { path: "/coach", changefreq: "weekly", priority: "0.6" },
+  { path: "/planocorrida", changefreq: "weekly", priority: "0.7" },
   { path: "/termos", changefreq: "yearly", priority: "0.4" },
   { path: "/politica-privacidade", changefreq: "yearly", priority: "0.4" }
 ];
@@ -123,7 +148,10 @@ const staticXml = staticPages
   .join("\n");
 
 const postsXml = items
-  .map((post) => urlEntry(`${siteUrl}/blog/${post.slug}`, post.date || today, "monthly", "0.6"))
+  .map((post) => {
+    const safeSlug = encodePathSegment(post.slug);
+    return urlEntry(`${siteUrl}/blog/${safeSlug}`, post.date || today, "monthly", "0.6");
+  })
   .join("\n");
 
 const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${staticXml}\n${postsXml}\n</urlset>\n`;

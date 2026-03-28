@@ -116,7 +116,6 @@ exports.handler = async (event) => {
         name: body.name,
         description: body.description || null,
         total_weeks: body.total_weeks,
-        load_round: body.load_round != null ? body.load_round : 2.5,
         start_date: body.start_date || null,
         training_program_id: body.training_program_id || null,
         status: "draft",
@@ -176,7 +175,7 @@ exports.handler = async (event) => {
       const plan = await getStrengthPlanById(config, body.plan_id);
       if (!plan) return json(404, { error: "Plan not found" });
 
-      const allowed = ["name", "description", "total_weeks", "load_round", "start_date", "status", "training_program_id"];
+      const allowed = ["name", "description", "total_weeks", "start_date", "status", "training_program_id"];
       const patch = {};
       for (const key of allowed) {
         if (body[key] !== undefined) patch[key] = body[key];

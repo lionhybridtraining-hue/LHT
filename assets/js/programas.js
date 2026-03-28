@@ -1,8 +1,8 @@
 (function(){
-  const SUPABASE_URL = 'https://rlivxjarqpqmvjtgmxhh.supabase.co';
-  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJsaXZ4amFycXBxbXZqdGdteGhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MDk3NzcsImV4cCI6MjA4OTE4NTc3N30.MHwkQnytSCOBleYVOF5hJHWiV8d_-2V9UGIqsLTgjIY';
+  const DEFAULT_AUTH_MAX_SESSION_SECONDS = 24 * 60 * 60;
 
   let supabaseClient = null;
+  let publicConfig = null;
   let currentUser = null;
   let accessToken = '';
   let authReady = false;
@@ -16,6 +16,46 @@
 
   function getSelectedProgramId(){
     return getQuery().get('program_id') || '';
+  }
+
+  async function loadPublicConfig(){
+    if(publicConfig) return publicConfig;
+    const response = await fetch('/.netlify/functions/public-config');
+    const payload = await response.json().catch(() => ({}));
+    if(!response.ok){
+      throw new Error((payload && payload.error) ? payload.error : 'Nao foi possivel carregar configuracao publica.');
+    }
+    publicConfig = {
+      supabaseUrl: payload.supabaseUrl,
+      supabaseAnonKey: payload.supabaseAnonKey,
+      authMaxSessionSeconds: Number(payload.authMaxSessionSeconds) || DEFAULT_AUTH_MAX_SESSION_SECONDS
+    };
+    return publicConfig;
+  }
+
+  function getSessionIssuedAt(session){
+    return session && session.user
+      ? (session.user.last_sign_in_at || session.user.created_at || null)
+      : null;
+  }
+
+  function isSessionOverMaxAge(session){
+    const issuedAt = getSessionIssuedAt(session);
+    if(!issuedAt) return false;
+    const issuedMs = new Date(issuedAt).getTime();
+    if(!Number.isFinite(issuedMs)) return false;
+    const maxAge = publicConfig && publicConfig.authMaxSessionSeconds
+      ? publicConfig.authMaxSessionSeconds
+      : DEFAULT_AUTH_MAX_SESSION_SECONDS;
+    return Math.floor((Date.now() - issuedMs) / 1000) > maxAge;
+  }
+
+  async function enforceSessionMaxAge(session){
+    if(supabaseClient && isSessionOverMaxAge(session)){
+      await supabaseClient.auth.signOut({ scope: 'local' });
+      return true;
+    }
+    return false;
   }
 
   function render(){
@@ -124,16 +164,19 @@
       return;
     }
 
-    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const config = await loadPublicConfig();
+    supabaseClient = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
     const { data: { session } } = await supabaseClient.auth.getSession();
+    const expired = await enforceSessionMaxAge(session || null);
     authReady = true;
-    currentUser = session && session.user ? session.user : null;
-    accessToken = session && session.access_token ? session.access_token : '';
+    currentUser = !expired && session && session.user ? session.user : null;
+    accessToken = !expired && session && session.access_token ? session.access_token : '';
     render();
 
-    supabaseClient.auth.onAuthStateChange((_event, nextSession) => {
-      currentUser = nextSession && nextSession.user ? nextSession.user : null;
-      accessToken = nextSession && nextSession.access_token ? nextSession.access_token : '';
+    supabaseClient.auth.onAuthStateChange(async (_event, nextSession) => {
+      const nextExpired = await enforceSessionMaxAge(nextSession || null);
+      currentUser = !nextExpired && nextSession && nextSession.user ? nextSession.user : null;
+      accessToken = !nextExpired && nextSession && nextSession.access_token ? nextSession.access_token : '';
       render();
     });
   }
@@ -168,11 +211,27 @@
     if(error) alert(error.message || 'Erro ao iniciar login Google.');
   }
 
+  async function getValidAccessToken(){
+    if(!supabaseClient) return '';
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    const expired = await enforceSessionMaxAge(session || null);
+    if(expired || !session || !session.access_token){
+      currentUser = null;
+      accessToken = '';
+      render();
+      return '';
+    }
+    currentUser = session.user || null;
+    accessToken = session.access_token || '';
+    return accessToken;
+  }
+
   async function startCheckout(program){
     errorMessage = '';
     render();
 
-    if(!currentUser || !accessToken){
+    const token = await getValidAccessToken();
+    if(!currentUser || !token){
       await signInGoogle(program.id);
       return;
     }
@@ -182,7 +241,7 @@
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: 'Bearer ' + accessToken
+          Authorization: 'Bearer ' + token
         },
         body: JSON.stringify({ program_id: program.id })
       });

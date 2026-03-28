@@ -4,6 +4,7 @@ const { getAuthenticatedUser } = require("./_lib/auth-supabase");
 const {
   getAthleteByIdentity,
   getOnboardingIntakeByIdentity,
+  getOnboardingFormResponsesByIdentity,
   listWeeklyCheckinsByAthlete,
   getLatestTrainingLoadMetric,
   listTrainingSessionsForAthlete,
@@ -51,6 +52,27 @@ function summariseOnboarding(intake) {
   };
 }
 
+function summariseFormResponses(form) {
+  if (!form) return null;
+  const out = {};
+  const fields = [
+    "sexo", "data_nascimento", "peso_kg", "altura_m", "massa_gorda_percent",
+    "perimetro_abdominal_cm", "nivel_atividade_diaria", "horas_sono_media",
+    "qualidade_sono", "qualidade_alimentacao", "litros_agua_dia", "suplementos",
+    "condicao_saude_diagnosticada", "medicacao_diaria", "lesao_atual",
+    "dores_regulares", "sintomas_treino", "condicao_mental_emocional",
+    "treina_ginasio_atualmente", "experiencia_ginasio", "desporto_regular",
+    "porque_agora", "mudanca_desejada", "maior_objetivo",
+  ];
+  for (const f of fields) {
+    const v = form[f];
+    if (v !== null && v !== undefined && v !== "" && !(Array.isArray(v) && v.length === 0)) {
+      out[f] = v;
+    }
+  }
+  return Object.keys(out).length ? out : null;
+}
+
 function summariseCheckins(checkins) {
   return safeSlice(checkins, 5).map((c) => ({
     week_start: c.week_start,
@@ -86,7 +108,7 @@ function summariseStrengthPlan(instance, full) {
   return {
     name: plan.name,
     total_weeks: plan.total_weeks,
-    load_round: plan.load_round,
+    load_round: instance.load_round,
     status: instance.status,
     assigned_at: instance.assigned_at || instance.created_at,
     exercise_count: exercises.length,
@@ -110,6 +132,7 @@ function buildAthleteContext(data) {
     ctx.athlete = { name: data.athlete.name, email: data.athlete.email, status: data.athlete.status };
   }
   if (data.onboarding) ctx.onboarding = data.onboarding;
+  if (data.formResponses) ctx.health_profile = data.formResponses;
   if (data.trainingLoad) {
     const m = data.trainingLoad;
     ctx.training_load = { date: m.metric_date, ctl: m.ctl, atl: m.atl, tsb: m.tsb };
@@ -228,14 +251,16 @@ exports.handler = async (event) => {
     const identityId = user.sub;
     const athletePromise = getAthleteByIdentity(config, identityId).catch(() => null);
     const onboardingPromise = getOnboardingIntakeByIdentity(config, identityId).catch(() => null);
+    const formResponsesPromise = getOnboardingFormResponsesByIdentity(config, identityId).catch(() => null);
 
     const athlete = await athletePromise;
     const athleteId = athlete ? athlete.id : null;
 
     // Remaining queries need athleteId
-    const [onboarding, rawCheckins, trainingLoad, rawSessions, strengthInstance, rawRms] =
+    const [onboarding, formResponses, rawCheckins, trainingLoad, rawSessions, strengthInstance, rawRms] =
       await Promise.all([
         onboardingPromise,
+        formResponsesPromise,
         athleteId ? listWeeklyCheckinsByAthlete(config, athleteId).catch(() => []) : [],
         athleteId ? getLatestTrainingLoadMetric(config, athleteId).catch(() => null) : null,
         athleteId ? listTrainingSessionsForAthlete(config, athleteId).catch(() => []) : [],
@@ -257,6 +282,7 @@ exports.handler = async (event) => {
     const athleteContext = buildAthleteContext({
       athlete,
       onboarding: summariseOnboarding(onboarding),
+      formResponses: summariseFormResponses(formResponses),
       trainingLoad,
       sessions: summariseSessions(rawSessions),
       checkins: summariseCheckins(rawCheckins),

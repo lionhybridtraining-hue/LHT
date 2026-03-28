@@ -85,7 +85,7 @@ exports.handler = async (event) => {
     }
 
     // Load round from instance or plan
-    const loadRound = instance.load_round || planData.plan.load_round || 2.5;
+    const loadRound = instance.load_round || 2.5;
 
     // Determine current week based on instance start_date
     const currentWeek = calculateCurrentWeek(instance.start_date, planData.plan.total_weeks);

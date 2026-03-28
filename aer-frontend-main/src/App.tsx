@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Route, Routes } from "react-router-dom";
 import { lazy, Suspense } from "react";
 import PlanForm from "./pages/plan-form";
@@ -8,18 +8,6 @@ import AiAssistantChat from "./components/ai-assistant-chat";
 
 const AtletaPage = lazy(() => import("./pages/atleta/index"));
 const ForcaPage = lazy(() => import("./pages/atleta/forca"));
-
-function CoachHtmlRedirect() {
-  useEffect(() => {
-    window.location.replace("/coach/");
-  }, []);
-
-  return (
-    <div className="flex min-h-screen items-center justify-center">
-      <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#d4a54f] border-t-transparent" />
-    </div>
-  );
-}
 
 function App() {
   const [isAiChatOpen, setIsAiChatOpen] = useState(false);
@@ -39,7 +27,6 @@ function App() {
             <AtletaPage />
           </Suspense>
         } />
-        <Route path="/coach" element={<CoachHtmlRedirect />} />
         <Route
           path="/atleta/forca"
           element={
@@ -54,7 +41,6 @@ function App() {
             </Suspense>
           }
         />
-        <Route path="/coach/forca" element={<CoachHtmlRedirect />} />
       </Routes>
       <AiAssistantFab
         isOpen={isAiChatOpen}

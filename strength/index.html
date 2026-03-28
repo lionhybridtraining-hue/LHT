@@ -66,6 +66,12 @@
     <h1>Treino de Força</h1>
     <p class="subtitle">Regista o teu treino de hoje</p>
 
+    <!-- User bar (shown when authenticated) -->
+    <div id="userBar" hidden style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding:10px 14px;border-radius:14px;background:rgba(212,165,79,0.08);border:1px solid rgba(212,165,79,0.18);">
+      <span id="userName" style="font-size:13px;color:var(--text-soft);"></span>
+      <button class="btn btn-small btn-secondary" id="logoutBtn">Sair</button>
+    </div>
+
     <!-- Auth gate -->
     <div id="authGate" class="card auth-card">
       <p>Faz login para aceder ao teu plano de treino.</p>
@@ -101,13 +107,13 @@
   </div>
 
   <script>
-    const SUPABASE_URL = 'https://rlivxjarqpqmvjtgmxhh.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJsaXZ4amFycXBxbXZqdGdteGhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MDk3NzcsImV4cCI6MjA4OTE4NTc3N30.MHwkQnytSCOBleYVOF5hJHWiV8d_-2V9UGIqsLTgjIY';
+    const DEFAULT_AUTH_MAX_SESSION_SECONDS = 24 * 60 * 60;
 
     const SECTIONS = ["warm_up","plyos_speed","main","conditioning","observations"];
     const SECTION_LABELS = {warm_up:"Warm Up",plyos_speed:"Plyos / Speed",main:"Main",conditioning:"Conditioning",observations:"Observations"};
 
     let supabaseClient = null;
+    let publicConfig = null;
     let currentSession = null;
     let plan = null;
     let planFull = null;
@@ -115,9 +121,49 @@
     let viewDay = 1;
     let viewWeek = 1;
 
+    async function loadPublicConfig() {
+      if (publicConfig) return publicConfig;
+      const response = await fetch('/.netlify/functions/public-config');
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error((payload && payload.error) ? payload.error : 'Nao foi possivel carregar configuracao publica.');
+      publicConfig = {
+        supabaseUrl: payload.supabaseUrl,
+        supabaseAnonKey: payload.supabaseAnonKey,
+        authMaxSessionSeconds: Number(payload.authMaxSessionSeconds) || DEFAULT_AUTH_MAX_SESSION_SECONDS
+      };
+      return publicConfig;
+    }
+
+    function getSessionIssuedAt(session) {
+      return session && session.user
+        ? (session.user.last_sign_in_at || session.user.created_at || null)
+        : null;
+    }
+
+    function isSessionOverMaxAge(session) {
+      const issuedAt = getSessionIssuedAt(session);
+      if (!issuedAt) return false;
+      const issuedMs = new Date(issuedAt).getTime();
+      if (!Number.isFinite(issuedMs)) return false;
+      const maxAge = publicConfig && publicConfig.authMaxSessionSeconds
+        ? publicConfig.authMaxSessionSeconds
+        : DEFAULT_AUTH_MAX_SESSION_SECONDS;
+      return Math.floor((Date.now() - issuedMs) / 1000) > maxAge;
+    }
+
+    async function enforceSessionMaxAge(session) {
+      if (supabaseClient && isSessionOverMaxAge(session)) {
+        await supabaseClient.auth.signOut({ scope: 'local' });
+        return true;
+      }
+      return false;
+    }
+
     async function getToken() {
       if (!supabaseClient) return null;
       const { data } = await supabaseClient.auth.getSession();
+      const expired = await enforceSessionMaxAge(data?.session || null);
+      if (expired) return null;
       return data?.session?.access_token || null;
     }
 
@@ -337,19 +383,28 @@
         setTimeout(init, 100);
         return;
       }
-      supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      const config = await loadPublicConfig();
+      supabaseClient = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
 
       supabaseClient.auth.onAuthStateChange(async (event, session) => {
-        if (session?.user) {
+        const expired = await enforceSessionMaxAge(session || null);
+        if (!expired && session?.user) {
           document.getElementById("authGate").hidden = true;
+          document.getElementById("userBar").hidden = false;
+          document.getElementById("userName").textContent = session.user.user_metadata?.full_name || session.user.email || "Atleta";
           document.getElementById("loading").hidden = false;
           await loadPlan();
         } else {
           document.getElementById("authGate").hidden = false;
+          document.getElementById("userBar").hidden = true;
           document.getElementById("loading").hidden = true;
           document.getElementById("sessionView").hidden = true;
           document.getElementById("noPlan").hidden = true;
         }
+      });
+
+      document.getElementById("logoutBtn").addEventListener("click", async () => {
+        await supabaseClient.auth.signOut({ scope: 'local' });
       });
 
       document.getElementById("loginBtn").addEventListener("click", async () => {
@@ -360,8 +415,11 @@
       });
 
       const { data: { session } } = await supabaseClient.auth.getSession();
-      if (session?.user) {
+      const expired = await enforceSessionMaxAge(session || null);
+      if (!expired && session?.user) {
         document.getElementById("authGate").hidden = true;
+        document.getElementById("userBar").hidden = false;
+        document.getElementById("userName").textContent = session.user.user_metadata?.full_name || session.user.email || "Atleta";
         document.getElementById("loading").hidden = false;
         await loadPlan();
       }

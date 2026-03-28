@@ -5,7 +5,9 @@ const {
   upsertStripePurchaseBySessionId,
   updateStripePurchasesBySubscriptionId,
   updateStripePurchasesByPaymentIntentId,
-  getTrainingProgramById
+  getTrainingProgramById,
+  pauseInstancesByStripeSubscription,
+  resumeInstancesByStripeSubscription
 } = require("./_lib/supabase");
 const { sendCAPIEvent, buildUserData } = require("./_lib/meta-capi");
 
@@ -166,19 +168,25 @@ exports.handler = async (event) => {
         const updated = await updateStripePurchasesBySubscriptionId(config, invoice.subscription, {
           status: "paid",
           paid_at: new Date().toISOString(),
-          expires_at: extractInvoicePeriodEnd(invoice)
+          expires_at: extractInvoicePeriodEnd(invoice),
+          grace_period_ends_at: null
         });
-        return json(200, { received: true, type: stripeEvent.type, updated: updated.length });
+        // Resume coached_recurring instances that were paused due to payment failure
+        const resumed = await resumeInstancesByStripeSubscription(config, invoice.subscription);
+        return json(200, { received: true, type: stripeEvent.type, updated: updated.length, resumed: resumed.length });
       }
     }
 
     if (stripeEvent.type === "invoice.payment_failed") {
       const invoice = stripeEvent.data.object;
       if (invoice.subscription) {
+        // Set grace period (7 days) — do NOT pause instances yet
+        const gracePeriodEndsAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
         const updated = await updateStripePurchasesBySubscriptionId(config, invoice.subscription, {
-          status: "payment_failed"
+          status: "payment_failed",
+          grace_period_ends_at: gracePeriodEndsAt
         });
-        return json(200, { received: true, type: stripeEvent.type, updated: updated.length });
+        return json(200, { received: true, type: stripeEvent.type, updated: updated.length, gracePeriodEndsAt });
       }
     }
 
@@ -188,7 +196,9 @@ exports.handler = async (event) => {
         status: "cancelled",
         expires_at: new Date().toISOString()
       });
-      return json(200, { received: true, type: stripeEvent.type, updated: updated.length });
+      // Pause coached_recurring strength instances linked to this subscription
+      const paused = await pauseInstancesByStripeSubscription(config, subscription.id);
+      return json(200, { received: true, type: stripeEvent.type, updated: updated.length, paused: paused.length });
     }
 
     if (stripeEvent.type === "charge.refunded") {

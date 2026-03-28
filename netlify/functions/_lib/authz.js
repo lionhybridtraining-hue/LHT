@@ -2,6 +2,20 @@ const { json } = require("./http");
 const { getAuthenticatedUser } = require("./auth-supabase");
 const { getUserRoleNames } = require("./supabase");
 
+function getMaxSessionSeconds() {
+  const fallback = 24 * 60 * 60;
+  const raw = Number(process.env.AUTH_MAX_SESSION_SECONDS || fallback);
+  if (!Number.isFinite(raw) || raw <= 0) return fallback;
+  return Math.floor(raw);
+}
+
+function isSessionWithinMaxAge(user) {
+  if (!user?.iat) return true;
+  const nowSeconds = Math.floor(Date.now() / 1000);
+  const age = nowSeconds - Number(user.iat);
+  return age >= 0 && age <= getMaxSessionSeconds();
+}
+
 async function requireAuthenticatedUser(event, config) {
   const user = await getAuthenticatedUser(event, config);
   if (!user) {
@@ -9,6 +23,14 @@ async function requireAuthenticatedUser(event, config) {
       user: null,
       roles: [],
       error: json(401, { error: "Authentication required" })
+    };
+  }
+
+  if (!isSessionWithinMaxAge(user)) {
+    return {
+      user: null,
+      roles: [],
+      error: json(401, { error: "Session expired" })
     };
   }
 

@@ -10,7 +10,8 @@ const {
   listStrengthPlans,
   getActiveInstanceForAthlete,
   createStrengthPlanInstance,
-  updateStrengthPlanInstance
+  updateStrengthPlanInstance,
+  getTrainingProgramById
 } = require("./_lib/supabase");
 
 function normalizeAssignmentPayload(payload) {
@@ -84,12 +85,15 @@ function mapStrengthInstance(row) {
     loadRound: row.load_round,
     status: row.status,
     assignedBy: row.assigned_by,
+    programAssignmentId: row.program_assignment_id || null,
+    coachLockedUntil: row.coach_locked_until || null,
+    accessModel: row.access_model || null,
     createdAt: row.created_at || null,
     updatedAt: row.updated_at || null
   };
 }
 
-async function ensureStrengthInstanceForAssignment(config, assignment) {
+async function ensureStrengthInstanceForAssignment(config, assignment, program) {
   const activeInstance = await getActiveInstanceForAthlete(config, assignment.athlete_id);
   if (activeInstance) {
     return { instance: activeInstance, autoCreated: false, reason: "already_active" };
@@ -110,9 +114,12 @@ async function ensureStrengthInstanceForAssignment(config, assignment) {
     plan_id: selectedPlan.id,
     athlete_id: assignment.athlete_id,
     start_date: assignment.start_date || null,
-    load_round: selectedPlan.load_round != null ? selectedPlan.load_round : 2.5,
+    load_round: 2.5,
     status: "active",
-    assigned_by: assignment.coach_id
+    assigned_by: assignment.coach_id,
+    program_assignment_id: assignment.id || null,
+    coach_locked_until: assignment.computed_end_date || null,
+    access_model: program ? program.access_model : null
   });
 
   return { instance: createdInstance, autoCreated: true, reason: "created" };
@@ -156,8 +163,9 @@ exports.handler = async (event) => {
 
     if (event.httpMethod === "POST") {
       const normalized = normalizeAssignmentPayload(payload);
+      const program = await getTrainingProgramById(config, normalized.training_program_id);
       const created = await createProgramAssignment(config, normalized);
-      const strength = await ensureStrengthInstanceForAssignment(config, normalized);
+      const strength = await ensureStrengthInstanceForAssignment(config, created, program);
 
       return json(201, {
         assignment: mapAssignment(created),

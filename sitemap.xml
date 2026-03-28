@@ -2,73 +2,109 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://lionhybridtraining.com/</loc>
-    <lastmod>2026-03-26</lastmod>
+    <lastmod>2026-03-27</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://lionhybridtraining.com/onboarding</loc>
-    <lastmod>2026-03-26</lastmod>
+    <lastmod>2026-03-27</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://lionhybridtraining.com/sobre</loc>
-    <lastmod>2026-03-26</lastmod>
+    <lastmod>2026-03-27</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://lionhybridtraining.com/artigo</loc>
+    <lastmod>2026-03-27</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://lionhybridtraining.com/calendario</loc>
+    <lastmod>2026-03-27</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://lionhybridtraining.com/programas</loc>
+    <lastmod>2026-03-27</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://lionhybridtraining.com/blog</loc>
-    <lastmod>2026-03-26</lastmod>
+    <lastmod>2026-03-27</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://lionhybridtraining.com/check-in</loc>
+    <lastmod>2026-03-27</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://lionhybridtraining.com/coach</loc>
+    <lastmod>2026-03-27</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://lionhybridtraining.com/planocorrida</loc>
+    <lastmod>2026-03-27</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://lionhybridtraining.com/termos</loc>
-    <lastmod>2026-03-26</lastmod>
+    <lastmod>2026-03-27</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.4</priority>
   </url>
   <url>
     <loc>https://lionhybridtraining.com/politica-privacidade</loc>
-    <lastmod>2026-03-26</lastmod>
+    <lastmod>2026-03-27</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.4</priority>
   </url>
   <url>
     <loc>https://lionhybridtraining.com/blog/construir-a-base-a-fisiologia-do-treino-de-endurance</loc>
-    <lastmod>2026-03-26</lastmod>
+    <lastmod>2026-03-22</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://lionhybridtraining.com/blog/limiar-fisiológico-≠-número-mágico</loc>
-    <lastmod>2026-03-26</lastmod>
+    <loc>https://lionhybridtraining.com/blog/limiar-fisiol%C3%B3gico-%E2%89%A0-n%C3%BAmero-m%C3%A1gico</loc>
+    <lastmod>2026-03-22</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://lionhybridtraining.com/blog/porque-é-que-a-lion-hybrid-training-utiliza-o-trainingpeaks</loc>
-    <lastmod>2026-03-26</lastmod>
+    <loc>https://lionhybridtraining.com/blog/porque-%C3%A9-que-a-lion-hybrid-training-utiliza-o-trainingpeaks</loc>
+    <lastmod>2026-03-22</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://lionhybridtraining.com/blog/vdot-jack-daniels-vs-training-bible-joe-friel</loc>
-    <lastmod>2026-03-26</lastmod>
+    <lastmod>2026-03-22</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://lionhybridtraining.com/blog/estímulo-vs-adaptação</loc>
-    <lastmod>2026-03-26</lastmod>
+    <loc>https://lionhybridtraining.com/blog/est%C3%ADmulo-vs-adapta%C3%A7%C3%A3o</loc>
+    <lastmod>2026-03-22</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://lionhybridtraining.com/blog/motivação-vs-disciplina</loc>
-    <lastmod>2026-03-26</lastmod>
+    <loc>https://lionhybridtraining.com/blog/motiva%C3%A7%C3%A3o-vs-disciplina</loc>
+    <lastmod>2026-03-22</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>

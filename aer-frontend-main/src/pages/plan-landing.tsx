@@ -105,6 +105,10 @@ export default function PlanLanding() {
     };
   }, []);
 
+  const handleSignOut = async () => {
+    await supabase.auth.signOut({ scope: 'local' });
+  };
+
   useEffect(() => {
     const draft = loadPlanLandingDraft();
     if (!draft) return;
@@ -265,7 +269,7 @@ export default function PlanLanding() {
           className="rounded-[30px] border border-[#d4a54f29] p-6 shadow-[0_22px_54px_rgba(0,0,0,0.36)] backdrop-blur-[2px] md:p-7"
           style={planocorridaPanelStyle}
         >
-          <div className="mb-5 flex items-center justify-between gap-3">
+            <div className="mb-5 flex items-center justify-between gap-3">
             <div>
               <p className="text-sm font-semibold text-[#f7f1e8]">Comeca agora</p>
               <p className="text-xs text-[#98a3b6]">
@@ -278,9 +282,19 @@ export default function PlanLanding() {
                   : "Guardamos e retomamos apos o login."}
               </p>
             </div>
-            <div className="rounded-full border border-[#d4a54f33] px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-[#d4a54f]">
-              {isAuthenticated ? "login ativo" : "google login"}
-            </div>
+            {isAuthenticated ? (
+              <button
+                type="button"
+                onClick={handleSignOut}
+                className="rounded-full border border-[#d4a54f33] px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-[#d4a54f] hover:bg-[rgba(212,165,79,0.08)] transition-colors cursor-pointer"
+              >
+                Terminar sessão
+              </button>
+            ) : (
+              <div className="rounded-full border border-[#d4a54f33] px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-[#d4a54f]">
+                google login
+              </div>
+            )}
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">

@@ -287,6 +287,22 @@ function normalizeWhatsappVariants(list) {
   });
 }
 
+function withArticleUrlOnVariants(variants, articleUrl) {
+  const normalizedUrl = safeText(articleUrl, "");
+  if (!normalizedUrl) return normalizeWhatsappVariants(variants);
+
+  return normalizeWhatsappVariants(variants).map((item) => {
+    const text = safeText(item.text, "");
+    if (!text) {
+      return { ...item, text: normalizedUrl };
+    }
+    if (text.includes(normalizedUrl)) {
+      return item;
+    }
+    return { ...item, text: `${text}\n${normalizedUrl}` };
+  });
+}
+
 function normalizeBlogPack(parsed, article, briefing) {
   if (!parsed || typeof parsed !== "object") {
     return fallbackBlogPack(article, briefing);
@@ -773,12 +789,13 @@ function fallbackAbcFromArticle(article, briefing) {
   const topic = safeText(briefing && briefing.topic, title);
   const cta = safeText(briefing && briefing.cta, "Le o artigo completo e partilha no grupo");
   const objective = safeText(briefing && briefing.objective, "aplicar no treino da semana");
+  const articleUrl = safeText(article && article.url, "");
   return {
-    whatsappVariants: [
+    whatsappVariants: withArticleUrlOnVariants([
       { label: "A", text: `Comunidade, saiu novo artigo: ${title}. Foco: ${topic}. Vem ver e aplica hoje. ${cta}` },
       { label: "B", text: `Se andas sem clareza no treino, este artigo ajuda: ${title}. Passos concretos para ${objective}. ${cta}` },
       { label: "C", text: `Novo no blog LHT: ${title}. Sem teoria a mais, so execucao. ${cta}` }
-    ],
+    ], articleUrl),
     generationSource: "fallback"
   };
 }
@@ -791,7 +808,8 @@ function normalizeAbcResult(parsed, article, briefing) {
   if (!variants.every((v) => v.text.length > 0)) {
     return fallbackAbcFromArticle(article, briefing);
   }
-  return { whatsappVariants: variants, generationSource: "ai" };
+  const articleUrl = safeText(article && article.url, "");
+  return { whatsappVariants: withArticleUrlOnVariants(variants, articleUrl), generationSource: "ai" };
 }
 
 function buildAbcFromArticleUserPrompt({ article, briefing, extraInstructions, userPromptTemplate }) {
@@ -800,7 +818,8 @@ function buildAbcFromArticleUserPrompt({ article, briefing, extraInstructions, u
       title: safeText(article && article.title, ""),
       excerpt: safeText(article && article.excerpt, ""),
       category: safeText(article && article.category, "Artigo"),
-      content: safeText(article && article.content, "")
+      content: safeText(article && article.content, ""),
+      url: safeText(article && article.url, "")
     },
     briefing: {
       cta: safeText(briefing && briefing.cta, ""),
