@@ -65,28 +65,13 @@
 
 [[redirects]]
   from = "/atleta"
-  to = "/planocorrida/atleta"
-  status = 301
+  to = "/planocorrida/index.html"
+  status = 200
 
 [[redirects]]
-  from = "/atleta/"
-  to = "/planocorrida/atleta"
-  status = 301
-
-[[redirects]]
-  from = "/atleta/login"
-  to = "/planocorrida/atleta/login"
-  status = 301
-
-[[redirects]]
-  from = "/atleta/forca"
-  to = "/planocorrida/atleta/forca"
-  status = 301
-
-[[redirects]]
-  from = "/atleta/programas"
-  to = "/planocorrida/atleta/programas"
-  status = 301
+  from = "/atleta/*"
+  to = "/planocorrida/index.html"
+  status = 200
 
 [[redirects]]
   from = "/planocorrida"

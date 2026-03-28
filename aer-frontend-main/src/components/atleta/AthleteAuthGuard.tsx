@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Navigate } from "react-router-dom";
-import { supabase } from "@/lib/supabase";
+import { supabase, enforceSessionMaxAge } from "@/lib/supabase";
 import type { Session } from "@supabase/supabase-js";
 
 interface Props {
@@ -12,14 +12,16 @@ export default function AthleteAuthGuard({ children }: Props) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session: s } }) => {
-      setSession(s);
+    supabase.auth.getSession().then(async ({ data: { session: s } }) => {
+      const expired = await enforceSessionMaxAge(s);
+      setSession(expired ? null : s);
       setLoading(false);
     });
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, s) => {
-      setSession(s);
+    } = supabase.auth.onAuthStateChange(async (_event, s) => {
+      const expired = await enforceSessionMaxAge(s);
+      setSession(expired ? null : s);
       setLoading(false);
     });
     return () => subscription.unsubscribe();

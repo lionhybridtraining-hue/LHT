@@ -35,9 +35,13 @@ export async function enforceSessionMaxAge(session: Session | null) {
 }
 
 export function buildAppRedirectUrl(path: string) {
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  // When serving from /atleta/* (clean URLs), don't apply the configured basename prefix
+  if (typeof window !== "undefined" && window.location.pathname.startsWith("/atleta")) {
+    return `${window.location.origin}${normalizedPath}`;
+  }
   const basename = import.meta.env.VITE_ROUTER_BASENAME || "/";
   const normalizedBase = basename === "/" ? "" : basename.replace(/\/$/, "");
-  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
   return `${window.location.origin}${normalizedBase}${normalizedPath}`;
 }
 
