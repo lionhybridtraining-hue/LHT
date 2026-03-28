@@ -2,6 +2,39 @@ const { json } = require("./http");
 const { getAuthenticatedUser } = require("./auth-supabase");
 const { getUserRoleNames } = require("./supabase");
 
+function parseCsvEnv(name) {
+  const raw = process.env[name] || "";
+  return raw
+    .split(",")
+    .map((value) => value.trim().toLowerCase())
+    .filter((value) => value.length > 0);
+}
+
+function hasMatch(values, candidate) {
+  if (!candidate) return false;
+  return values.includes(String(candidate).trim().toLowerCase());
+}
+
+function applyRoleAllowlists(user, roles) {
+  const nextRoles = Array.isArray(roles) ? [...roles] : [];
+  const identityId = user && user.sub ? user.sub : "";
+  const email = user && user.email ? user.email : "";
+
+  const adminIds = parseCsvEnv("AUTH_ADMIN_ALLOWLIST_IDS");
+  const adminEmails = parseCsvEnv("AUTH_ADMIN_ALLOWLIST_EMAILS");
+  if (hasMatch(adminIds, identityId) || hasMatch(adminEmails, email)) {
+    nextRoles.push("admin");
+  }
+
+  const coachIds = parseCsvEnv("AUTH_COACH_ALLOWLIST_IDS");
+  const coachEmails = parseCsvEnv("AUTH_COACH_ALLOWLIST_EMAILS");
+  if (hasMatch(coachIds, identityId) || hasMatch(coachEmails, email)) {
+    nextRoles.push("coach");
+  }
+
+  return Array.from(new Set(nextRoles));
+}
+
 function getMaxSessionSeconds() {
   const fallback = 24 * 60 * 60;
   const raw = Number(process.env.AUTH_MAX_SESSION_SECONDS || fallback);
@@ -34,7 +67,8 @@ async function requireAuthenticatedUser(event, config) {
     };
   }
 
-  const roles = await getUserRoleNames(config, user.sub);
+  const explicitRoles = await getUserRoleNames(config, user.sub);
+  const roles = applyRoleAllowlists(user, explicitRoles);
   return { user, roles, error: null };
 }
 

@@ -33,8 +33,8 @@ const FEATURES = [
       </svg>
     ),
     title: "Plano de Corrida",
-    description: "Plano de treino de corrida personalizado integrado com o teu perfil de atleta.",
-    available: false,
+    description: "Consulta os teus programas e entra no teu plano de corrida a partir da area dedicada.",
+    available: true,
   },
 ];
 
@@ -56,6 +56,12 @@ export default function AtletaReceptionPage() {
     });
     return () => subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (!loading && !session) {
+      navigate("/atleta/login", { replace: true });
+    }
+  }, [loading, session, navigate]);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -166,6 +172,13 @@ export default function AtletaReceptionPage() {
             </button>
 
             <button
+              onClick={() => navigate("/atleta/programas")}
+              className="w-full rounded-2xl border border-[#d4a54f55] bg-[#141414] py-4 font-['Oswald'] text-base font-semibold uppercase tracking-[0.12em] text-[#f7f1e8] transition-colors hover:bg-[#1b1b1b]"
+            >
+              Ver Meus Programas
+            </button>
+
+            <button
               onClick={handleSignOut}
               className="text-xs text-[#8f99a8] underline-offset-2 hover:text-[#c8cfda] hover:underline"
             >
@@ -189,6 +202,12 @@ export default function AtletaReceptionPage() {
                 <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
               </svg>
               Entrar com Google
+            </button>
+            <button
+              onClick={() => navigate("/atleta/login")}
+              className="text-xs text-[#8f99a8] underline-offset-2 hover:text-[#c8cfda] hover:underline"
+            >
+              Abrir pagina de login
             </button>
           </div>
         )}

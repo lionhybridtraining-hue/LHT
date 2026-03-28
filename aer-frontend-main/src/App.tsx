@@ -8,6 +8,8 @@ import AiAssistantChat from "./components/ai-assistant-chat";
 
 const AtletaPage = lazy(() => import("./pages/atleta/index"));
 const ForcaPage = lazy(() => import("./pages/atleta/forca"));
+const AtletaLoginPage = lazy(() => import("./pages/atleta/login"));
+const AtletaProgramasPage = lazy(() => import("./pages/atleta/programas"));
 
 function App() {
   const [isAiChatOpen, setIsAiChatOpen] = useState(false);
@@ -38,6 +40,34 @@ function App() {
               }
             >
               <ForcaPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/atleta/login"
+          element={
+            <Suspense
+              fallback={
+                <div className="flex min-h-screen items-center justify-center">
+                  <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#d4a54f] border-t-transparent" />
+                </div>
+              }
+            >
+              <AtletaLoginPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/atleta/programas"
+          element={
+            <Suspense
+              fallback={
+                <div className="flex min-h-screen items-center justify-center">
+                  <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#d4a54f] border-t-transparent" />
+                </div>
+              }
+            >
+              <AtletaProgramasPage />
             </Suspense>
           }
         />

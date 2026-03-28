@@ -89,6 +89,27 @@ body.auth-locked {
   color: rgba(255, 249, 240, 0.78);
 }
 
+.auth-gate-message {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 249, 240, 0.9);
+}
+
+.auth-gate-message.error {
+  border-color: rgba(182, 70, 51, 0.6);
+  background: rgba(182, 70, 51, 0.14);
+  color: #ffd6cc;
+}
+
+.auth-gate-message.success {
+  border-color: rgba(36, 107, 82, 0.7);
+  background: rgba(36, 107, 82, 0.2);
+  color: #d8f7ea;
+}
+
 .auth-gate-card button {
   border: 1px solid var(--line-strong);
   border-radius: 14px;
@@ -2680,7 +2701,7 @@ details[open] .sc-ess-summary::before {
 
 .coaches-top-row {
   display: grid;
-  grid-template-columns: minmax(240px, 280px) minmax(0, 1fr);
+  grid-template-columns: minmax(320px, 420px) minmax(200px, 300px) minmax(0, 1fr);
   gap: 16px;
   align-items: start;
   padding-bottom: 12px;
@@ -2688,7 +2709,7 @@ details[open] .sc-ess-summary::before {
 }
 
 .coaches-selector {
-  flex: 0 0 260px;
+  flex: 0 0 360px;
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -2696,8 +2717,9 @@ details[open] .sc-ess-summary::before {
 }
 .coaches-analytics-filter-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 1fr 1fr;
+  grid-template-columns: minmax(130px, 1fr) minmax(0, 1fr) minmax(0, 1fr);
   gap: 6px;
+  align-items: center;
 }
 .coaches-analytics-select,
 .coaches-analytics-date {
@@ -2712,6 +2734,10 @@ details[open] .sc-ess-summary::before {
 }
 .coaches-analytics-date:disabled {
   opacity: 0.55;
+}
+
+.coaches-analytics-date {
+  min-width: 0;
 }
 
 .coaches-selector select {
@@ -2784,16 +2810,43 @@ details[open] .sc-ess-summary::before {
 }
 
 #coaches-panel .operations-kpis {
-  grid-template-columns: repeat(3, minmax(120px, 1fr));
-  align-self: stretch;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-self: start;
+  justify-content: center;
   min-width: 0;
 }
 
 #coaches-panel .operations-kpis .module-card {
-  min-height: 84px;
+  flex: 0 0 132px;
+  min-height: 52px;
+  padding: 6px 8px;
 }
 .coaches-analytics-kpis {
-  grid-template-columns: repeat(4, minmax(160px, 1fr));
+  display: grid;
+  align-self: start;
+  justify-self: center;
+  width: 100%;
+  max-width: 760px;
+  grid-template-columns: repeat(4, minmax(105px, 1fr));
+  gap: 8px;
+}
+
+#coaches-panel .module-card h4 {
+  margin: 0 0 3px;
+  font-size: 0.64rem;
+  letter-spacing: 0.03em;
+}
+
+#coaches-panel .module-card p {
+  font-size: 0.9rem;
+  line-height: 1.1;
+}
+
+#coaches-panel .coaches-analytics-kpis .module-card {
+  min-height: 50px;
+  padding: 6px 8px;
 }
 
 .module-card {
@@ -2919,8 +2972,13 @@ details[open] .sc-ess-summary::before {
     width: 100%;
   }
 
+  #coaches-panel .operations-kpis {
+    justify-content: flex-start;
+  }
+
   .coaches-analytics-kpis {
-    grid-template-columns: repeat(2, minmax(140px, 1fr));
+    grid-template-columns: repeat(4, minmax(110px, 1fr));
+    max-width: none;
   }
 }
 

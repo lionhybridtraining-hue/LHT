@@ -1,3 +1,82 @@
+/**
+ * admin-coach-analytics — Aggregated KPI endpoint for the Coaches analytics dashboard.
+ *
+ * ─── QUERY PARAMETERS ────────────────────────────────────────────────────────
+ * preset          string  Period preset. Options:
+ *                   "7d"     Last 7 days  (today − 6 days to today, inclusive)
+ *                   "30d"    Last 30 days (today − 29 days to today)  [default]
+ *                   "month"  Current calendar month (1st of month → today)
+ *                   "all"    No date filter — snapshot of current state
+ *                   "custom" Use explicit from / to params below
+ * from            string  ISO date YYYY-MM-DD. Lower bound (inclusive). Only used when preset=custom.
+ * to              string  ISO date YYYY-MM-DD. Upper bound (inclusive). Only used when preset=custom.
+ * coachIdentityId string  If provided, result rows and totals are scoped to that coach only.
+ *
+ * ─── RESPONSE SHAPE ──────────────────────────────────────────────────────────
+ * {
+ *   meta:    { preset, from, to, selectedCoachIdentityId },
+ *   coaches: [ CoachRow, ... ],   // one entry per coach (filtered if coachIdentityId provided)
+ *   totals:  CoachRow             // sum/aggregate across all returned rows
+ * }
+ *
+ * ─── METRICS (CoachRow fields) ───────────────────────────────────────────────
+ *
+ * totalAthletes
+ *   How many athletes are currently assigned to this coach.
+ *   Source: athletes.coach_identity_id (snapshot, no period filter).
+ *
+ * activeAssignments
+ *   Program assignments in status active/scheduled/paused for this coach's athletes.
+ *   Source: program_assignments via listActiveAssignmentsWithPrograms (snapshot fetch).
+ *   Period filter: assignment.created_at (fallback start_date) must be within the range.
+ *   preset=all → counts all currently-active assignments regardless of start date.
+ *   Note: snapshot-based — only assignments currently active are candidates.
+ *
+ * activeStrengthInstances
+ *   Strength plan instances with status='active' for this coach's athletes.
+ *   Source: strength_plan_instances via listStrengthPlanInstances (snapshot fetch).
+ *   Period filter: instance.created_at (fallback start_date) must be within the range.
+ *   preset=all → counts all currently-active instances regardless of start date.
+ *   Note: snapshot-based — only currently-active instances are candidates.
+ *
+ * recurringBillingActiveAthletes
+ *   Athletes with an active paid stripe_purchase where billing_type is 'recurring' or 'subscription'.
+ *   Source: stripe_purchases via getPayingStatusForAthletes.
+ *   Period filter: paying.paidAt must be within the range.
+ *   preset=all → all currently-paying recurring athletes regardless of payment date.
+ *
+ * checkinsPending
+ *   Weekly check-ins in status 'pending_coach' (athlete responded, coach hasn't approved yet).
+ *   Source: weekly_checkins filtered by week_start on the DB side.
+ *   Period filter: applied via Supabase query (week_start >= from AND week_start <= to).
+ *   Note: these check-ins ALSO appear in checkinsAnswered — the overlap is intentional
+ *   to show the review pipeline (athlete responded → pending coach approval).
+ *
+ * checkinsAnswered
+ *   Weekly check-ins where the athlete has responded: status='approved' OR responded_at IS NOT NULL.
+ *   Source: same DB query as checkinsPending (week_start period filter).
+ *   Note: 'pending_coach' items that have responded_at set are counted here AND in
+ *   checkinsPending. True "closed" check-ins are those with status='approved'.
+ *
+ * strengthPlansCreatedInRange
+ *   Strength plan templates created by this coach within the selected period.
+ *   Source: strength_plans (created_by = coach identity_id) via listStrengthPlans (full list, JS filter).
+ *   Period filter: plan.created_at must be within the range.
+ *
+ * strengthPlansCreatedTotal
+ *   Total strength plan templates ever created by this coach (no period filter).
+ *   Source: same as above, no date restriction.
+ *
+ * strengthAdherencePct  (number | null)
+ *   Percentage of planned strength sessions completed by athletes in this period.
+ *   Formula: (strengthCompletedSessions / strengthPlannedSessions) × 100, rounded to 1 decimal.
+ *   Source: weekly_checkins fields strength_planned_done_count and strength_planned_not_done_count.
+ *   Returns null when strengthPlannedSessions === 0 (no strength data in the period).
+ *
+ * strengthCompletedSessions   raw numerator for the adherence calculation.
+ * strengthPlannedSessions     raw denominator (done + not-done) for the adherence calculation.
+ */
+
 const { json } = require("./_lib/http");
 const { getConfig } = require("./_lib/config");
 const { requireRole } = require("./_lib/authz");
@@ -62,6 +141,15 @@ function isRecurringBillingType(value) {
 function normalizeCoachKey(value) {
   if (value == null) return "";
   return String(value).trim();
+}
+
+function isDateWithinRange(isoLike, range) {
+  if (!isoLike) return false;
+  const value = String(isoLike).slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  if (range && range.from && value < range.from) return false;
+  if (range && range.to && value > range.to) return false;
+  return true;
 }
 
 exports.handler = async (event) => {
@@ -129,6 +217,7 @@ exports.handler = async (event) => {
       limit: 10000
     });
     const checkins = Array.isArray(checkinsRaw) ? checkinsRaw : [];
+    const usePeriodFilter = Boolean(range.from || range.to);
 
     const assignmentsByAthleteId = new Map();
     assignments.forEach((assignment) => {
@@ -137,10 +226,13 @@ exports.handler = async (event) => {
       assignmentsByAthleteId.set(athleteId, assignment);
     });
 
-    const activeStrengthAthleteIds = new Set();
+    const activeStrengthByAthleteId = new Map();
     strengthInstances.forEach((instance) => {
       const athleteId = normalizeCoachKey(instance.athlete_id);
-      if (athleteId) activeStrengthAthleteIds.add(athleteId);
+      if (!athleteId) return;
+      if (!activeStrengthByAthleteId.has(athleteId)) {
+        activeStrengthByAthleteId.set(athleteId, instance);
+      }
     });
 
     const strengthPlansByCoach = new Map();
@@ -178,18 +270,28 @@ exports.handler = async (event) => {
 
       coachAthletes.forEach((athlete) => {
         const athleteId = normalizeCoachKey(athlete.id);
-        if (athleteId && assignmentsByAthleteId.has(athleteId)) {
-          activeAssignments += 1;
+        const assignment = athleteId ? assignmentsByAthleteId.get(athleteId) : null;
+        if (assignment) {
+          const assignmentDate = assignment.created_at || assignment.start_date || null;
+          if (!usePeriodFilter || isDateWithinRange(assignmentDate, range)) {
+            activeAssignments += 1;
+          }
         }
 
-        if (athleteId && activeStrengthAthleteIds.has(athleteId)) {
-          activeStrengthInstances += 1;
+        const activeStrength = athleteId ? activeStrengthByAthleteId.get(athleteId) : null;
+        if (activeStrength) {
+          const strengthDate = activeStrength.created_at || activeStrength.start_date || null;
+          if (!usePeriodFilter || isDateWithinRange(strengthDate, range)) {
+            activeStrengthInstances += 1;
+          }
         }
 
         const identityId = typeof athlete.identity_id === "string" ? athlete.identity_id : "";
         const paying = identityId ? (payingMap[identityId] || null) : null;
         if (paying && paying.isPaying && isRecurringBillingType(paying.billingType)) {
-          recurringBillingActiveAthletes += 1;
+          if (!usePeriodFilter || isDateWithinRange(paying.paidAt, range)) {
+            recurringBillingActiveAthletes += 1;
+          }
         }
       });
 

@@ -17,15 +17,7 @@
       <h2>Login obrigatorio</h2>
       <p>Para ver o painel de administracao tens de iniciar sessao.</p>
       <button id="gate-login-btn" type="button">Entrar no admin</button>
-    </div>
-  </section>
-
-  <section id="admin-unauthorized-gate" class="auth-gate" hidden>
-    <div class="auth-gate-card">
-      <p class="auth-gate-eyebrow">Acesso negado</p>
-      <h2>Sem permissao</h2>
-      <p>A tua conta nao tem autorizacao para aceder ao painel de administracao.</p>
-      <button id="admin-unauth-logout-btn" type="button">Terminar sessao</button>
+      <p id="auth-gate-message" class="auth-gate-message" role="status" hidden></p>
     </div>
   </section>
 
@@ -614,6 +606,7 @@
             </div>
 
             <div class="coaches-panel-content">
+
               <div class="coaches-top-row">
                 <div class="coaches-selector">
                   <label for="coaches-panel-select" style="font-size: 0.85rem; color: var(--ink-soft);">Selecionar coach</label>
@@ -628,8 +621,8 @@
                       <option value="all">Tudo</option>
                       <option value="custom">Custom</option>
                     </select>
-                    <input id="coaches-analytics-from" type="date" class="coaches-analytics-date" disabled />
-                    <input id="coaches-analytics-to" type="date" class="coaches-analytics-date" disabled />
+                    <input id="coaches-analytics-from" type="date" class="coaches-analytics-date" />
+                    <input id="coaches-analytics-to" type="date" class="coaches-analytics-date" />
                   </div>
                   <button id="coaches-analytics-apply-btn" type="button" class="coaches-action-btn">Atualizar analytics</button>
                   <button id="coaches-panel-refresh-btn" type="button" class="coaches-action-btn">Ver atletas</button>
@@ -653,44 +646,44 @@
                   <p id="coaches-panel-nonpaying-kpi">-</p>
                 </article>
                 </div>
+
+                <div id="coaches-analytics-kpis" class="module-grid coaches-analytics-kpis" hidden>
+                  <article class="module-card">
+                    <h4>Assignments ativos</h4>
+                    <p id="coaches-analytics-assignments-kpi">-</p>
+                  </article>
+                  <article class="module-card">
+                    <h4>Forca ativa</h4>
+                    <p id="coaches-analytics-strength-kpi">-</p>
+                  </article>
+                  <article class="module-card">
+                    <h4>Recorrencia ativa</h4>
+                    <p id="coaches-analytics-recurring-kpi">-</p>
+                  </article>
+                  <article class="module-card">
+                    <h4>Check-ins por responder</h4>
+                    <p id="coaches-analytics-pending-kpi">-</p>
+                  </article>
+                  <article class="module-card">
+                    <h4>Check-ins respondidos</h4>
+                    <p id="coaches-analytics-answered-kpi">-</p>
+                  </article>
+                  <article class="module-card">
+                    <h4>Planos forca no periodo</h4>
+                    <p id="coaches-analytics-plans-range-kpi">-</p>
+                  </article>
+                  <article class="module-card">
+                    <h4>Planos forca total</h4>
+                    <p id="coaches-analytics-plans-total-kpi">-</p>
+                  </article>
+                  <article class="module-card">
+                    <h4>Aderencia forca</h4>
+                    <p id="coaches-analytics-adherence-kpi">-</p>
+                  </article>
+                </div>
               </div>
 
               <p id="coaches-panel-message" class="message" role="status"></p>
-
-              <div id="coaches-analytics-kpis" class="module-grid coaches-analytics-kpis" hidden>
-                <article class="module-card">
-                  <h4>Assignments ativos</h4>
-                  <p id="coaches-analytics-assignments-kpi">-</p>
-                </article>
-                <article class="module-card">
-                  <h4>Forca ativa</h4>
-                  <p id="coaches-analytics-strength-kpi">-</p>
-                </article>
-                <article class="module-card">
-                  <h4>Recorrencia ativa</h4>
-                  <p id="coaches-analytics-recurring-kpi">-</p>
-                </article>
-                <article class="module-card">
-                  <h4>Check-ins por responder</h4>
-                  <p id="coaches-analytics-pending-kpi">-</p>
-                </article>
-                <article class="module-card">
-                  <h4>Check-ins respondidos</h4>
-                  <p id="coaches-analytics-answered-kpi">-</p>
-                </article>
-                <article class="module-card">
-                  <h4>Planos forca no periodo</h4>
-                  <p id="coaches-analytics-plans-range-kpi">-</p>
-                </article>
-                <article class="module-card">
-                  <h4>Planos forca total</h4>
-                  <p id="coaches-analytics-plans-total-kpi">-</p>
-                </article>
-                <article class="module-card">
-                  <h4>Aderencia forca</h4>
-                  <p id="coaches-analytics-adherence-kpi">-</p>
-                </article>
-              </div>
 
               <div class="coaches-analytics-wrap">
                 <table class="coaches-athletes-table">
@@ -1626,10 +1619,12 @@
     const adminCoachAthletesApiBase = '/.netlify/functions/admin-coach-athletes';
     const adminCoachAnalyticsApiBase = '/.netlify/functions/admin-coach-analytics';
     const adminAthletesUnifiedApiBase = '/.netlify/functions/admin-athletes-unified';
+    const getMyRolesApiBase = '/.netlify/functions/get-my-roles';
     const state = {
       user: null,
       token: null,
       roles: [],
+      isAdmin: false,
       articles: [],
       selectedId: null,
       siteContent: null,
@@ -1832,7 +1827,7 @@
 
     const els = {
       authGate: document.getElementById('admin-auth-gate'),
-      unauthorizedGate: document.getElementById('admin-unauthorized-gate'),
+      authGateMessage: document.getElementById('auth-gate-message'),
       protectedContent: document.getElementById('protected-content'),
       gateLoginBtn: document.getElementById('gate-login-btn'),
       authStatus: document.getElementById('auth-status'),
@@ -2163,11 +2158,47 @@
       }
     };
 
+    const ADMIN_AUTH_REDIRECT_PATH = '/admin';
+    const ADMIN_POST_AUTH_TAB_KEY = 'adminPostAuthTab';
+
     let activeTab = 'blog';
 
-    function setActiveTab(tab) {
+    function resolveTabFromLocation() {
+      const hashTab = (location.hash || '').replace('#', '').trim();
+      if (tabConfig[hashTab]) {
+        return hashTab;
+      }
+
+      const pendingTab = (sessionStorage.getItem(ADMIN_POST_AUTH_TAB_KEY) || '').trim();
+      if (tabConfig[pendingTab]) {
+        sessionStorage.removeItem(ADMIN_POST_AUTH_TAB_KEY);
+        return pendingTab;
+      }
+
+      return 'blog';
+    }
+
+    function persistCurrentTabForAuth() {
+      const tabToPersist = tabConfig[activeTab] ? activeTab : resolveTabFromLocation();
+      sessionStorage.setItem(ADMIN_POST_AUTH_TAB_KEY, tabToPersist);
+    }
+
+    function buildAdminAuthRedirectUrl() {
+      return window.location.origin + ADMIN_AUTH_REDIRECT_PATH;
+    }
+
+    function isAuthCallbackHash(hashValue) {
+      const hash = (hashValue || '').replace(/^#/, '');
+      if (!hash) return false;
+      return /(?:^|&)(?:access_token|refresh_token|token_type|expires_in|expires_at|provider_token|provider_refresh_token|id_token|error|error_code|error_description)=/.test(hash);
+    }
+
+    function setActiveTab(tab, options = {}) {
       activeTab = tabConfig[tab] ? tab : 'blog';
-      location.hash = activeTab;
+      const shouldUpdateHash = options.updateHash !== false && !isAuthCallbackHash(location.hash);
+      if (shouldUpdateHash) {
+        location.hash = activeTab;
+      }
 
       Object.keys(tabConfig).forEach((key) => {
         const current = tabConfig[key];
@@ -3303,7 +3334,7 @@
 
     function getCoachAnalyticsFilterParams() {
       const params = new URLSearchParams();
-      const preset = (els.coachesAnalyticsPreset && els.coachesAnalyticsPreset.value
+      let preset = (els.coachesAnalyticsPreset && els.coachesAnalyticsPreset.value
         ? els.coachesAnalyticsPreset.value
         : '30d').trim();
       const from = (els.coachesAnalyticsFrom && els.coachesAnalyticsFrom.value
@@ -3316,7 +3347,7 @@
       params.set('preset', preset);
       if (preset === 'custom') {
         if (!from || !to) {
-          throw new Error('Seleciona as duas datas no filtro custom.');
+          throw new Error('Seleciona data inicial e final.');
         }
         if (from > to) {
           throw new Error('A data inicial nao pode ser maior que a data final.');
@@ -3329,12 +3360,11 @@
 
     function syncCoachesAnalyticsDateInputs() {
       if (!els.coachesAnalyticsPreset) return;
-      const isCustom = els.coachesAnalyticsPreset.value === 'custom';
       if (els.coachesAnalyticsFrom) {
-        els.coachesAnalyticsFrom.disabled = !isCustom;
+        els.coachesAnalyticsFrom.disabled = false;
       }
       if (els.coachesAnalyticsTo) {
-        els.coachesAnalyticsTo.disabled = !isCustom;
+        els.coachesAnalyticsTo.disabled = false;
       }
     }
 
@@ -4797,12 +4827,27 @@
 
       if (els.coachesAnalyticsPreset && !els.coachesAnalyticsPreset.dataset.bound) {
         els.coachesAnalyticsPreset.dataset.bound = '1';
-        els.coachesAnalyticsPreset.addEventListener('change', syncCoachesAnalyticsDateInputs);
+        els.coachesAnalyticsPreset.addEventListener('change', () => {
+          syncCoachesAnalyticsDateInputs();
+          if (els.coachesPanelMessage && els.coachesPanelMessage.classList.contains('error')) {
+            showCoachesPanelMessage('', false);
+          }
+
+          const preset = (els.coachesAnalyticsPreset.value || '').trim();
+          if (preset && preset !== 'custom') {
+            loadCoachesAnalytics()
+              .then(() => showCoachesPanelMessage('Periodo temporal atualizado.', false))
+              .catch(() => {});
+          }
+        });
       }
 
       if (els.coachesAnalyticsFrom && !els.coachesAnalyticsFrom.dataset.bound) {
         els.coachesAnalyticsFrom.dataset.bound = '1';
         els.coachesAnalyticsFrom.addEventListener('change', () => {
+          if (els.coachesAnalyticsPreset) {
+            els.coachesAnalyticsPreset.value = 'custom';
+          }
           if (els.coachesPanelMessage && !els.coachesPanelMessage.classList.contains('error')) return;
           showCoachesPanelMessage('', false);
         });
@@ -4811,6 +4856,9 @@
       if (els.coachesAnalyticsTo && !els.coachesAnalyticsTo.dataset.bound) {
         els.coachesAnalyticsTo.dataset.bound = '1';
         els.coachesAnalyticsTo.addEventListener('change', () => {
+          if (els.coachesAnalyticsPreset) {
+            els.coachesAnalyticsPreset.value = 'custom';
+          }
           if (els.coachesPanelMessage && !els.coachesPanelMessage.classList.contains('error')) return;
           showCoachesPanelMessage('', false);
         });
@@ -5355,6 +5403,9 @@
       if (!state.user) {
         throw new Error('Sessao expirada. Faz login novamente.');
       }
+      if (!state.isAdmin) {
+        throw new Error('Acesso negado. Esta conta nao tem permissao de admin.');
+      }
 
       const token = await getToken();
       const res = await fetch(url, {
@@ -5373,18 +5424,93 @@
       return data;
     }
 
-    function setAuthUI() {
-      const isAuthorized = Boolean(state.user) && state.roles.includes('admin');
-      const viewingAllowed = isAuthorized;
-      const canUseApi = isAuthorized;
+    function showAuthGateMessage(text, isError) {
+      if (!els.authGateMessage) return;
+      els.authGateMessage.textContent = text || '';
+      els.authGateMessage.hidden = !text;
+      els.authGateMessage.classList.toggle('error', Boolean(text) && Boolean(isError));
+      els.authGateMessage.classList.toggle('success', Boolean(text) && !isError);
+    }
 
-      els.authGate.hidden = Boolean(state.user);
-      els.unauthorizedGate.hidden = !(Boolean(state.user) && !isAuthorized);
+    async function fetchCurrentUserRoles() {
+      const token = await getToken();
+      const response = await fetch(getMyRolesApiBase, {
+        method: 'GET',
+        headers: {
+          Authorization: 'Bearer ' + token
+        }
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(payload.error || 'Nao foi possivel validar as permissoes desta conta.');
+      }
+      const roles = Array.isArray(payload.roles) ? payload.roles : [];
+      return roles
+        .map((role) => String(role || '').trim().toLowerCase())
+        .filter(Boolean);
+    }
+
+    function resetAdminDataToLoggedOutView() {
+      state.articles = [];
+      state.siteContent = null;
+      state.unassignedAthletes = [];
+      state.coaches = [];
+      state.leads = [];
+      state.aiPrompts = [];
+      state.aiPromptVersions = [];
+      state.aiLogs = [];
+      state.selectedAiPromptId = null;
+      state.selectedAiLogId = null;
+      state.blogProduction = null;
+      state.blogDraft = null;
+      state.blogStandalone = null;
+      state.blogDraftApplied = false;
+      state.dataAudit = null;
+      state.athletesCatalog = [];
+      state.programs = [];
+      state.purchases = [];
+      state.purchaseKpis = null;
+      state.coupons = [];
+      state.stripePrices = [];
+      state.syncResults = [];
+      state.currentAssignment = null;
+      renderList();
+      renderUnassignedAthletes();
+      renderCoachOptions();
+      renderLeads();
+      renderProgramsTable();
+      renderProgramOptions();
+      renderAiPrompts();
+      renderAiLogs();
+      renderAuditAthleteOptions();
+      renderDataAuditResult();
+      resetAiPromptEditor();
+      setAiSubtab('prompts');
+      setSiteContentEditors(null);
+      showSiteContentMessage('Faz login para gerir o conteudo do site.', false);
+      resetForm();
+      showAthletesMessage('Faz login para gerir atletas.', false);
+      showLeadsMessage('Faz login para ver as leads Meta.', false);
+      showProgramsMessage('Faz login para gerir programas.', false);
+      showProgramGrantsMessage('Faz login para conceder acessos manuais.', false);
+      showAiMessage('Faz login para gerir prompts e logs de IA.', false);
+      showOperationsMessage('Faz login para usar a auditoria de dados.', false);
+      renderCurrentAssignmentSummary();
+      resetBlogProductionPanel();
+    }
+
+    function setAuthUI() {
+      const viewingAllowed = Boolean(state.user && state.isAdmin);
+      const canUseApi = viewingAllowed;
+
+      els.authGate.hidden = viewingAllowed;
       els.protectedContent.hidden = !viewingAllowed;
       document.body.classList.toggle('auth-locked', !viewingAllowed);
 
-      if (state.user) {
+      if (state.user && state.isAdmin) {
         els.authStatus.textContent = `Autenticado: ${state.user.email || state.user.id}`;
+      } else if (state.user) {
+        els.authStatus.textContent = `Autenticado sem permissao de admin: ${state.user.email || state.user.id}`;
       } else {
         els.authStatus.textContent = 'Nao autenticado';
       }
@@ -5670,23 +5796,34 @@
           email: supabaseUser.email
         };
         state.token = session && session.access_token ? session.access_token : null;
+        state.roles = [];
+        state.isAdmin = false;
+
+        showAuthGateMessage('A validar permissoes da conta...', false);
         try {
-          const rolesRes = await fetch('/.netlify/functions/get-my-roles', {
-            headers: { Authorization: 'Bearer ' + state.token }
-          });
-          const rolesData = await rolesRes.json().catch(() => ({}));
-          state.roles = Array.isArray(rolesData.roles) ? rolesData.roles : [];
-        } catch (_) {
-          state.roles = [];
+          const roles = await fetchCurrentUserRoles();
+          state.roles = roles;
+          state.isAdmin = roles.includes('admin');
+        } catch (err) {
+          state.isAdmin = false;
+          showAuthGateMessage(err.message || 'Nao foi possivel validar as permissoes desta conta.', true);
+        }
+
+        if (!state.isAdmin) {
+          showAuthGateMessage('Conta autenticada, mas sem permissao de admin. Pede acesso ao administrador.', true);
+        } else {
+          showAuthGateMessage('', false);
         }
       } else {
         state.user = null;
         state.token = null;
         state.roles = [];
+        state.isAdmin = false;
+        showAuthGateMessage('', false);
       }
       
       setAuthUI();
-      if (state.user) {
+      if (state.user && state.isAdmin) {
         try {
           await refreshList();
         } catch (err) {
@@ -5738,52 +5875,7 @@
           }
         }
       } else {
-        state.articles = [];
-        state.siteContent = null;
-        state.unassignedAthletes = [];
-        state.coaches = [];
-        state.leads = [];
-        state.aiPrompts = [];
-        state.aiPromptVersions = [];
-        state.aiLogs = [];
-        state.selectedAiPromptId = null;
-        state.selectedAiLogId = null;
-        state.blogProduction = null;
-        state.blogDraft = null;
-        state.blogStandalone = null;
-        state.blogDraftApplied = false;
-        state.dataAudit = null;
-        state.athletesCatalog = [];
-        state.programs = [];
-        state.purchases = [];
-        state.purchaseKpis = null;
-        state.coupons = [];
-        state.stripePrices = [];
-        state.syncResults = [];
-        state.currentAssignment = null;
-        renderList();
-        renderUnassignedAthletes();
-        renderCoachOptions();
-        renderLeads();
-        renderProgramsTable();
-        renderProgramOptions();
-        renderAiPrompts();
-        renderAiLogs();
-        renderAuditAthleteOptions();
-        renderDataAuditResult();
-        resetAiPromptEditor();
-        setAiSubtab('prompts');
-        setSiteContentEditors(null);
-        showSiteContentMessage('Faz login para gerir o conteudo do site.', false);
-        resetForm();
-        showAthletesMessage('Faz login para gerir atletas.', false);
-        showLeadsMessage('Faz login para ver as leads Meta.', false);
-        showProgramsMessage('Faz login para gerir programas.', false);
-        showProgramGrantsMessage('Faz login para conceder acessos manuais.', false);
-        showAiMessage('Faz login para gerir prompts e logs de IA.', false);
-        showOperationsMessage('Faz login para usar a auditoria de dados.', false);
-        renderCurrentAssignmentSummary();
-        resetBlogProductionPanel();
+        resetAdminDataToLoggedOutView();
       }
     }
 
@@ -5838,10 +5930,11 @@
 
       // Setup event listeners APÓS Supabase estar pronto
       els.loginBtn.addEventListener('click', async () => {
+        persistCurrentTabForAuth();
         const { error } = await supabaseClient.auth.signInWithOAuth({
           provider: 'google',
           options: {
-            redirectTo: window.location.origin + '/admin'
+            redirectTo: buildAdminAuthRedirectUrl()
           }
         });
         if (error) {
@@ -5850,10 +5943,11 @@
       });
 
       els.gateLoginBtn.addEventListener('click', async () => {
+        persistCurrentTabForAuth();
         const { error } = await supabaseClient.auth.signInWithOAuth({
           provider: 'google',
           options: {
-            redirectTo: window.location.origin + '/admin'
+            redirectTo: buildAdminAuthRedirectUrl()
           }
         });
         if (error) {
@@ -5870,13 +5964,6 @@
           await handleAuthChange(null, null);
           window.location.replace('/admin');
         }
-      });
-
-      document.getElementById('admin-unauth-logout-btn').addEventListener('click', async () => {
-        try {
-          await supabaseClient.auth.signOut({ scope: 'local' });
-        } catch (_) {}
-        await handleAuthChange(null, null);
       });
 
     }
@@ -6825,8 +6912,8 @@
     els.tabOperations.addEventListener('click', () => setActiveTab('operations'));
 
     setAuthUI();
-    const initialTab = location.hash.replace('#', '') || 'blog';
-    setActiveTab(initialTab);
+    const initialTab = resolveTabFromLocation();
+    setActiveTab(initialTab, { updateHash: false });
     renderUnassignedAthletes();
     renderLeads();
     renderProgramsTable();
