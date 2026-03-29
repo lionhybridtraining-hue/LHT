@@ -17,6 +17,18 @@ function normalizeProgramPayload(payload) {
   const billingType = (payload.billingType || "one_time").toString().trim().toLowerCase() || "one_time";
   const accessModel = (payload.accessModel || "coached_one_time").toString().trim().toLowerCase() || "coached_one_time";
   const status = (payload.status || "draft").toString().trim().toLowerCase();
+  const eventDateRaw = payload.eventDate == null ? payload.event_date : payload.eventDate;
+  const eventDate = eventDateRaw == null ? null : eventDateRaw.toString().trim() || null;
+  const eventNameRaw = payload.eventName == null ? payload.event_name : payload.eventName;
+  const eventName = eventNameRaw == null ? null : eventNameRaw.toString().trim() || null;
+  const eventLocationRaw = payload.eventLocation == null ? payload.event_location : payload.eventLocation;
+  const eventLocation = eventLocationRaw == null ? null : eventLocationRaw.toString().trim() || null;
+  const calendarVisibleRaw = payload.calendarVisible == null ? payload.calendar_visible : payload.calendarVisible;
+  const calendarVisible = calendarVisibleRaw == null
+    ? true
+    : (typeof calendarVisibleRaw === "boolean" ? calendarVisibleRaw : calendarVisibleRaw !== "false");
+  const rankRaw = payload.calendarHighlightRank == null ? payload.calendar_highlight_rank : payload.calendarHighlightRank;
+  const calendarHighlightRank = rankRaw == null || rankRaw === "" ? null : Number(rankRaw);
 
   if (!name) throw new Error("name is required");
   if (!Number.isInteger(durationWeeks) || durationWeeks <= 0) throw new Error("durationWeeks must be a positive integer");
@@ -29,6 +41,10 @@ function normalizeProgramPayload(payload) {
     throw new Error("accessModel coached_recurring requires billingType recurring");
   }
   if (!["draft", "active", "archived"].includes(status)) throw new Error("status must be draft, active or archived");
+  if (eventDate && !/^\d{4}-\d{2}-\d{2}$/.test(eventDate)) throw new Error("eventDate must be in YYYY-MM-DD format");
+  if (calendarHighlightRank != null && (!Number.isInteger(calendarHighlightRank) || calendarHighlightRank < 0)) {
+    throw new Error("calendarHighlightRank must be a non-negative integer");
+  }
 
   return {
     name,
@@ -42,7 +58,12 @@ function normalizeProgramPayload(payload) {
     stripe_price_id: stripePriceId,
     billing_type: billingType,
     access_model: accessModel,
-    status
+    status,
+    event_date: eventDate,
+    event_name: eventName,
+    event_location: eventLocation,
+    calendar_visible: calendarVisible,
+    calendar_highlight_rank: calendarHighlightRank
   };
 }
 
@@ -63,6 +84,11 @@ function mapProgram(row) {
     followupType: row.followup_type || "standard",
     status: row.status,
     isScheduledTemplate: Boolean(row.is_scheduled_template),
+    eventDate: row.event_date || null,
+    eventName: row.event_name || null,
+    eventLocation: row.event_location || null,
+    calendarVisible: row.calendar_visible !== false,
+    calendarHighlightRank: Number.isInteger(row.calendar_highlight_rank) ? row.calendar_highlight_rank : null,
     createdAt: row.created_at || null,
     updatedAt: row.updated_at || null
   };
@@ -143,18 +169,112 @@ exports.handler = async (event) => {
       const id = event.path.split("/").pop();
       if (!id) return json(400, { error: "Missing program id in path" });
       const patch = parseJsonBody(event);
-      // Validação básica para status
-      if (patch.status && !["draft", "active", "archived"].includes(patch.status)) {
-        return json(400, { error: "Invalid status value" });
-      }
       // Normalise camelCase fields from the frontend to snake_case for the DB
       const dbPatch = { ...patch };
+      if (dbPatch.name !== undefined) {
+        const value = String(dbPatch.name || "").trim();
+        if (!value) {
+          return json(400, { error: "name is required" });
+        }
+        dbPatch.name = value;
+      }
+      if (dbPatch.externalSource !== undefined) {
+        dbPatch.external_source = String(dbPatch.externalSource || "trainingpeaks").trim().toLowerCase() || "trainingpeaks";
+        delete dbPatch.externalSource;
+      }
+      if (dbPatch.externalId !== undefined) {
+        dbPatch.external_id = dbPatch.externalId == null ? null : String(dbPatch.externalId).trim() || null;
+        delete dbPatch.externalId;
+      }
+      if (dbPatch.description !== undefined) {
+        dbPatch.description = dbPatch.description == null ? null : String(dbPatch.description);
+      }
+      if (dbPatch.durationWeeks !== undefined) {
+        const value = Number(dbPatch.durationWeeks);
+        if (!Number.isInteger(value) || value <= 0) {
+          return json(400, { error: "durationWeeks must be a positive integer" });
+        }
+        dbPatch.duration_weeks = value;
+        delete dbPatch.durationWeeks;
+      }
+      if (dbPatch.priceCents !== undefined) {
+        const value = Number(dbPatch.priceCents);
+        if (!Number.isInteger(value) || value < 0) {
+          return json(400, { error: "priceCents must be a non-negative integer" });
+        }
+        dbPatch.price_cents = value;
+        delete dbPatch.priceCents;
+      }
+      if (dbPatch.currency !== undefined) {
+        dbPatch.currency = String(dbPatch.currency || "EUR").trim().toUpperCase() || "EUR";
+      }
+      if (dbPatch.stripeProductId !== undefined) {
+        dbPatch.stripe_product_id = dbPatch.stripeProductId == null ? null : String(dbPatch.stripeProductId).trim() || null;
+        delete dbPatch.stripeProductId;
+      }
+      if (dbPatch.stripePriceId !== undefined) {
+        dbPatch.stripe_price_id = dbPatch.stripePriceId == null ? null : String(dbPatch.stripePriceId).trim() || null;
+        delete dbPatch.stripePriceId;
+      }
+      if (dbPatch.billingType !== undefined) {
+        const value = String(dbPatch.billingType || "one_time").trim().toLowerCase() || "one_time";
+        if (!["one_time", "recurring"].includes(value)) {
+          return json(400, { error: "billingType must be one_time or recurring" });
+        }
+        dbPatch.billing_type = value;
+        delete dbPatch.billingType;
+      }
+      if (dbPatch.status !== undefined) {
+        const value = String(dbPatch.status || "draft").trim().toLowerCase();
+        if (!["draft", "active", "archived"].includes(value)) {
+          return json(400, { error: "Invalid status value" });
+        }
+        dbPatch.status = value;
+      }
       if (dbPatch.accessModel !== undefined) {
-        if (!["self_serve", "coached_one_time", "coached_recurring"].includes(dbPatch.accessModel)) {
+        const value = String(dbPatch.accessModel || "coached_one_time").trim().toLowerCase() || "coached_one_time";
+        if (!["self_serve", "coached_one_time", "coached_recurring"].includes(value)) {
           return json(400, { error: "Invalid accessModel value" });
         }
-        dbPatch.access_model = dbPatch.accessModel;
+        dbPatch.access_model = value;
         delete dbPatch.accessModel;
+      }
+      if (dbPatch.eventDate !== undefined) {
+        const value = dbPatch.eventDate == null ? null : String(dbPatch.eventDate).trim();
+        if (value && !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+          return json(400, { error: "eventDate must be in YYYY-MM-DD format" });
+        }
+        dbPatch.event_date = value || null;
+        delete dbPatch.eventDate;
+      }
+      if (dbPatch.eventName !== undefined) {
+        dbPatch.event_name = dbPatch.eventName == null ? null : String(dbPatch.eventName).trim() || null;
+        delete dbPatch.eventName;
+      }
+      if (dbPatch.eventLocation !== undefined) {
+        dbPatch.event_location = dbPatch.eventLocation == null ? null : String(dbPatch.eventLocation).trim() || null;
+        delete dbPatch.eventLocation;
+      }
+      if (dbPatch.calendarVisible !== undefined) {
+        dbPatch.calendar_visible = typeof dbPatch.calendarVisible === "boolean"
+          ? dbPatch.calendarVisible
+          : dbPatch.calendarVisible !== "false";
+        delete dbPatch.calendarVisible;
+      }
+      if (dbPatch.calendarHighlightRank !== undefined) {
+        if (dbPatch.calendarHighlightRank == null || dbPatch.calendarHighlightRank === "") {
+          dbPatch.calendar_highlight_rank = null;
+        } else {
+          const rank = Number(dbPatch.calendarHighlightRank);
+          if (!Number.isInteger(rank) || rank < 0) {
+            return json(400, { error: "calendarHighlightRank must be a non-negative integer" });
+          }
+          dbPatch.calendar_highlight_rank = rank;
+        }
+        delete dbPatch.calendarHighlightRank;
+      }
+      if (dbPatch.access_model === "coached_recurring" && dbPatch.billing_type && dbPatch.billing_type !== "recurring") {
+        return json(400, { error: "accessModel coached_recurring requires billingType recurring" });
       }
       const updated = await updateTrainingProgram(config, id, dbPatch);
       if (!updated) return json(404, { error: "Program not found" });

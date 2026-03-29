@@ -132,6 +132,158 @@ body.auth-locked {
   background: rgba(255, 255, 255, 0.03);
 }
 
+#programs-panel .admin-inline-form {
+  gap: 16px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.02));
+}
+
+.programs-form-section {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border-radius: 16px;
+  border: 1px solid rgba(241, 200, 111, 0.12);
+  background: rgba(8, 8, 8, 0.28);
+}
+
+.programs-form-section-head {
+  display: grid;
+  gap: 6px;
+}
+
+.programs-form-section-head h3 {
+  margin: 0;
+  font-size: 1rem;
+  color: #f7f1e3;
+}
+
+.programs-form-section-head p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.programs-form-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.field-checkbox-card {
+  align-content: start;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.checkbox-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+}
+
+.checkbox-line input {
+  width: 16px;
+  height: 16px;
+}
+
+.program-name-cell {
+  display: grid;
+  gap: 4px;
+}
+
+.program-name-cell strong {
+  color: #f6efe0;
+}
+
+.program-name-cell span {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.admin-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: lowercase;
+}
+
+.admin-tag.success {
+  color: #9ee7bf;
+  background: rgba(41, 128, 73, 0.22);
+  border: 1px solid rgba(111, 220, 156, 0.18);
+}
+
+.admin-tag.warning {
+  color: #f0d28f;
+  background: rgba(171, 118, 20, 0.18);
+  border: 1px solid rgba(240, 210, 143, 0.14);
+}
+
+.admin-tag.muted {
+  color: #c5ccd5;
+  background: rgba(140, 152, 168, 0.14);
+  border: 1px solid rgba(197, 204, 213, 0.12);
+}
+
+.programs-footnote {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+
+.programs-filter-bar {
+  margin-top: 18px;
+  align-items: end;
+}
+
+.programs-filter-bar .field-wide {
+  grid-column: span 2;
+}
+
+.programs-filter-actions {
+  align-self: end;
+  justify-content: flex-end;
+}
+
+.program-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.program-row-actions .action-btn {
+  padding: 8px 10px;
+  font-size: 0.8rem;
+}
+
+.action-btn-danger-soft {
+  border-color: rgba(182, 70, 51, 0.28);
+  color: #f2b5ac;
+  background: rgba(182, 70, 51, 0.08);
+}
+
+.action-btn-danger-soft:hover:not(:disabled) {
+  border-color: rgba(182, 70, 51, 0.48);
+  background: rgba(182, 70, 51, 0.16);
+}
+
+#edit-program-dialog .message {
+  margin-bottom: 0;
+}
+
+#edit-program-dialog .modal-content {
+  gap: 16px;
+}
+
 .admin-inline-form[hidden] {
   display: none;
 }
@@ -1132,6 +1284,12 @@ body.auth-locked {
 .admin-athletes .field textarea[readonly],
 .admin-athletes .field input[readonly] {
   background: rgba(255, 255, 255, 0.02);
+}
+
+.field-checkbox-card input[type="checkbox"] {
+  width: 16px;
+  min-width: 16px;
+  padding: 0;
 }
 
 .athletes-toolbar .field input,

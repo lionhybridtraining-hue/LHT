@@ -1,9 +1,16 @@
 const { json } = require("./_lib/http");
 const { getConfig } = require("./_lib/config");
 const { requireAuthenticatedUser } = require("./_lib/authz");
-const { getProgramAccess, resolveProgram } = require("./_lib/program-access");
+const { getProgramAssociationAccess, resolveProgram } = require("./_lib/program-access");
 const { getStripeClient, normalizeStripeError, toStripePurchaseRecord } = require("./_lib/stripe");
-const { upsertStripePurchaseBySessionId } = require("./_lib/supabase");
+const {
+  upsertStripePurchaseBySessionId,
+  getAthleteByIdentity,
+  upsertAthleteByIdentity,
+  listStrengthPlans,
+  getStrengthInstanceByStripePurchaseId,
+  createStrengthPlanInstance
+} = require("./_lib/supabase");
 
 function getQuery(event) {
   return event && event.queryStringParameters ? event.queryStringParameters : {};
@@ -47,8 +54,52 @@ async function syncFromSession(config, user, sessionId, fallbackProgramId) {
     subscription: session.subscription && typeof session.subscription === "object" ? session.subscription : null
   });
 
-  await upsertStripePurchaseBySessionId(config, purchase);
+  const record = await upsertStripePurchaseBySessionId(config, purchase);
+
+  await ensureStrengthInstanceForPurchase(config, {
+    identityId: user.sub,
+    email: user.email || session.customer_details?.email || null,
+    program,
+    purchase: record
+  });
+
   return program;
+}
+
+async function ensureStrengthInstanceForPurchase(config, { identityId, email, program, purchase }) {
+  if (!identityId || !program || !purchase || !purchase.id) return;
+
+  const existing = await getStrengthInstanceByStripePurchaseId(config, purchase.id);
+  if (existing) return;
+
+  const plans = await listStrengthPlans(config, { trainingProgramId: program.id });
+  const template = Array.isArray(plans)
+    ? (plans.find((p) => p.status === "active") || plans[0] || null)
+    : null;
+  if (!template) return;
+
+  let athlete = await getAthleteByIdentity(config, identityId);
+  if (!athlete && email) {
+    athlete = await upsertAthleteByIdentity(config, {
+      identityId,
+      email,
+      name: email
+    });
+  }
+  if (!athlete) return;
+
+  await createStrengthPlanInstance(config, {
+    plan_id: template.id,
+    athlete_id: athlete.id,
+    start_date: null,
+    load_round: 2.5,
+    status: "active",
+    assigned_by: identityId,
+    access_model: program.access_model || null,
+    stripe_purchase_id: purchase.id,
+    program_assignment_id: null,
+    coach_locked_until: null
+  });
 }
 
 exports.handler = async (event) => {
@@ -70,7 +121,10 @@ exports.handler = async (event) => {
       await syncFromSession(config, auth.user, sessionId, requestedProgramId);
     }
 
-    const access = await getProgramAccess(config, {
+    const athlete = await getAthleteByIdentity(config, auth.user.sub);
+
+    const access = await getProgramAssociationAccess(config, {
+      athleteId: athlete ? athlete.id : null,
       identityId: auth.user.sub,
       programId: requestedProgramId,
       programExternalId: requestedProgramExternalId

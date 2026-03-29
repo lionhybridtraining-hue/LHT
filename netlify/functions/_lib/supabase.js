@@ -780,6 +780,15 @@ async function listCoaches(config) {
   });
 }
 
+async function getCoachByIdentityId(config, identityId) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `coaches?identity_id=eq.${encodeURIComponent(identityId)}&deleted_at=is.null&select=id&limit=1`
+  });
+  return Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
+}
+
 async function createCoach(config, payload) {
   const rows = await supabaseRequest({
     url: config.supabaseUrl,
@@ -826,6 +835,33 @@ async function listActiveAssignmentsWithPrograms(config) {
     serviceRoleKey: config.supabaseServiceRoleKey,
     path: "program_assignments?status=in.(active,scheduled,paused)&select=id,athlete_id,coach_id,training_program_id,status,start_date,duration_weeks,notes,created_at&order=created_at.desc&limit=1000"
   });
+}
+
+/**
+ * List assignments enriched with athlete name/email, coach name, program name.
+ * Options:
+ *   includeHistory: boolean — if true, includes completed/cancelled; default active-like only
+ *   coachIdentityId: string|null — if set, filters to athletes.coach_identity_id = value (coach scoping)
+ */
+async function listEnrichedAssignments(config, { includeHistory = false, coachIdentityId = null } = {}) {
+  const statusFilter = includeHistory
+    ? ""
+    : "status=in.(active,scheduled,paused)&";
+  const select = "id,athlete_id,coach_id,training_program_id,status,start_date,duration_weeks,computed_end_date,notes,created_at,updated_at,athlete:athletes!inner(id,name,email,coach_identity_id),coach:coaches(name),training_program:training_programs(name)";
+  let path = `program_assignments?${statusFilter}select=${encodeURIComponent(select)}&order=created_at.desc&limit=1000`;
+
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path
+  });
+
+  if (!coachIdentityId) return rows;
+
+  // Filter to only athletes owned by this coach
+  return (Array.isArray(rows) ? rows : []).filter(
+    (r) => r.athlete && r.athlete.coach_identity_id === coachIdentityId
+  );
 }
 
 async function archiveAthlete(config, athleteId) {
@@ -1247,6 +1283,30 @@ async function getCurrentProgramAssignment(config, athleteId, trainingProgramId)
   return Array.isArray(latestRows) ? latestRows[0] || null : null;
 }
 
+async function getActiveLikeProgramAssignment(config, athleteId, trainingProgramId) {
+  if (!athleteId) return null;
+
+  const filters = [
+    `athlete_id=eq.${encodeURIComponent(athleteId)}`,
+    'status=in.("scheduled","active","paused")',
+    "select=*",
+    "order=created_at.desc",
+    "limit=1"
+  ];
+
+  if (trainingProgramId) {
+    filters.unshift(`training_program_id=eq.${encodeURIComponent(trainingProgramId)}`);
+  }
+
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `program_assignments?${filters.join("&")}`
+  });
+
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
 async function getLatestCancellableProgramAssignment(config, athleteId, trainingProgramId) {
   if (!athleteId) return null;
 
@@ -1268,6 +1328,16 @@ async function getLatestCancellableProgramAssignment(config, athleteId, training
     path: `program_assignments?${filters.join("&")}`
   });
 
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function getProgramAssignmentById(config, assignmentId) {
+  if (!assignmentId) return null;
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `program_assignments?id=eq.${encodeURIComponent(assignmentId)}&select=*&limit=1`
+  });
   return Array.isArray(rows) ? rows[0] || null : null;
 }
 
@@ -1389,6 +1459,34 @@ async function replaceSiteLinks(config, rows) {
     url: config.supabaseUrl,
     serviceRoleKey: config.supabaseServiceRoleKey,
     path: "site_links",
+    method: "POST",
+    body: rows,
+    prefer: "return=representation"
+  });
+}
+
+async function listSiteFaqs(config) {
+  return supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: "site_faqs?select=id,sort_order,question,answer,active,updated_at&order=sort_order.asc,updated_at.desc"
+  });
+}
+
+async function replaceSiteFaqs(config, rows) {
+  await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: "site_faqs?id=not.is.null",
+    method: "DELETE",
+    prefer: "return=minimal"
+  });
+
+  if (!rows.length) return [];
+  return supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: "site_faqs",
     method: "POST",
     body: rows,
     prefer: "return=representation"
@@ -1596,7 +1694,17 @@ async function getActiveInstanceForAthlete(config, athleteId) {
   const rows = await supabaseRequest({
     url: config.supabaseUrl,
     serviceRoleKey: config.supabaseServiceRoleKey,
-    path: `strength_plan_instances?athlete_id=eq.${encodeURIComponent(athleteId)}&status=eq.active&select=*,plan:strength_plans(*)&limit=1`
+    path: `strength_plan_instances?athlete_id=eq.${encodeURIComponent(athleteId)}&status=eq.active&select=*,plan:strength_plans(*)&order=created_at.desc&limit=1`
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function getStrengthInstanceByStripePurchaseId(config, stripePurchaseId) {
+  if (!stripePurchaseId) return null;
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `strength_plan_instances?stripe_purchase_id=eq.${encodeURIComponent(stripePurchaseId)}&select=*,plan:strength_plans(*)&order=created_at.desc&limit=1`
   });
   return Array.isArray(rows) ? rows[0] || null : null;
 }
@@ -2042,6 +2150,7 @@ module.exports = {
   getLatestPurchaseStatusForAthletes,
   getUserRoleNames,
   listCoaches,
+  getCoachByIdentityId,
   createCoach,
   updateCoach,
   createAuthUser,
@@ -2056,11 +2165,14 @@ module.exports = {
   listPublicTrainingPrograms,
   createProgramAssignment,
   getCurrentProgramAssignment,
+  getProgramAssignmentById,
+  getActiveLikeProgramAssignment,
   getLatestCancellableProgramAssignment,
   updateProgramAssignment,
   listAssignmentHistory,
   listAllAthletesForAdmin,
   listActiveAssignmentsWithPrograms,
+  listEnrichedAssignments,
   createStripePurchase,
   upsertStripePurchaseBySessionId,
   updateStripePurchaseById,
@@ -2079,6 +2191,8 @@ module.exports = {
   replaceSiteMetrics,
   replaceSiteReviews,
   replaceSiteLinks,
+  listSiteFaqs,
+  replaceSiteFaqs,
   getWeekSessions,
   listTrainingSessionsForAthlete,
   replaceTrainingLoadDaily,
@@ -2129,6 +2243,7 @@ module.exports = {
   listStrengthPlans,
   listStrengthPlanInstances,
   getActiveInstanceForAthlete,
+  getStrengthInstanceByStripePurchaseId,
   createStrengthPlanInstance,
   updateStrengthPlanInstance,
   getStrengthPlanInstanceById,

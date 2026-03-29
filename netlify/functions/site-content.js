@@ -4,7 +4,8 @@ const {
   listSiteMetadata,
   listSiteMetrics,
   listSiteReviews,
-  listSiteLinks
+  listSiteLinks,
+  listSiteFaqs
 } = require("./_lib/supabase");
 
 function mapMetadata(rows) {
@@ -48,6 +49,15 @@ function mapLinks(rows) {
   return links;
 }
 
+function mapFaqs(rows) {
+  return (rows || [])
+    .filter((row) => row && row.active !== false)
+    .map((row) => ({
+      question: row.question == null ? "" : String(row.question),
+      answer: row.answer == null ? "" : String(row.answer)
+    }));
+}
+
 function computeAggregateRating(reviews) {
   if (!Array.isArray(reviews) || reviews.length === 0) {
     return { ratingValue: 4.9, reviewCount: 0 };
@@ -69,23 +79,26 @@ exports.handler = async (event) => {
   try {
     const config = getConfig();
 
-    const [metadataRows, metricsRows, reviewsRows, linksRows] = await Promise.all([
+    const [metadataRows, metricsRows, reviewsRows, linksRows, faqsRows] = await Promise.all([
       listSiteMetadata(config),
       listSiteMetrics(config),
       listSiteReviews(config),
-      listSiteLinks(config)
+      listSiteLinks(config),
+      listSiteFaqs(config)
     ]);
 
     const metadata = mapMetadata(metadataRows);
     const metrics = mapMetrics(metricsRows);
     const reviews = mapReviews(reviewsRows);
     const links = mapLinks(linksRows);
+    const faqs = mapFaqs(faqsRows);
 
     return json(200, {
       metadata,
       metrics,
       reviews,
       links,
+      faqs,
       aggregateRating: computeAggregateRating(reviews)
     });
   } catch (err) {

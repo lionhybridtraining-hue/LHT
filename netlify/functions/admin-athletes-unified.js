@@ -112,6 +112,7 @@ exports.handler = async (event) => {
         name: athlete.name || "",
         status: "active",
         coachIdentityId: athlete.coach_identity_id || null,
+        assignmentId: assignment ? assignment.id : null,
         assignmentStatus: assignment ? assignment.status : null,
         trainingProgramId: assignment ? assignment.training_program_id : null,
         programName: assignment ? (programNameById[assignment.training_program_id] || null) : null,

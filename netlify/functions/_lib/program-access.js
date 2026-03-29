@@ -1,7 +1,8 @@
 const {
   getTrainingProgramById,
   getTrainingProgramByExternalId,
-  getActiveStripePurchaseForIdentity
+  getActiveStripePurchaseForIdentity,
+  getActiveLikeProgramAssignment
 } = require("./supabase");
 
 function normalizeValue(value) {
@@ -49,7 +50,69 @@ async function getProgramAccess(config, { identityId, programId, programExternal
   };
 }
 
+async function getProgramAssociationAccess(
+  config,
+  { athleteId, identityId, programId, programExternalId, atIso } = {}
+) {
+  const program = await resolveProgram(config, { programId, programExternalId });
+  if (!program) {
+    return {
+      hasAccess: false,
+      reason: "program_not_found",
+      via: null,
+      program: null,
+      purchase: null,
+      assignment: null
+    };
+  }
+
+  const [purchase, assignment] = await Promise.all([
+    identityId
+      ? getActiveStripePurchaseForIdentity(config, {
+          identityId,
+          programId: program.id,
+          atIso
+        })
+      : Promise.resolve(null),
+    athleteId
+      ? getActiveLikeProgramAssignment(config, athleteId, program.id)
+      : Promise.resolve(null)
+  ]);
+
+  if (purchase) {
+    return {
+      hasAccess: true,
+      reason: "purchase",
+      via: "purchase",
+      program,
+      purchase,
+      assignment
+    };
+  }
+
+  if (assignment) {
+    return {
+      hasAccess: true,
+      reason: "manual_assignment",
+      via: "assignment",
+      program,
+      purchase: null,
+      assignment
+    };
+  }
+
+  return {
+    hasAccess: false,
+    reason: "program_association_required",
+    via: null,
+    program,
+    purchase: null,
+    assignment: null
+  };
+}
+
 module.exports = {
   resolveProgram,
-  getProgramAccess
+  getProgramAccess,
+  getProgramAssociationAccess
 };

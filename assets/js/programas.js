@@ -106,6 +106,7 @@
     programs.forEach((program) => {
       const card = document.createElement('article');
       card.className = 'program-card' + (selectedProgramId === program.id ? ' selected' : '');
+      card.id = 'program-card-' + program.id;
 
       const eyebrow = document.createElement('div');
       eyebrow.className = 'eyebrow';
@@ -142,6 +143,13 @@
       card.appendChild(actions);
       root.appendChild(card);
     });
+
+    if(selectedProgramId){
+      const selectedNode = document.getElementById('program-card-' + selectedProgramId);
+      if(selectedNode){
+        selectedNode.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
   }
 
   function formatPrice(priceCents, currency){

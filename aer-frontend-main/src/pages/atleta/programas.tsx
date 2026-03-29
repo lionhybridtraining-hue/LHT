@@ -5,6 +5,13 @@ import {
   fetchAthleteRunningPrograms,
   type RunningPlanEntry,
 } from "@/services/athlete-programs";
+import {
+  fetchMyPrograms,
+  type MyProgram,
+  type OrphanedInstance,
+  type ProgramPhase,
+} from "@/services/athlete-my-programs";
+import { createInstance } from "@/services/athlete-strength";
 import type { Session } from "@supabase/supabase-js";
 
 const BG =
@@ -19,6 +26,9 @@ function ProgramasContent({ session }: { session: Session }) {
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [runningPrograms, setRunningPrograms] = useState<RunningPlanEntry[]>([]);
+  const [myPrograms, setMyPrograms] = useState<MyProgram[]>([]);
+  const [orphanedInstances, setOrphanedInstances] = useState<OrphanedInstance[]>([]);
+  const [creatingInstance, setCreatingInstance] = useState<string | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -27,29 +37,44 @@ function ProgramasContent({ session }: { session: Session }) {
       setLoading(true);
       setErrorMessage(null);
       try {
-        const payload = await fetchAthleteRunningPrograms();
+        const [runningPayload, programsPayload] = await Promise.all([
+          fetchAthleteRunningPrograms().catch(() => ({ runningPrograms: [] })),
+          fetchMyPrograms(),
+        ]);
         if (!isMounted) return;
-        setRunningPrograms(payload.runningPrograms || []);
+        setRunningPrograms(runningPayload.runningPrograms || []);
+        setMyPrograms(programsPayload.programs || []);
+        setOrphanedInstances(programsPayload.orphanedInstances || []);
       } catch (error) {
         if (!isMounted) return;
         setErrorMessage(error instanceof Error ? error.message : "Nao foi possivel carregar os programas.");
       } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
+        if (isMounted) setLoading(false);
       }
     };
 
     load();
-    return () => {
-      isMounted = false;
-    };
+    return () => { isMounted = false; };
   }, []);
 
   const runningPlan = useMemo(() => {
     if (!runningPrograms.length) return null;
     return runningPrograms[0];
   }, [runningPrograms]);
+
+  const handleStartInstance = async (programId: string) => {
+    setCreatingInstance(programId);
+    try {
+      await createInstance({ programId });
+      const payload = await fetchMyPrograms();
+      setMyPrograms(payload.programs || []);
+      setOrphanedInstances(payload.orphanedInstances || []);
+    } catch (e) {
+      setErrorMessage(e instanceof Error ? e.message : "Erro ao iniciar programa.");
+    } finally {
+      setCreatingInstance(null);
+    }
+  };
 
   if (loading) {
     return (
@@ -58,6 +83,8 @@ function ProgramasContent({ session }: { session: Session }) {
       </div>
     );
   }
+
+  const hasStrengthPrograms = myPrograms.length > 0 || orphanedInstances.length > 0;
 
   return (
     <div
@@ -81,24 +108,59 @@ function ProgramasContent({ session }: { session: Session }) {
           </div>
         ) : null}
 
-        <div className="mt-8 space-y-4">
-          <ProgramCard
-            title="Plano de Corrida"
-            subtitle={resolveRunningSubtitle(runningPlan)}
-            badge={resolveRunningBadge(runningPlan)}
+        {/* ── Strength Programs (from purchases + assignments) ── */}
+        {hasStrengthPrograms ? (
+          <div className="mt-8 space-y-4">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-[#8f99a8]">
+              Treino de Forca
+            </p>
+            {myPrograms.map((p) => (
+              <StrengthProgramCard
+                key={p.purchase.id}
+                program={p}
+                creatingInstance={creatingInstance}
+                onStart={() => handleStartInstance(p.purchase.programId)}
+                onOpen={() =>
+                  navigate(
+                    p.instance
+                      ? `/atleta/forca?instanceId=${p.instance.id}`
+                      : "/atleta/forca"
+                  )
+                }
+              />
+            ))}
+            {orphanedInstances.map((inst) => (
+              <OrphanedInstanceCard
+                key={inst.id}
+                instance={inst}
+                onOpen={() => navigate(`/atleta/forca?instanceId=${inst.id}`)}
+              />
+            ))}
+          </div>
+        ) : null}
+
+        {/* ── Running Plan ── */}
+        <div className={hasStrengthPrograms ? "mt-6 space-y-4" : "mt-8 space-y-4"}>
+          {hasStrengthPrograms ? (
+            <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-[#8f99a8]">
+              Corrida
+            </p>
+          ) : null}
+          <RunningProgramCard
+            runningPlan={runningPlan}
             onOpen={() => navigate("/formulario")}
-            ctaLabel={runningPlan ? "Abrir Plano" : "Gerar Plano"}
-            secondaryLabel="Historico em evolucao"
           />
 
-          <ProgramCard
-            title="Treino de Forca"
-            subtitle="Acede ao teu plano de forca com sessoes, cargas e historico."
-            badge="Disponivel"
-            onOpen={() => navigate("/atleta/forca")}
-            ctaLabel="Abrir Forca"
-            secondaryLabel="Atualizacao em tempo real"
-          />
+          {/* Fallback strength card when no purchases/instances exist */}
+          {!hasStrengthPrograms ? (
+            <StaticCard
+              title="Treino de Forca"
+              subtitle="Acede ao teu plano de forca com sessoes, cargas e historico."
+              badge="Disponivel"
+              onOpen={() => navigate("/atleta/forca")}
+              ctaLabel="Abrir Forca"
+            />
+          ) : null}
         </div>
 
         <button
@@ -112,15 +174,191 @@ function ProgramasContent({ session }: { session: Session }) {
   );
 }
 
-function ProgramCard(props: {
+// ── Strength program card (purchase-based) ──
+
+const PHASE_LABELS: Record<ProgramPhase, string> = {
+  coached: "Gerido pelo Coach",
+  self_serve: "Self-serve",
+  active: "Ativo",
+  grace: "Pagamento pendente",
+  expired: "Expirado",
+  cancelled: "Cancelado",
+};
+
+const PHASE_COLORS: Record<ProgramPhase, { border: string; bg: string; text: string }> = {
+  coached: { border: "#d4a54f55", bg: "#d4a54f18", text: "#d4a54f" },
+  self_serve: { border: "#238636", bg: "#23863618", text: "#3fb950" },
+  active: { border: "#238636", bg: "#23863618", text: "#3fb950" },
+  grace: { border: "#d29922", bg: "#d2992218", text: "#e3b341" },
+  expired: { border: "#f8514955", bg: "#f8514918", text: "#f85149" },
+  cancelled: { border: "#8b949e55", bg: "#8b949e18", text: "#8b949e" },
+};
+
+function StrengthProgramCard({
+  program,
+  creatingInstance,
+  onStart,
+  onOpen,
+}: {
+  program: MyProgram;
+  creatingInstance: string | null;
+  onStart: () => void;
+  onOpen: () => void;
+}) {
+  const { purchase, program: meta, instance, phase, isCoachLocked, canCreateInstance } = program;
+  const name = meta?.name || instance?.planName || "Programa de Forca";
+  const colors = PHASE_COLORS[phase] || PHASE_COLORS.active;
+  const isCreating = creatingInstance === purchase.programId;
+
+  const hasActiveInstance = instance && (instance.status === "active" || instance.status === "paused");
+
+  return (
+    <article className="rounded-2xl border border-[#d4a54f33] bg-[#141414] p-5 shadow-[0_14px_34px_rgba(0,0,0,0.35)]">
+      <div className="flex items-start justify-between gap-3">
+        <h2 className="font-['Oswald'] text-2xl font-semibold text-[#f7f1e8]">{name}</h2>
+        <span
+          className="rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]"
+          style={{ border: `1px solid ${colors.border}`, background: colors.bg, color: colors.text }}
+        >
+          {PHASE_LABELS[phase] || phase}
+        </span>
+      </div>
+
+      {instance ? (
+        <p className="mt-2 text-sm leading-relaxed text-[#8f99a8]">
+          {instance.planName ? `Plano: ${instance.planName}` : ""}
+          {instance.startDate ? ` · Inicio: ${toLocaleDate(instance.startDate)}` : ""}
+          {instance.status === "paused" ? " · Pausado" : ""}
+        </p>
+      ) : (
+        <p className="mt-2 text-sm leading-relaxed text-[#8f99a8]">
+          {meta ? `${meta.durationWeeks} semanas · ${meta.billingType === "recurring" ? "Subscrição" : "Pagamento único"}` : "Programa disponivel."}
+        </p>
+      )}
+
+      {isCoachLocked && instance?.coachLockedUntil ? (
+        <div className="mt-2 flex items-center gap-1.5 text-xs text-[#d4a54f]">
+          <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+          </svg>
+          <span>Gerido pelo coach ate {toLocaleDate(instance.coachLockedUntil)}</span>
+        </div>
+      ) : null}
+
+      {/* CTA */}
+      {canCreateInstance && !hasActiveInstance ? (
+        <button
+          onClick={onStart}
+          disabled={isCreating}
+          className="mt-4 w-full rounded-xl bg-[linear-gradient(180deg,#e3b861,#d4a54f_55%,#bf8e3e)] py-3 font-['Oswald'] text-base font-semibold uppercase tracking-[0.08em] text-[#111111] shadow-[0_8px_22px_rgba(212,165,79,0.28)] active:scale-[0.98] disabled:opacity-50"
+        >
+          {isCreating ? "A iniciar..." : "Comecar Programa"}
+        </button>
+      ) : hasActiveInstance ? (
+        <button
+          onClick={onOpen}
+          className="mt-4 w-full rounded-xl bg-[linear-gradient(180deg,#e3b861,#d4a54f_55%,#bf8e3e)] py-3 font-['Oswald'] text-base font-semibold uppercase tracking-[0.08em] text-[#111111] shadow-[0_8px_22px_rgba(212,165,79,0.28)] active:scale-[0.98]"
+        >
+          Abrir Treino
+        </button>
+      ) : (phase === "expired" || phase === "cancelled") ? (
+        <p className="mt-4 text-center text-xs text-[#555d69]">Programa indisponivel</p>
+      ) : null}
+    </article>
+  );
+}
+
+// ── Orphaned instance card (coach ad-hoc, no Stripe purchase) ──
+
+function OrphanedInstanceCard({
+  instance,
+  onOpen,
+}: {
+  instance: OrphanedInstance;
+  onOpen: () => void;
+}) {
+  const name = instance.plan?.name || "Plano de Forca";
+  const isActive = instance.status === "active" || instance.status === "paused";
+  const isLocked = !!(instance.coach_locked_until && instance.coach_locked_until >= new Date().toISOString().slice(0, 10));
+
+  return (
+    <article className="rounded-2xl border border-[#d4a54f33] bg-[#141414] p-5 shadow-[0_14px_34px_rgba(0,0,0,0.35)]">
+      <div className="flex items-start justify-between gap-3">
+        <h2 className="font-['Oswald'] text-2xl font-semibold text-[#f7f1e8]">{name}</h2>
+        <span
+          className="rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]"
+          style={{
+            border: `1px solid ${isLocked ? "#d4a54f55" : "#238636"}`,
+            background: isLocked ? "#d4a54f18" : "#23863618",
+            color: isLocked ? "#d4a54f" : "#3fb950",
+          }}
+        >
+          {isLocked ? "Gerido pelo Coach" : instance.status === "paused" ? "Pausado" : "Ativo"}
+        </span>
+      </div>
+
+      <p className="mt-2 text-sm leading-relaxed text-[#8f99a8]">
+        {instance.start_date ? `Inicio: ${toLocaleDate(instance.start_date)}` : "Sem data de inicio"}
+        {instance.status === "paused" ? " · Pausado" : ""}
+      </p>
+
+      {isLocked && instance.coach_locked_until ? (
+        <div className="mt-2 flex items-center gap-1.5 text-xs text-[#d4a54f]">
+          <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+          </svg>
+          <span>Gerido pelo coach ate {toLocaleDate(instance.coach_locked_until)}</span>
+        </div>
+      ) : null}
+
+      {isActive ? (
+        <button
+          onClick={onOpen}
+          className="mt-4 w-full rounded-xl bg-[linear-gradient(180deg,#e3b861,#d4a54f_55%,#bf8e3e)] py-3 font-['Oswald'] text-base font-semibold uppercase tracking-[0.08em] text-[#111111] shadow-[0_8px_22px_rgba(212,165,79,0.28)] active:scale-[0.98]"
+        >
+          Abrir Treino
+        </button>
+      ) : (
+        <p className="mt-4 text-center text-xs text-[#555d69]">
+          {instance.status === "completed" ? "Programa concluido" : "Programa cancelado"}
+        </p>
+      )}
+    </article>
+  );
+}
+
+// ── Running plan card ──
+
+function RunningProgramCard({
+  runningPlan,
+  onOpen,
+}: {
+  runningPlan: RunningPlanEntry | null;
+  onOpen: () => void;
+}) {
+  return (
+    <StaticCard
+      title="Plano de Corrida"
+      subtitle={resolveRunningSubtitle(runningPlan)}
+      badge={resolveRunningBadge(runningPlan)}
+      onOpen={onOpen}
+      ctaLabel={runningPlan ? "Abrir Plano" : "Gerar Plano"}
+    />
+  );
+}
+
+// ── Static fallback card ──
+
+function StaticCard(props: {
   title: string;
   subtitle: string;
   badge: string;
   onOpen: () => void;
   ctaLabel: string;
-  secondaryLabel: string;
 }) {
-  const { title, subtitle, badge, onOpen, ctaLabel, secondaryLabel } = props;
+  const { title, subtitle, badge, onOpen, ctaLabel } = props;
 
   return (
     <article className="rounded-2xl border border-[#d4a54f33] bg-[#141414] p-5 shadow-[0_14px_34px_rgba(0,0,0,0.35)]">
@@ -131,8 +369,6 @@ function ProgramCard(props: {
         </span>
       </div>
       <p className="mt-2 text-sm leading-relaxed text-[#8f99a8]">{subtitle}</p>
-      <p className="mt-1 text-[11px] uppercase tracking-[0.14em] text-[#555d69]">{secondaryLabel}</p>
-
       <button
         onClick={onOpen}
         className="mt-4 w-full rounded-xl bg-[linear-gradient(180deg,#e3b861,#d4a54f_55%,#bf8e3e)] py-3 font-['Oswald'] text-base font-semibold uppercase tracking-[0.08em] text-[#111111] shadow-[0_8px_22px_rgba(212,165,79,0.28)] active:scale-[0.98]"
@@ -142,6 +378,8 @@ function ProgramCard(props: {
     </article>
   );
 }
+
+// ── Helpers ──
 
 function resolveRunningSubtitle(runningPlan: RunningPlanEntry | null): string {
   if (!runningPlan) {

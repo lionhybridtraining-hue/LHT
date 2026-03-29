@@ -72,6 +72,7 @@ const LANDING_STEPS = [
 export default function PlanLanding() {
   const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
   const [sessionChecked, setSessionChecked] = useState(false);
   const [prefillChecked, setPrefillChecked] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -88,6 +89,7 @@ export default function PlanLanding() {
     supabase.auth.getSession().then(({ data }) => {
       if (!isMounted) return;
       setIsAuthenticated(Boolean(data.session?.user));
+      setUserEmail(data.session?.user?.email ?? null);
       setSessionChecked(true);
     });
 
@@ -96,6 +98,7 @@ export default function PlanLanding() {
     } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!isMounted) return;
       setIsAuthenticated(Boolean(session?.user));
+      setUserEmail(session?.user?.email ?? null);
       setSessionChecked(true);
     });
 
@@ -281,6 +284,9 @@ export default function PlanLanding() {
                     : "Sessao ativa. A carregar os teus dados guardados."
                   : "Guardamos e retomamos apos o login."}
               </p>
+              {sessionChecked && isAuthenticated && userEmail ? (
+                <p className="mt-0.5 text-[11px] text-[#d4a54f]">{userEmail}</p>
+              ) : null}
             </div>
             {isAuthenticated ? (
               <button

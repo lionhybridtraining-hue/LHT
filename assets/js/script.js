@@ -40,7 +40,19 @@ window.addEventListener('load', handleScrollIndicator);
 
 // ===== Dynamic content via Netlify Function =====
 (function(){
-  const CACHE_KEY = 'lht_dynamic_cache_v2';
+  const CACHE_KEY = 'lht_dynamic_cache_v3';
+
+  function syncAnchorTarget(node, href){
+    if(!node || !href) return;
+    const isExternal = /^https?:\/\//i.test(String(href));
+    if(isExternal){
+      node.setAttribute('target', '_blank');
+      node.setAttribute('rel', 'noopener');
+    } else {
+      node.removeAttribute('target');
+      node.removeAttribute('rel');
+    }
+  }
 
   function withTimeout(ms){
     const controller = new AbortController();
@@ -228,20 +240,14 @@ window.addEventListener('load', handleScrollIndicator);
 
       setJsonLd('home-event-jsonld', {
         '@context': 'https://schema.org',
-        '@type': 'Event',
-        name: metadataValue(metadata, ['event_name'], 'Lançamento AER — Athletic Endurance Runner'),
-        startDate: metadataValue(metadata, ['event_start_date'], '2026-02-02'),
-        eventAttendanceMode: metadataValue(metadata, ['event_attendance_mode'], 'https://schema.org/OnlineEventAttendanceMode'),
-        eventStatus: metadataValue(metadata, ['event_status'], 'https://schema.org/EventScheduled'),
-        location: {
-          '@type': 'VirtualLocation',
-          url: metadataValue(metadata, ['event_location_url'], 'https://aer.lionhybridtraining.com')
-        },
-        image: metadataValue(metadata, ['event_image'], 'https://lionhybridtraining.com/assets/img/logo-aer.png'),
-        description: metadataValue(metadata, ['event_description'], 'Lançamento do programa AER. Reserva a tua vaga.'),
+        '@type': 'Product',
+        name: metadataValue(metadata, ['featured_program_name', 'product_name'], 'Programa em destaque LHT'),
+        brand: metadataValue(metadata, ['product_brand', 'organization_name', 'site_name'], 'Lion Hybrid Training'),
+        image: metadataValue(metadata, ['featured_program_image', 'event_image'], 'https://lionhybridtraining.com/assets/img/logo-aer.png'),
+        description: metadataValue(metadata, ['featured_program_tagline', 'event_description'], 'Programa em destaque da Lion Hybrid Training com progressão guiada, comunidade e acompanhamento.'),
         offers: {
           '@type': 'Offer',
-          url: metadataValue(metadata, ['event_offer_url'], 'https://buy.stripe.com/14AcN63Qi7p451SbkY97G00'),
+          url: metadataValue(metadata, ['featured_program_cta_url', 'event_offer_url'], 'https://lionhybridtraining.com/programas'),
           price: metadataValue(metadata, ['event_offer_price'], '0'),
           priceCurrency: metadataValue(metadata, ['event_offer_currency'], 'EUR'),
           availability: metadataValue(metadata, ['event_offer_availability'], 'https://schema.org/InStock')
@@ -296,11 +302,53 @@ window.addEventListener('load', handleScrollIndicator);
     }
   }
 
-  function bindAerDate(data){
-    const node = document.getElementById('aer-next-date');
-    if(!node || !data || !data.metadata) return;
-    if(data.metadata.aer_next_date){
-      text(node, data.metadata.aer_next_date);
+  function bindFeaturedProgram(data){
+    if(!data || !data.metadata) return;
+    var m = data.metadata;
+    var links = data.links || {};
+
+    var tagline = document.getElementById('fp-tagline');
+    if(tagline && m.featured_program_tagline) text(tagline, m.featured_program_tagline);
+
+    var nameEl = document.getElementById('fp-name');
+    if(nameEl && m.featured_program_name) text(nameEl, m.featured_program_name);
+
+    var img = document.getElementById('fp-image');
+    if(img && m.featured_program_image){
+      img.setAttribute('src', m.featured_program_image);
+      img.setAttribute('alt', m.featured_program_name || 'Programa em destaque');
+    }
+
+    var nextDate = document.getElementById('fp-next-date');
+  var nextDateValue = firstDefinedValue([m.featured_program_next_date, m.aer_next_date], '');
+  if(nextDate && nextDateValue) text(nextDate, nextDateValue);
+
+    var subtitle = document.getElementById('fp-subtitle');
+    if(subtitle && m.featured_program_subtitle) subtitle.innerHTML = m.featured_program_subtitle;
+
+    var features = document.getElementById('fp-features');
+    if(features && m.featured_program_features){
+      try {
+        var items = JSON.parse(m.featured_program_features);
+        if(Array.isArray(items) && items.length > 0){
+          features.innerHTML = '';
+          items.forEach(function(item){
+            var li = document.createElement('li');
+            li.innerHTML = item;
+            features.appendChild(li);
+          });
+        }
+      } catch(e){ /* keep hardcoded fallback */ }
+    }
+
+    var cta = document.getElementById('fp-cta');
+    if(cta){
+      var featuredProgramUrl = firstDefinedValue([m.featured_program_cta_url, links.cta_reserva_aer], '');
+      if(featuredProgramUrl) {
+        cta.setAttribute('href', featuredProgramUrl);
+        syncAnchorTarget(cta, featuredProgramUrl);
+      }
+      if(m.featured_program_cta_label) text(cta, m.featured_program_cta_label);
     }
   }
 
@@ -404,12 +452,47 @@ window.addEventListener('load', handleScrollIndicator);
     });
   }
 
+  function bindFaqs(data){
+    var wrap = document.getElementById('faq-list');
+    if(!wrap || !data || !Array.isArray(data.faqs) || data.faqs.length === 0) return;
+
+    wrap.innerHTML = '';
+    data.faqs.forEach(function(item){
+      var details = document.createElement('details');
+      var summary = document.createElement('summary');
+      text(summary, item.question || '');
+      var p = document.createElement('p');
+      text(p, item.answer || '');
+      details.appendChild(summary);
+      details.appendChild(p);
+      wrap.appendChild(details);
+    });
+
+    // Update FAQ JSON-LD
+    var jsonLdScript = document.getElementById('faq-jsonld');
+    if(jsonLdScript){
+      var mainEntity = data.faqs.map(function(item){
+        return {
+          '@type': 'Question',
+          name: item.question || '',
+          acceptedAnswer: { '@type': 'Answer', text: item.answer || '' }
+        };
+      });
+      jsonLdScript.textContent = JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'FAQPage',
+        mainEntity: mainEntity
+      });
+    }
+  }
+
   function applyDynamicData(data){
     if(!data || typeof data !== 'object') return;
     bindSeoMetadata(data);
-    bindAerDate(data);
+    bindFeaturedProgram(data);
     bindMetrics(data);
     bindReviews(data);
+    bindFaqs(data);
     bindLinks(data);
   }
 
@@ -419,9 +502,6 @@ window.addEventListener('load', handleScrollIndicator);
 
     const cacheMaxAgeMs = Math.max(1, cfg.cacheMinutes) * 60 * 1000;
     const cached = readCache(cacheMaxAgeMs);
-    if(cached){
-      applyDynamicData(cached);
-    }
 
     const { controller, timeoutId } = withTimeout(Math.max(1000, cfg.timeoutMs));
     try {
@@ -431,12 +511,15 @@ window.addEventListener('load', handleScrollIndicator);
         cache: 'no-store',
         signal: controller.signal
       });
-      if(!res.ok) return;
+      if(!res.ok){
+        if(cached) applyDynamicData(cached);
+        return;
+      }
       const data = await res.json();
       applyDynamicData(data);
       writeCache(data);
     } catch(e){
-      // fallback to cached data already applied
+      if(cached) applyDynamicData(cached);
     } finally {
       clearTimeout(timeoutId);
     }
@@ -581,7 +664,7 @@ if(document.readyState === 'loading'){
     cta_final_plano_gratuito: { event: 'Lead', params: { content_name: 'Plano de Corrida Gratuito', content_category: 'Planos' } },
     // Subscrição / notificações via WhatsApp
     cta_whatsapp_newsletter: { event: 'Subscribe', params: { content_name: 'Newsletter WhatsApp', content_category: 'Comunidade' } },
-    cta_ser_notificado: { event: 'Subscribe', params: { content_name: 'Alertas AER WhatsApp', content_category: 'Comunidade' } },
+    cta_ser_notificado: { event: 'Subscribe', params: { content_name: 'Alertas Programas WhatsApp', content_category: 'Comunidade' } },
     // Reserva do AER (Stripe) — sem valor definido, manter 0
     cta_reserva_aer: { event: 'InitiateCheckout', params: { content_name: 'Reserva AER', content_category: 'AER', value: 97, currency: 'EUR' } },
     // Passo final para começar AER (ancora interna)
@@ -671,9 +754,13 @@ if(document.readyState === 'loading'){
           // Newsletter / notificações via WhatsApp
           cta_whatsapp_newsletter: { event: 'sign_up', params: { method: 'WhatsApp', content_name: 'Newsletter WhatsApp' } },
           cta_whatsapp_newsletter_card: { event: 'sign_up', params: { method: 'WhatsApp', content_name: 'Newsletter WhatsApp' } },
-          cta_ser_notificado: { event: 'sign_up', params: { method: 'WhatsApp', content_name: 'Alertas AER' } },
+          cta_ser_notificado: { event: 'sign_up', params: { method: 'WhatsApp', content_name: 'Alertas Programas' } },
           // Checkout / Reserva AER
           cta_reserva_aer: { event: 'begin_checkout', params: { value: 97, currency: 'EUR', items: [{ item_id: 'AER', item_name: 'Reserva AER' }] } },
+          // Featured program CTA
+          cta_featured_program: { event: 'select_item', params: { items: [{ item_id: 'featured_program', item_name: 'Programa em Destaque' }] } },
+          // Programas page
+          cta_programas: { event: 'view_item_list', params: { item_list_name: 'Programas', content_name: 'Programas LHT' } },
           // AER view
           cta_final_comecar_aer: { event: 'view_item', params: { item_id: 'AER', item_name: 'Começar AER' } },
           // Steps selections

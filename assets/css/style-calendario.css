@@ -236,6 +236,45 @@
   opacity: 0.56;
 }
 
+.challenges-list {
+  background:
+    radial-gradient(circle at 10% 10%, rgba(22, 102, 216, 0.16), transparent 24%),
+    radial-gradient(circle at 90% 0, rgba(212, 165, 79, 0.14), transparent 28%),
+    radial-gradient(circle at 50% 0, #1a1a1a 0%, #090909 80%);
+}
+
+.challenge-list-grid {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.challenge-list-card {
+  text-align: left;
+  border: 1px solid rgba(212, 165, 79, 0.16);
+  background: linear-gradient(180deg, rgba(23, 23, 23, 0.94), rgba(10, 10, 10, 0.98));
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.28);
+}
+
+.challenge-list-card h3 {
+  margin: 0 0 8px;
+  font-family: 'Oswald', sans-serif;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+.challenge-list-program {
+  margin: 10px 0;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.challenge-list-actions {
+  margin-top: 14px;
+  justify-content: flex-start;
+}
+
 .aer-prep {
   background:
     radial-gradient(circle at 10% 10%, rgba(22, 102, 216, 0.16), transparent 24%),

@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Calendário de Desafios LHT | Lion Hybrid Training</title>
-  <meta name="description" content="Acede ao calendário de desafios da comunidade LHT e percebe como o programa AER te prepara para o teu próximo desafio com mais estrutura, consistência e confiança." />
+  <meta name="description" content="Acede ao calendario de desafios da comunidade LHT e escolhe provas com programas de treino associados, geridos dinamicamente no admin." />
   <link rel="canonical" href="https://lionhybridtraining.com/calendario" />
   <meta name="robots" content="index, follow" />
   <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -33,7 +33,7 @@
   <meta property="og:type" content="website" />
   <meta property="og:locale" content="pt_PT" />
   <meta property="og:title" content="Calendário de Desafios LHT" />
-  <meta property="og:description" content="Descobre as próximas provas da comunidade LHT e percebe como o AER te prepara para chegar mais forte ao teu próximo desafio." />
+  <meta property="og:description" content="Descobre as proximas provas da comunidade LHT e os programas de treino associados para chegares preparado ao teu proximo desafio." />
   <meta property="og:url" content="https://lionhybridtraining.com/calendario" />
   <meta property="og:image" content="https://lionhybridtraining.com/assets/img/logo_lht.jpg" />
   <meta property="og:image:type" content="image/jpeg" />
@@ -42,7 +42,7 @@
   <meta property="og:image:alt" content="Calendário de Desafios LHT" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="Calendário de Desafios LHT" />
-  <meta name="twitter:description" content="Acede ao calendário de provas da comunidade LHT e percebe como o AER te prepara para o teu próximo desafio." />
+  <meta name="twitter:description" content="Acede ao calendario de provas da comunidade LHT e descobre os programas de treino associados a cada desafio." />
   <meta name="twitter:image" content="https://lionhybridtraining.com/assets/img/logo_lht.jpg" />
   <meta name="twitter:image:alt" content="Calendário de Desafios LHT" />
 
@@ -52,7 +52,7 @@
     "@type": "WebPage",
     "name": "Calendário de Desafios LHT",
     "url": "https://lionhybridtraining.com/calendario",
-    "description": "Página pública com o calendário de desafios LHT e explicação de como o programa AER prepara os atletas para provas e desafios.",
+    "description": "Pagina publica com o calendario de desafios LHT e lista dinamica de programas de treino associados a cada prova.",
     "isPartOf": {
       "@type": "WebSite",
       "name": "Lion Hybrid Training",
@@ -84,9 +84,9 @@
     <section id="challenge-focus" class="challenge-focus">
       <div class="container">
         <div class="section-heading center anim-in">
-          <p class="eyebrow">Próximo foco</p>
+          <p class="eyebrow">Desafio em destaque</p>
           <h2>Escolhe o teu alvo antes de escolher o teu plano.</h2>
-          <p class="intro">O calendário dá-te direção. O AER dá-te a estrutura para chegares ao dia da prova com confiança, consistência e uma progressão que faz sentido.</p>
+          <p class="intro">O calendario da-te direcao. O programa associado ajuda-te a transformar objetivo em execucao semanal.</p>
         </div>
         <article class="challenge-card anim-in delay-1">
           <div class="challenge-meta">
@@ -104,17 +104,13 @@
                 <dd id="challenge-location">Portugal</dd>
               </div>
               <div>
-                <dt>Formato</dt>
-                <dd id="challenge-format">Corrida, trail ou desafio híbrido</dd>
-              </div>
-              <div>
-                <dt>Foco AER</dt>
-                <dd id="challenge-focus-copy">Base aeróbica, resiliência e progressão</dd>
+                <dt>Programa associado</dt>
+                <dd id="challenge-focus-copy">Programa de treino por definir</dd>
               </div>
             </dl>
           </div>
           <div class="cta-row challenge-actions">
-            <a class="btn gold" href="https://buy.stripe.com/14AcN63Qi7p451SbkY97G00" target="_blank" rel="noopener" data-track="cta_reserva_aer">Preparar-me com o AER</a>
+            <a class="btn gold" id="challenge-program-link" href="programas.html" data-track="cta_calendar_featured_program">Ver programa associado</a>
             <a class="btn ghost" href="https://chat.whatsapp.com/JVsqO05fm4kLhbSaSiKL8n" target="_blank" rel="noopener" data-track="cta_calendar_whatsapp_challenge">Entrar na comunidade</a>
           </div>
         </article>
@@ -126,7 +122,7 @@
         <div class="section-heading center anim-in">
           <p class="eyebrow">Calendário</p>
           <h2>Segue as provas da comunidade e adiciona-as ao teu ritmo.</h2>
-          <p class="intro">Podes consultar o calendário diretamente aqui e, quando definires o teu objetivo, subscrevê-lo no Google Calendar ou na tua app favorita via iCal.</p>
+          <p class="intro">Podes consultar o calendario diretamente aqui e, quando definires o teu objetivo, subscreve-lo no Google Calendar ou na tua app favorita via iCal.</p>
         </div>
 
         <div class="calendar-layout">
@@ -135,7 +131,7 @@
               <iframe id="calendar-embed" title="Calendário de desafios LHT" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" hidden></iframe>
               <div class="calendar-placeholder" id="calendar-placeholder">
                 <h3>Calendário pronto para ligar</h3>
-                <p>Atualiza os links do Google Calendar em <strong>assets/js/calendario.js</strong> para publicar o calendário aqui e ativar os botões de subscrição.</p>
+                <p>Atualiza os links do Google Calendar em <strong>assets/js/calendario.js</strong> para publicar o calendario aqui e ativar os botoes de subscricao.</p>
               </div>
             </div>
           </div>
@@ -146,7 +142,7 @@
               <ul class="list">
                 <li>Escolhe uma prova que te entusiasme.</li>
                 <li>Entra na comunidade LHT para acompanhar o contexto e os desafios.</li>
-                <li>Usa o AER para preparar o corpo e a mente com progressão real.</li>
+                <li>Escolhe o programa certo para chegar preparado ao dia da prova.</li>
               </ul>
             </article>
             <article class="card side-card">
@@ -163,73 +159,25 @@
       </div>
     </section>
 
-    <section id="aer-prep" class="aer-prep">
+    <section id="challenges-list" class="challenges-list">
       <div class="container center">
         <div class="section-heading anim-in">
-          <p class="eyebrow">Preparação</p>
-          <h2>O AER existe para te levar da intenção à preparação séria.</h2>
-          <p class="intro">Ver uma prova no calendário cria motivação. O AER transforma essa motivação em semanas de treino coerentes, com mais clareza e menos improviso.</p>
+          <p class="eyebrow">Desafios com programas associados</p>
+          <h2>Seleciona a prova e entra no programa certo para essa data.</h2>
+          <p class="intro">Esta lista e gerida no admin. Cada desafio esta ligado a um programa de treino do catalogo.</p>
         </div>
-
-        <div class="prep-grid">
-          <article class="card prep-card anim-in delay-1">
-            <span class="prep-step">01</span>
-            <h3>Construir base</h3>
-            <p>Desenvolves a capacidade aeróbica que te permite acumular trabalho, recuperar melhor e criar consistência sem viver sempre no limite.</p>
-            <a class="prep-link" href="https://buy.stripe.com/14AcN63Qi7p451SbkY97G00" target="_blank" rel="noopener" data-track="cta_calendar_aer_base">Quero essa base no AER</a>
-          </article>
-
-          <article class="card prep-card anim-in delay-2">
-            <span class="prep-step">02</span>
-            <h3>Direcionar intensidade</h3>
-            <p>Treinas com intenção para o tipo de desafio que escolheste, em vez de acumular fadiga sem relação clara com a prova.</p>
-            <a class="prep-link" href="https://buy.stripe.com/14AcN63Qi7p451SbkY97G00" target="_blank" rel="noopener" data-track="cta_calendar_aer_intensity">Quero treinar com direção</a>
-          </article>
-
-          <article class="card prep-card anim-in delay-3">
-            <span class="prep-step">03</span>
-            <h3>Chegar pronto</h3>
-            <p>Organizas a progressão, a recuperação e o pico de forma para apareceres no dia certo com mais confiança física e mental.</p>
-            <a class="prep-link" href="https://buy.stripe.com/14AcN63Qi7p451SbkY97G00" target="_blank" rel="noopener" data-track="cta_calendar_aer_ready">Quero chegar preparado</a>
-          </article>
-        </div>
-      </div>
-    </section>
-
-    <section id="aer-benefits" class="aer-benefits">
-      <div class="container benefits-layout">
-        <div class="benefits-copy anim-in">
-          <p class="eyebrow">Porquê AER</p>
-          <h2>Não precisas apenas de uma data. Precisas de um sistema.</h2>
-          <p class="intro left-intro">O calendário ajuda-te a decidir para onde vais. O AER organiza tudo o que acontece entre hoje e esse dia.</p>
-          <ul class="list left benefits-list">
-            <li><strong>Programa completo no TrainingPeaks</strong> para saberes sempre o que fazer a seguir.</li>
-            <li><strong>Duas consultorias individuais</strong> para afinar estratégia, carga e contexto pessoal.</li>
-            <li><strong>Comunidade LHT no WhatsApp</strong> para não preparares os desafios sozinho.</li>
-            <li><strong>Sistema de progressão</strong> para medir a evolução e ajustar antes de falhar.</li>
-          </ul>
-        </div>
-        <div class="benefits-card-wrap anim-in delay-1">
-          <article class="benefits-card">
-            <p class="micro">Quando já sabes qual é o teu próximo desafio</p>
-            <h3>Entra no AER e começa a preparar-te com intenção.</h3>
-            <p>Se o calendário te dá vontade de competir, o AER dá-te o processo para o fazeres sem depender só de motivação.</p>
-            <div class="cta-stack">
-              <a class="btn gold" href="https://buy.stripe.com/14AcN63Qi7p451SbkY97G00" target="_blank" rel="noopener" data-track="cta_reserva_aer">Reservar vaga no AER</a>
-              <a class="btn ghost" href="onboarding.html" data-track="cta_calendar_onboarding">Ver como funciona</a>
-            </div>
-          </article>
-        </div>
+        <div class="challenge-list-grid" id="challenges-list-body"></div>
+        <p class="micro" id="challenges-list-empty" hidden>Nao existem desafios futuros configurados de momento.</p>
       </div>
     </section>
 
     <section id="final" class="center final-calendar-cta">
       <div class="container">
         <h2>Primeiro escolhe o desafio. Depois escolhe quem queres ser até lá.</h2>
-        <p class="intro">A comunidade ajuda-te a manter o desafio presente. O AER ajuda-te a estar realmente preparado quando chegar o momento.</p>
+        <p class="intro">A comunidade ajuda-te a manter o desafio presente. O programa certo ajuda-te a chegar realmente preparado quando chegar o momento.</p>
         <div class="cta-row">
           <a class="btn gold" href="https://chat.whatsapp.com/JVsqO05fm4kLhbSaSiKL8n" target="_blank" rel="noopener" data-track="cta_calendar_whatsapp_final">Entrar na comunidade</a>
-          <a class="btn ghost" href="https://buy.stripe.com/14AcN63Qi7p451SbkY97G00" target="_blank" rel="noopener" data-track="cta_reserva_aer">Começar no AER</a>
+          <a class="btn ghost" href="programas.html" data-track="cta_calendar_programs_final">Ver programas</a>
         </div>
       </div>
     </section>

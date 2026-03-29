@@ -1,22 +1,25 @@
 const { parseJsonBody, json } = require("./_lib/http");
 const { getConfig } = require("./_lib/config");
-const { requireRole } = require("./_lib/authz");
+const { requireAuthenticatedUser } = require("./_lib/authz");
 const {
   createProgramAssignment,
   getCurrentProgramAssignment,
+  getProgramAssignmentById,
   getLatestCancellableProgramAssignment,
   updateProgramAssignment,
   listAssignmentHistory,
   listStrengthPlans,
-  getActiveInstanceForAthlete,
+  listStrengthPlanInstances,
   createStrengthPlanInstance,
   updateStrengthPlanInstance,
-  getTrainingProgramById
+  getTrainingProgramById,
+  verifyCoachOwnsAthlete,
+  getCoachByIdentityId
 } = require("./_lib/supabase");
 
 function normalizeAssignmentPayload(payload) {
   const athleteId = (payload.athleteId || "").toString().trim();
-  const coachId = (payload.coachId || "").toString().trim();
+  const coachId = payload.coachId != null ? (payload.coachId || "").toString().trim() : null;
   const trainingProgramId = (payload.trainingProgramId || "").toString().trim();
   const startDateInput = (payload.startDate || "").toString().trim();
   const durationWeeks = Number(payload.durationWeeks);
@@ -26,7 +29,6 @@ function normalizeAssignmentPayload(payload) {
   const notes = payload.notes == null ? null : payload.notes.toString();
 
   if (!athleteId) throw new Error("athleteId is required");
-  if (!coachId) throw new Error("coachId is required");
   if (!trainingProgramId) throw new Error("trainingProgramId is required");
 
   const startDate = startDateInput || new Date().toISOString().slice(0, 10);
@@ -47,7 +49,7 @@ function normalizeAssignmentPayload(payload) {
     training_program_id: trainingProgramId,
     start_date: startDate,
     duration_weeks: durationWeeks,
-    status: "scheduled",
+    status: coachId ? "scheduled" : "active",
     price_cents_snapshot: priceCentsSnapshot,
     currency_snapshot: currencySnapshot,
     followup_type_snapshot: followupTypeSnapshot,
@@ -94,7 +96,15 @@ function mapStrengthInstance(row) {
 }
 
 async function ensureStrengthInstanceForAssignment(config, assignment, program) {
-  const activeInstance = await getActiveInstanceForAthlete(config, assignment.athlete_id);
+  const activeInstances = await listStrengthPlanInstances(config, {
+    athleteId: assignment.athlete_id,
+    status: "active"
+  });
+  const activeInstance = (activeInstances || []).find((instance) => {
+    const trainingProgramId = instance?.plan?.training_program_id || null;
+    return trainingProgramId && trainingProgramId === assignment.training_program_id;
+  }) || null;
+
   if (activeInstance) {
     return { instance: activeInstance, autoCreated: false, reason: "already_active" };
   }
@@ -132,8 +142,22 @@ exports.handler = async (event) => {
 
   try {
     const config = getConfig();
-    const auth = await requireRole(event, config, "admin");
+    const auth = await requireAuthenticatedUser(event, config);
     if (auth.error) return auth.error;
+
+    const roles = Array.isArray(auth.roles) ? auth.roles : [];
+    const isAdmin = roles.includes("admin");
+    const isCoach = roles.includes("coach");
+    if (!isAdmin && !isCoach) {
+      return json(403, { error: "Forbidden" });
+    }
+
+    // Coach scoping helper — verifies coach owns the athlete
+    const ensureCoachScope = async (athleteId) => {
+      if (isAdmin) return; // admin can access any athlete
+      const owns = await verifyCoachOwnsAthlete(config, auth.user.sub, athleteId);
+      if (!owns) throw new Error("Forbidden: athlete not assigned to you");
+    };
 
     if (event.httpMethod === "GET") {
       const query = event.queryStringParameters || {};
@@ -144,6 +168,8 @@ exports.handler = async (event) => {
       if (!athleteId) {
         return json(400, { error: "athleteId is required" });
       }
+
+      await ensureCoachScope(athleteId);
 
       if (action === "history") {
         const limit = Math.min(Number(query.limit) || 50, 100);
@@ -163,6 +189,16 @@ exports.handler = async (event) => {
 
     if (event.httpMethod === "POST") {
       const normalized = normalizeAssignmentPayload(payload);
+      await ensureCoachScope(normalized.athlete_id);
+
+      // Auto-assign coach_id when coach creates without explicit coachId
+      if (isCoach && !normalized.coach_id) {
+        const coachRecord = await getCoachByIdentityId(config, auth.user.sub);
+        if (coachRecord) {
+          normalized.coach_id = coachRecord.id;
+          normalized.status = "scheduled";
+        }
+      }
       const program = await getTrainingProgramById(config, normalized.training_program_id);
       const created = await createProgramAssignment(config, normalized);
       const strength = await ensureStrengthInstanceForAssignment(config, created, program);
@@ -183,6 +219,13 @@ exports.handler = async (event) => {
       return json(400, { error: "assignmentId is required for PATCH" });
     }
 
+    // Coach scoping for PATCH: verify ownership via assignment's athlete_id
+    if (!isAdmin) {
+      const existingAssignment = await getProgramAssignmentById(config, assignmentId);
+      if (!existingAssignment) return json(404, { error: "Assignment not found" });
+      await ensureCoachScope(existingAssignment.athlete_id);
+    }
+
     // Handle cancel action for backward compatibility
     if (action === "cancel" || payload.action === "cancel") {
       const patch = {
@@ -195,21 +238,33 @@ exports.handler = async (event) => {
 
       const cancelled = await updateProgramAssignment(config, assignmentId, patch);
 
-      let pausedInstance = null;
-      const activeInstance = await getActiveInstanceForAthlete(config, cancelled.athlete_id);
-      if (
-        activeInstance &&
-        activeInstance.id &&
-        activeInstance.plan &&
-        activeInstance.plan.training_program_id === cancelled.training_program_id
-      ) {
-        pausedInstance = await updateStrengthPlanInstance(config, activeInstance.id, { status: "paused" });
-      }
+      const allInstances = await listStrengthPlanInstances(config, {
+        athleteId: cancelled.athlete_id
+      });
+
+      const relatedById = new Map();
+      (Array.isArray(allInstances) ? allInstances : []).forEach((instance) => {
+        if (!instance || !instance.id) return;
+        const byAssignment = instance.program_assignment_id && instance.program_assignment_id === cancelled.id;
+        const byProgram = instance.plan && instance.plan.training_program_id === cancelled.training_program_id;
+        if (byAssignment || byProgram) {
+          relatedById.set(instance.id, instance);
+        }
+      });
+
+      const cancellable = Array.from(relatedById.values()).filter((instance) => {
+        const currentStatus = (instance.status || "").toString().toLowerCase();
+        return currentStatus !== "cancelled" && currentStatus !== "completed";
+      });
+
+      const cancelledInstances = await Promise.all(
+        cancellable.map((instance) => updateStrengthPlanInstance(config, instance.id, { status: "cancelled" }))
+      );
 
       return json(200, {
         assignment: mapAssignment(cancelled),
-        pausedStrengthInstance: mapStrengthInstance(pausedInstance),
-        strengthPaused: Boolean(pausedInstance)
+        cancelledStrengthInstances: cancelledInstances.map(mapStrengthInstance),
+        strengthCancelledCount: cancelledInstances.length
       });
     }
 
@@ -217,8 +272,15 @@ exports.handler = async (event) => {
     const patch = {};
 
     if (payload.coachId !== undefined) {
-      patch.coach_id = (payload.coachId || "").toString().trim();
-      if (!patch.coach_id) throw new Error("coachId cannot be empty");
+      const coachVal = payload.coachId != null ? (payload.coachId || "").toString().trim() : "";
+      // coach_id is NOT NULL in the database — only include in patch if a real value
+      if (coachVal) {
+        patch.coach_id = coachVal;
+      }
+    }
+
+    if (payload.trainingProgramId !== undefined) {
+      throw new Error("trainingProgramId cannot be changed after assignment creation");
     }
 
     if (payload.startDate !== undefined) {
@@ -242,23 +304,83 @@ exports.handler = async (event) => {
 
     if (payload.status !== undefined) {
       const status = (payload.status || "").toString().trim().toLowerCase();
-      const allowedStatuses = ["active", "scheduled", "paused"];
+      const allowedStatuses = isAdmin
+        ? ["active", "scheduled", "paused", "completed", "cancelled"]
+        : ["active", "scheduled", "paused"];
       if (!allowedStatuses.includes(status)) {
         throw new Error(`status must be one of: ${allowedStatuses.join(", ")}`);
       }
       patch.status = status;
+      if (status === "completed" || status === "cancelled") {
+        patch.actual_end_date = new Date().toISOString().slice(0, 10);
+      } else {
+        patch.actual_end_date = null;
+      }
+    }
+
+    if (payload.priceCentsSnapshot !== undefined) {
+      const priceCentsSnapshot = Number(payload.priceCentsSnapshot);
+      if (!Number.isInteger(priceCentsSnapshot) || priceCentsSnapshot < 0) {
+        throw new Error("priceCentsSnapshot must be a non-negative integer");
+      }
+      patch.price_cents_snapshot = priceCentsSnapshot;
+    }
+
+    if (payload.currencySnapshot !== undefined) {
+      patch.currency_snapshot = (payload.currencySnapshot || "EUR").toString().trim().toUpperCase() || "EUR";
+    }
+
+    if (payload.followupTypeSnapshot !== undefined) {
+      patch.followup_type_snapshot = (payload.followupTypeSnapshot || "standard").toString().trim() || "standard";
     }
 
     if (Object.keys(patch).length === 0) {
       return json(400, { error: "No valid fields to update" });
     }
 
+    // computed_end_date is a GENERATED ALWAYS column in Postgres —
+    // it updates automatically when start_date or duration_weeks change.
+    // No need to set it manually.
+
     const updated = await updateProgramAssignment(config, assignmentId, patch);
+
+    if (!updated) {
+      return json(404, { error: "Assignment not found or update returned no rows" });
+    }
+
+    // Auto-cancel strength instances when assignment status changes to cancelled
+    if (patch.status === "cancelled") {
+      const allInstances = await listStrengthPlanInstances(config, {
+        athleteId: updated.athlete_id
+      });
+
+      const relatedById = new Map();
+      (Array.isArray(allInstances) ? allInstances : []).forEach((instance) => {
+        if (!instance || !instance.id) return;
+        const byAssignment = instance.program_assignment_id && instance.program_assignment_id === updated.id;
+        const byProgram = instance.plan && instance.plan.training_program_id === updated.training_program_id;
+        if (byAssignment || byProgram) {
+          relatedById.set(instance.id, instance);
+        }
+      });
+
+      const cancellable = Array.from(relatedById.values()).filter((instance) => {
+        const currentStatus = (instance.status || "").toString().toLowerCase();
+        return currentStatus !== "cancelled" && currentStatus !== "completed";
+      });
+
+      if (cancellable.length) {
+        await Promise.all(
+          cancellable.map((instance) => updateStrengthPlanInstance(config, instance.id, { status: "cancelled" }))
+        );
+      }
+    }
 
     return json(200, {
       assignment: mapAssignment(updated)
     });
   } catch (err) {
+    console.error("[admin-assign-program] ERROR:", err.message, err.stack);
     return json(500, { error: err.message || "Erro ao atribuir programa" });
   }
 };

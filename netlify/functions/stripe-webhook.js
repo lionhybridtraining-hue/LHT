@@ -6,8 +6,15 @@ const {
   updateStripePurchasesBySubscriptionId,
   updateStripePurchasesByPaymentIntentId,
   getTrainingProgramById,
+  getAthleteByIdentity,
+  upsertAthleteByIdentity,
+  listStrengthPlans,
+  getStrengthInstanceByStripePurchaseId,
+  createStrengthPlanInstance,
   pauseInstancesByStripeSubscription,
-  resumeInstancesByStripeSubscription
+  resumeInstancesByStripeSubscription,
+  createProgramAssignment,
+  getActiveLikeProgramAssignment
 } = require("./_lib/supabase");
 const { sendCAPIEvent, buildUserData } = require("./_lib/meta-capi");
 
@@ -80,10 +87,130 @@ async function handleCheckoutCompleted(config, stripe, session) {
   });
 
   const record = await upsertStripePurchaseBySessionId(config, purchase);
+
+  // Auto-provision program assignment for the purchase.
+  let autoAssignment = null;
+  if (record && record.id) {
+    autoAssignment = await ensureAssignmentForPurchase(config, {
+      identityId,
+      email: (session.customer_details && session.customer_details.email) || record.email || null,
+      program,
+      purchase: record
+    });
+  }
+
+  // Auto-provision strength instance for purchases with linked templates.
+  let autoInstance = null;
+  if (record && record.id) {
+    autoInstance = await ensureStrengthInstanceForPurchase(config, {
+      identityId,
+      email: (session.customer_details && session.customer_details.email) || record.email || null,
+      program,
+      purchase: record,
+      assignmentId: autoAssignment && autoAssignment.assignment ? autoAssignment.assignment.id : null
+    });
+  }
+
   return {
     persisted: true,
     record,
-    program
+    program,
+    autoAssignment,
+    autoInstance
+  };
+}
+
+async function ensureAssignmentForPurchase(config, { identityId, email, program, purchase }) {
+  if (!identityId || !program || !program.id) {
+    return { created: false, reason: "missing_context", assignment: null };
+  }
+
+  let athlete = await getAthleteByIdentity(config, identityId);
+  if (!athlete && email) {
+    athlete = await upsertAthleteByIdentity(config, { identityId, email, name: email });
+  }
+  if (!athlete) {
+    return { created: false, reason: "athlete_not_found", assignment: null };
+  }
+
+  const existing = await getActiveLikeProgramAssignment(config, athlete.id, program.id);
+  if (existing) {
+    return { created: false, reason: "already_assigned", assignment: existing };
+  }
+
+  const durationWeeks = program.duration_weeks || 12;
+  const startDate = new Date().toISOString().slice(0, 10);
+  const endMs = Date.now() + durationWeeks * 7 * 24 * 60 * 60 * 1000;
+  const computedEndDate = new Date(endMs).toISOString().slice(0, 10);
+
+  const assignment = await createProgramAssignment(config, {
+    athlete_id: athlete.id,
+    coach_id: null,
+    training_program_id: program.id,
+    start_date: startDate,
+    duration_weeks: durationWeeks,
+    status: "active",
+    computed_end_date: computedEndDate,
+    price_cents_snapshot: purchase.price_cents || 0,
+    currency_snapshot: purchase.currency || "EUR",
+    followup_type_snapshot: "standard",
+    notes: `Auto-created from Stripe purchase ${purchase.id}`
+  });
+
+  return {
+    created: Boolean(assignment),
+    reason: assignment ? "created" : "create_failed",
+    assignment: assignment || null
+  };
+}
+
+async function ensureStrengthInstanceForPurchase(config, { identityId, email, program, purchase, assignmentId }) {
+  if (!identityId || !program || !purchase || !purchase.id) {
+    return { created: false, reason: "missing_context", instance: null };
+  }
+
+  const existingByPurchase = await getStrengthInstanceByStripePurchaseId(config, purchase.id);
+  if (existingByPurchase) {
+    return { created: false, reason: "already_exists_for_purchase", instance: existingByPurchase };
+  }
+
+  const plans = await listStrengthPlans(config, { trainingProgramId: program.id });
+  const template = Array.isArray(plans)
+    ? (plans.find((p) => p.status === "active") || plans[0] || null)
+    : null;
+  if (!template) {
+    return { created: false, reason: "no_strength_template_for_program", instance: null };
+  }
+
+  let athlete = await getAthleteByIdentity(config, identityId);
+  if (!athlete && email) {
+    athlete = await upsertAthleteByIdentity(config, {
+      identityId,
+      email,
+      name: email
+    });
+  }
+  if (!athlete) {
+    return { created: false, reason: "athlete_not_found", instance: null };
+  }
+
+  const instance = await createStrengthPlanInstance(config, {
+    plan_id: template.id,
+    athlete_id: athlete.id,
+    start_date: null,
+    load_round: 2.5,
+    status: "active",
+    assigned_by: identityId,
+    access_model: program.access_model || null,
+    stripe_purchase_id: purchase.id,
+    program_assignment_id: assignmentId || null,
+    coach_locked_until: null
+  });
+
+  return {
+    created: Boolean(instance),
+    reason: instance ? "created" : "create_failed",
+    instance: instance || null
   };
 }
 

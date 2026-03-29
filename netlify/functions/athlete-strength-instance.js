@@ -2,25 +2,22 @@
  * Endpoint: athlete-strength-instance
  *
  * Allows athletes to self-manage their own strength plan instances.
- *
- * Scenarios:
- *   - self_serve: athlete bought a standalone program → can create/manage their instance freely
- *   - coached_one_time: after coach_locked_until date → reverts to self-serve management
- *   - coached_recurring: instances managed by webhook lifecycle, not by athlete directly
+ * Access to a training program can be granted either by:
+ *   - active Stripe purchase, or
+ *   - active-like manual program assignment.
  *
  * Routes:
  *   GET  — list all strength plan instances for the authenticated athlete
- *   POST — create a new instance (self-serve / post-coached_one_time only)
+ *   POST — create a new instance for an associated training program
  *   PATCH ?instanceId=X — update instance status (cancel/pause/resume)
  */
 
 const { requireAuthenticatedUser } = require("./_lib/authz");
 const { getConfig } = require("./_lib/config");
 const { parseJsonBody, json } = require("./_lib/http");
+const { getProgramAssociationAccess } = require("./_lib/program-access");
 const {
   getAthleteByIdentity,
-  getActiveStripePurchaseForIdentity,
-  getActiveInstanceForAthlete,
   listStrengthPlanInstances,
   listStrengthPlans,
   createStrengthPlanInstance,
@@ -29,7 +26,6 @@ const {
   getTrainingProgramById
 } = require("./_lib/supabase");
 
-// Valid status transitions an athlete may request
 const ALLOWED_TRANSITIONS = {
   active: ["paused", "completed", "cancelled"],
   paused: ["active", "cancelled"],
@@ -53,13 +49,11 @@ exports.handler = async (event) => {
       return json(403, { error: "No athlete profile found for this account" });
     }
 
-    // ── GET: list all instances ──
     if (event.httpMethod === "GET") {
       const instances = await listStrengthPlanInstances(config, { athleteId: athlete.id });
       return json(200, { instances: instances || [] });
     }
 
-    // ── POST: create a new instance (self-serve) ──
     if (event.httpMethod === "POST") {
       const body = parseJsonBody(event);
       const programId = (body.programId || "").toString().trim();
@@ -74,24 +68,18 @@ exports.handler = async (event) => {
       const program = await getTrainingProgramById(config, programId);
       if (!program) return json(404, { error: "Program not found" });
 
-      // coached_recurring instances are managed exclusively by the webhook lifecycle
-      if (program.access_model === "coached_recurring") {
-        return json(403, { error: "Recurring program instances are managed automatically via subscription" });
+      const access = await getProgramAssociationAccess(config, {
+        athleteId: athlete.id,
+        identityId,
+        programId
+      });
+      if (!access.hasAccess) {
+        return json(403, {
+          error: "No associated training program found for this athlete account",
+          code: access.reason
+        });
       }
 
-      // Verify the athlete has a valid purchase for this program
-      const purchase = await getActiveStripePurchaseForIdentity(config, { identityId, programId });
-      if (!purchase) {
-        return json(403, { error: "No active purchase found for this program" });
-      }
-
-      // Enforce one active instance at a time
-      const existing = await getActiveInstanceForAthlete(config, athlete.id);
-      if (existing) {
-        return json(409, { error: "An active strength plan instance already exists. Pause or cancel it first." });
-      }
-
-      // Find a strength plan template linked to this program
       const plans = await listStrengthPlans(config, { trainingProgramId: programId });
       const template = Array.isArray(plans)
         ? (plans.find((p) => p.status === "active") || plans[0] || null)
@@ -106,15 +94,16 @@ exports.handler = async (event) => {
         start_date: startDate,
         load_round: loadRound,
         status: "active",
-        assigned_by: identityId,
+        assigned_by: access.assignment?.coach_id || identityId,
         access_model: program.access_model,
-        stripe_purchase_id: purchase.id
+        stripe_purchase_id: access.purchase?.id || null,
+        program_assignment_id: access.assignment?.id || null,
+        coach_locked_until: access.assignment?.computed_end_date || null
       });
 
       return json(201, { instance });
     }
 
-    // ── PATCH: update instance status ──
     if (event.httpMethod === "PATCH") {
       const qs = event.queryStringParameters || {};
       const instanceId = (qs.instanceId || "").toString().trim();
@@ -124,13 +113,31 @@ exports.handler = async (event) => {
       const newStatus = (body.status || "").toString().trim();
       if (!newStatus) return json(400, { error: "status is required in request body" });
 
-      // Load and verify ownership
       const instance = await getStrengthPlanInstanceById(config, instanceId);
       if (!instance || instance.athlete_id !== athlete.id) {
         return json(404, { error: "Instance not found" });
       }
 
-      // Enforce coach lock: athlete cannot change status during the coaching period
+      const trainingProgramId = instance.plan?.training_program_id || null;
+      if (!trainingProgramId) {
+        return json(409, {
+          error: "Instance is not linked to a training program",
+          code: "instance_program_missing"
+        });
+      }
+
+      const access = await getProgramAssociationAccess(config, {
+        athleteId: athlete.id,
+        identityId,
+        programId: trainingProgramId
+      });
+      if (!access.hasAccess) {
+        return json(403, {
+          error: "Program association required to manage this instance",
+          code: access.reason
+        });
+      }
+
       if (instance.coach_locked_until) {
         const today = new Date().toISOString().slice(0, 10);
         if (instance.coach_locked_until >= today) {
@@ -140,7 +147,6 @@ exports.handler = async (event) => {
         }
       }
 
-      // Validate transition
       const allowed = ALLOWED_TRANSITIONS[instance.status] || [];
       if (!allowed.includes(newStatus)) {
         return json(400, {
@@ -151,6 +157,8 @@ exports.handler = async (event) => {
       const updated = await updateStrengthPlanInstance(config, instanceId, { status: newStatus });
       return json(200, { instance: updated });
     }
+
+    return json(405, { error: "Method not allowed" });
   } catch (err) {
     console.error("[athlete-strength-instance] Unexpected error:", err);
     return json(500, { error: "Internal server error" });

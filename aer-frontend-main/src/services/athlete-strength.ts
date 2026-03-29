@@ -5,6 +5,7 @@ import type {
   WorkoutSession,
   LogSet,
   SessionSummary,
+  StrengthInstanceSummary,
 } from "@/types/strength";
 
 const API_BASE = "/.netlify/functions";
@@ -31,10 +32,43 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
 // ── Plan ──
 
 export function fetchAthletePlan(
-  weekNumber?: number
+  weekNumber?: number,
+  instanceId?: string
 ): Promise<AthletePlanResponse> {
-  const qs = weekNumber ? `?weekNumber=${weekNumber}` : "";
+  const params = new URLSearchParams();
+  if (weekNumber) params.set("weekNumber", String(weekNumber));
+  if (instanceId) params.set("instanceId", instanceId);
+  const qs = params.toString() ? `?${params.toString()}` : "";
   return apiFetch(`/athlete-strength-plan${qs}`);
+}
+
+export function listInstances(): Promise<{ instances: StrengthInstanceSummary[] }> {
+  return apiFetch("/athlete-strength-instance");
+}
+
+export function createInstance(params: {
+  programId: string;
+  startDate?: string;
+  loadRound?: number;
+}): Promise<{ instance: StrengthInstanceSummary }> {
+  return apiFetch("/athlete-strength-instance", {
+    method: "POST",
+    body: JSON.stringify({
+      programId: params.programId,
+      startDate: params.startDate,
+      loadRound: params.loadRound,
+    }),
+  });
+}
+
+export function updateInstanceStatus(params: {
+  instanceId: string;
+  status: "active" | "paused" | "completed" | "cancelled";
+}): Promise<{ instance: StrengthInstanceSummary }> {
+  return apiFetch(`/athlete-strength-instance?instanceId=${encodeURIComponent(params.instanceId)}`, {
+    method: "PATCH",
+    body: JSON.stringify({ status: params.status }),
+  });
 }
 
 // ── Sessions ──

@@ -1,6 +1,7 @@
 const { json, parseJsonBody } = require("./_lib/http");
 const { getConfig } = require("./_lib/config");
 const { requireAuthenticatedUser } = require("./_lib/authz");
+const { getProgramAssociationAccess } = require("./_lib/program-access");
 const {
   listStrengthPlans,
   getStrengthPlanFull,
@@ -16,7 +17,8 @@ const {
   updateStrengthPlanInstance,
   getStrengthPlanInstanceById,
   getActiveInstanceForAthlete,
-  verifyCoachOwnsAthlete
+  verifyCoachOwnsAthlete,
+  getAthleteById
 } = require("./_lib/supabase");
 
 exports.handler = async (event) => {
@@ -83,6 +85,32 @@ exports.handler = async (event) => {
           if (!owns) return json(403, { error: "Forbidden" });
         }
 
+        const planTemplate = await getStrengthPlanById(config, body.plan_id);
+        if (!planTemplate) {
+          return json(404, { error: "Plan not found" });
+        }
+
+        if (!planTemplate.training_program_id) {
+          return json(409, { error: "Plan is not linked to a training program" });
+        }
+
+        const athlete = await getAthleteById(config, body.athlete_id);
+        if (!athlete) {
+          return json(404, { error: "Athlete not found" });
+        }
+
+        const access = await getProgramAssociationAccess(config, {
+          athleteId: athlete.id,
+          identityId: athlete.identity_id || null,
+          programId: planTemplate.training_program_id
+        });
+        if (!access.hasAccess) {
+          return json(403, {
+            error: "Athlete has no associated access to this training program",
+            code: access.reason
+          });
+        }
+
         // Phase 5.1 — Snapshot plan data at assignment time
         let planSnapshot = null;
         try {
@@ -103,6 +131,10 @@ exports.handler = async (event) => {
           load_round: body.load_round != null ? body.load_round : 2.5,
           status: "active",
           assigned_by: coachId,
+          access_model: access.program?.access_model || planTemplate.access_model || null,
+          stripe_purchase_id: access.purchase?.id || null,
+          program_assignment_id: access.assignment?.id || null,
+          coach_locked_until: access.assignment?.computed_end_date || null,
           plan_snapshot: planSnapshot ? JSON.stringify(planSnapshot) : null
         });
         return json(201, { instance });
@@ -161,6 +193,21 @@ exports.handler = async (event) => {
           const owns = await verifyCoachOwnsAthlete(config, coachId, inst.athlete_id);
           if (!owns) return json(403, { error: "Forbidden" });
         }
+
+        const requestedStatus = body.status !== undefined
+          ? (body.status || "").toString().trim()
+          : null;
+        const allowAdminOverride = Boolean(body.allow_admin_override);
+        if (
+          requestedStatus === "active" &&
+          inst.access_model === "coached_recurring" &&
+          !(isAdmin && allowAdminOverride)
+        ) {
+          return json(403, {
+            error: "Recurring coached instances are resumed automatically by subscription lifecycle"
+          });
+        }
+
         const allowedInst = ["status", "start_date", "load_round"];
         const patch = {};
         for (const key of allowedInst) {

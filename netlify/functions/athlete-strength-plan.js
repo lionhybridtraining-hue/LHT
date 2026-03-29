@@ -5,10 +5,13 @@ const {
   getAthleteByIdentity,
   upsertAthleteByIdentity,
   getActiveInstanceForAthlete,
+  listStrengthPlanInstances,
+  getStrengthPlanInstanceById,
   getStrengthPlanFull,
   getAthlete1rmLatest,
   getStrengthLogs
 } = require("./_lib/supabase");
+const { getProgramAssociationAccess } = require("./_lib/program-access");
 const { resolveLoad } = require("./_lib/strength");
 
 exports.handler = async (event) => {
@@ -40,8 +43,38 @@ exports.handler = async (event) => {
     }
 
     // Check for active strength plan instance
-    const instance = await getActiveInstanceForAthlete(config, athlete.id);
+    const qs = event.queryStringParameters || {};
+    const requestedInstanceId = (qs.instanceId || "").trim();
+
+    let instance;
+    if (requestedInstanceId) {
+      // Fetch specific instance by ID, validate it belongs to this athlete
+      const candidate = await getStrengthPlanInstanceById(config, requestedInstanceId);
+      if (candidate && candidate.athlete_id === athlete.id) {
+        instance = candidate;
+      }
+    }
+
     if (!instance) {
+      instance = await getActiveInstanceForAthlete(config, athlete.id);
+    }
+    if (!instance) {
+      const allInstances = await listStrengthPlanInstances(config, { athleteId: athlete.id });
+      const latestPending = (allInstances || []).find((row) =>
+        row && (row.status === "scheduled" || row.status === "paused")
+      );
+
+      if (latestPending) {
+        const pendingMessage = latestPending.status === "paused"
+          ? "O teu plano de força está pausado de momento."
+          : "Já tens um plano atribuído, mas ainda não está ativo.";
+        return json(200, {
+          status: "pending",
+          message: pendingMessage,
+          athlete: sanitizeAthlete(athlete)
+        });
+      }
+
       // Keep the friendly onboarding message only right after the first auto-created link.
       if (createdNow) {
         return json(200, {
@@ -58,11 +91,52 @@ exports.handler = async (event) => {
     }
 
     // Load full plan details (prefer snapshot from assignment if available)
-    const planData = await getStrengthPlanFull(config, instance.plan_id);
+    let planData = await getStrengthPlanFull(config, instance.plan_id);
     if (!planData) {
+      // Fallback: if the newest active instance references a stale plan, try older active instances.
+      const activeInstances = await listStrengthPlanInstances(config, {
+        athleteId: athlete.id,
+        status: "active"
+      });
+
+      for (const candidate of (activeInstances || [])) {
+        if (!candidate?.plan_id || candidate.plan_id === instance.plan_id) continue;
+        const candidatePlanData = await getStrengthPlanFull(config, candidate.plan_id);
+        if (candidatePlanData) {
+          instance = candidate;
+          planData = candidatePlanData;
+          break;
+        }
+      }
+
+      if (!planData) {
+        return json(200, {
+          status: "no_plan",
+          message: "Plano não encontrado.",
+          athlete: sanitizeAthlete(athlete)
+        });
+      }
+    }
+
+    const trainingProgramId = planData.plan?.training_program_id || null;
+    if (!trainingProgramId) {
       return json(200, {
         status: "no_plan",
-        message: "Plano não encontrado.",
+        message: "Plano de força sem programa associado.",
+        athlete: sanitizeAthlete(athlete)
+      });
+    }
+
+    const access = await getProgramAssociationAccess(config, {
+      athleteId: athlete.id,
+      identityId: user.sub,
+      programId: trainingProgramId
+    });
+
+    if (!access.hasAccess) {
+      return json(200, {
+        status: "no_plan",
+        message: "Sem programa associado para aceder ao plano de força.",
         athlete: sanitizeAthlete(athlete)
       });
     }
@@ -131,7 +205,6 @@ exports.handler = async (event) => {
     });
 
     // Load existing logs for the plan
-    const qs = event.queryStringParameters || {};
     const weekFilter = qs.weekNumber ? parseInt(qs.weekNumber, 10) : null;
     const logs = await getStrengthLogs(config, athlete.id, instance.plan_id, weekFilter);
 
@@ -150,7 +223,11 @@ exports.handler = async (event) => {
         plan_id: instance.plan_id,
         start_date: instance.start_date,
         load_round: loadRound,
-        status: instance.status
+        status: instance.status,
+        coach_locked_until: instance.coach_locked_until || null,
+        access_model: instance.access_model || null,
+        stripe_purchase_id: instance.stripe_purchase_id || null,
+        program_assignment_id: instance.program_assignment_id || null
       },
       plan: {
         id: planData.plan.id,

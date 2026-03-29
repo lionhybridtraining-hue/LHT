@@ -11,9 +11,34 @@ export interface AthleteInfo {
 export interface PlanInstance {
   id: string;
   plan_id: string;
-  start_date: string;
+  start_date: string | null;
   load_round: number;
   status: string;
+  coach_locked_until?: string | null;
+  access_model?: "self_serve" | "coached_one_time" | "coached_recurring" | null;
+  stripe_purchase_id?: string | null;
+  program_assignment_id?: string | null;
+}
+
+export interface StrengthInstanceSummary {
+  id: string;
+  athlete_id: string;
+  plan_id: string;
+  status: "active" | "paused" | "completed" | "cancelled";
+  start_date: string | null;
+  load_round: number | null;
+  access_model: "self_serve" | "coached_one_time" | "coached_recurring" | null;
+  stripe_purchase_id: string | null;
+  program_assignment_id: string | null;
+  coach_locked_until: string | null;
+  assigned_by: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+  plan?: {
+    id: string;
+    name?: string;
+    training_program_id?: string;
+  } | null;
 }
 
 export interface PlanInfo {

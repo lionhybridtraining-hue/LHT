@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import type {
   AthletePlanResponse,
   WorkoutSession,
@@ -29,6 +30,9 @@ export default function ForcaPage() {
 }
 
 function ForcaContent() {
+  const [searchParams] = useSearchParams();
+  const instanceId = searchParams.get("instanceId") || undefined;
+
   const [data, setData] = useState<AthletePlanResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -53,14 +57,14 @@ function ForcaContent() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetchAthletePlan();
+      const res = await fetchAthletePlan(undefined, instanceId);
       setData(res);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Erro ao carregar plano");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [instanceId]);
 
   useEffect(() => {
     load();

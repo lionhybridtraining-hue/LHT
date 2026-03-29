@@ -6,10 +6,12 @@ const {
   listSiteMetrics,
   listSiteReviews,
   listSiteLinks,
+  listSiteFaqs,
   replaceSiteMetadata,
   replaceSiteMetrics,
   replaceSiteReviews,
-  replaceSiteLinks
+  replaceSiteLinks,
+  replaceSiteFaqs
 } = require("./_lib/supabase");
 
 class ValidationError extends Error {}
@@ -108,7 +110,35 @@ function normalizeReviews(input) {
   });
 }
 
-function mapAdminPayload({ metadataRows, metricsRows, reviewsRows, linksRows }) {
+function normalizeFaqs(input) {
+  if (!Array.isArray(input)) {
+    throw new ValidationError("faqs must be an array");
+  }
+
+  return input.map((item, index) => {
+    const sortOrder = Number(item && item.sortOrder != null ? item.sortOrder : index);
+
+    if (!Number.isInteger(sortOrder)) {
+      throw new ValidationError("faqs.sortOrder must be an integer");
+    }
+
+    const question = item && item.question != null ? String(item.question).trim() : "";
+    const answer = item && item.answer != null ? String(item.answer).trim() : "";
+
+    if (!question) {
+      throw new ValidationError("faqs.question is required");
+    }
+
+    return {
+      sort_order: sortOrder,
+      question,
+      answer,
+      active: normalizeBoolean(item && item.active, true)
+    };
+  });
+}
+
+function mapAdminPayload({ metadataRows, metricsRows, reviewsRows, linksRows, faqsRows }) {
   return {
     metadata: (metadataRows || []).map((row) => ({
       key: row.key,
@@ -134,19 +164,27 @@ function mapAdminPayload({ metadataRows, metricsRows, reviewsRows, linksRows }) 
     links: (linksRows || []).map((row) => ({
       key: row.key,
       url: row.url == null ? "" : String(row.url)
+    })),
+    faqs: (faqsRows || []).map((row) => ({
+      id: row.id,
+      sortOrder: row.sort_order,
+      question: row.question == null ? "" : String(row.question),
+      answer: row.answer == null ? "" : String(row.answer),
+      active: row.active !== false
     }))
   };
 }
 
 async function readAll(config) {
-  const [metadataRows, metricsRows, reviewsRows, linksRows] = await Promise.all([
+  const [metadataRows, metricsRows, reviewsRows, linksRows, faqsRows] = await Promise.all([
     listSiteMetadata(config),
     listSiteMetrics(config),
     listSiteReviews(config),
-    listSiteLinks(config)
+    listSiteLinks(config),
+    listSiteFaqs(config)
   ]);
 
-  return { metadataRows, metricsRows, reviewsRows, linksRows };
+  return { metadataRows, metricsRows, reviewsRows, linksRows, faqsRows };
 }
 
 exports.handler = async (event) => {
@@ -170,12 +208,14 @@ exports.handler = async (event) => {
     const links = normalizeKeyValueArray(payload.links, { valueField: "url" });
     const metrics = normalizeMetrics(payload.metrics || []);
     const reviews = normalizeReviews(payload.reviews || []);
+    const faqs = normalizeFaqs(payload.faqs || []);
 
     await Promise.all([
       replaceSiteMetadata(config, metadata),
       replaceSiteMetrics(config, metrics),
       replaceSiteReviews(config, reviews),
-      replaceSiteLinks(config, links)
+      replaceSiteLinks(config, links),
+      replaceSiteFaqs(config, faqs)
     ]);
 
     const rows = await readAll(config);

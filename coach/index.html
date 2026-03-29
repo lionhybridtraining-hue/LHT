@@ -871,7 +871,9 @@
           <button class="coach-tab-btn active" type="button" data-coach-tab="athlete">Atleta</button>
           <button class="coach-tab-btn" type="button" data-coach-tab="general">Geral</button>
           <button class="coach-tab-btn" type="button" data-coach-tab="strength">Treino de Força</button>
+          <button class="coach-tab-btn" type="button" data-coach-tab="instances">Instâncias</button>
           <button class="coach-tab-btn" type="button" data-coach-tab="exercises">Exercícios</button>
+          <button class="coach-tab-btn" type="button" data-coach-tab="assignments">Assignments</button>
         </div>
       </div>
     </header>
@@ -1141,6 +1143,143 @@
             </select>
           </div>
           <div id="exCrudList"></div>
+        </section>
+
+        <!-- ═══════════ INSTANCES SECTION ═══════════ -->
+        <section class="section-card coach-tab-section" data-coach-tab="instances" hidden style="padding:24px 0;">
+          <h2 style="margin-bottom:16px; color:#c9d1d9;">Instâncias de Força</h2>
+          <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px; flex-wrap:wrap;">
+            <select id="inst-status-filter" style="padding:6px 10px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9;">
+              <option value="">Todos os status</option>
+              <option value="active">Active</option>
+              <option value="paused">Paused</option>
+              <option value="completed">Completed</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+            <select id="inst-athlete-filter" style="padding:6px 10px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9;">
+              <option value="">Todos os atletas</option>
+            </select>
+            <input id="inst-search-filter" type="text" placeholder="Pesquisar atleta..." style="padding:6px 10px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9; min-width:160px;" />
+            <button id="inst-refresh-btn" type="button" class="btn" title="Atualizar">↻</button>
+          </div>
+
+          <div style="overflow-x:auto;">
+            <table style="width:100%; border-collapse:collapse;">
+              <thead>
+                <tr style="border-bottom:1px solid #30363d;">
+                  <th style="padding:8px; text-align:left; color:#8b949e;">Atleta</th>
+                  <th style="padding:8px; text-align:left; color:#8b949e;">Plano</th>
+                  <th style="padding:8px; text-align:left; color:#8b949e;">Status</th>
+                  <th style="padding:8px; text-align:left; color:#8b949e;">Inicio</th>
+                  <th style="padding:8px; text-align:left; color:#8b949e;">Load Round</th>
+                  <th style="padding:8px; text-align:left; color:#8b949e;">Coach Lock</th>
+                  <th style="padding:8px; text-align:left; color:#8b949e;">Acesso</th>
+                  <th style="padding:8px; text-align:left; color:#8b949e;">Criada</th>
+                  <th style="padding:8px; text-align:left; color:#8b949e;">Ações</th>
+                </tr>
+              </thead>
+              <tbody id="inst-table-body">
+                <tr><td colspan="9" style="padding:16px; color:#8b949e;">Carregando...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Instance Edit Modal -->
+        <div id="instEditModal" class="modal-backdrop hidden" role="dialog" aria-modal="true">
+          <div class="modal" style="max-width:480px;">
+            <h3 id="instEditTitle" style="margin-bottom:12px;">Editar Instância</h3>
+            <form id="instEditForm">
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                <div class="field">
+                  <label for="instEditStatus">Status</label>
+                  <select id="instEditStatus" style="width:100%; padding:6px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9;"></select>
+                </div>
+                <div class="field">
+                  <label for="instEditStartDate">Data início</label>
+                  <input id="instEditStartDate" type="date" style="width:100%; padding:6px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9;" />
+                </div>
+                <div class="field">
+                  <label for="instEditLoadRound">Load Round (kg)</label>
+                  <input id="instEditLoadRound" type="number" min="0.5" step="0.5" value="2.5" style="width:100%; padding:6px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9;" />
+                </div>
+                <div class="field">
+                  <label for="instEditCoachLock">Coach lock até</label>
+                  <input id="instEditCoachLock" type="date" style="width:100%; padding:6px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9;" />
+                </div>
+              </div>
+              <div class="modal-actions" style="margin-top:16px; display:flex; gap:8px;">
+                <button class="btn btn-primary" type="submit" id="instEditSaveBtn">Guardar</button>
+                <button class="btn btn-secondary" type="button" id="instEditCancelBtn">Cancelar</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- ═══════════ ASSIGNMENTS SECTION ═══════════ -->
+        <section class="section-card coach-tab-section" data-coach-tab="assignments" hidden style="padding:24px 0;">
+          <h2 style="margin-bottom:16px; color:#c9d1d9;">Assignments dos meus atletas</h2>
+          <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px; flex-wrap:wrap;">
+            <select id="coach-assign-status-filter" style="padding:6px 10px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9;">
+              <option value="">Todos activos</option>
+              <option value="active">Active</option>
+              <option value="scheduled">Scheduled</option>
+              <option value="paused">Paused</option>
+            </select>
+            <label style="display:flex; align-items:center; gap:6px; color:#8b949e; font-size:0.85rem; cursor:pointer;">
+              <input type="checkbox" id="coach-assign-history-toggle" />
+              Mostrar historico
+            </label>
+            <button id="coach-assign-create-btn" type="button" class="btn btn-primary" style="margin-left:auto;">+ Novo assignment</button>
+          </div>
+
+          <div id="coach-assign-create-form" hidden style="background:#161b22; border:1px solid #30363d; border-radius:8px; padding:16px; margin-bottom:16px;">
+            <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:12px;">
+              <div>
+                <label for="coach-new-assign-athlete" style="display:block; font-size:0.85rem; color:#8b949e; margin-bottom:4px;">Atleta</label>
+                <select id="coach-new-assign-athlete" style="width:100%; padding:6px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9;"><option value="">Seleciona...</option></select>
+              </div>
+              <div>
+                <label for="coach-new-assign-program" style="display:block; font-size:0.85rem; color:#8b949e; margin-bottom:4px;">Programa</label>
+                <select id="coach-new-assign-program" style="width:100%; padding:6px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9;"><option value="">Seleciona...</option></select>
+              </div>
+              <div>
+                <label for="coach-new-assign-start" style="display:block; font-size:0.85rem; color:#8b949e; margin-bottom:4px;">Data inicio</label>
+                <input id="coach-new-assign-start" type="date" style="width:100%; padding:6px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9;" />
+              </div>
+              <div>
+                <label for="coach-new-assign-weeks" style="display:block; font-size:0.85rem; color:#8b949e; margin-bottom:4px;">Semanas</label>
+                <input id="coach-new-assign-weeks" type="number" min="1" value="12" style="width:80px; padding:6px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9;" />
+              </div>
+              <div>
+                <label for="coach-new-assign-notes" style="display:block; font-size:0.85rem; color:#8b949e; margin-bottom:4px;">Notas</label>
+                <input id="coach-new-assign-notes" type="text" placeholder="Opcional" style="width:100%; padding:6px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9;" />
+              </div>
+            </div>
+            <div style="margin-top:12px; display:flex; gap:8px;">
+              <button id="coach-assign-submit-btn" type="button" class="btn btn-primary">Criar</button>
+              <button id="coach-assign-cancel-btn" type="button" class="btn">Cancelar</button>
+            </div>
+          </div>
+
+          <div style="overflow-x:auto;">
+            <table style="width:100%; border-collapse:collapse;">
+              <thead>
+                <tr style="border-bottom:1px solid #30363d;">
+                  <th style="padding:8px; text-align:left; color:#8b949e;">Atleta</th>
+                  <th style="padding:8px; text-align:left; color:#8b949e;">Programa</th>
+                  <th style="padding:8px; text-align:left; color:#8b949e;">Status</th>
+                  <th style="padding:8px; text-align:left; color:#8b949e;">Inicio</th>
+                  <th style="padding:8px; text-align:left; color:#8b949e;">Fim previsto</th>
+                  <th style="padding:8px; text-align:left; color:#8b949e;">Criado</th>
+                  <th style="padding:8px; text-align:left; color:#8b949e;">Acoes</th>
+                </tr>
+              </thead>
+              <tbody id="coach-assign-table-body">
+                <tr><td colspan="7" style="padding:16px; color:#8b949e;">Carregando...</td></tr>
+              </tbody>
+            </table>
+          </div>
         </section>
 
         <div id="result" class="result" hidden></div>
@@ -1653,14 +1792,24 @@
 
       // Hide the "Importação semanal" header on the strength/exercises tab
       const panelHeader = document.querySelector(".panel-header");
-      if (panelHeader) panelHeader.hidden = tabName === "strength" || tabName === "exercises";
+      if (panelHeader) panelHeader.hidden = tabName === "strength" || tabName === "exercises" || tabName === "assignments" || tabName === "instances";
 
-      // Strength tab uses full width (hide sidebar)
-      document.querySelector(".layout").classList.toggle("full-width-mode", tabName === "strength" || tabName === "exercises");
+      // Strength/exercises tabs use full width (hide sidebar)
+      document.querySelector(".layout").classList.toggle("full-width-mode", tabName === "strength" || tabName === "exercises" || tabName === "assignments" || tabName === "instances");
 
       // Load exercises when switching to the exercises tab
       if (tabName === "exercises") {
         loadExerciseCatalog().then(() => renderExerciseCrudList());
+      }
+
+      // Load assignments when switching to the assignments tab
+      if (tabName === "assignments") {
+        refreshCoachAssignmentsTab().catch((err) => showResult(err.message, true));
+      }
+
+      // Load instances when switching to the instances tab
+      if (tabName === "instances") {
+        refreshCoachInstancesTab().catch((err) => showResult(err.message, true));
       }
     }
 
@@ -4840,6 +4989,530 @@
         btn.textContent = editId ? "Guardar" : "Criar";
       }
     });
+
+    // ═══════════════════════════ ASSIGNMENTS TAB ═══════════════════════════
+
+    // ═══════════ INSTANCES TAB ═══════════
+
+    const instApiBase = "/.netlify/functions/coach-strength-instances";
+    let instAllInstances = [];
+    let instFilteredInstances = [];
+    let instAthletes = [];
+    let _instInitialized = false;
+    let _instEditingId = null;
+
+    const instTableBody = document.getElementById("inst-table-body");
+    const instStatusFilter = document.getElementById("inst-status-filter");
+    const instAthleteFilter = document.getElementById("inst-athlete-filter");
+    const instSearchFilter = document.getElementById("inst-search-filter");
+    const instRefreshBtn = document.getElementById("inst-refresh-btn");
+    const instEditModal = document.getElementById("instEditModal");
+    const instEditForm = document.getElementById("instEditForm");
+    const instEditTitle = document.getElementById("instEditTitle");
+    const instEditStatus = document.getElementById("instEditStatus");
+    const instEditStartDate = document.getElementById("instEditStartDate");
+    const instEditLoadRound = document.getElementById("instEditLoadRound");
+    const instEditCoachLock = document.getElementById("instEditCoachLock");
+    const instEditSaveBtn = document.getElementById("instEditSaveBtn");
+    const instEditCancelBtn = document.getElementById("instEditCancelBtn");
+
+    const INST_ALLOWED_TRANSITIONS = {
+      active: ["paused", "completed", "cancelled"],
+      paused: ["active", "cancelled"],
+      completed: [],
+      cancelled: []
+    };
+
+    async function refreshCoachInstancesTab() {
+      if (!state.user) return;
+      if (!_instInitialized) {
+        wireInstancesEvents();
+        _instInitialized = true;
+      }
+      await refreshCoachInstances();
+    }
+
+    async function refreshCoachInstances() {
+      try {
+        const data = await apiRequest("GET", instApiBase);
+        instAllInstances = Array.isArray(data.instances) ? data.instances : [];
+        instAthletes = Array.isArray(data.athletes) ? data.athletes : [];
+        populateInstAthleteFilter();
+        applyInstFilters();
+      } catch (err) {
+        console.error("[Coach Instances] Refresh error:", err);
+        showResult(err.message, true);
+      }
+    }
+
+    function populateInstAthleteFilter() {
+      if (!instAthleteFilter) return;
+      const current = instAthleteFilter.value;
+      instAthleteFilter.innerHTML = '<option value="">Todos os atletas</option>';
+      for (const a of instAthletes) {
+        const opt = document.createElement("option");
+        opt.value = a.id;
+        opt.textContent = a.name || a.email || a.id;
+        instAthleteFilter.appendChild(opt);
+      }
+      instAthleteFilter.value = current;
+    }
+
+    function applyInstFilters() {
+      const statusVal = instStatusFilter ? instStatusFilter.value : "";
+      const athleteVal = instAthleteFilter ? instAthleteFilter.value : "";
+      const searchVal = instSearchFilter ? instSearchFilter.value.toLowerCase().trim() : "";
+
+      let filtered = instAllInstances;
+      if (statusVal) filtered = filtered.filter((i) => i.status === statusVal);
+      if (athleteVal) filtered = filtered.filter((i) => i.athlete_id === athleteVal);
+      if (searchVal) {
+        filtered = filtered.filter((i) => {
+          const ath = instAthletes.find((a) => a.id === i.athlete_id);
+          const name = (ath ? (ath.name || ath.email || "") : "").toLowerCase();
+          return name.includes(searchVal);
+        });
+      }
+      instFilteredInstances = filtered;
+      renderInstTable();
+    }
+
+    function getInstStatusBadge(status) {
+      const colors = {
+        active: "#238636", paused: "#d29922",
+        completed: "#8b949e", cancelled: "#f85149"
+      };
+      const labels = {
+        active: "Ativo", paused: "Pausado",
+        completed: "Concluído", cancelled: "Cancelado"
+      };
+      const color = colors[status] || "#8b949e";
+      const label = labels[status] || status;
+      return '<span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:0.8rem;color:#fff;background:' + color + ';">' + escapeHtml(label) + '</span>';
+    }
+
+    function getInstAccessLabel(model) {
+      const labels = {
+        self_serve: "Self-serve",
+        coached_one_time: "Coach (único)",
+        coached_recurring: "Coach (recorrente)"
+      };
+      return labels[model] || model || "-";
+    }
+
+    function renderInstTable() {
+      if (!instTableBody) return;
+      const rows = instFilteredInstances;
+      if (!rows.length) {
+        instTableBody.innerHTML = '<tr><td colspan="9" style="padding:16px; color:#8b949e;">Sem instâncias encontradas.</td></tr>';
+        return;
+      }
+
+      instTableBody.innerHTML = rows.map((inst) => {
+        const ath = instAthletes.find((a) => a.id === inst.athlete_id);
+        const athleteLabel = ath ? escapeHtml(ath.name || ath.email || ath.id) : escapeHtml(inst.athlete_id || "-");
+        const planLabel = escapeHtml(inst.plan_name || "-");
+        const statusBadge = getInstStatusBadge(inst.status);
+        const startLabel = inst.start_date ? escapeHtml(inst.start_date) : "-";
+        const loadLabel = inst.load_round != null ? inst.load_round + " kg" : "-";
+        const lockLabel = inst.coach_locked_until ? escapeHtml(inst.coach_locked_until) : "-";
+        const accessLabel = escapeHtml(getInstAccessLabel(inst.access_model));
+        const createdLabel = inst.created_at ? escapeHtml(inst.created_at.slice(0, 10)) : "-";
+
+        const canPause = inst.status === "active";
+        const canComplete = inst.status === "active";
+        const canCancel = inst.status === "active" || inst.status === "paused";
+
+        let actionsHtml = '<button class="btn btn-sm" data-inst-edit="' + escapeHtml(inst.id) + '" style="font-size:0.75rem;padding:2px 6px;" title="Editar">✏️</button>';
+        if (canPause) actionsHtml += ' <button class="btn btn-sm" data-inst-action="paused" data-inst-id="' + escapeHtml(inst.id) + '" style="font-size:0.75rem;padding:2px 6px;" title="Pausar">⏸</button>';
+        if (canComplete) actionsHtml += ' <button class="btn btn-sm" data-inst-action="completed" data-inst-id="' + escapeHtml(inst.id) + '" style="font-size:0.75rem;padding:2px 6px;" title="Completar">✓</button>';
+        if (canCancel) actionsHtml += ' <button class="btn btn-sm" data-inst-action="cancelled" data-inst-id="' + escapeHtml(inst.id) + '" style="font-size:0.75rem;padding:2px 6px;" title="Cancelar">✕</button>';
+
+        return '<tr style="border-bottom:1px solid #21262d;">'
+          + '<td style="padding:8px;">' + athleteLabel + '</td>'
+          + '<td style="padding:8px;">' + planLabel + '</td>'
+          + '<td style="padding:8px;">' + statusBadge + '</td>'
+          + '<td style="padding:8px;">' + startLabel + '</td>'
+          + '<td style="padding:8px;">' + loadLabel + '</td>'
+          + '<td style="padding:8px;">' + lockLabel + '</td>'
+          + '<td style="padding:8px;">' + accessLabel + '</td>'
+          + '<td style="padding:8px;">' + createdLabel + '</td>'
+          + '<td style="padding:8px; white-space:nowrap;">' + actionsHtml + '</td>'
+          + '</tr>';
+      }).join("");
+    }
+
+    function openInstEditModal(instanceId) {
+      const inst = instAllInstances.find((i) => i.id === instanceId);
+      if (!inst) return;
+      _instEditingId = instanceId;
+
+      const ath = instAthletes.find((a) => a.id === inst.athlete_id);
+      const athleteName = ath ? (ath.name || ath.email || ath.id) : inst.athlete_id;
+      instEditTitle.textContent = "Editar Instância — " + athleteName;
+
+      // Populate status dropdown with allowed transitions
+      instEditStatus.innerHTML = "";
+      const currentOpt = document.createElement("option");
+      currentOpt.value = inst.status;
+      currentOpt.textContent = inst.status + " (atual)";
+      instEditStatus.appendChild(currentOpt);
+      const transitions = INST_ALLOWED_TRANSITIONS[inst.status] || [];
+      for (const t of transitions) {
+        const opt = document.createElement("option");
+        opt.value = t;
+        opt.textContent = t;
+        instEditStatus.appendChild(opt);
+      }
+
+      instEditStartDate.value = inst.start_date || "";
+      instEditLoadRound.value = inst.load_round || 2.5;
+      instEditCoachLock.value = inst.coach_locked_until || "";
+
+      instEditModal.classList.remove("hidden");
+    }
+
+    function closeInstEditModal() {
+      instEditModal.classList.add("hidden");
+      _instEditingId = null;
+    }
+
+    async function saveInstEdit(e) {
+      e.preventDefault();
+      if (!_instEditingId) return;
+
+      const inst = instAllInstances.find((i) => i.id === _instEditingId);
+      if (!inst) return;
+
+      const patch = {};
+      const newStatus = instEditStatus.value;
+      if (newStatus && newStatus !== inst.status) patch.status = newStatus;
+
+      const newStart = instEditStartDate.value || null;
+      if (newStart !== (inst.start_date || null)) patch.start_date = newStart;
+
+      const newLoad = parseFloat(instEditLoadRound.value);
+      if (Number.isFinite(newLoad) && newLoad > 0 && newLoad !== inst.load_round) patch.load_round = newLoad;
+
+      const newLock = instEditCoachLock.value || null;
+      if (newLock !== (inst.coach_locked_until || null)) patch.coach_locked_until = newLock;
+
+      if (!Object.keys(patch).length) {
+        closeInstEditModal();
+        return;
+      }
+
+      try {
+        instEditSaveBtn.disabled = true;
+        instEditSaveBtn.textContent = "A guardar...";
+        await apiRequest("PATCH", instApiBase + "?instanceId=" + encodeURIComponent(_instEditingId), patch);
+        showResult("Instância atualizada.", false);
+        closeInstEditModal();
+        await refreshCoachInstances();
+      } catch (err) {
+        showResult(err.message, true);
+      } finally {
+        instEditSaveBtn.disabled = false;
+        instEditSaveBtn.textContent = "Guardar";
+      }
+    }
+
+    async function handleInstQuickAction(instanceId, newStatus) {
+      const inst = instAllInstances.find((i) => i.id === instanceId);
+      if (!inst) return;
+      const ath = instAthletes.find((a) => a.id === inst.athlete_id);
+      const athleteName = ath ? (ath.name || ath.email || ath.id) : "este atleta";
+      const actionLabels = { paused: "pausar", completed: "completar", cancelled: "cancelar" };
+      const actionLabel = actionLabels[newStatus] || newStatus;
+
+      if (!window.confirm("Confirmas " + actionLabel + " a instância de " + athleteName + "?")) return;
+
+      try {
+        await apiRequest("PATCH", instApiBase + "?instanceId=" + encodeURIComponent(instanceId), { status: newStatus });
+        showResult("Instância " + actionLabel.replace("ar", "ada") + ".", false);
+        await refreshCoachInstances();
+      } catch (err) {
+        showResult(err.message, true);
+      }
+    }
+
+    function wireInstancesEvents() {
+      if (instStatusFilter) instStatusFilter.addEventListener("change", () => applyInstFilters());
+      if (instAthleteFilter) instAthleteFilter.addEventListener("change", () => applyInstFilters());
+      if (instSearchFilter) instSearchFilter.addEventListener("input", () => applyInstFilters());
+      if (instRefreshBtn) instRefreshBtn.addEventListener("click", () => refreshCoachInstances());
+
+      if (instTableBody) {
+        instTableBody.addEventListener("click", (e) => {
+          const editBtn = e.target.closest("[data-inst-edit]");
+          if (editBtn) {
+            openInstEditModal(editBtn.dataset.instEdit);
+            return;
+          }
+          const actionBtn = e.target.closest("[data-inst-action]");
+          if (actionBtn) {
+            handleInstQuickAction(actionBtn.dataset.instId, actionBtn.dataset.instAction);
+          }
+        });
+      }
+
+      if (instEditForm) instEditForm.addEventListener("submit", saveInstEdit);
+      if (instEditCancelBtn) instEditCancelBtn.addEventListener("click", closeInstEditModal);
+
+      // Close modal on backdrop click
+      if (instEditModal) {
+        instEditModal.addEventListener("click", (e) => {
+          if (e.target === instEditModal) closeInstEditModal();
+        });
+      }
+    }
+
+    // ═══════════ ASSIGNMENTS TAB ═══════════
+
+    const listAssignmentsApiBase = "/.netlify/functions/list-assignments";
+    const adminAssignProgramApiBase = "/.netlify/functions/admin-assign-program";
+
+    let coachAssignments = [];
+    let coachAssignmentsFiltered = [];
+    let _coachAssignmentsInitialized = false;
+
+    const coachAssignTableBody = document.getElementById("coach-assign-table-body");
+    const coachAssignStatusFilter = document.getElementById("coach-assign-status-filter");
+    const coachAssignHistoryToggle = document.getElementById("coach-assign-history-toggle");
+    const coachAssignCreateBtn = document.getElementById("coach-assign-create-btn");
+    const coachAssignCreateForm = document.getElementById("coach-assign-create-form");
+    const coachAssignSubmitBtn = document.getElementById("coach-assign-submit-btn");
+    const coachAssignCancelBtn = document.getElementById("coach-assign-cancel-btn");
+    const coachNewAssignAthlete = document.getElementById("coach-new-assign-athlete");
+    const coachNewAssignProgram = document.getElementById("coach-new-assign-program");
+    const coachNewAssignStart = document.getElementById("coach-new-assign-start");
+    const coachNewAssignWeeks = document.getElementById("coach-new-assign-weeks");
+    const coachNewAssignNotes = document.getElementById("coach-new-assign-notes");
+
+    async function refreshCoachAssignmentsTab() {
+      if (!state.user) return;
+      if (!_coachAssignmentsInitialized) {
+        wireCoachAssignmentsEvents();
+        _coachAssignmentsInitialized = true;
+      }
+      await Promise.all([
+        loadAthletes().catch(() => {}),
+        loadProgramOptions().catch(() => {})
+      ]);
+      await refreshCoachAssignments();
+    }
+
+    async function refreshCoachAssignments() {
+      try {
+        const includeHistory = coachAssignHistoryToggle && coachAssignHistoryToggle.checked ? "1" : "0";
+        const data = await apiRequest("GET", `${listAssignmentsApiBase}?includeHistory=${includeHistory}`);
+        coachAssignments = Array.isArray(data.assignments) ? data.assignments : [];
+        applyCoachAssignmentsFilters();
+      } catch (err) {
+        console.error("[Coach Assignments] Refresh error:", err);
+        showResult(err.message, true);
+      }
+    }
+
+    function applyCoachAssignmentsFilters() {
+      const statusFilter = coachAssignStatusFilter ? coachAssignStatusFilter.value : "";
+      let filtered = coachAssignments;
+      if (statusFilter) {
+        filtered = filtered.filter((a) => a.status === statusFilter);
+      }
+      coachAssignmentsFiltered = filtered;
+      renderCoachAssignmentsTable();
+    }
+
+    function renderCoachAssignmentsTable() {
+      if (!coachAssignTableBody) return;
+      const rows = coachAssignmentsFiltered;
+      if (!rows.length) {
+        coachAssignTableBody.innerHTML = '<tr><td colspan="7" style="padding:16px; color:#8b949e;">Sem assignments encontrados.</td></tr>';
+        return;
+      }
+
+      coachAssignTableBody.innerHTML = rows.map((a) => {
+        const statusBadge = getCoachAssignStatusBadge(a.status);
+        const startLabel = a.startDate ? escapeHtml(formatDate(a.startDate)) : "-";
+        const endLabel = a.computedEndDate ? escapeHtml(formatDate(a.computedEndDate)) : "-";
+        const createdLabel = a.createdAt ? escapeHtml(formatDate(a.createdAt)) : "-";
+        const canPause = a.status === "active";
+        const canResume = a.status === "paused";
+        let actionHtml = "";
+        if (canPause) {
+          actionHtml = `<button class="btn btn-sm" data-assign-action="pause" data-assign-id="${escapeHtml(a.id)}" style="font-size:0.8rem;padding:3px 8px;">Pausar</button>`;
+        } else if (canResume) {
+          actionHtml = `<button class="btn btn-primary btn-sm" data-assign-action="resume" data-assign-id="${escapeHtml(a.id)}" style="font-size:0.8rem;padding:3px 8px;">Retomar</button>`;
+        }
+        return `<tr style="border-bottom:1px solid #21262d;">
+          <td style="padding:8px;">${escapeHtml(a.athleteName || a.athleteEmail || a.athleteId || "-")}</td>
+          <td style="padding:8px;">${escapeHtml(a.programName || "-")}</td>
+          <td style="padding:8px;">${statusBadge}</td>
+          <td style="padding:8px;">${startLabel}</td>
+          <td style="padding:8px;">${endLabel}</td>
+          <td style="padding:8px;">${createdLabel}</td>
+          <td style="padding:8px;">${actionHtml}</td>
+        </tr>`;
+      }).join("");
+    }
+
+    function getCoachAssignStatusBadge(status) {
+      const colors = {
+        active: "#238636", scheduled: "#1f6feb", paused: "#d29922",
+        completed: "#8b949e", cancelled: "#f85149"
+      };
+      const labels = {
+        active: "Ativo", scheduled: "Agendado", paused: "Pausado",
+        completed: "Concluido", cancelled: "Cancelado"
+      };
+      const color = colors[status] || "#8b949e";
+      const label = labels[status] || status;
+      return `<span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:0.8rem;color:#fff;background:${color};">${escapeHtml(label)}</span>`;
+    }
+
+    function formatDate(dateStr) {
+      if (!dateStr) return "-";
+      try {
+        const d = new Date(dateStr);
+        return d.toISOString().slice(0, 10);
+      } catch (_) { return dateStr; }
+    }
+
+    function wireCoachAssignmentsEvents() {
+      if (coachAssignStatusFilter) {
+        coachAssignStatusFilter.addEventListener("change", () => applyCoachAssignmentsFilters());
+      }
+
+      if (coachAssignHistoryToggle) {
+        coachAssignHistoryToggle.addEventListener("change", () => refreshCoachAssignments());
+      }
+
+      // Table inline actions
+      if (coachAssignTableBody) {
+        coachAssignTableBody.addEventListener("click", async (e) => {
+          const btn = e.target.closest("[data-assign-action]");
+          if (!btn) return;
+          const action = btn.dataset.assignAction;
+          const id = btn.dataset.assignId;
+          if (!id) return;
+
+          const newStatus = action === "pause" ? "paused" : action === "resume" ? "active" : null;
+          if (!newStatus) return;
+
+          try {
+            btn.disabled = true;
+            btn.textContent = "...";
+            await apiRequest("PATCH", `${adminAssignProgramApiBase}?assignmentId=${encodeURIComponent(id)}`, { status: newStatus });
+            showResult(`Assignment ${newStatus === "paused" ? "pausado" : "retomado"}.`, false);
+            await refreshCoachAssignments();
+          } catch (err) {
+            showResult(err.message, true);
+            btn.disabled = false;
+            btn.textContent = action === "pause" ? "Pausar" : "Retomar";
+          }
+        });
+      }
+
+      // Create form toggle
+      if (coachAssignCreateBtn) {
+        coachAssignCreateBtn.addEventListener("click", () => {
+          if (!coachAssignCreateForm) return;
+          coachAssignCreateForm.hidden = !coachAssignCreateForm.hidden;
+          if (!coachAssignCreateForm.hidden) {
+            populateCoachAssignCreateForm();
+          }
+        });
+      }
+
+      if (coachAssignCancelBtn) {
+        coachAssignCancelBtn.addEventListener("click", () => {
+          if (coachAssignCreateForm) coachAssignCreateForm.hidden = true;
+        });
+      }
+
+      // Submit new assignment
+      if (coachAssignSubmitBtn) {
+        coachAssignSubmitBtn.addEventListener("click", async () => {
+          const athleteId = (coachNewAssignAthlete.value || "").trim();
+          const trainingProgramId = (coachNewAssignProgram.value || "").trim();
+          const startDate = (coachNewAssignStart.value || "").trim() || null;
+          const durationWeeks = Number(coachNewAssignWeeks.value) || 12;
+          const notes = (coachNewAssignNotes.value || "").trim() || null;
+
+          if (!athleteId) { showResult("Seleciona um atleta.", true); return; }
+          if (!trainingProgramId) { showResult("Seleciona um programa.", true); return; }
+          if (durationWeeks < 1) { showResult("Semanas deve ser >= 1.", true); return; }
+
+          try {
+            coachAssignSubmitBtn.disabled = true;
+            coachAssignSubmitBtn.textContent = "A criar...";
+            const program = strPrograms.find((p) => p.id === trainingProgramId);
+            const result = await apiRequest("POST", adminAssignProgramApiBase, {
+              athleteId,
+              trainingProgramId,
+              startDate: startDate || new Date().toISOString().slice(0, 10),
+              durationWeeks,
+              priceCentsSnapshot: program ? (program.price_cents || 0) : 0,
+              currencySnapshot: program ? (program.currency || "EUR") : "EUR",
+              notes
+            });
+            let msg = "Assignment criado com sucesso.";
+            if (result.strengthAutoCreated) {
+              msg += " Instância de força criada automaticamente.";
+            } else if (result.strengthReason === "already_active") {
+              msg += " Já existia instância de força ativa.";
+            } else if (result.strengthReason === "no_strength_template_for_program") {
+              msg += " Sem template de força para este programa.";
+            }
+            showResult(msg, false);
+            coachAssignCreateForm.hidden = true;
+            await refreshCoachAssignments();
+          } catch (err) {
+            showResult(err.message, true);
+          } finally {
+            coachAssignSubmitBtn.disabled = false;
+            coachAssignSubmitBtn.textContent = "Criar";
+          }
+        });
+      }
+    }
+
+    function populateCoachAssignCreateForm() {
+      // Athletes dropdown (coach's own)
+      if (coachNewAssignAthlete) {
+        coachNewAssignAthlete.innerHTML = '<option value="">Seleciona atleta...</option>';
+        athletes.forEach((a) => {
+          const opt = document.createElement("option");
+          opt.value = a.id;
+          opt.textContent = `${a.name || a.email || a.id}`;
+          coachNewAssignAthlete.appendChild(opt);
+        });
+      }
+
+      // Programs dropdown
+      if (coachNewAssignProgram) {
+        coachNewAssignProgram.innerHTML = '<option value="">Seleciona programa...</option>';
+        strPrograms.forEach((p) => {
+          const opt = document.createElement("option");
+          opt.value = p.id;
+          opt.textContent = `${p.name || p.id} (${p.status || "draft"})`;
+          coachNewAssignProgram.appendChild(opt);
+        });
+        // Auto-fill weeks
+        coachNewAssignProgram.addEventListener("change", () => {
+          const selected = strPrograms.find((p) => p.id === coachNewAssignProgram.value);
+          if (selected && selected.duration_weeks && coachNewAssignWeeks) {
+            coachNewAssignWeeks.value = selected.duration_weeks;
+          }
+        });
+      }
+
+      // Reset fields
+      if (coachNewAssignStart) coachNewAssignStart.value = new Date().toISOString().slice(0, 10);
+      if (coachNewAssignWeeks) coachNewAssignWeeks.value = "12";
+      if (coachNewAssignNotes) coachNewAssignNotes.value = "";
+    }
 
   </script>
 </body>
