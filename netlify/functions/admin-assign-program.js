@@ -22,11 +22,18 @@ function normalizeAssignmentPayload(payload) {
   const coachId = payload.coachId != null ? (payload.coachId || "").toString().trim() : null;
   const trainingProgramId = (payload.trainingProgramId || "").toString().trim();
   const startDateInput = (payload.startDate || "").toString().trim();
-  const durationWeeks = Number(payload.durationWeeks);
+  const endDateInput = payload.endDate == null ? "" : payload.endDate.toString().trim();
+  const durationWeeks = payload.durationWeeks == null || payload.durationWeeks === ""
+    ? null
+    : Number(payload.durationWeeks);
   const priceCentsSnapshot = Number(payload.priceCentsSnapshot ?? 0);
   const currencySnapshot = (payload.currencySnapshot || "EUR").toString().trim().toUpperCase() || "EUR";
   const followupTypeSnapshot = (payload.followupTypeSnapshot || "standard").toString().trim() || "standard";
   const notes = payload.notes == null ? null : payload.notes.toString();
+
+  // New fields: coach lock and auto-instance control
+  const coachLock = payload.coachLock === true || payload.coachLock === "true";
+  const strengthPlanId = payload.strengthPlanId ? payload.strengthPlanId.toString().trim() : null;
 
   if (!athleteId) throw new Error("athleteId is required");
   if (!trainingProgramId) throw new Error("trainingProgramId is required");
@@ -35,7 +42,19 @@ function normalizeAssignmentPayload(payload) {
   const parsedDate = new Date(startDate);
   if (Number.isNaN(parsedDate.getTime())) throw new Error("startDate must be a valid date");
 
-  if (!Number.isInteger(durationWeeks) || durationWeeks <= 0) {
+  let endDate = null;
+  if (endDateInput) {
+    const parsedEndDate = new Date(endDateInput);
+    if (Number.isNaN(parsedEndDate.getTime())) throw new Error("endDate must be a valid date");
+    if (endDateInput < startDate) throw new Error("endDate cannot be before startDate");
+    endDate = endDateInput;
+  }
+
+  // Scheduled access is driven by start date regardless of coach assignment.
+  const today = new Date().toISOString().slice(0, 10);
+  const status = startDate > today ? "scheduled" : "active";
+
+  if (durationWeeks != null && (!Number.isInteger(durationWeeks) || durationWeeks <= 0)) {
     throw new Error("durationWeeks must be a positive integer");
   }
 
@@ -49,11 +68,14 @@ function normalizeAssignmentPayload(payload) {
     training_program_id: trainingProgramId,
     start_date: startDate,
     duration_weeks: durationWeeks,
-    status: coachId ? "scheduled" : "active",
+    access_end_date: endDate,
+    status,
     price_cents_snapshot: priceCentsSnapshot,
     currency_snapshot: currencySnapshot,
     followup_type_snapshot: followupTypeSnapshot,
-    notes
+    notes,
+    _coachLock: coachLock,
+    _strengthPlanId: strengthPlanId
   };
 }
 
@@ -65,6 +87,7 @@ function mapAssignment(row) {
     trainingProgramId: row.training_program_id,
     startDate: row.start_date,
     durationWeeks: row.duration_weeks,
+    accessEndDate: row.access_end_date || null,
     computedEndDate: row.computed_end_date,
     actualEndDate: row.actual_end_date,
     status: row.status,
@@ -95,7 +118,7 @@ function mapStrengthInstance(row) {
   };
 }
 
-async function ensureStrengthInstanceForAssignment(config, assignment, program) {
+async function ensureStrengthInstanceForAssignment(config, assignment, program, { coachLock = false, strengthPlanId = null } = {}) {
   const activeInstances = await listStrengthPlanInstances(config, {
     athleteId: assignment.athlete_id,
     status: "active"
@@ -109,16 +132,29 @@ async function ensureStrengthInstanceForAssignment(config, assignment, program) 
     return { instance: activeInstance, autoCreated: false, reason: "already_active" };
   }
 
-  const plans = await listStrengthPlans(config, {
-    trainingProgramId: assignment.training_program_id
-  });
-  const selectedPlan = Array.isArray(plans)
-    ? (plans.find((plan) => plan.status === "active") || plans[0] || null)
-    : null;
+  let selectedPlan = null;
+  if (strengthPlanId) {
+    // Coach explicitly chose a plan
+    const { getStrengthPlanById } = require("./_lib/supabase");
+    selectedPlan = await getStrengthPlanById(config, strengthPlanId);
+    if (!selectedPlan) {
+      return { instance: null, autoCreated: false, reason: "selected_plan_not_found" };
+    }
+  } else {
+    // Auto-select: pick active plan for this program, or first available
+    const plans = await listStrengthPlans(config, {
+      trainingProgramId: assignment.training_program_id
+    });
+    selectedPlan = Array.isArray(plans)
+      ? (plans.find((plan) => plan.status === "active") || plans[0] || null)
+      : null;
+  }
 
   if (!selectedPlan) {
     return { instance: null, autoCreated: false, reason: "no_strength_template_for_program" };
   }
+
+  const lockDate = coachLock ? (assignment.access_end_date || assignment.computed_end_date || null) : null;
 
   const createdInstance = await createStrengthPlanInstance(config, {
     plan_id: selectedPlan.id,
@@ -128,7 +164,7 @@ async function ensureStrengthInstanceForAssignment(config, assignment, program) 
     status: "active",
     assigned_by: assignment.coach_id,
     program_assignment_id: assignment.id || null,
-    coach_locked_until: assignment.computed_end_date || null,
+    coach_locked_until: lockDate,
     access_model: program ? program.access_model : null
   });
 
@@ -191,17 +227,37 @@ exports.handler = async (event) => {
       const normalized = normalizeAssignmentPayload(payload);
       await ensureCoachScope(normalized.athlete_id);
 
+      // Extract internal flags before DB insert
+      const coachLock = normalized._coachLock;
+      const strengthPlanId = normalized._strengthPlanId;
+      delete normalized._coachLock;
+      delete normalized._strengthPlanId;
+
       // Auto-assign coach_id when coach creates without explicit coachId
       if (isCoach && !normalized.coach_id) {
         const coachRecord = await getCoachByIdentityId(config, auth.user.sub);
         if (coachRecord) {
           normalized.coach_id = coachRecord.id;
-          normalized.status = "scheduled";
+          // Recompute status with coach_id now set
+          const today = new Date().toISOString().slice(0, 10);
+          normalized.status = normalized.start_date > today ? "scheduled" : "active";
         }
       }
       const program = await getTrainingProgramById(config, normalized.training_program_id);
+      if (!program) {
+        return json(404, { error: "Training program not found" });
+      }
+      if (normalized.duration_weeks == null) {
+        normalized.duration_weeks = Number(program.duration_weeks);
+      }
+      if (!Number.isInteger(normalized.duration_weeks) || normalized.duration_weeks <= 0) {
+        throw new Error("Program duration_weeks must be a positive integer");
+      }
       const created = await createProgramAssignment(config, normalized);
-      const strength = await ensureStrengthInstanceForAssignment(config, created, program);
+      const strength = await ensureStrengthInstanceForAssignment(config, created, program, {
+        coachLock,
+        strengthPlanId
+      });
 
       return json(201, {
         assignment: mapAssignment(created),
@@ -219,10 +275,11 @@ exports.handler = async (event) => {
       return json(400, { error: "assignmentId is required for PATCH" });
     }
 
+    const existingAssignment = await getProgramAssignmentById(config, assignmentId);
+    if (!existingAssignment) return json(404, { error: "Assignment not found" });
+
     // Coach scoping for PATCH: verify ownership via assignment's athlete_id
     if (!isAdmin) {
-      const existingAssignment = await getProgramAssignmentById(config, assignmentId);
-      if (!existingAssignment) return json(404, { error: "Assignment not found" });
       await ensureCoachScope(existingAssignment.athlete_id);
     }
 
@@ -273,10 +330,8 @@ exports.handler = async (event) => {
 
     if (payload.coachId !== undefined) {
       const coachVal = payload.coachId != null ? (payload.coachId || "").toString().trim() : "";
-      // coach_id is NOT NULL in the database — only include in patch if a real value
-      if (coachVal) {
-        patch.coach_id = coachVal;
-      }
+      // Empty coachId means explicit self-serve transition.
+      patch.coach_id = coachVal || null;
     }
 
     if (payload.trainingProgramId !== undefined) {
@@ -285,17 +340,25 @@ exports.handler = async (event) => {
 
     if (payload.startDate !== undefined) {
       const startDateStr = (payload.startDate || "").toString().trim();
-      const parsedDate = new Date(startDateStr);
+      const normalizedStartDate = startDateStr || new Date().toISOString().slice(0, 10);
+      const parsedDate = new Date(normalizedStartDate);
       if (Number.isNaN(parsedDate.getTime())) throw new Error("startDate must be a valid date");
-      patch.start_date = startDateStr;
+      patch.start_date = normalizedStartDate;
     }
 
-    if (payload.durationWeeks !== undefined) {
-      const weeks = Number(payload.durationWeeks);
-      if (!Number.isInteger(weeks) || weeks <= 0) {
-        throw new Error("durationWeeks must be a positive integer");
+    if (payload.endDate !== undefined) {
+      const endDateStr = payload.endDate == null ? "" : payload.endDate.toString().trim();
+      if (!endDateStr) {
+        patch.access_end_date = null;
+      } else {
+        const parsedEndDate = new Date(endDateStr);
+        if (Number.isNaN(parsedEndDate.getTime())) throw new Error("endDate must be a valid date");
+        const nextStartDate = patch.start_date || existingAssignment.start_date || null;
+        if (nextStartDate && endDateStr < nextStartDate) {
+          throw new Error("endDate cannot be before startDate");
+        }
+        patch.access_end_date = endDateStr;
       }
-      patch.duration_weeks = weeks;
     }
 
     if (payload.notes !== undefined) {
@@ -338,9 +401,8 @@ exports.handler = async (event) => {
       return json(400, { error: "No valid fields to update" });
     }
 
-    // computed_end_date is a GENERATED ALWAYS column in Postgres —
-    // it updates automatically when start_date or duration_weeks change.
-    // No need to set it manually.
+    // computed_end_date remains as legacy/program-duration snapshot.
+    // Access control now prefers access_end_date when present.
 
     const updated = await updateProgramAssignment(config, assignmentId, patch);
 
@@ -381,6 +443,16 @@ exports.handler = async (event) => {
     });
   } catch (err) {
     console.error("[admin-assign-program] ERROR:", err.message, err.stack);
+    if ((err.message || "").includes("access_end_date")) {
+      return json(409, {
+        error: "Nova janela de acesso indisponivel: executa scripts/migration-assignment-access-window.sql na base de dados."
+      });
+    }
+    if ((err.message || "").includes('null value in column "coach_id"')) {
+      return json(409, {
+        error: "Self-serve indisponivel: a coluna program_assignments.coach_id ainda esta NOT NULL. Executa scripts/migration-assignment-coach-nullable.sql."
+      });
+    }
     return json(500, { error: err.message || "Erro ao atribuir programa" });
   }
 };

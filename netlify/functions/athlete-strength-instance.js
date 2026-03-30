@@ -57,6 +57,7 @@ exports.handler = async (event) => {
     if (event.httpMethod === "POST") {
       const body = parseJsonBody(event);
       const programId = (body.programId || "").toString().trim();
+      const planId = (body.planId || "").toString().trim() || null;
       const startDate = body.startDate ? body.startDate.toString().trim() : null;
       const loadRound = body.loadRound != null ? Number(body.loadRound) : 2.5;
 
@@ -80,10 +81,23 @@ exports.handler = async (event) => {
         });
       }
 
-      const plans = await listStrengthPlans(config, { trainingProgramId: programId });
-      const template = Array.isArray(plans)
-        ? (plans.find((p) => p.status === "active") || plans[0] || null)
-        : null;
+      let template = null;
+      if (planId) {
+        // Athlete explicitly chose a plan template
+        const { getStrengthPlanById } = require("./_lib/supabase");
+        template = await getStrengthPlanById(config, planId);
+        if (!template) return json(404, { error: "Strength plan template not found" });
+        // Verify the chosen plan belongs to this program
+        if (template.training_program_id && template.training_program_id !== programId) {
+          return json(400, { error: "Selected plan does not belong to this program" });
+        }
+      } else {
+        // Auto-select: pick active plan for this program
+        const plans = await listStrengthPlans(config, { trainingProgramId: programId });
+        template = Array.isArray(plans)
+          ? (plans.find((p) => p.status === "active") || plans[0] || null)
+          : null;
+      }
       if (!template) {
         return json(404, { error: "No strength plan template found for this program" });
       }

@@ -48,6 +48,7 @@ export function listInstances(): Promise<{ instances: StrengthInstanceSummary[] 
 
 export function createInstance(params: {
   programId: string;
+  planId?: string;
   startDate?: string;
   loadRound?: number;
 }): Promise<{ instance: StrengthInstanceSummary }> {
@@ -55,6 +56,7 @@ export function createInstance(params: {
     method: "POST",
     body: JSON.stringify({
       programId: params.programId,
+      planId: params.planId,
       startDate: params.startDate,
       loadRound: params.loadRound,
     }),

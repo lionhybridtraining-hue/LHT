@@ -12,7 +12,7 @@ import {
   clearWorkoutState,
   type SavedWorkoutState,
 } from "@/lib/workout-storage";
-import AthleteAuthGuard from "@/components/atleta/AthleteAuthGuard";
+import { useBottomNav } from "@/contexts/BottomNavContext";
 import WorkoutFlow from "@/components/atleta/WorkoutFlow";
 import QuickModeView from "@/components/atleta/QuickModeView";
 import CompletionScreen from "@/components/atleta/CompletionScreen";
@@ -22,16 +22,13 @@ import type { SetData } from "@/components/atleta/ExerciseScreen";
 type View = "plan" | "workout" | "complete" | "history";
 
 export default function ForcaPage() {
-  return (
-    <AthleteAuthGuard>
-      {() => <ForcaContent />}
-    </AthleteAuthGuard>
-  );
+  return <ForcaContent />;
 }
 
 function ForcaContent() {
   const [searchParams] = useSearchParams();
   const instanceId = searchParams.get("instanceId") || undefined;
+  const { setVisible: setNavVisible } = useBottomNav();
 
   const [data, setData] = useState<AthletePlanResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -45,6 +42,12 @@ function ForcaContent() {
   const [savedWorkout, setSavedWorkout] = useState<SavedWorkoutState | null>(
     null
   );
+
+  // Hide bottom nav during workout/completion, show on plan/history
+  useEffect(() => {
+    setNavVisible(view === "plan" || view === "history");
+    return () => setNavVisible(true);
+  }, [view, setNavVisible]);
 
   // Check for interrupted workout on mount
   useEffect(() => {

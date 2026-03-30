@@ -77,17 +77,8 @@ const LHT_CALENDAR_CONFIG = {
   }
 
   function applyMetadata(data){
-    if(!data || !data.metadata) return;
-
-    const metadata = data.metadata;
-    LHT_CALENDAR_CONFIG.nextChallenge = {
-      name: metadata.challenge_name || metadata.next_challenge_name || LHT_CALENDAR_CONFIG.nextChallenge.name,
-      dateLabel: metadata.challenge_date_label || metadata.next_challenge_date || metadata.aer_next_date || LHT_CALENDAR_CONFIG.nextChallenge.dateLabel,
-      location: metadata.challenge_location || metadata.next_challenge_location || LHT_CALENDAR_CONFIG.nextChallenge.location,
-      focus: metadata.challenge_focus || metadata.next_challenge_focus || LHT_CALENDAR_CONFIG.nextChallenge.focus,
-      description: metadata.challenge_description || metadata.next_challenge_description || LHT_CALENDAR_CONFIG.nextChallenge.description
-    };
-
+    // Calendar challenge data now comes from programs (via list-programs?mode=calendar).
+    // This function only processes non-challenge metadata if needed in the future.
   }
 
   function formatPtDate(isoDate){
@@ -109,7 +100,7 @@ const LHT_CALENDAR_CONFIG = {
       name: item.eventName || item.name || 'Desafio LHT',
       date: item.eventDate || null,
       location: item.eventLocation || 'Portugal',
-      description: item.description || 'Programa de treino da comunidade LHT.',
+      description: item.eventDescription || item.description || 'Programa de treino da comunidade LHT.',
       programName: item.name || 'Programa LHT',
       programId: item.id || '',
       priceCents: Number(item.priceCents || 0),

@@ -759,6 +759,28 @@ async function assignUnassignedAthleteToCoach(config, athleteId, coachIdentityId
   return Array.isArray(rows) ? rows[0] || null : null;
 }
 
+async function setAthleteCoachIdentity(config, athleteId, coachIdentityId) {
+  const normalizedAthleteId = typeof athleteId === "string" ? athleteId.trim() : "";
+  if (!normalizedAthleteId) {
+    throw new Error("athleteId is required");
+  }
+
+  const payload = {
+    coach_identity_id: coachIdentityId || null
+  };
+
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `athletes?id=eq.${encodeURIComponent(normalizedAthleteId)}`,
+    method: "PATCH",
+    body: payload,
+    prefer: "return=representation"
+  });
+
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
 async function getUserRoleNames(config, identityId) {
   const rows = await supabaseRequest({
     url: config.supabaseUrl,
@@ -817,7 +839,7 @@ async function listAssignmentHistory(config, athleteId, limit = 50) {
   return supabaseRequest({
     url: config.supabaseUrl,
     serviceRoleKey: config.supabaseServiceRoleKey,
-    path: `program_assignments?athlete_id=eq.${encodeURIComponent(athleteId)}&select=id,athlete_id,coach_id,training_program_id,start_date,duration_weeks,computed_end_date,actual_end_date,status,price_cents_snapshot,currency_snapshot,followup_type_snapshot,notes,created_at,updated_at&order=created_at.desc&limit=${limit}`
+    path: `program_assignments?athlete_id=eq.${encodeURIComponent(athleteId)}&select=id,athlete_id,coach_id,training_program_id,start_date,duration_weeks,access_end_date,computed_end_date,actual_end_date,status,price_cents_snapshot,currency_snapshot,followup_type_snapshot,notes,created_at,updated_at&order=created_at.desc&limit=${limit}`
   });
 }
 
@@ -833,7 +855,7 @@ async function listActiveAssignmentsWithPrograms(config) {
   return supabaseRequest({
     url: config.supabaseUrl,
     serviceRoleKey: config.supabaseServiceRoleKey,
-    path: "program_assignments?status=in.(active,scheduled,paused)&select=id,athlete_id,coach_id,training_program_id,status,start_date,duration_weeks,notes,created_at&order=created_at.desc&limit=1000"
+    path: "program_assignments?status=in.(active,scheduled,paused)&select=id,athlete_id,coach_id,training_program_id,status,start_date,duration_weeks,access_end_date,notes,created_at&order=created_at.desc&limit=1000"
   });
 }
 
@@ -847,7 +869,7 @@ async function listEnrichedAssignments(config, { includeHistory = false, coachId
   const statusFilter = includeHistory
     ? ""
     : "status=in.(active,scheduled,paused)&";
-  const select = "id,athlete_id,coach_id,training_program_id,status,start_date,duration_weeks,computed_end_date,notes,created_at,updated_at,athlete:athletes!inner(id,name,email,coach_identity_id),coach:coaches(name),training_program:training_programs(name)";
+  const select = "id,athlete_id,coach_id,training_program_id,status,start_date,duration_weeks,access_end_date,computed_end_date,notes,created_at,updated_at,athlete:athletes!inner(id,name,email,coach_identity_id),coach:coaches(name),training_program:training_programs(name)";
   let path = `program_assignments?${statusFilter}select=${encodeURIComponent(select)}&order=created_at.desc&limit=1000`;
 
   const rows = await supabaseRequest({
@@ -1050,7 +1072,7 @@ async function listTrainingPrograms(config) {
   return supabaseRequest({
     url: config.supabaseUrl,
     serviceRoleKey: config.supabaseServiceRoleKey,
-    path: "training_programs?deleted_at=is.null&select=id,external_source,external_id,name,description,duration_weeks,price_cents,currency,stripe_product_id,stripe_price_id,billing_type,status,created_at,updated_at&order=created_at.desc"
+    path: "training_programs?deleted_at=is.null&select=id,external_source,external_id,name,description,duration_weeks,price_cents,currency,stripe_product_id,stripe_price_id,billing_type,status,access_model,event_date,event_name,event_location,calendar_visible,calendar_highlight_rank,created_at,updated_at&order=created_at.desc"
   });
 }
 
@@ -1100,7 +1122,7 @@ async function listPublicTrainingPrograms(config) {
   return supabaseRequest({
     url: config.supabaseUrl,
     serviceRoleKey: config.supabaseServiceRoleKey,
-    path: "training_programs?deleted_at=is.null&status=eq.active&select=id,external_id,name,description,duration_weeks,price_cents,currency,billing_type,created_at,updated_at&order=price_cents.asc,created_at.asc"
+    path: "training_programs?deleted_at=is.null&status=eq.active&select=id,external_id,name,description,duration_weeks,price_cents,currency,billing_type,event_date,event_name,event_location,calendar_visible,calendar_highlight_rank,created_at,updated_at&order=price_cents.asc,created_at.asc"
   });
 }
 
@@ -2080,6 +2102,15 @@ async function getAllInstancesForAthlete(config, athleteId) {
   return Array.isArray(rows) ? rows : [];
 }
 
+async function getActiveAssignmentsForAthlete(config, athleteId) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `program_assignments?athlete_id=eq.${encodeURIComponent(athleteId)}&status=in.(active,scheduled,paused)&select=id,athlete_id,coach_id,training_program_id,start_date,duration_weeks,access_end_date,computed_end_date,status,created_at,training_program:training_programs(id,name,access_model,duration_weeks,billing_type)&order=created_at.desc`
+  });
+  return Array.isArray(rows) ? rows : [];
+}
+
 // ── Webhook: subscription lifecycle sync ──
 
 async function getStripePurchasesBySubscriptionId(config, subscriptionId) {
@@ -2145,6 +2176,7 @@ module.exports = {
   verifyCoachOwnsAthlete,
   listUnassignedAthletes,
   assignUnassignedAthleteToCoach,
+  setAthleteCoachIdentity,
   archiveAthlete,
   getPayingStatusForAthletes,
   getLatestPurchaseStatusForAthletes,
@@ -2273,7 +2305,9 @@ module.exports = {
   getOnboardingIntakeByIdentity,
   getStripePurchasesForIdentity,
   getAllInstancesForAthlete,
+  getActiveAssignmentsForAthlete,
   getStripePurchasesBySubscriptionId,
   pauseInstancesByStripeSubscription,
   resumeInstancesByStripeSubscription,
+  updateAthlete,
 };

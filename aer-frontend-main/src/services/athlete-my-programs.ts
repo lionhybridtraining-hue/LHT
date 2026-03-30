@@ -39,6 +39,14 @@ export interface MyProgramInstance {
   planName: string | null;
 }
 
+export interface MyProgramTemplate {
+  id: string;
+  name: string;
+  description: string | null;
+  totalWeeks: number;
+  status: string;
+}
+
 export interface MyProgram {
   purchase: MyProgramPurchase;
   program: MyProgramMeta | null;
@@ -47,6 +55,9 @@ export interface MyProgram {
   isCoachLocked: boolean;
   isInGrace: boolean;
   canCreateInstance: boolean;
+  /** "purchase" = Stripe-based, "assignment" = coach-assigned without Stripe */
+  sourceType?: "purchase" | "assignment";
+  availableTemplates?: MyProgramTemplate[];
 }
 
 export interface OrphanedInstance {

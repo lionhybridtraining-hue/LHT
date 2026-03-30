@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import AthleteAuthGuard from "@/components/atleta/AthleteAuthGuard";
+import { useNavigate, useOutletContext } from "react-router-dom";
 import {
   fetchAthleteRunningPrograms,
   type RunningPlanEntry,
@@ -12,16 +11,14 @@ import {
   type ProgramPhase,
 } from "@/services/athlete-my-programs";
 import { createInstance } from "@/services/athlete-strength";
-import type { Session } from "@supabase/supabase-js";
-
-const BG =
-  "radial-gradient(circle at top, rgba(212,165,79,0.14) 0%, #1a1a1a 46%, #090909 100%)";
+import type { AthleteOutletContext } from "@/components/atleta/AthleteLayout";
 
 export default function AtletaProgramasPage() {
-  return <AthleteAuthGuard>{(session) => <ProgramasContent session={session} />}</AthleteAuthGuard>;
+  const { session } = useOutletContext<AthleteOutletContext>();
+  return <ProgramasContent session={session} />;
 }
 
-function ProgramasContent({ session }: { session: Session }) {
+function ProgramasContent({ session }: { session: AthleteOutletContext["session"] }) {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -62,10 +59,10 @@ function ProgramasContent({ session }: { session: Session }) {
     return runningPrograms[0];
   }, [runningPrograms]);
 
-  const handleStartInstance = async (programId: string) => {
+  const handleStartInstance = async (programId: string, planId?: string) => {
     setCreatingInstance(programId);
     try {
-      await createInstance({ programId });
+      await createInstance({ programId, planId });
       const payload = await fetchMyPrograms();
       setMyPrograms(payload.programs || []);
       setOrphanedInstances(payload.orphanedInstances || []);
@@ -78,7 +75,7 @@ function ProgramasContent({ session }: { session: Session }) {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center" style={{ background: BG }}>
+      <div className="flex min-h-screen items-center justify-center">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#d4a54f] border-t-transparent" />
       </div>
     );
@@ -87,10 +84,7 @@ function ProgramasContent({ session }: { session: Session }) {
   const hasStrengthPrograms = myPrograms.length > 0 || orphanedInstances.length > 0;
 
   return (
-    <div
-      className="flex min-h-screen flex-col items-center px-5 pb-14 pt-10 text-[#e4e8ef]"
-      style={{ background: BG }}
-    >
+    <div className="flex flex-col items-center px-5 pb-8 pt-6 text-[#e4e8ef]">
       <div className="w-full max-w-md">
         <div className="text-center">
           <p className="text-[10px] font-semibold uppercase tracking-[0.35em] text-[#d4a54f]">Area do Atleta</p>
@@ -119,7 +113,7 @@ function ProgramasContent({ session }: { session: Session }) {
                 key={p.purchase.id}
                 program={p}
                 creatingInstance={creatingInstance}
-                onStart={() => handleStartInstance(p.purchase.programId)}
+                onStart={(planId?: string) => handleStartInstance(p.purchase.programId, planId)}
                 onOpen={() =>
                   navigate(
                     p.instance
@@ -163,12 +157,6 @@ function ProgramasContent({ session }: { session: Session }) {
           ) : null}
         </div>
 
-        <button
-          onClick={() => navigate("/atleta")}
-          className="mt-8 w-full rounded-xl border border-[#d4a54f33] bg-[#151515] py-3 text-sm font-semibold text-[#f7f1e8] hover:bg-[#1c1c1c]"
-        >
-          Voltar ao Hub
-        </button>
       </div>
     </div>
   );
@@ -202,33 +190,46 @@ function StrengthProgramCard({
 }: {
   program: MyProgram;
   creatingInstance: string | null;
-  onStart: () => void;
+  onStart: (planId?: string) => void;
   onOpen: () => void;
 }) {
-  const { purchase, program: meta, instance, phase, isCoachLocked, canCreateInstance } = program;
-  const name = meta?.name || instance?.planName || "Programa de Forca";
+  const { purchase, program: meta, instance, phase, isCoachLocked, canCreateInstance, sourceType, availableTemplates } = program;
+  // Program name is the top-level product (AER), plan name is the specific strength block underneath
+  const programName = meta?.name || instance?.planName || "Programa de Forca";
+  const planName = instance?.planName && instance.planName !== meta?.name ? instance.planName : null;
   const colors = PHASE_COLORS[phase] || PHASE_COLORS.active;
   const isCreating = creatingInstance === purchase.programId;
 
   const hasActiveInstance = instance && (instance.status === "active" || instance.status === "paused");
+  const isAssignment = sourceType === "assignment";
 
   return (
     <article className="rounded-2xl border border-[#d4a54f33] bg-[#141414] p-5 shadow-[0_14px_34px_rgba(0,0,0,0.35)]">
       <div className="flex items-start justify-between gap-3">
-        <h2 className="font-['Oswald'] text-2xl font-semibold text-[#f7f1e8]">{name}</h2>
+        <div>
+          <h2 className="font-['Oswald'] text-2xl font-semibold text-[#f7f1e8]">{programName}</h2>
+          {planName ? (
+            <p className="mt-0.5 text-xs text-[#8f99a8]">Plano: {planName}</p>
+          ) : null}
+        </div>
         <span
-          className="rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]"
+          className="shrink-0 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]"
           style={{ border: `1px solid ${colors.border}`, background: colors.bg, color: colors.text }}
         >
           {PHASE_LABELS[phase] || phase}
         </span>
       </div>
 
+      {/* Subtitle */}
       {instance ? (
         <p className="mt-2 text-sm leading-relaxed text-[#8f99a8]">
-          {instance.planName ? `Plano: ${instance.planName}` : ""}
-          {instance.startDate ? ` · Inicio: ${toLocaleDate(instance.startDate)}` : ""}
+          {instance.startDate ? `Inicio: ${toLocaleDate(instance.startDate)}` : ""}
           {instance.status === "paused" ? " · Pausado" : ""}
+        </p>
+      ) : isAssignment ? (
+        <p className="mt-2 text-sm leading-relaxed text-[#8f99a8]">
+          {purchase.paidAt ? `Atribuido em ${toLocaleDate(purchase.paidAt)}` : "Programa atribuido pelo coach"}
+          {purchase.expiresAt ? ` · Acompanhamento ate ${toLocaleDate(purchase.expiresAt)}` : ""}
         </p>
       ) : (
         <p className="mt-2 text-sm leading-relaxed text-[#8f99a8]">
@@ -236,20 +237,38 @@ function StrengthProgramCard({
         </p>
       )}
 
-      {isCoachLocked && instance?.coachLockedUntil ? (
+      {isCoachLocked && (instance?.coachLockedUntil || purchase.expiresAt) ? (
         <div className="mt-2 flex items-center gap-1.5 text-xs text-[#d4a54f]">
           <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
             <path d="M7 11V7a5 5 0 0 1 10 0v4" />
           </svg>
-          <span>Gerido pelo coach ate {toLocaleDate(instance.coachLockedUntil)}</span>
+          <span>Gerido pelo coach ate {toLocaleDate(instance?.coachLockedUntil || purchase.expiresAt || "")}</span>
         </div>
       ) : null}
 
       {/* CTA */}
-      {canCreateInstance && !hasActiveInstance ? (
+      {canCreateInstance && !hasActiveInstance && availableTemplates && availableTemplates.length > 1 ? (
+        <div className="mt-4 space-y-2">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#8f99a8]">Escolhe o teu plano</p>
+          {availableTemplates.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => onStart(t.id)}
+              disabled={isCreating}
+              className="w-full rounded-xl border border-[#d4a54f33] bg-[#1a1612] px-4 py-3 text-left active:scale-[0.98] disabled:opacity-50"
+            >
+              <span className="block font-['Oswald'] text-sm font-semibold text-[#f7f1e8]">{t.name}</span>
+              {t.description ? (
+                <span className="mt-0.5 block text-xs text-[#8f99a8]">{t.description}</span>
+              ) : null}
+              <span className="mt-1 block text-[10px] text-[#d4a54f]">{t.totalWeeks} semanas · {isCreating ? "A iniciar..." : "Comecar"}</span>
+            </button>
+          ))}
+        </div>
+      ) : canCreateInstance && !hasActiveInstance ? (
         <button
-          onClick={onStart}
+          onClick={() => onStart(availableTemplates?.[0]?.id)}
           disabled={isCreating}
           className="mt-4 w-full rounded-xl bg-[linear-gradient(180deg,#e3b861,#d4a54f_55%,#bf8e3e)] py-3 font-['Oswald'] text-base font-semibold uppercase tracking-[0.08em] text-[#111111] shadow-[0_8px_22px_rgba(212,165,79,0.28)] active:scale-[0.98] disabled:opacity-50"
         >
@@ -262,6 +281,10 @@ function StrengthProgramCard({
         >
           Abrir Treino
         </button>
+      ) : isAssignment && isCoachLocked && !instance ? (
+        <p className="mt-4 rounded-xl border border-[#d4a54f33] bg-[#1a1612] px-4 py-3 text-center text-xs text-[#8f99a8]">
+          O teu coach esta a configurar o plano de treino
+        </p>
       ) : (phase === "expired" || phase === "cancelled") ? (
         <p className="mt-4 text-center text-xs text-[#555d69]">Programa indisponivel</p>
       ) : null}

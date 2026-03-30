@@ -30,10 +30,12 @@ const { json } = require("./_lib/http");
 const {
   getAthleteByIdentity,
   getStripePurchasesForIdentity,
-  getAllInstancesForAthlete
+  getAllInstancesForAthlete,
+  getActiveAssignmentsForAthlete,
+  listStrengthPlans
 } = require("./_lib/supabase");
 
-function derivePhase({ purchase, instance, isCoachLocked, isInGrace }) {
+function derivePurchasePhase({ purchase, instance, isCoachLocked, isInGrace }) {
   if (purchase.status === "cancelled") return "cancelled";
   if (purchase.status === "payment_failed" && !isInGrace) return "expired";
   if (purchase.status === "payment_failed" && isInGrace) return "grace";
@@ -43,6 +45,13 @@ function derivePhase({ purchase, instance, isCoachLocked, isInGrace }) {
     (purchase.training_programs && purchase.training_programs.access_model) || null;
 
   if (accessModel === "coached_one_time") return "self_serve"; // coaching period ended
+  return "active";
+}
+
+function deriveAssignmentPhase({ assignment, instance, isCoachLocked }) {
+  if (assignment.status === "paused") return "self_serve";
+  if (isCoachLocked) return "coached";
+  if (instance && instance.access_model === "coached_one_time") return "self_serve";
   return "active";
 }
 
@@ -62,30 +71,60 @@ exports.handler = async (event) => {
       return json(403, { error: "No athlete profile found for this account" });
     }
 
-    const [purchases, allInstances] = await Promise.all([
+    const [purchases, allInstances, assignments] = await Promise.all([
       getStripePurchasesForIdentity(config, identityId),
-      getAllInstancesForAthlete(config, athlete.id)
+      getAllInstancesForAthlete(config, athlete.id),
+      getActiveAssignmentsForAthlete(config, athlete.id)
     ]);
 
-    // Index instances by stripe_purchase_id for O(1) lookup
+    // Index instances by stripe_purchase_id and program_assignment_id for O(1) lookup
     const instanceByPurchaseId = {};
-    const orphanedInstances = [];
+    const instanceByAssignmentId = {};
+    const claimedInstanceIds = new Set();
 
     for (const inst of allInstances) {
       if (inst.stripe_purchase_id) {
-        // Keep only the most recent instance per purchase (list is ordered by created_at desc)
         if (!instanceByPurchaseId[inst.stripe_purchase_id]) {
           instanceByPurchaseId[inst.stripe_purchase_id] = inst;
+          claimedInstanceIds.add(inst.id);
         }
-      } else {
-        orphanedInstances.push(inst);
+      } else if (inst.program_assignment_id) {
+        if (!instanceByAssignmentId[inst.program_assignment_id]) {
+          instanceByAssignmentId[inst.program_assignment_id] = inst;
+          claimedInstanceIds.add(inst.id);
+        }
+      }
+    }
+
+    // Instances that are also covered by a purchase via training_program_id match
+    // (some auto-created instances may not have program_assignment_id set but belong to an assignment's program)
+    const assignmentProgramIds = new Set(assignments.map((a) => a.training_program_id));
+
+    const orphanedInstances = [];
+    for (const inst of allInstances) {
+      if (!claimedInstanceIds.has(inst.id)) {
+        // If the instance's plan belongs to a program covered by an assignment, wire it up
+        const instProgramId = inst.plan && inst.plan.training_program_id ? inst.plan.training_program_id : null;
+        if (instProgramId && assignmentProgramIds.has(instProgramId)) {
+          // Find the matching assignment and claim this instance
+          const matchingAssignment = assignments.find((a) => a.training_program_id === instProgramId);
+          if (matchingAssignment && !instanceByAssignmentId[matchingAssignment.id]) {
+            instanceByAssignmentId[matchingAssignment.id] = inst;
+            claimedInstanceIds.add(inst.id);
+          } else if (!matchingAssignment) {
+            orphanedInstances.push(inst);
+          }
+        } else {
+          orphanedInstances.push(inst);
+        }
       }
     }
 
     const now = new Date().toISOString();
     const today = now.slice(0, 10);
 
-    const programs = purchases.map((purchase) => {
+    // ── Purchase-based program entries ──
+    const purchasePrograms = purchases.map((purchase) => {
       const instance = instanceByPurchaseId[purchase.id] || null;
       const programMeta = purchase.training_programs || null;
 
@@ -100,12 +139,14 @@ exports.handler = async (event) => {
         purchase.grace_period_ends_at > now
       );
 
-      const phase = derivePhase({ purchase, instance, isCoachLocked, isInGrace });
+      const phase = derivePurchasePhase({ purchase, instance, isCoachLocked, isInGrace });
 
       const canCreateInstance =
         purchase.status === "paid" || isInGrace
           ? (!instance || instance.status === "cancelled" || instance.status === "completed")
           : false;
+
+      const templates = templatesByProgramId[purchase.program_id] || [];
 
       return {
         purchase: {
@@ -139,9 +180,114 @@ exports.handler = async (event) => {
         phase,
         isCoachLocked,
         isInGrace,
-        canCreateInstance
+        canCreateInstance,
+        sourceType: "purchase",
+        availableTemplates: templates
       };
     });
+
+    // ── Assignment-based program entries (coach-assigned, no Stripe) ──
+    // Deduplicate: skip assignments whose program is already covered by a purchase
+    const purchaseProgramIds = new Set(purchases.map((p) => p.program_id).filter(Boolean));
+
+    // Collect unique program IDs from assignments that need template lookups
+    const assignmentProgramIdsForTemplates = new Set();
+    for (const a of assignments) {
+      if (!purchaseProgramIds.has(a.training_program_id)) {
+        assignmentProgramIdsForTemplates.add(a.training_program_id);
+      }
+    }
+
+    // Also collect program IDs from purchases that have no instance yet
+    for (const purchase of purchases) {
+      const instance = instanceByPurchaseId[purchase.id] || null;
+      if (!instance || instance.status === "cancelled" || instance.status === "completed") {
+        if (purchase.program_id) assignmentProgramIdsForTemplates.add(purchase.program_id);
+      }
+    }
+
+    // Fetch templates for all relevant programs in parallel
+    const templatesByProgramId = {};
+    if (assignmentProgramIdsForTemplates.size > 0) {
+      const templateFetches = [...assignmentProgramIdsForTemplates].map(async (programId) => {
+        const plans = await listStrengthPlans(config, { trainingProgramId: programId });
+        const active = (Array.isArray(plans) ? plans : []).filter((p) =>
+          p.status === "active" || p.status === "draft"
+        );
+        templatesByProgramId[programId] = active.map((p) => ({
+          id: p.id,
+          name: p.name,
+          description: p.description || null,
+          totalWeeks: p.total_weeks,
+          status: p.status
+        }));
+      });
+      await Promise.all(templateFetches);
+    }
+
+    const assignmentPrograms = assignments
+      .filter((assignment) => !purchaseProgramIds.has(assignment.training_program_id))
+      .map((assignment) => {
+        const instance = instanceByAssignmentId[assignment.id] || null;
+        const programMeta = assignment.training_program || null;
+
+        // Coach lock: from instance if available, else from assignment itself
+        const assignmentEndDate = assignment.access_end_date || assignment.computed_end_date || null;
+        const isCoachLocked = !!(
+          (instance && instance.coach_locked_until && instance.coach_locked_until >= today) ||
+          (assignment.coach_id && assignmentEndDate && assignmentEndDate >= today)
+        );
+
+        const phase = deriveAssignmentPhase({ assignment, instance, isCoachLocked });
+
+        // Athlete can self-start only when not coach-locked, assignment is running, and no active instance
+        const canCreateInstance =
+          !isCoachLocked &&
+          (assignment.status === "active" || assignment.status === "scheduled") &&
+          (!instance || instance.status === "cancelled" || instance.status === "completed");
+
+        // Available templates for plan picker (only when athlete can/should pick)
+        const templates = templatesByProgramId[assignment.training_program_id] || [];
+
+        return {
+          purchase: {
+            id: assignment.id,
+            programId: assignment.training_program_id,
+            billingType: "assignment",
+            status: assignment.status === "paused" ? "paused" : "paid",
+            paidAt: assignment.created_at || null,
+            expiresAt: assignment.access_end_date || assignment.computed_end_date || null,
+            gracePeriodEndsAt: null
+          },
+          program: programMeta
+            ? {
+                id: programMeta.id,
+                name: programMeta.name,
+                accessModel: programMeta.access_model,
+                durationWeeks: assignment.duration_weeks || programMeta.duration_weeks,
+                billingType: programMeta.billing_type
+              }
+            : null,
+          instance: instance
+            ? {
+                id: instance.id,
+                status: instance.status,
+                startDate: instance.start_date || null,
+                coachLockedUntil: instance.coach_locked_until || null,
+                accessModel: instance.access_model || null,
+                planName: instance.plan ? instance.plan.name : null
+              }
+            : null,
+          phase,
+          isCoachLocked,
+          isInGrace: false,
+          canCreateInstance,
+          sourceType: "assignment",
+          availableTemplates: templates
+        };
+      });
+
+    const programs = [...purchasePrograms, ...assignmentPrograms];
 
     return json(200, { programs, orphanedInstances });
   } catch (err) {

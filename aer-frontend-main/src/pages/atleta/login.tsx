@@ -17,7 +17,7 @@ export default function AtletaLoginPage() {
       if (!isMounted) return;
       const wasExpired = await enforceSessionMaxAge(session);
       if (!wasExpired && session?.user) {
-        navigate("/atleta", { replace: true });
+        navigate("/atleta/perfil", { replace: true });
         return;
       }
       setLoading(false);
@@ -29,7 +29,7 @@ export default function AtletaLoginPage() {
       if (!isMounted) return;
       const wasExpired = await enforceSessionMaxAge(session);
       if (!wasExpired && session?.user) {
-        navigate("/atleta", { replace: true });
+        navigate("/atleta/perfil", { replace: true });
       } else {
         setLoading(false);
       }
@@ -45,7 +45,7 @@ export default function AtletaLoginPage() {
     setErrorMessage(null);
     setSubmitting(true);
     try {
-      await signInWithGoogle("/atleta");
+      await signInWithGoogle("/atleta/perfil");
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Nao foi possivel iniciar sessao.");
       setSubmitting(false);
@@ -73,10 +73,10 @@ export default function AtletaLoginPage() {
             Lion Hybrid Training
           </p>
           <h1 className="mt-2 font-['Oswald'] text-3xl font-semibold uppercase tracking-[0.04em] text-[#f7f1e8]">
-            Sistema de Login
+            Login do Atleta
           </h1>
           <p className="mt-2 text-sm text-[#a9b2bf]">
-            Entra para aceder ao teu ecossistema de treino.
+            Entra com Google. Se faltar informacao do teu perfil, vais completar o registo no passo seguinte.
           </p>
         </div>
 
@@ -86,7 +86,7 @@ export default function AtletaLoginPage() {
           disabled={submitting}
           className="mt-6 flex w-full items-center justify-center gap-3 rounded-xl bg-[linear-gradient(180deg,#e3b861,#d4a54f_55%,#bf8e3e)] px-4 py-3 text-sm font-semibold text-[#111111] shadow-[0_8px_24px_rgba(212,165,79,0.3)] disabled:opacity-70"
         >
-          {submitting ? "A autenticar..." : "Entrar com Google"}
+          {submitting ? "A autenticar..." : "Entrar"}
         </button>
 
         <button

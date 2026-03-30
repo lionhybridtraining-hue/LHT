@@ -38,6 +38,7 @@
           <button id="tab-athletes" class="admin-tab" type="button" role="tab" aria-selected="false" aria-controls="athletes-panel">Athletes & Coaches</button>
           <button id="tab-assignments" class="admin-tab" type="button" role="tab" aria-selected="false" aria-controls="assignments-panel">Assignments</button>
           <button id="tab-programs" class="admin-tab" type="button" role="tab" aria-selected="false" aria-controls="programs-panel">Programas</button>
+          <button id="tab-calendario" class="admin-tab" type="button" role="tab" aria-selected="false" aria-controls="calendario-panel">Calendário</button>
           <button id="tab-vendas" class="admin-tab" type="button" role="tab" aria-selected="false" aria-controls="vendas-panel">Vendas</button>
           <button id="tab-leads" class="admin-tab" type="button" role="tab" aria-selected="false" aria-controls="leads-panel">Leads Meta</button>
           <button id="tab-ai" class="admin-tab" type="button" role="tab" aria-selected="false" aria-controls="ai-panel">IA</button>
@@ -346,40 +347,11 @@
           <div class="sc-ess-section">
             <div class="sc-ess-section-header">
               <h3>Programa em destaque</h3>
-              <p>Conteúdo da secção de destaque na homepage. Atualmente: AER.</p>
+              <p>Selecionado automaticamente a partir dos programas ativos (prioridade por calendário).</p>
             </div>
             <div class="sc-ess-grid">
-              <div class="sc-ess-field">
-                <label class="sc-ess-label" for="ess-featured_program_name">Nome do programa <span class="sc-ess-page">Homepage</span></label>
-                <input id="ess-featured_program_name" type="text" class="sc-ess-input" placeholder="Ex.: Athletic Endurance Runner (AER)" />
-              </div>
-              <div class="sc-ess-field">
-                <label class="sc-ess-label" for="ess-featured_program_tagline">Tagline <span class="sc-ess-page">Homepage</span></label>
-                <input id="ess-featured_program_tagline" type="text" class="sc-ess-input" placeholder="Ex.: Become a Lion. Become Hybrid." />
-              </div>
-              <div class="sc-ess-field">
-                <label class="sc-ess-label" for="ess-featured_program_next_date">Próxima data <span class="sc-ess-page">Homepage</span></label>
-                <input id="ess-featured_program_next_date" type="text" class="sc-ess-input" placeholder="Ex.: 14 de Setembro" />
-              </div>
-              <div class="sc-ess-field">
-                <label class="sc-ess-label" for="ess-featured_program_subtitle">Subtítulo (HTML) <span class="sc-ess-page">Homepage</span></label>
-                <input id="ess-featured_program_subtitle" type="text" class="sc-ess-input" placeholder="Ex.: Mais <strong>resistente,</strong> mais <strong>forte</strong>" />
-              </div>
-              <div class="sc-ess-field">
-                <label class="sc-ess-label" for="ess-featured_program_image">Imagem/Logo (URL) <span class="sc-ess-page">Homepage</span></label>
-                <input id="ess-featured_program_image" type="text" class="sc-ess-input" placeholder="Ex.: assets/img/logo-aer.png" />
-              </div>
-              <div class="sc-ess-field">
-                <label class="sc-ess-label" for="ess-featured_program_cta_label">Texto do CTA <span class="sc-ess-page">Homepage</span></label>
-                <input id="ess-featured_program_cta_label" type="text" class="sc-ess-input" placeholder="Ex.: Reserva já a tua vaga" />
-              </div>
-              <div class="sc-ess-field">
-                <label class="sc-ess-label" for="ess-featured_program_cta_url">URL do CTA <span class="sc-ess-page">Homepage</span></label>
-                <input id="ess-featured_program_cta_url" type="url" class="sc-ess-input" placeholder="https://buy.stripe.com/..." />
-              </div>
               <div class="sc-ess-field sc-ess-field--wide">
-                <label class="sc-ess-label" for="ess-featured_program_features">Features (JSON array HTML) <span class="sc-ess-page">Homepage</span></label>
-                <textarea id="ess-featured_program_features" class="sc-ess-input" rows="3" placeholder='["<strong>Programa completo</strong> no TrainingPeaks", "Duas consultorias individuais"]'></textarea>
+                <p class="muted" style="margin:0;">Para alterar o destaque, atualiza os programas em <strong>Programas</strong> e define a prioridade de calendário no programa pretendido.</p>
               </div>
             </div>
           </div>
@@ -387,32 +359,11 @@
           <div class="sc-ess-section">
             <div class="sc-ess-section-header">
               <h3>Próximo desafio — Calendário</h3>
-              <p>Conteúdo do cartão de desafio na página de calendário.</p>
+              <p>Gestão centralizada na aba <strong>Calendário</strong>.</p>
             </div>
             <div class="sc-ess-grid">
-              <div class="sc-ess-field">
-                <label class="sc-ess-label" for="ess-challenge_name">Nome do desafio <span class="sc-ess-page">Calendário</span></label>
-                <input id="ess-challenge_name" type="text" class="sc-ess-input" placeholder="Ex.: Trail do Gerês 2026" />
-              </div>
-              <div class="sc-ess-field">
-                <label class="sc-ess-label" for="ess-challenge_date_label">Data (texto) <span class="sc-ess-page">Calendário</span></label>
-                <input id="ess-challenge_date_label" type="text" class="sc-ess-input" placeholder="Ex.: Junho 2026" />
-              </div>
-              <div class="sc-ess-field">
-                <label class="sc-ess-label" for="ess-challenge_location">Local <span class="sc-ess-page">Calendário</span></label>
-                <input id="ess-challenge_location" type="text" class="sc-ess-input" placeholder="Ex.: Serra da Estrela, Portugal" />
-              </div>
-              <div class="sc-ess-field">
-                <label class="sc-ess-label" for="ess-challenge_format">Formato <span class="sc-ess-page">Calendário</span></label>
-                <input id="ess-challenge_format" type="text" class="sc-ess-input" placeholder="Ex.: Corrida, trail ou desafio híbrido" />
-              </div>
-              <div class="sc-ess-field">
-                <label class="sc-ess-label" for="ess-challenge_focus">Foco <span class="sc-ess-page">Calendário</span></label>
-                <input id="ess-challenge_focus" type="text" class="sc-ess-input" placeholder="Ex.: Base aeróbica, resiliência e progressão" />
-              </div>
               <div class="sc-ess-field sc-ess-field--wide">
-                <label class="sc-ess-label" for="ess-challenge_description">Descrição do desafio <span class="sc-ess-page">Calendário</span></label>
-                <textarea id="ess-challenge_description" class="sc-ess-input" rows="3" placeholder="Descrição que aparece no cartão do desafio"></textarea>
+                <p class="muted" style="margin:0;">O cartão "Desafio em Destaque" é gerado automaticamente a partir dos programas com dados de prova configurados. Usa a aba <strong>Calendário</strong> para editar provas, ordem de destaque e links de subscrição.</p>
               </div>
             </div>
           </div>
@@ -438,14 +389,6 @@
               <div class="sc-ess-field">
                 <label class="sc-ess-label" for="ess-social_whatsapp">WhatsApp Comunidade <span class="sc-ess-page">Todos</span></label>
                 <input id="ess-social_whatsapp" type="url" class="sc-ess-input" placeholder="https://chat.whatsapp.com/..." />
-              </div>
-              <div class="sc-ess-field">
-                <label class="sc-ess-label" for="ess-calendar_google_url">Adicionar ao Google Calendar <span class="sc-ess-page">Calendário</span></label>
-                <input id="ess-calendar_google_url" type="url" class="sc-ess-input" placeholder="https://calendar.google.com/..." />
-              </div>
-              <div class="sc-ess-field">
-                <label class="sc-ess-label" for="ess-calendar_ical_url">Subscrever via iCal <span class="sc-ess-page">Calendário</span></label>
-                <input id="ess-calendar_ical_url" type="url" class="sc-ess-input" placeholder="https://calendar.google.com/calendar/ical/..." />
               </div>
             </div>
           </div>
@@ -905,6 +848,28 @@
             </div>
           </dialog>
 
+          <!-- Assign Coach Dialog (simpler version for quick coach assignment) -->
+          <dialog id="assign-coach-dialog" class="admin-action-dialog">
+            <div class="modal-header">
+              <h3 id="assign-coach-dialog-title">Atribuir coach</h3>
+              <button id="close-assign-coach-dialog-btn" type="button" class="modal-close-btn" aria-label="Fechar">✕</button>
+            </div>
+            <div class="modal-content">
+              <div class="admin-inline-form">
+                <div class="field field-wide">
+                  <label for="quick-assign-coach-select">Coach (opcional)</label>
+                  <select id="quick-assign-coach-select">
+                    <option value="">Sem coach (self-serve)</option>
+                  </select>
+                </div>
+                <div class="form-actions">
+                  <button id="quick-assign-coach-save-btn" type="button">Guardar</button>
+                  <button id="quick-assign-coach-cancel-btn" type="button">Cancelar</button>
+                </div>
+              </div>
+            </div>
+          </dialog>
+
         </div>
       </section>
 
@@ -954,8 +919,8 @@
               <input id="new-assign-start" type="date" />
             </div>
             <div class="field">
-              <label for="new-assign-weeks">Semanas</label>
-              <input id="new-assign-weeks" type="number" min="1" value="12" style="width:80px;" />
+              <label for="new-assign-end">Data fim (opcional)</label>
+              <input id="new-assign-end" type="date" />
             </div>
             <div class="field">
               <label for="new-assign-status">Estado</label>
@@ -987,7 +952,7 @@
                 <th style="padding:8px; text-align:left;">Coach</th>
                 <th style="padding:8px; text-align:left;">Status</th>
                 <th style="padding:8px; text-align:left;">Inicio</th>
-                <th style="padding:8px; text-align:left;">Fim previsto</th>
+                <th style="padding:8px; text-align:left;">Fim acesso</th>
                 <th style="padding:8px; text-align:left;">Criado</th>
                 <th style="padding:8px; text-align:left;">Acoes</th>
               </tr>
@@ -1138,6 +1103,10 @@
               <div class="field">
                 <label for="program-event-location">Local da prova</label>
                 <input id="program-event-location" type="text" placeholder="Ex.: Lisboa" />
+              </div>
+              <div class="field field-wide">
+                <label for="program-event-description">Descrição da prova</label>
+                <textarea id="program-event-description" rows="3" placeholder="Texto de marketing para o cartão de desafio no calendário"></textarea>
               </div>
               <div class="field">
                 <label for="program-calendar-highlight-rank">Ordem de destaque</label>
@@ -1331,6 +1300,10 @@
                     <label for="edit-program-event-location">Local da prova</label>
                     <input id="edit-program-event-location" type="text" />
                   </div>
+                  <div class="field field-wide">
+                    <label for="edit-program-event-description">Descrição da prova</label>
+                    <textarea id="edit-program-event-description" rows="3" placeholder="Texto de marketing para o cartão de desafio no calendário"></textarea>
+                  </div>
                   <div class="field">
                     <label for="edit-program-calendar-highlight-rank">Ordem de destaque</label>
                     <input id="edit-program-calendar-highlight-rank" type="number" min="0" step="1" />
@@ -1352,6 +1325,109 @@
           </div>
         </dialog>
 
+      </section>
+
+      <!-- CALENDARIO PANEL -->
+      <section id="calendario-panel" class="admin-athletes" hidden>
+        <div class="editor-top">
+          <div>
+            <p class="section-eyebrow">Calendar Ops</p>
+            <h2>Calendário e Provas</h2>
+            <p>Gestão das provas associadas aos programas e a sua visibilidade no calendário público.</p>
+          </div>
+        </div>
+
+        <p id="calendario-message" class="message" role="status"></p>
+
+        <div class="sc-ess-section" style="margin-bottom:1.5rem;">
+          <div class="sc-ess-section-header">
+            <h3>Como funciona</h3>
+            <p>Cada programa pode ter uma prova associada (nome, data, local, descrição). O programa com menor <strong>Ordem de destaque</strong> aparece como "Desafio em Destaque" na página de calendário. Programas com <strong>Visível no calendário</strong> = sim e data futura aparecem na lista pública.</p>
+          </div>
+        </div>
+
+        <div style="overflow-x:auto;">
+          <table class="admin-table" style="width:100%;">
+            <thead>
+              <tr>
+                <th>Programa</th>
+                <th>Prova</th>
+                <th>Data</th>
+                <th>Local</th>
+                <th>Rank</th>
+                <th>Visível</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="calendario-table-body">
+              <tr><td colspan="7" style="padding:16px; color:#8b949e;">Carregando...</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="sc-ess-section" style="margin-top:2rem;">
+          <div class="sc-ess-section-header">
+            <h3>Links de subscrição do calendário</h3>
+            <p>URLs globais para os botões "Adicionar ao Google Calendar" e "Subscrever via iCal" na página de calendário.</p>
+          </div>
+          <div class="sc-ess-grid">
+            <div class="sc-ess-field">
+              <label class="sc-ess-label" for="cal-google-url">Google Calendar URL</label>
+              <input id="cal-google-url" type="url" class="sc-ess-input" placeholder="https://calendar.google.com/..." />
+            </div>
+            <div class="sc-ess-field">
+              <label class="sc-ess-label" for="cal-ical-url">iCal URL</label>
+              <input id="cal-ical-url" type="url" class="sc-ess-input" placeholder="https://calendar.google.com/calendar/ical/..." />
+            </div>
+          </div>
+          <div class="form-actions" style="margin-top:0.75rem;">
+            <button id="cal-save-links-btn" type="button">Guardar links</button>
+          </div>
+        </div>
+
+        <dialog id="cal-edit-dialog" class="admin-dialog">
+          <div class="dialog-content">
+            <div class="dialog-header">
+              <h3 id="cal-edit-dialog-title">Editar prova</h3>
+              <button id="cal-edit-dialog-close" type="button" class="dialog-close" aria-label="Fechar">&times;</button>
+            </div>
+            <input type="hidden" id="cal-edit-program-id" />
+            <div class="programs-form-grid">
+              <div class="field field-wide">
+                <label for="cal-edit-event-name">Nome da prova</label>
+                <input id="cal-edit-event-name" type="text" placeholder="Ex.: Meia Maratona de Lisboa" />
+              </div>
+              <div class="field">
+                <label for="cal-edit-event-date">Data da prova</label>
+                <input id="cal-edit-event-date" type="date" />
+              </div>
+              <div class="field">
+                <label for="cal-edit-event-location">Local</label>
+                <input id="cal-edit-event-location" type="text" placeholder="Ex.: Lisboa" />
+              </div>
+              <div class="field">
+                <label for="cal-edit-highlight-rank">Ordem de destaque</label>
+                <input id="cal-edit-highlight-rank" type="number" min="0" step="1" placeholder="Opcional" />
+                <small class="field-hint">Menor valor = mais destaque. Vazio usa ordem automática.</small>
+              </div>
+              <div class="field field-wide">
+                <label for="cal-edit-event-description">Descrição da prova</label>
+                <textarea id="cal-edit-event-description" rows="3" placeholder="Texto de marketing para o cartão de desafio na página de calendário"></textarea>
+              </div>
+              <div class="field field-checkbox-card">
+                <label class="checkbox-line" for="cal-edit-calendar-visible">
+                  <input id="cal-edit-calendar-visible" type="checkbox" checked />
+                  <span>Visível no calendário</span>
+                </label>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button id="cal-edit-save-btn" type="button">Guardar</button>
+              <button id="cal-edit-cancel-btn" type="button">Cancelar</button>
+            </div>
+            <p id="cal-edit-message" class="message" role="status"></p>
+          </div>
+        </dialog>
       </section>
 
       <!-- VENDAS PANEL -->
@@ -2149,13 +2225,7 @@
       ['onboarding_page_name', 'Onboarding — Lion Hybrid Training'],
       ['onboarding_page_url', 'https://lionhybridtraining.com/onboarding'],
       ['onboarding_page_description', 'Bem-vindo à Lion Hybrid Training! Segue estes passos para começar a treinar com o programa AER.'],
-      ['aer_next_date', '16 de Fevereiro'],
-      ['challenge_name', 'Desafio LHT em preparação'],
-      ['challenge_date_label', 'Data por definir'],
-      ['challenge_location', 'Portugal'],
-      ['challenge_format', 'Corrida, trail ou desafio híbrido'],
-      ['challenge_focus', 'Base aeróbica, resiliência e progressão'],
-      ['challenge_description', 'Escolhe a prova que te motiva, junta-te à comunidade e usa o AER para transformar intenção em execução semana após semana.']
+      ['aer_next_date', '16 de Fevereiro']
     ];
 
     const SITE_LINK_PRESETS = [
@@ -2169,26 +2239,10 @@
     ];
 
     const ESSENTIAL_FIELDS_CONFIG = [
-    { id: 'ess-featured_program_name',       key: 'featured_program_name',       section: 'metadata' },
-    { id: 'ess-featured_program_tagline',    key: 'featured_program_tagline',    section: 'metadata' },
-    { id: 'ess-featured_program_next_date',  key: 'featured_program_next_date',  section: 'metadata' },
-    { id: 'ess-featured_program_subtitle',   key: 'featured_program_subtitle',   section: 'metadata' },
-    { id: 'ess-featured_program_image',      key: 'featured_program_image',      section: 'metadata' },
-    { id: 'ess-featured_program_cta_label',  key: 'featured_program_cta_label',  section: 'metadata' },
-    { id: 'ess-featured_program_cta_url',    key: 'featured_program_cta_url',    section: 'metadata' },
-    { id: 'ess-featured_program_features',   key: 'featured_program_features',   section: 'metadata' },
-    { id: 'ess-challenge_name',        key: 'challenge_name',        section: 'metadata' },
-    { id: 'ess-challenge_date_label',  key: 'challenge_date_label',  section: 'metadata' },
-    { id: 'ess-challenge_location',    key: 'challenge_location',    section: 'metadata' },
-    { id: 'ess-challenge_format',      key: 'challenge_format',      section: 'metadata' },
-    { id: 'ess-challenge_focus',       key: 'challenge_focus',       section: 'metadata' },
-    { id: 'ess-challenge_description', key: 'challenge_description', section: 'metadata' },
     { id: 'ess-cta_reserva_aer',       key: 'cta_reserva_aer',       section: 'link' },
       { id: 'ess-social_instagram',      key: 'social_instagram',      section: 'link' },
       { id: 'ess-social_youtube',        key: 'social_youtube',        section: 'link' },
       { id: 'ess-social_whatsapp',       key: 'social_whatsapp',       section: 'link' },
-      { id: 'ess-calendar_google_url',   key: 'calendar_google_url',   section: 'link' },
-      { id: 'ess-calendar_ical_url',     key: 'calendar_ical_url',     section: 'link' },
     ];
 
     const els = {
@@ -2266,6 +2320,7 @@
       tabAthletes: document.getElementById('tab-athletes'),
       tabAssignments: document.getElementById('tab-assignments'),
       tabPrograms: document.getElementById('tab-programs'),
+      tabCalendario: document.getElementById('tab-calendario'),
       tabOperations: document.getElementById('tab-operations'),
       blogSidebar: document.getElementById('blog-sidebar'),
       blogEditor: document.getElementById('blog-editor'),
@@ -2277,6 +2332,25 @@
       athletesSubtabAthletes: document.getElementById('athletes-subtab-athletes'),
       athletesSubtabCoaches: document.getElementById('athletes-subtab-coaches'),
       programsPanel: document.getElementById('programs-panel'),
+      calendarioPanel: document.getElementById('calendario-panel'),
+      calendarioMessage: document.getElementById('calendario-message'),
+      calendarioTableBody: document.getElementById('calendario-table-body'),
+      calGoogleUrl: document.getElementById('cal-google-url'),
+      calIcalUrl: document.getElementById('cal-ical-url'),
+      calSaveLinksBtn: document.getElementById('cal-save-links-btn'),
+      calEditDialog: document.getElementById('cal-edit-dialog'),
+      calEditDialogTitle: document.getElementById('cal-edit-dialog-title'),
+      calEditDialogClose: document.getElementById('cal-edit-dialog-close'),
+      calEditProgramId: document.getElementById('cal-edit-program-id'),
+      calEditEventName: document.getElementById('cal-edit-event-name'),
+      calEditEventDate: document.getElementById('cal-edit-event-date'),
+      calEditEventLocation: document.getElementById('cal-edit-event-location'),
+      calEditHighlightRank: document.getElementById('cal-edit-highlight-rank'),
+      calEditEventDescription: document.getElementById('cal-edit-event-description'),
+      calEditCalendarVisible: document.getElementById('cal-edit-calendar-visible'),
+      calEditSaveBtn: document.getElementById('cal-edit-save-btn'),
+      calEditCancelBtn: document.getElementById('cal-edit-cancel-btn'),
+      calEditMessage: document.getElementById('cal-edit-message'),
       operationsPanel: document.getElementById('operations-panel'),
       siteContentMessage: document.getElementById('site-content-message'),
       refreshSiteContentBtn: document.getElementById('refresh-site-content-btn'),
@@ -2370,6 +2444,7 @@
       programEventName: document.getElementById('program-event-name'),
       programEventDate: document.getElementById('program-event-date'),
       programEventLocation: document.getElementById('program-event-location'),
+      programEventDescription: document.getElementById('program-event-description'),
       programCalendarVisible: document.getElementById('program-calendar-visible'),
       programCalendarHighlightRank: document.getElementById('program-calendar-highlight-rank'),
       programScheduledTemplate: document.getElementById('program-scheduled-template'),
@@ -2394,6 +2469,7 @@
       editProgramEventName: document.getElementById('edit-program-event-name'),
       editProgramEventDate: document.getElementById('edit-program-event-date'),
       editProgramEventLocation: document.getElementById('edit-program-event-location'),
+      editProgramEventDescription: document.getElementById('edit-program-event-description'),
       editProgramCalendarVisible: document.getElementById('edit-program-calendar-visible'),
       editProgramCalendarHighlightRank: document.getElementById('edit-program-calendar-highlight-rank'),
       saveProgramEditBtn: document.getElementById('save-program-edit-btn'),
@@ -2431,7 +2507,7 @@
       newAssignProgram: document.getElementById('new-assign-program'),
       newAssignCoach: document.getElementById('new-assign-coach'),
       newAssignStart: document.getElementById('new-assign-start'),
-      newAssignWeeks: document.getElementById('new-assign-weeks'),
+      newAssignEnd: document.getElementById('new-assign-end'),
       newAssignStatus: document.getElementById('new-assign-status'),
       newAssignNotes: document.getElementById('new-assign-notes'),
       // Vendas tab
@@ -2532,7 +2608,14 @@
       auditAthletesKpi: document.getElementById('audit-athletes-kpi'),
       auditIssuesEmpty: document.getElementById('audit-issues-empty'),
       auditIssuesBody: document.getElementById('audit-issues-body'),
-      auditAthleteDataBody: document.getElementById('audit-athlete-data-body')
+      auditAthleteDataBody: document.getElementById('audit-athlete-data-body'),
+      // Assign Coach Dialog
+      assignCoachDialog: document.getElementById('assign-coach-dialog'),
+      assignCoachDialogTitle: document.getElementById('assign-coach-dialog-title'),
+      closeAssignCoachDialogBtn: document.getElementById('close-assign-coach-dialog-btn'),
+      quickAssignCoachSelect: document.getElementById('quick-assign-coach-select'),
+      quickAssignCoachSaveBtn: document.getElementById('quick-assign-coach-save-btn'),
+      quickAssignCoachCancelBtn: document.getElementById('quick-assign-coach-cancel-btn')
     };
 
     const tabConfig = {
@@ -2555,6 +2638,10 @@
       programs: {
         tabEl: () => els.tabPrograms,
         panels: () => [els.programsPanel]
+      },
+      calendario: {
+        tabEl: () => els.tabCalendario,
+        panels: () => [els.calendarioPanel]
       },
       vendas: {
         tabEl: () => els.tabVendas,
@@ -2662,6 +2749,10 @@
       if (activeTab === 'programs' && state.user && state.isAdmin) {
         refreshProgramsData().catch((err) => showProgramsMessage(err.message, true));
         refreshAuditAthletesCatalog().catch(() => {});
+      }
+
+      if (activeTab === 'calendario' && state.user && state.isAdmin) {
+        refreshCalendarioTab().catch((err) => showCalendarioMessage(err.message, true));
       }
 
       if (activeTab === 'vendas' && state.user && state.isAdmin) {
@@ -4910,7 +5001,7 @@
     function renderCreateInstanceForm(container, athleteId, programId) {
       const assignment = state.currentAssignment;
       const assignmentId = assignment ? assignment.id : null;
-      const coachLockedUntil = assignment ? assignment.computedEndDate : null;
+      const coachLockedUntil = assignment ? (assignment.accessEndDate || assignment.computedEndDate) : null;
       const accessModel = null;
 
       const form = document.createElement('div');
@@ -5040,7 +5131,7 @@
         const coachLabel = coach ? (coach.name || coach.email || coach.id) : (assignment.coachId || 'sem coach');
         els.assignmentCurrentMeta.innerHTML = [
           `Inicio: ${formatAssignmentDate(assignment.startDate)}`,
-          `Fim previsto: ${formatAssignmentDate(assignment.computedEndDate)}`,
+          `Fim acesso: ${assignment.accessEndDate || assignment.computedEndDate ? formatAssignmentDate(assignment.accessEndDate || assignment.computedEndDate) : 'Vitalicio'}`,
           `Fim real: ${formatAssignmentDate(assignment.actualEndDate)}`,
           `Coach: ${coachLabel}`
         ].join(' | ');
@@ -5069,8 +5160,8 @@
             <input id="edit-assignment-start" type="date" value="${assignment.startDate || ''}" />
           </div>
           <div class="field">
-            <label>Semanas</label>
-            <input id="edit-assignment-weeks" type="number" min="1" value="${assignment.durationWeeks || ''}" style="width:80px;" />
+            <label>Data fim</label>
+            <input id="edit-assignment-end" type="date" value="${assignment.accessEndDate || ''}" />
           </div>
           <div class="field">
             <label>Estado</label>
@@ -5093,13 +5184,13 @@
             const patch = {};
             const newCoach = document.getElementById('edit-assignment-coach').value.trim() || null;
             const newStart = document.getElementById('edit-assignment-start').value.trim();
-            const newWeeks = document.getElementById('edit-assignment-weeks').value.trim();
+            const newEnd = document.getElementById('edit-assignment-end').value.trim();
             const newStatus = document.getElementById('edit-assignment-status').value.trim();
             const newNotes = document.getElementById('edit-assignment-notes').value.trim();
 
             if (newCoach !== (assignment.coachId || null)) patch.coachId = newCoach;
             if (newStart && newStart !== assignment.startDate) patch.startDate = newStart;
-            if (newWeeks && Number(newWeeks) !== assignment.durationWeeks) patch.durationWeeks = Number(newWeeks);
+            if (newEnd !== (assignment.accessEndDate || '')) patch.endDate = newEnd || null;
             if (newStatus && newStatus !== assignment.status) patch.status = newStatus;
             if (newNotes !== (assignment.notes || '')) patch.notes = newNotes;
 
@@ -5672,12 +5763,11 @@
         const rows = assignments.map((a) => {
           const statusClass = a.status === 'active' ? 'badge-success' : a.status === 'cancelled' ? 'badge-error' : 'badge-warn';
           const start = a.startDate ? new Date(a.startDate).toLocaleDateString('pt-PT') : '-';
-          const end = a.computedEndDate ? new Date(a.computedEndDate).toLocaleDateString('pt-PT') : '-';
+          const end = (a.accessEndDate || a.computedEndDate) ? new Date(a.accessEndDate || a.computedEndDate).toLocaleDateString('pt-PT') : 'Vitalicio';
           return `<tr>
             <td><span class="badge ${statusClass}">${a.status || '-'}</span></td>
             <td>${start}</td>
             <td>${end}</td>
-            <td>${a.durationWeeks ? `${a.durationWeeks}sem.` : '-'}</td>
             <td style="font-size:0.8rem;max-width:200px;overflow:hidden;text-overflow:ellipsis;">${a.notes || '-'}</td>
           </tr>`;
         }).join('');
@@ -5696,8 +5786,7 @@
                       <tr style="text-align:left;border-bottom:1px solid var(--ink-ghost);">
                         <th style="padding:0.4rem 0.5rem;">Estado</th>
                         <th style="padding:0.4rem 0.5rem;">Início</th>
-                        <th style="padding:0.4rem 0.5rem;">Fim calc.</th>
-                        <th style="padding:0.4rem 0.5rem;">Semanas</th>
+                        <th style="padding:0.4rem 0.5rem;">Fim acesso</th>
                         <th style="padding:0.4rem 0.5rem;">Notas</th>
                       </tr>
                     </thead>
@@ -5730,7 +5819,7 @@
           break;
 
         case 'assign-coach':
-          openAthleteAssignmentPanel(athlete);
+          openAssignCoachDialog(athlete);
           break;
 
         case 'manage-assignment':
@@ -5803,6 +5892,66 @@
         console.error('[Archive] Error:', err);
       }
     }
+
+    /**
+     * Opens the simple assign coach dialog for a specific athlete.
+     */
+    function openAssignCoachDialog(athlete) {
+      if (els.assignCoachDialogTitle) {
+        els.assignCoachDialogTitle.textContent = `${athlete.name || athlete.email || athlete.id}`;
+      }
+
+      // Populate coach dropdown
+      if (els.quickAssignCoachSelect) {
+        els.quickAssignCoachSelect.innerHTML = '<option value="">Sem coach (self-serve)</option>';
+        state.coaches.forEach((coach) => {
+          const option = document.createElement('option');
+          option.value = coach.identityId || '';
+          option.textContent = coach.name || coach.email || coach.id;
+          if (athlete.coachIdentityId && coach.identityId === athlete.coachIdentityId) {
+            option.selected = true;
+          }
+          els.quickAssignCoachSelect.appendChild(option);
+        });
+      }
+
+      // Store current athlete for save operation
+      els.assignCoachDialog.dataset.athleteId = athlete.id;
+
+      openDialog(els.assignCoachDialog);
+    }
+
+    /**
+     * Saves the coach assignment for the selected athlete.
+     */
+    async function quickAssignCoach() {
+      const athleteId = els.assignCoachDialog.dataset.athleteId;
+      const coachIdentityId = (els.quickAssignCoachSelect.value || '').trim();
+
+      if (!athleteId) {
+        showNotification('Erro: Atleta não selecionado.', true);
+        return;
+      }
+
+      try {
+        showNotification(`Atualizando coach do atleta...`);
+        const response = await apiRequest(
+          'PATCH',
+          `/.netlify/functions/admin-update-athlete-coach?athleteId=${athleteId}`,
+          { coachIdentityId: coachIdentityId || null }
+        );
+
+        if (response && response.athlete) {
+          showNotification(`Coach atribuído com sucesso!`);
+          closeDialog(els.assignCoachDialog);
+          await refreshAthletesData();
+        }
+      } catch (err) {
+        showNotification(`Erro ao atribuir coach: ${err.message}`, true);
+        console.error('[Assign Coach] Error:', err);
+      }
+    }
+
 
     function renderProgramOptions() {
       const selectedAssignmentProgram = (els.assignProgramId.value || '').trim();
@@ -5998,6 +6147,7 @@
         eventName: els.programEventName,
         eventDate: els.programEventDate,
         eventLocation: els.programEventLocation,
+        eventDescription: els.programEventDescription,
         calendarVisible: els.programCalendarVisible,
         calendarHighlightRank: els.programCalendarHighlightRank,
         isScheduledTemplate: els.programScheduledTemplate,
@@ -6022,6 +6172,7 @@
         eventName: els.editProgramEventName,
         eventDate: els.editProgramEventDate,
         eventLocation: els.editProgramEventLocation,
+        eventDescription: els.editProgramEventDescription,
         calendarVisible: els.editProgramCalendarVisible,
         calendarHighlightRank: els.editProgramCalendarHighlightRank
       };
@@ -6045,6 +6196,7 @@
       const eventName = (fields.eventName.value || '').trim() || null;
       const eventDate = (fields.eventDate.value || '').trim() || null;
       const eventLocation = (fields.eventLocation.value || '').trim() || null;
+      const eventDescription = fields.eventDescription ? ((fields.eventDescription.value || '').trim() || null) : undefined;
       const calendarVisible = Boolean(fields.calendarVisible.checked);
       const rawCalendarHighlightRank = (fields.calendarHighlightRank.value || '').trim();
       const calendarHighlightRank = rawCalendarHighlightRank === '' ? null : Number(rawCalendarHighlightRank);
@@ -6084,6 +6236,7 @@
         eventName,
         eventDate,
         eventLocation,
+        eventDescription,
         calendarVisible,
         calendarHighlightRank,
       };
@@ -6123,6 +6276,7 @@
       fields.eventName.value = program.eventName || '';
       fields.eventDate.value = program.eventDate || '';
       fields.eventLocation.value = program.eventLocation || '';
+      if (fields.eventDescription) fields.eventDescription.value = program.eventDescription || '';
       fields.calendarVisible.checked = program.calendarVisible !== false;
       fields.calendarHighlightRank.value = program.calendarHighlightRank == null ? '' : String(program.calendarHighlightRank);
     }
@@ -6360,7 +6514,9 @@
         const programLabel = assignment.programName || '-';
         const coachLabel = assignment.coachName || '-';
         const startDate = assignment.startDate ? formatDate(assignment.startDate) : '-';
-        const endDate = assignment.computedEndDate ? formatDate(assignment.computedEndDate) : '-';
+        const endDate = assignment.accessEndDate
+          ? formatDate(assignment.accessEndDate)
+          : (assignment.computedEndDate ? formatDate(assignment.computedEndDate) : 'Vitalicio');
         const createdDate = assignment.createdAt ? formatDate(assignment.createdAt) : '-';
 
         const actionParts = [
@@ -6414,12 +6570,7 @@
           }
           els.newAssignProgram.appendChild(option);
         });
-        els.newAssignProgram.onchange = () => {
-          const selected = state.programs.find((program) => program.id === els.newAssignProgram.value);
-          if (selected && Number.isInteger(Number(selected.durationWeeks || selected.duration_weeks))) {
-            els.newAssignWeeks.value = selected.durationWeeks || selected.duration_weeks;
-          }
-        };
+        els.newAssignProgram.onchange = () => {};
       }
 
       if (els.newAssignCoach) {
@@ -6436,12 +6587,6 @@
         });
       }
 
-      if (els.newAssignStart && !els.newAssignStart.value) {
-        els.newAssignStart.value = new Date().toISOString().slice(0, 10);
-      }
-      if (els.newAssignWeeks && !els.newAssignWeeks.value) {
-        els.newAssignWeeks.value = '12';
-      }
       if (els.newAssignStatus && !els.newAssignStatus.value) {
         els.newAssignStatus.value = 'active';
       }
@@ -6457,8 +6602,8 @@
       if (els.newAssignProgram) els.newAssignProgram.value = '';
       if (els.newAssignProgram) els.newAssignProgram.disabled = false;
       if (els.newAssignCoach) els.newAssignCoach.value = '';
-      if (els.newAssignStart) els.newAssignStart.value = new Date().toISOString().slice(0, 10);
-      if (els.newAssignWeeks) els.newAssignWeeks.value = '12';
+      if (els.newAssignStart) els.newAssignStart.value = '';
+      if (els.newAssignEnd) els.newAssignEnd.value = '';
       if (els.newAssignStatus) els.newAssignStatus.value = 'active';
       if (els.newAssignNotes) els.newAssignNotes.value = '';
     }
@@ -6485,7 +6630,7 @@
       }
       if (els.newAssignCoach) els.newAssignCoach.value = assignment.coachId || '';
       if (els.newAssignStart) els.newAssignStart.value = assignment.startDate || new Date().toISOString().slice(0, 10);
-      if (els.newAssignWeeks) els.newAssignWeeks.value = String(assignment.durationWeeks || 12);
+      if (els.newAssignEnd) els.newAssignEnd.value = assignment.accessEndDate || '';
       if (els.newAssignStatus) els.newAssignStatus.value = assignment.status || 'active';
       if (els.newAssignNotes) els.newAssignNotes.value = assignment.notes || '';
       if (els.assignmentsCreateForm) els.assignmentsCreateForm.hidden = false;
@@ -6523,17 +6668,15 @@
       const trainingProgramId = (els.newAssignProgram && els.newAssignProgram.value || '').trim();
       const coachId = (els.newAssignCoach && els.newAssignCoach.value || '').trim();
       const startDate = (els.newAssignStart && els.newAssignStart.value || '').trim() || new Date().toISOString().slice(0, 10);
-      const durationWeeks = Number(els.newAssignWeeks && els.newAssignWeeks.value);
+      const endDate = (els.newAssignEnd && els.newAssignEnd.value || '').trim();
       const status = (els.newAssignStatus && els.newAssignStatus.value || 'active').trim();
       const notes = (els.newAssignNotes && els.newAssignNotes.value || '').trim();
-
-      if (!Number.isInteger(durationWeeks) || durationWeeks <= 0) throw new Error('Semanas deve ser um inteiro positivo.');
 
       if (assignmentId) {
         await apiRequest('PATCH', `${adminAssignProgramApiBase}?assignmentId=${encodeURIComponent(assignmentId)}`, {
           coachId: coachId || null,
           startDate,
-          durationWeeks,
+          endDate: endDate || null,
           status,
           notes: notes || null
         });
@@ -6550,7 +6693,7 @@
         coachId: coachId || undefined,
         trainingProgramId,
         startDate,
-        durationWeeks,
+        endDate: endDate || undefined,
         priceCentsSnapshot: program ? Number(program.priceCents ?? program.price_cents ?? 0) : 0,
         currencySnapshot: program ? (program.currency || 'EUR') : 'EUR',
         followupTypeSnapshot: program ? (program.followupType || program.followup_type || 'standard') : 'standard',
@@ -7212,7 +7355,19 @@
       resetForm();
     }
 
+    let _authChangeRunning = false;
     async function handleAuthChange(supabaseUser, session) {
+      // Prevent concurrent executions (onAuthStateChange + checkAuthOnLoad race)
+      if (_authChangeRunning) return;
+      _authChangeRunning = true;
+      try {
+        await _handleAuthChangeInner(supabaseUser, session);
+      } finally {
+        _authChangeRunning = false;
+      }
+    }
+
+    async function _handleAuthChangeInner(supabaseUser, session) {
       if (supabaseUser) {
         state.user = {
           id: supabaseUser.id,
@@ -7247,10 +7402,16 @@
       
       setAuthUI();
       if (state.user && state.isAdmin) {
-        try {
-          await refreshList();
-        } catch (err) {
-          showMessage(err.message, true);
+        // Refresh the active tab data; blog refreshList runs in background
+        // to avoid blocking other tabs if Supabase RLS is slow.
+        if (activeTab === 'blog') {
+          try {
+            await refreshList();
+          } catch (err) {
+            showMessage(err.message, true);
+          }
+        } else {
+          refreshList().catch((err) => showMessage(err.message, true));
         }
         if (activeTab === 'athletes') {
           try {
@@ -7292,6 +7453,13 @@
             await refreshVendasData();
           } catch (err) {
             showVendasMessage(err.message, true);
+          }
+        }
+        if (activeTab === 'calendario') {
+          try {
+            await refreshCalendarioTab();
+          } catch (err) {
+            showCalendarioMessage(err.message, true);
           }
         }
         if (activeTab === 'ai') {
@@ -7439,6 +7607,21 @@
       if (els.closeAssignmentDialogBtn && !els.closeAssignmentDialogBtn.dataset.bound) {
         els.closeAssignmentDialogBtn.dataset.bound = '1';
         els.closeAssignmentDialogBtn.addEventListener('click', closeAssignmentDialog);
+      }
+
+      if (els.closeAssignCoachDialogBtn && !els.closeAssignCoachDialogBtn.dataset.bound) {
+        els.closeAssignCoachDialogBtn.dataset.bound = '1';
+        els.closeAssignCoachDialogBtn.addEventListener('click', () => closeDialog(els.assignCoachDialog));
+      }
+
+      if (els.quickAssignCoachSaveBtn && !els.quickAssignCoachSaveBtn.dataset.bound) {
+        els.quickAssignCoachSaveBtn.dataset.bound = '1';
+        els.quickAssignCoachSaveBtn.addEventListener('click', quickAssignCoach);
+      }
+
+      if (els.quickAssignCoachCancelBtn && !els.quickAssignCoachCancelBtn.dataset.bound) {
+        els.quickAssignCoachCancelBtn.dataset.bound = '1';
+        els.quickAssignCoachCancelBtn.addEventListener('click', () => closeDialog(els.assignCoachDialog));
       }
 
       if (els.assignmentHistoryBtn && !els.assignmentHistoryBtn.dataset.bound) {
@@ -7762,6 +7945,208 @@
           showAssignProgramMessage(err.message, true);
         }
       });
+    }
+
+    // ======================= CALENDARIO FUNCTIONS =======================
+
+    let calendarioPrograms = [];
+
+    function showCalendarioMessage(text, isError) {
+      els.calendarioMessage.textContent = text || '';
+      els.calendarioMessage.classList.toggle('error', Boolean(isError));
+      els.calendarioMessage.classList.toggle('success', !isError && Boolean(text));
+    }
+
+    function showCalEditMessage(text, isError) {
+      els.calEditMessage.textContent = text || '';
+      els.calEditMessage.classList.toggle('error', Boolean(isError));
+      els.calEditMessage.classList.toggle('success', !isError && Boolean(text));
+    }
+
+    function formatCalDate(iso) {
+      if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return '—';
+      const d = new Date(iso + 'T00:00:00');
+      if (Number.isNaN(d.getTime())) return iso;
+      return d.toLocaleDateString('pt-PT', { day: '2-digit', month: 'short', year: 'numeric' });
+    }
+
+    function renderCalendarioTable() {
+      const body = els.calendarioTableBody;
+      if (!body) return;
+      body.innerHTML = '';
+      if (!calendarioPrograms.length) {
+        body.innerHTML = '<tr><td colspan="7" style="padding:16px; color:#8b949e;">Nenhum programa encontrado.</td></tr>';
+        return;
+      }
+      const fragment = document.createDocumentFragment();
+      calendarioPrograms.forEach((prog) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML =
+          '<td style="padding:8px;">' + (prog.name || '—').replace(/</g, '&lt;') + '</td>' +
+          '<td style="padding:8px;">' + (prog.eventName || '<em style=\"color:#8b949e;\">não definida</em>') + '</td>' +
+          '<td style="padding:8px;">' + formatCalDate(prog.eventDate) + '</td>' +
+          '<td style="padding:8px;">' + (prog.eventLocation || '—').replace(/</g, '&lt;') + '</td>' +
+          '<td style="padding:8px;">' + (prog.calendarHighlightRank != null ? String(prog.calendarHighlightRank) : '—') + '</td>' +
+          '<td style="padding:8px;">' + (prog.calendarVisible ? '✓' : '✗') + '</td>' +
+          '<td style="padding:8px;"></td>';
+        const editBtn = document.createElement('button');
+        editBtn.type = 'button';
+        editBtn.textContent = 'Editar';
+        editBtn.style.cssText = 'font-size:0.85rem; cursor:pointer;';
+        editBtn.addEventListener('click', () => openCalEditDialog(prog));
+        tr.lastChild.appendChild(editBtn);
+        fragment.appendChild(tr);
+      });
+      body.appendChild(fragment);
+    }
+
+    function openCalEditDialog(prog) {
+      els.calEditProgramId.value = prog.id || '';
+      els.calEditDialogTitle.textContent = 'Editar prova — ' + (prog.name || 'Programa');
+      els.calEditEventName.value = prog.eventName || '';
+      els.calEditEventDate.value = prog.eventDate || '';
+      els.calEditEventLocation.value = prog.eventLocation || '';
+      els.calEditHighlightRank.value = prog.calendarHighlightRank == null ? '' : String(prog.calendarHighlightRank);
+      els.calEditEventDescription.value = prog.eventDescription || '';
+      els.calEditCalendarVisible.checked = prog.calendarVisible !== false;
+      showCalEditMessage('', false);
+      openDialog(els.calEditDialog);
+    }
+
+    function closeCalEditDialog() {
+      closeDialog(els.calEditDialog);
+    }
+
+    async function saveCalEdit() {
+      const programId = (els.calEditProgramId.value || '').trim();
+      if (!programId) return;
+      const eventName = (els.calEditEventName.value || '').trim() || null;
+      const eventDate = (els.calEditEventDate.value || '').trim() || null;
+      const eventLocation = (els.calEditEventLocation.value || '').trim() || null;
+      const eventDescription = (els.calEditEventDescription.value || '').trim() || null;
+      const calendarVisible = Boolean(els.calEditCalendarVisible.checked);
+      const rawRank = (els.calEditHighlightRank.value || '').trim();
+      const calendarHighlightRank = rawRank === '' ? null : Number(rawRank);
+
+      if (eventDate && !/^\d{4}-\d{2}-\d{2}$/.test(eventDate)) {
+        showCalEditMessage('Data da prova deve estar no formato YYYY-MM-DD.', true);
+        return;
+      }
+      if (calendarHighlightRank != null && (!Number.isInteger(calendarHighlightRank) || calendarHighlightRank < 0)) {
+        showCalEditMessage('Ordem de destaque deve ser inteiro >= 0.', true);
+        return;
+      }
+
+      showCalEditMessage('A guardar...', false);
+      try {
+        const token = await getToken();
+        const resp = await fetch(adminProgramsApiBase + '/' + encodeURIComponent(programId), {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + token
+          },
+          body: JSON.stringify({ eventName, eventDate, eventLocation, eventDescription, calendarVisible, calendarHighlightRank })
+        });
+        if (!resp.ok) {
+          const errData = await resp.json().catch(() => ({}));
+          throw new Error(errData.error || 'Erro ao guardar prova');
+        }
+        showCalEditMessage('Guardado!', false);
+        closeCalEditDialog();
+        await refreshCalendarioTab();
+      } catch (err) {
+        showCalEditMessage(err.message || 'Erro ao guardar', true);
+      }
+    }
+
+    async function refreshCalendarioTab() {
+      showCalendarioMessage('A carregar programas...', false);
+      try {
+        if (!state.user) {
+          throw new Error('Sessao expirada. Faz login novamente.');
+        }
+        if (!state.isAdmin) {
+          throw new Error('Acesso negado. Esta conta nao tem permissao de admin.');
+        }
+        const token = await getToken();
+        const resp = await fetch(adminProgramsApiBase, {
+          headers: {
+            'Authorization': 'Bearer ' + token
+          }
+        });
+        if (!resp.ok) {
+          const errData = await resp.json().catch(() => ({}));
+          throw new Error(errData.error || 'Erro HTTP ' + resp.status);
+        }
+        const data = await resp.json();
+        const programs = Array.isArray(data.programs) ? data.programs : [];
+        calendarioPrograms = programs.filter((p) => p.status !== 'archived');
+        renderCalendarioTable();
+        showCalendarioMessage('', false);
+
+        // Populate calendar link fields from site content
+        await populateCalendarLinks();
+      } catch (err) {
+        showCalendarioMessage(err.message || 'Erro ao carregar', true);
+      }
+    }
+
+    async function populateCalendarLinks() {
+      try {
+        const resp = await fetch('/.netlify/functions/site-content', { cache: 'no-store' });
+        if (!resp.ok) return;
+        const data = await resp.json();
+        const links = data.links || {};
+        if (els.calGoogleUrl && !els.calGoogleUrl.value) {
+          els.calGoogleUrl.value = links.calendar_google_url || '';
+        }
+        if (els.calIcalUrl && !els.calIcalUrl.value) {
+          els.calIcalUrl.value = links.calendar_ical_url || '';
+        }
+      } catch (e) {
+        // Best effort
+      }
+    }
+
+    async function saveCalendarLinks() {
+      const googleUrl = (els.calGoogleUrl.value || '').trim();
+      const icalUrl = (els.calIcalUrl.value || '').trim();
+      showCalendarioMessage('A guardar links...', false);
+      try {
+        const token = await getToken();
+        const resp = await fetch('/.netlify/functions/admin-site-content', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + token
+          },
+          body: JSON.stringify({
+            metadata: [],
+            links: [
+              { key: 'calendar_google_url', value: googleUrl },
+              { key: 'calendar_ical_url', value: icalUrl }
+            ],
+            metrics: [],
+            reviews: [],
+            faqs: []
+          })
+        });
+        if (!resp.ok) {
+          const errData = await resp.json().catch(() => ({}));
+          throw new Error(errData.error || 'Erro ao guardar links');
+        }
+        showCalendarioMessage('Links guardados!', false);
+      } catch (err) {
+        showCalendarioMessage(err.message || 'Erro ao guardar', true);
+      }
+    }
+
+    function wireCalendarioEvents() {
+      els.calEditSaveBtn.addEventListener('click', () => saveCalEdit());
+      els.calEditCancelBtn.addEventListener('click', () => closeCalEditDialog());
+      els.calEditDialogClose.addEventListener('click', () => closeCalEditDialog());
+      els.calSaveLinksBtn.addEventListener('click', () => saveCalendarLinks());
     }
 
     // ======================= VENDAS FUNCTIONS =======================
@@ -8401,6 +8786,7 @@
     els.tabAthletes.addEventListener('click', () => setActiveTab('athletes'));
     els.tabAssignments.addEventListener('click', () => setActiveTab('assignments'));
     els.tabPrograms.addEventListener('click', () => setActiveTab('programs'));
+    els.tabCalendario.addEventListener('click', () => setActiveTab('calendario'));
     els.tabVendas.addEventListener('click', () => setActiveTab('vendas'));
     els.tabLeads.addEventListener('click', () => setActiveTab('leads'));
     els.tabAi.addEventListener('click', () => setActiveTab('ai'));
@@ -8416,6 +8802,8 @@
     showSiteContentMessage('Faz login para gerir o conteudo do site.', false);
     showLeadsMessage('Faz login para ver as leads Meta.', false);
     showProgramsMessage('Faz login para gerir programas.', false);
+    showCalendarioMessage('Faz login para gerir o calendário.', false);
+    wireCalendarioEvents();
     showVendasMessage('Faz login para ver vendas e controlo Stripe.', false);
     showAiMessage('Faz login para gerir prompts e logs de IA.', false);
     showOperationsMessage('Faz login para usar a auditoria de dados.', false);

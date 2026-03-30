@@ -5,8 +5,52 @@ const {
   listSiteMetrics,
   listSiteReviews,
   listSiteLinks,
-  listSiteFaqs
+  listSiteFaqs,
+  listPublicTrainingPrograms
 } = require("./_lib/supabase");
+
+function deriveFeaturedProgram(programs) {
+  if (!Array.isArray(programs) || programs.length === 0) return null;
+
+  const highlighted = programs
+    .filter((program) => {
+      const rank = program && program.calendar_highlight_rank;
+      return rank !== null && rank !== undefined && Number.isFinite(Number(rank));
+    })
+    .sort((a, b) => {
+      const rankA = Number(a.calendar_highlight_rank);
+      const rankB = Number(b.calendar_highlight_rank);
+      if (rankA !== rankB) return rankA - rankB;
+
+      const priceA = Number(a && a.price_cents != null ? a.price_cents : Number.MAX_SAFE_INTEGER);
+      const priceB = Number(b && b.price_cents != null ? b.price_cents : Number.MAX_SAFE_INTEGER);
+      if (priceA !== priceB) return priceA - priceB;
+
+      const createdA = Date.parse(a && a.created_at ? a.created_at : "") || 0;
+      const createdB = Date.parse(b && b.created_at ? b.created_at : "") || 0;
+      return createdA - createdB;
+    });
+
+  const featured = highlighted[0] || programs[0];
+
+  return {
+    id: featured && featured.id ? String(featured.id) : null,
+    name: featured && featured.name ? String(featured.name) : null,
+    description: featured && featured.description ? String(featured.description) : null,
+    durationWeeks: featured && featured.duration_weeks != null ? Number(featured.duration_weeks) : null,
+    priceCents: featured && featured.price_cents != null ? Number(featured.price_cents) : null,
+    currency: featured && featured.currency ? String(featured.currency) : "EUR",
+    eventDate: featured && featured.event_date ? String(featured.event_date) : null,
+    eventName: featured && featured.event_name ? String(featured.event_name) : null,
+    eventLocation: featured && featured.event_location ? String(featured.event_location) : null,
+    eventDescription: featured && featured.event_description ? String(featured.event_description) : null,
+    calendarHighlightRank:
+      featured && featured.calendar_highlight_rank != null
+        ? Number(featured.calendar_highlight_rank)
+        : null,
+    ctaUrl: featured && featured.id ? "/programas?program_id=" + encodeURIComponent(String(featured.id)) : null
+  };
+}
 
 function mapMetadata(rows) {
   const metadata = {};
@@ -79,12 +123,13 @@ exports.handler = async (event) => {
   try {
     const config = getConfig();
 
-    const [metadataRows, metricsRows, reviewsRows, linksRows, faqsRows] = await Promise.all([
+    const [metadataRows, metricsRows, reviewsRows, linksRows, faqsRows, programsRows] = await Promise.all([
       listSiteMetadata(config),
       listSiteMetrics(config),
       listSiteReviews(config),
       listSiteLinks(config),
-      listSiteFaqs(config)
+      listSiteFaqs(config),
+      listPublicTrainingPrograms(config)
     ]);
 
     const metadata = mapMetadata(metadataRows);
@@ -92,6 +137,7 @@ exports.handler = async (event) => {
     const reviews = mapReviews(reviewsRows);
     const links = mapLinks(linksRows);
     const faqs = mapFaqs(faqsRows);
+    const featuredProgram = deriveFeaturedProgram(programsRows);
 
     return json(200, {
       metadata,
@@ -99,6 +145,7 @@ exports.handler = async (event) => {
       reviews,
       links,
       faqs,
+      featuredProgram,
       aggregateRating: computeAggregateRating(reviews)
     });
   } catch (err) {

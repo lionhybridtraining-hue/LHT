@@ -64,6 +64,7 @@ function mapRow(row) {
     status: row.status,
     startDate: row.start_date,
     durationWeeks: row.duration_weeks,
+    accessEndDate: row.access_end_date || null,
     computedEndDate: row.computed_end_date,
     notes: row.notes,
     createdAt: row.created_at,

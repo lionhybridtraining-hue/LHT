@@ -26,6 +26,7 @@ exports.handler = async (event) => {
           eventDate: program.event_date || null,
           eventName: program.event_name || null,
           eventLocation: program.event_location || null,
+          eventDescription: program.event_description || null,
           calendarVisible: program.calendar_visible !== false,
           calendarHighlightRank: Number.isInteger(program.calendar_highlight_rank)
             ? program.calendar_highlight_rank

@@ -23,6 +23,8 @@ function normalizeProgramPayload(payload) {
   const eventName = eventNameRaw == null ? null : eventNameRaw.toString().trim() || null;
   const eventLocationRaw = payload.eventLocation == null ? payload.event_location : payload.eventLocation;
   const eventLocation = eventLocationRaw == null ? null : eventLocationRaw.toString().trim() || null;
+  const eventDescriptionRaw = payload.eventDescription == null ? payload.event_description : payload.eventDescription;
+  const eventDescription = eventDescriptionRaw == null ? null : eventDescriptionRaw.toString().trim() || null;
   const calendarVisibleRaw = payload.calendarVisible == null ? payload.calendar_visible : payload.calendarVisible;
   const calendarVisible = calendarVisibleRaw == null
     ? true
@@ -62,6 +64,7 @@ function normalizeProgramPayload(payload) {
     event_date: eventDate,
     event_name: eventName,
     event_location: eventLocation,
+    event_description: eventDescription,
     calendar_visible: calendarVisible,
     calendar_highlight_rank: calendarHighlightRank
   };
@@ -87,6 +90,7 @@ function mapProgram(row) {
     eventDate: row.event_date || null,
     eventName: row.event_name || null,
     eventLocation: row.event_location || null,
+    eventDescription: row.event_description || null,
     calendarVisible: row.calendar_visible !== false,
     calendarHighlightRank: Number.isInteger(row.calendar_highlight_rank) ? row.calendar_highlight_rank : null,
     createdAt: row.created_at || null,
@@ -254,6 +258,10 @@ exports.handler = async (event) => {
       if (dbPatch.eventLocation !== undefined) {
         dbPatch.event_location = dbPatch.eventLocation == null ? null : String(dbPatch.eventLocation).trim() || null;
         delete dbPatch.eventLocation;
+      }
+      if (dbPatch.eventDescription !== undefined) {
+        dbPatch.event_description = dbPatch.eventDescription == null ? null : String(dbPatch.eventDescription).trim() || null;
+        delete dbPatch.eventDescription;
       }
       if (dbPatch.calendarVisible !== undefined) {
         dbPatch.calendar_visible = typeof dbPatch.calendarVisible === "boolean"

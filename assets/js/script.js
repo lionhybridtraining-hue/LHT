@@ -238,16 +238,18 @@ window.addEventListener('load', handleScrollIndicator);
         url: metadataValue(metadata, ['website_url', 'site_url'], siteUrl)
       });
 
+      var featuredProgram = data && data.featuredProgram ? data.featuredProgram : null;
+
       setJsonLd('home-event-jsonld', {
         '@context': 'https://schema.org',
         '@type': 'Product',
-        name: metadataValue(metadata, ['featured_program_name', 'product_name'], 'Programa em destaque LHT'),
+        name: (featuredProgram && featuredProgram.name) || metadataValue(metadata, ['featured_program_name', 'product_name'], 'Programa em destaque LHT'),
         brand: metadataValue(metadata, ['product_brand', 'organization_name', 'site_name'], 'Lion Hybrid Training'),
         image: metadataValue(metadata, ['featured_program_image', 'event_image'], 'https://lionhybridtraining.com/assets/img/logo-aer.png'),
         description: metadataValue(metadata, ['featured_program_tagline', 'event_description'], 'Programa em destaque da Lion Hybrid Training com progressão guiada, comunidade e acompanhamento.'),
         offers: {
           '@type': 'Offer',
-          url: metadataValue(metadata, ['featured_program_cta_url', 'event_offer_url'], 'https://lionhybridtraining.com/programas'),
+          url: (featuredProgram && featuredProgram.ctaUrl) || metadataValue(metadata, ['featured_program_cta_url', 'event_offer_url'], 'https://lionhybridtraining.com/programas'),
           price: metadataValue(metadata, ['event_offer_price'], '0'),
           priceCurrency: metadataValue(metadata, ['event_offer_currency'], 'EUR'),
           availability: metadataValue(metadata, ['event_offer_availability'], 'https://schema.org/InStock')
@@ -303,25 +305,29 @@ window.addEventListener('load', handleScrollIndicator);
   }
 
   function bindFeaturedProgram(data){
-    if(!data || !data.metadata) return;
-    var m = data.metadata;
+    if(!data) return;
+    var m = data.metadata || {};
     var links = data.links || {};
+    var fp = data.featuredProgram || null;
 
     var tagline = document.getElementById('fp-tagline');
     if(tagline && m.featured_program_tagline) text(tagline, m.featured_program_tagline);
 
     var nameEl = document.getElementById('fp-name');
-    if(nameEl && m.featured_program_name) text(nameEl, m.featured_program_name);
+    if(nameEl){
+      if(fp && fp.name) text(nameEl, fp.name);
+      else if(m.featured_program_name) text(nameEl, m.featured_program_name);
+    }
 
     var img = document.getElementById('fp-image');
     if(img && m.featured_program_image){
       img.setAttribute('src', m.featured_program_image);
-      img.setAttribute('alt', m.featured_program_name || 'Programa em destaque');
+      img.setAttribute('alt', (fp && fp.name) || m.featured_program_name || 'Programa em destaque');
     }
 
     var nextDate = document.getElementById('fp-next-date');
-  var nextDateValue = firstDefinedValue([m.featured_program_next_date, m.aer_next_date], '');
-  if(nextDate && nextDateValue) text(nextDate, nextDateValue);
+    var nextDateValue = firstDefinedValue([fp && fp.eventDate ? fp.eventDate : '', m.featured_program_next_date, m.aer_next_date], '');
+    if(nextDate && nextDateValue) text(nextDate, nextDateValue);
 
     var subtitle = document.getElementById('fp-subtitle');
     if(subtitle && m.featured_program_subtitle) subtitle.innerHTML = m.featured_program_subtitle;
@@ -343,7 +349,7 @@ window.addEventListener('load', handleScrollIndicator);
 
     var cta = document.getElementById('fp-cta');
     if(cta){
-      var featuredProgramUrl = firstDefinedValue([m.featured_program_cta_url, links.cta_reserva_aer], '');
+      var featuredProgramUrl = firstDefinedValue([fp && fp.ctaUrl ? fp.ctaUrl : '', m.featured_program_cta_url, links.cta_reserva_aer], '');
       if(featuredProgramUrl) {
         cta.setAttribute('href', featuredProgramUrl);
         syncAnchorTarget(cta, featuredProgramUrl);

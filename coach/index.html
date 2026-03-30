@@ -1255,6 +1255,18 @@
                 <label for="coach-new-assign-notes" style="display:block; font-size:0.85rem; color:#8b949e; margin-bottom:4px;">Notas</label>
                 <input id="coach-new-assign-notes" type="text" placeholder="Opcional" style="width:100%; padding:6px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9;" />
               </div>
+              <div>
+                <label for="coach-new-assign-plan" style="display:block; font-size:0.85rem; color:#8b949e; margin-bottom:4px;">Plano de forca</label>
+                <select id="coach-new-assign-plan" style="width:100%; padding:6px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9;">
+                  <option value="">Atleta escolhe</option>
+                </select>
+              </div>
+              <div>
+                <label style="display:flex; align-items:center; gap:6px; font-size:0.85rem; color:#8b949e; margin-top:18px; cursor:pointer;">
+                  <input id="coach-new-assign-lock" type="checkbox" style="accent-color:#d4a54f;" />
+                  Bloquear para o coach
+                </label>
+              </div>
             </div>
             <div style="margin-top:12px; display:flex; gap:8px;">
               <button id="coach-assign-submit-btn" type="button" class="btn btn-primary">Criar</button>
@@ -5288,6 +5300,8 @@
     const coachNewAssignStart = document.getElementById("coach-new-assign-start");
     const coachNewAssignWeeks = document.getElementById("coach-new-assign-weeks");
     const coachNewAssignNotes = document.getElementById("coach-new-assign-notes");
+    const coachNewAssignPlan = document.getElementById("coach-new-assign-plan");
+    const coachNewAssignLock = document.getElementById("coach-new-assign-lock");
 
     async function refreshCoachAssignmentsTab() {
       if (!state.user) return;
@@ -5439,6 +5453,9 @@
           const startDate = (coachNewAssignStart.value || "").trim() || null;
           const durationWeeks = Number(coachNewAssignWeeks.value) || 12;
           const notes = (coachNewAssignNotes.value || "").trim() || null;
+          const coachLock = coachNewAssignLock ? coachNewAssignLock.checked : false;
+          const coachLockDate = (document.getElementById("coach-new-assign-lock-date") || {}).value || null;
+          const strengthPlanId = (coachNewAssignPlan ? coachNewAssignPlan.value : "") || null;
 
           if (!athleteId) { showResult("Seleciona um atleta.", true); return; }
           if (!trainingProgramId) { showResult("Seleciona um programa.", true); return; }
@@ -5455,7 +5472,10 @@
               durationWeeks,
               priceCentsSnapshot: program ? (program.price_cents || 0) : 0,
               currencySnapshot: program ? (program.currency || "EUR") : "EUR",
-              notes
+              notes,
+              coachLock,
+              coachLockDate,
+              strengthPlanId
             });
             let msg = "Assignment criado com sucesso.";
             if (result.strengthAutoCreated) {
@@ -5505,6 +5525,22 @@
           if (selected && selected.duration_weeks && coachNewAssignWeeks) {
             coachNewAssignWeeks.value = selected.duration_weeks;
           }
+          // Populate plan dropdown for selected program
+          if (coachNewAssignPlan) {
+            coachNewAssignPlan.innerHTML = '<option value="">Atleta escolhe</option>';
+            if (coachNewAssignProgram.value) {
+              apiRequest("GET", `/.netlify/functions/strength-plan?trainingProgramId=${coachNewAssignProgram.value}`)
+                .then((plans) => {
+                  (plans || []).forEach((pl) => {
+                    const opt = document.createElement("option");
+                    opt.value = pl.id;
+                    opt.textContent = `${pl.name || pl.id} (${pl.total_weeks || "?"}sem)`;
+                    coachNewAssignPlan.appendChild(opt);
+                  });
+                })
+                .catch(() => {});
+            }
+          }
         });
       }
 
@@ -5512,6 +5548,10 @@
       if (coachNewAssignStart) coachNewAssignStart.value = new Date().toISOString().slice(0, 10);
       if (coachNewAssignWeeks) coachNewAssignWeeks.value = "12";
       if (coachNewAssignNotes) coachNewAssignNotes.value = "";
+      if (coachNewAssignPlan) coachNewAssignPlan.innerHTML = '<option value="">Atleta escolhe</option>';
+      if (coachNewAssignLock) coachNewAssignLock.checked = false;
+      const lockDateEl = document.getElementById("coach-new-assign-lock-date");
+      if (lockDateEl) lockDateEl.value = "";
     }
 
   </script>

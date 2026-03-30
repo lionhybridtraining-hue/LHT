@@ -72,13 +72,13 @@ SET
 FROM strength_plans sp
 JOIN program_assignments pa
   ON pa.training_program_id = sp.training_program_id
-  AND pa.athlete_id = spi.athlete_id
   AND pa.deleted_at IS NULL
   AND pa.status NOT IN ('cancelled')
 JOIN training_programs tp
   ON tp.id = sp.training_program_id
 WHERE
   spi.plan_id = sp.id
+  AND pa.athlete_id = spi.athlete_id
   AND spi.program_assignment_id IS NULL;
 
 -- ────────────────────────────────────────────────────────────
