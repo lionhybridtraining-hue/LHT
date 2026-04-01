@@ -1,15 +1,24 @@
 import { createClient } from "@supabase/supabase-js";
 import type { Session } from "@supabase/supabase-js";
+import { getRuntimePublicConfig } from "./public-config";
 
 function requireEnv(name: "VITE_SUPABASE_URL" | "VITE_SUPABASE_ANON_KEY") {
-  const value = import.meta.env[name];
+  const runtime = getRuntimePublicConfig();
+  const runtimeValue =
+    name === "VITE_SUPABASE_URL"
+      ? runtime?.supabaseUrl
+      : runtime?.supabaseAnonKey;
+  const value = runtimeValue || import.meta.env[name];
   if (!value) {
     throw new Error(`Missing environment variable: ${name}`);
   }
   return value as string;
 }
 
-const MAX_SESSION_AGE_SECONDS = Number(import.meta.env.VITE_AUTH_MAX_SESSION_SECONDS || 24 * 60 * 60);
+const runtimeConfig = getRuntimePublicConfig();
+const MAX_SESSION_AGE_SECONDS = Number(
+  runtimeConfig?.authMaxSessionSeconds || import.meta.env.VITE_AUTH_MAX_SESSION_SECONDS || 24 * 60 * 60
+);
 
 const supabaseUrl = requireEnv("VITE_SUPABASE_URL");
 const supabaseAnonKey = requireEnv("VITE_SUPABASE_ANON_KEY");
