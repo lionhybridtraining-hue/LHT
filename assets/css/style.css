@@ -580,6 +580,13 @@ section .intro{color:var(--muted); max-width:860px; margin:0 auto 18px; text-ali
   align-items:stretch;
 }
 
+@media (max-width: 1240px){
+  .programs-featured-layout{
+    grid-template-columns:minmax(0, 1.45fr) minmax(280px, .95fr);
+    gap:22px;
+  }
+}
+
 .program-feature-card,
 .programs-quick-rail-wrap{
   position:relative;
@@ -844,7 +851,7 @@ section .intro{color:var(--muted); max-width:860px; margin:0 auto 18px; text-ali
   white-space:nowrap;
 }
 
-@media (max-width: 1080px){
+@media (max-width: 900px){
   .container.programs-featured-shell{
     max-width:var(--maxw);
   }

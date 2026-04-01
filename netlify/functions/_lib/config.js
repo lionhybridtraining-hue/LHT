@@ -6,13 +6,23 @@ function requireEnv(name) {
   return value;
 }
 
+function resolveStripePublishableKey() {
+  return (
+    process.env.STRIPE_PUBLISHABLE_KEY ||
+    process.env.STRIPE_PUBLIC_KEY ||
+    process.env.VITE_STRIPE_PUBLISHABLE_KEY ||
+    process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ||
+    ""
+  );
+}
+
 function getConfig() {
   return {
     supabaseUrl: requireEnv("SUPABASE_URL"),
     supabaseAnonKey: requireEnv("SUPABASE_ANON_KEY"),
     supabaseServiceRoleKey: requireEnv("SUPABASE_SERVICE_ROLE_KEY"),
     stripeSecretKey: process.env.STRIPE_SECRET_KEY || "",
-    stripePublishableKey: process.env.STRIPE_PUBLISHABLE_KEY || "",
+    stripePublishableKey: resolveStripePublishableKey(),
     stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET || "",
     geminiApiKey: process.env.GEMINI_API_KEY || "",
     geminiModel: process.env.GEMINI_MODEL || "gemini-2.5-flash",

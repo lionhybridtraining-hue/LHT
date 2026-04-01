@@ -35,6 +35,7 @@ Antes de usar em produção, corre as migrações no **SQL Editor** do Supabase 
 | `SUPABASE_URL` | ✓ | URL do projeto Supabase |
 | `SUPABASE_SERVICE_ROLE_KEY` | ✓ | Chave de service role do Supabase |
 | `STRIPE_SECRET_KEY` | ✓ | Chave secreta Stripe (`sk_live_...` ou `sk_test_...`) |
+| `STRIPE_PUBLISHABLE_KEY` | ✓ | Chave publica Stripe (`pk_live_...` ou `pk_test_...`) usada no checkout client-side |
 | `STRIPE_WEBHOOK_SECRET` | ✓ | Signing secret do webhook Stripe (`whsec_...`) |
 | `GA_MEASUREMENT_ID` | opcional | Ex: `G-K3EJSN5M4Y` para rastreio GA4 |
 | `GA_API_SECRET` | opcional | Measurement Protocol API secret (GA4) |
