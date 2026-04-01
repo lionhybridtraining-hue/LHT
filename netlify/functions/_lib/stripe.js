@@ -72,6 +72,41 @@ function toStripePurchaseRecord({
   };
 }
 
+function toPaymentIntentPurchaseRecord({
+  paymentIntent,
+  identityId,
+  programId,
+  billingType,
+  email,
+  source,
+  subscriptionId,
+  expiresAt
+}) {
+  if (!paymentIntent || !identityId || !programId) {
+    throw new Error("paymentIntent, identityId, and programId are required");
+  }
+
+  const normalizedBillingType = billingType === "recurring" ? "recurring" : "one_time";
+  const paid = paymentIntent.status === "succeeded";
+
+  return {
+    stripe_session_id: null,
+    stripe_customer_id: typeof paymentIntent.customer === "string" ? paymentIntent.customer : null,
+    stripe_payment_intent_id: paymentIntent.id,
+    stripe_subscription_id: typeof subscriptionId === "string" && subscriptionId ? subscriptionId : null,
+    identity_id: identityId,
+    program_id: programId,
+    email: email || null,
+    amount_cents: Number.isFinite(paymentIntent.amount) ? paymentIntent.amount : 0,
+    currency: typeof paymentIntent.currency === "string" ? paymentIntent.currency.toUpperCase() : "EUR",
+    billing_type: normalizedBillingType,
+    status: paid ? "paid" : "pending",
+    source: source || "stripe",
+    paid_at: paid ? new Date().toISOString() : null,
+    expires_at: normalizedBillingType === "recurring" ? (expiresAt || null) : null
+  };
+}
+
 // Cria produto e preço no Stripe
 async function createStripeProductAndPrice({ name, description, priceCents, currency = 'EUR', recurring = false }) {
   const stripe = cachedClient;
@@ -211,6 +246,7 @@ module.exports = {
   normalizeStripeError,
   toIsoFromUnix,
   toStripePurchaseRecord,
+  toPaymentIntentPurchaseRecord,
   createStripeProductAndPrice,
   refundPayment,
   cancelSubscription,

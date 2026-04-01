@@ -9,6 +9,8 @@ function normalizeProgramPayload(payload) {
   const externalSource = (payload.externalSource || "trainingpeaks").toString().trim().toLowerCase() || "trainingpeaks";
   const externalId = payload.externalId == null ? null : payload.externalId.toString().trim() || null;
   const description = payload.description == null ? null : payload.description.toString();
+  const imageUrlRaw = payload.imageUrl == null ? payload.image_url : payload.imageUrl;
+  const imageUrl = imageUrlRaw == null ? null : imageUrlRaw.toString().trim() || null;
   const durationWeeks = Number(payload.durationWeeks);
   const priceCents = Number(payload.priceCents ?? 0);
   const currency = (payload.currency || "EUR").toString().trim().toUpperCase() || "EUR";
@@ -53,6 +55,7 @@ function normalizeProgramPayload(payload) {
     external_source: externalSource,
     external_id: externalId,
     description,
+    image_url: imageUrl,
     duration_weeks: durationWeeks,
     price_cents: priceCents,
     currency,
@@ -77,6 +80,7 @@ function mapProgram(row) {
     externalSource: row.external_source,
     externalId: row.external_id,
     description: row.description,
+    imageUrl: row.image_url || null,
     durationWeeks: row.duration_weeks,
     priceCents: row.price_cents,
     currency: row.currency,
@@ -192,6 +196,10 @@ exports.handler = async (event) => {
       }
       if (dbPatch.description !== undefined) {
         dbPatch.description = dbPatch.description == null ? null : String(dbPatch.description);
+      }
+      if (dbPatch.imageUrl !== undefined) {
+        dbPatch.image_url = dbPatch.imageUrl == null ? null : String(dbPatch.imageUrl).trim() || null;
+        delete dbPatch.imageUrl;
       }
       if (dbPatch.durationWeeks !== undefined) {
         const value = Number(dbPatch.durationWeeks);

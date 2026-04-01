@@ -23,7 +23,8 @@ const {
   createStrengthPlanInstance,
   updateStrengthPlanInstance,
   getStrengthPlanInstanceById,
-  getTrainingProgramById
+  getTrainingProgramById,
+  getStrengthPlanFull
 } = require("./_lib/supabase");
 
 const ALLOWED_TRANSITIONS = {
@@ -32,6 +33,20 @@ const ALLOWED_TRANSITIONS = {
   completed: [],
   cancelled: []
 };
+
+async function buildPlanSnapshot(config, planId) {
+  try {
+    const full = await getStrengthPlanFull(config, planId);
+    if (!full) return null;
+    return {
+      exercises: full.exercises,
+      prescriptions: full.prescriptions,
+      phaseNotes: full.phaseNotes || []
+    };
+  } catch (_) {
+    return null;
+  }
+}
 
 exports.handler = async (event) => {
   if (!["GET", "POST", "PATCH"].includes(event.httpMethod)) {
@@ -102,6 +117,8 @@ exports.handler = async (event) => {
         return json(404, { error: "No strength plan template found for this program" });
       }
 
+      const planSnapshot = await buildPlanSnapshot(config, template.id);
+
       const instance = await createStrengthPlanInstance(config, {
         plan_id: template.id,
         athlete_id: athlete.id,
@@ -112,7 +129,8 @@ exports.handler = async (event) => {
         access_model: program.access_model,
         stripe_purchase_id: access.purchase?.id || null,
         program_assignment_id: access.assignment?.id || null,
-        coach_locked_until: access.assignment?.computed_end_date || null
+        coach_locked_until: access.assignment?.computed_end_date || null,
+        plan_snapshot: planSnapshot ? JSON.stringify(planSnapshot) : null
       });
 
       return json(201, { instance });

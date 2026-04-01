@@ -639,6 +639,13 @@
       border:1px solid var(--line-strong); border-bottom:none;
     }
     .str-section-header h4 { margin:0; font-size:14px; font-family:"Oswald",sans-serif; text-transform:uppercase; color:var(--gold); }
+    .str-section-actions { display:flex; align-items:center; gap:6px; }
+    .str-preset-list { max-height:320px; overflow-y:auto; border:1px solid var(--line); border-radius:var(--radius-md); }
+    .str-preset-item { padding:10px; border-bottom:1px solid var(--line); cursor:pointer; }
+    .str-preset-item:last-child { border-bottom:none; }
+    .str-preset-item.active { background:var(--gold-faint); border-left:2px solid var(--gold); }
+    .str-preset-item .name { font-weight:600; color:var(--text); }
+    .str-preset-item .meta { font-size:11px; color:var(--muted); margin-top:4px; }
 
     .coach-tabs {
       display: flex;
@@ -868,12 +875,11 @@
         </div>
 
         <div class="coach-tabs" id="coachTabs">
-          <button class="coach-tab-btn active" type="button" data-coach-tab="athlete">Atleta</button>
-          <button class="coach-tab-btn" type="button" data-coach-tab="general">Geral</button>
-          <button class="coach-tab-btn" type="button" data-coach-tab="strength">Treino de Força</button>
-          <button class="coach-tab-btn" type="button" data-coach-tab="instances">Instâncias</button>
-          <button class="coach-tab-btn" type="button" data-coach-tab="exercises">Exercícios</button>
-          <button class="coach-tab-btn" type="button" data-coach-tab="assignments">Assignments</button>
+          <button class="coach-tab-btn active" type="button" data-coach-tab="dashboard">Dashboard</button>
+          <button class="coach-tab-btn" type="button" data-coach-tab="athlete">Atletas</button>
+          <button class="coach-tab-btn" type="button" data-coach-tab="planeamento">Planeamento</button>
+          <button class="coach-tab-btn" type="button" data-coach-tab="forca">Força</button>
+          <button class="coach-tab-btn" type="button" data-coach-tab="operacoes">Operações</button>
         </div>
       </div>
     </header>
@@ -900,9 +906,9 @@
       <section class="panel main-panel">
         <div class="panel-header">
           <div>
-            <span class="eyebrow">Weekly Check-in Builder</span>
-            <h2>Importação semanal</h2>
-            <p>Seleciona o atleta, carrega o CSV exportado do TrainingPeaks e gera o check-in assistido por IA.</p>
+            <span id="panelHeaderEyebrow" class="eyebrow">Weekly Check-in Builder</span>
+            <h2 id="panelHeaderTitle">Importação semanal</h2>
+            <p id="panelHeaderDescription">Seleciona o atleta, carrega o CSV exportado do TrainingPeaks e gera o check-in assistido por IA.</p>
           </div>
         </div>
 
@@ -910,6 +916,7 @@
           <div style="display:flex; justify-content:space-between; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:10px;">
             <h3 class="section-title" style="margin:0;">Atletas do sistema</h3>
             <div class="header-actions">
+              <button id="openAthleteUploadModal" class="btn btn-primary" type="button">Upload CSV (atleta)</button>
               <button id="openAddAthleteModal" class="btn btn-secondary" type="button">Adicionar atleta</button>
             </div>
           </div>
@@ -986,7 +993,7 @@
           </div>
         </section>
 
-        <section class="section-card coach-tab-section" data-coach-tab="general" hidden>
+        <section class="section-card coach-tab-section" data-coach-tab="operacoes" hidden>
           <h3 class="section-title">Novo upload</h3>
           <form id="uploadForm">
             <div class="form-grid">
@@ -1027,7 +1034,7 @@
           </form>
         </section>
 
-        <section class="section-card coach-tab-section" data-coach-tab="general" hidden>
+        <section class="section-card coach-tab-section" data-coach-tab="operacoes" hidden>
           <div style="display:flex; justify-content:space-between; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:10px;">
             <h3 class="section-title" style="margin:0;">Historico de check-ins</h3>
             <div class="field" style="min-width:220px; margin:0;">
@@ -1044,8 +1051,65 @@
           <div id="checkinsContainer" class="microcopy">Seleciona um atleta para ver os check-ins.</div>
         </section>
 
+        <section class="section-card coach-tab-section" data-coach-tab="dashboard" hidden>
+          <div style="display:flex; align-items:flex-end; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:14px;">
+            <div>
+              <h3 class="section-title" style="margin:0;">Overview semanal de check-ins</h3>
+              <p class="microcopy" style="margin-top:4px;">Visão portfolio do coach (todos os atletas da semana selecionada).</p>
+            </div>
+            <div style="display:flex; gap:8px; align-items:flex-end;">
+              <div class="field" style="margin:0; min-width:160px;">
+                <label for="checkinOverviewWeek">Semana (data dentro da semana)</label>
+                <input id="checkinOverviewWeek" type="date" />
+              </div>
+              <button id="checkinOverviewRefresh" class="btn btn-secondary" type="button" style="height:38px;">Atualizar</button>
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(170px,1fr)); gap:10px; margin-bottom:14px;">
+            <div style="border:1px solid #30363d; border-radius:10px; padding:10px; background:#11161d;">
+              <div class="microcopy">Respondidos</div>
+              <div id="ovResponded" style="font-size:1.2rem; color:#c9d1d9; font-weight:700;">—</div>
+            </div>
+            <div style="border:1px solid #30363d; border-radius:10px; padding:10px; background:#11161d;">
+              <div class="microcopy">Taxa de resposta</div>
+              <div id="ovRate" style="font-size:1.2rem; color:#d4a54f; font-weight:700;">—</div>
+            </div>
+            <div style="border:1px solid #30363d; border-radius:10px; padding:10px; background:#11161d;">
+              <div class="microcopy">Pendentes coach</div>
+              <div id="ovPending" style="font-size:1.2rem; color:#ffae57; font-weight:700;">—</div>
+            </div>
+            <div style="border:1px solid #30363d; border-radius:10px; padding:10px; background:#11161d;">
+              <div class="microcopy">Aderência força</div>
+              <div id="ovStrength" style="font-size:1.2rem; color:#79c0ff; font-weight:700;">—</div>
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+            <div style="border:1px solid #30363d; border-radius:10px; padding:10px; background:#11161d; min-height:140px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <strong style="color:#c9d1d9;">Fila pendente (pending_coach)</strong>
+              </div>
+              <div id="ovPendingList" class="microcopy">Sem dados.</div>
+            </div>
+            <div style="border:1px solid #30363d; border-radius:10px; padding:10px; background:#11161d; min-height:140px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <strong style="color:#c9d1d9;">Tendência (últimas semanas)</strong>
+              </div>
+              <div id="ovTrendList" class="microcopy">Sem dados.</div>
+            </div>
+          </div>
+
+          <div style="margin-top:12px; border:1px solid #30363d; border-radius:10px; padding:10px; background:#11161d;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+              <strong style="color:#c9d1d9;">Aderência de força por atleta</strong>
+            </div>
+            <div id="ovStrengthTable" class="microcopy">Sem dados.</div>
+          </div>
+        </section>
+
         <!-- ── Planos de Força ── -->
-        <section class="section-card coach-tab-section" id="strengthSection" data-coach-tab="strength" hidden>
+        <section class="section-card coach-tab-section" id="strengthSection" data-coach-tab="forca" hidden>
           <div style="display:flex; justify-content:space-between; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:10px;">
             <h3 class="section-title" style="margin:0;">Planos de Força</h3>
             <div style="display:flex; gap:8px; align-items:center;">
@@ -1065,11 +1129,13 @@
               <span id="strengthPlanName" style="font-weight:600;"></span>
               <span id="strengthPlanStatus" class="status-badge"></span>
               <span id="strengthPlanWeeks" class="microcopy"></span>
+              <span id="strengthInstanceModeLabel" class="microcopy"></span>
               <button class="btn btn-small btn-ghost" id="editPlanMetaBtn" title="Editar plano">✏</button>
               <button class="btn btn-small" id="activatePlanBtn" hidden>Ativar</button>
               <button class="btn btn-small btn-ghost" id="archivePlanBtn" hidden>Arquivar</button>
               <button class="btn btn-small" id="unarchivePlanBtn" hidden>Desarquivar</button>
               <button class="btn btn-small" id="assignPlanBtn" hidden>Criar Instância</button>
+              <button class="btn btn-small btn-ghost" id="exitInstanceEditBtn" hidden>Voltar ao template</button>
               <span class="save-area">
                 <span id="strSaveStatus" class="save-status idle"></span>
                 <button class="btn btn-small btn-primary" id="strSaveBtn" title="Guardar alterações (Ctrl+S)">💾 Guardar</button>
@@ -1123,7 +1189,7 @@
         </section>
 
         <!-- ── Gestão de Exercícios ── -->
-        <section class="section-card coach-tab-section" id="exercisesSection" data-coach-tab="exercises" hidden>
+        <section class="section-card coach-tab-section" id="exercisesSection" data-coach-tab="forca" hidden>
           <div style="display:flex; justify-content:space-between; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:12px;">
             <h3 class="section-title" style="margin:0;">Catálogo de Exercícios</h3>
             <button class="btn btn-small btn-primary" id="newExerciseBtn">+ Novo Exercício</button>
@@ -1146,7 +1212,7 @@
         </section>
 
         <!-- ═══════════ INSTANCES SECTION ═══════════ -->
-        <section class="section-card coach-tab-section" data-coach-tab="instances" hidden style="padding:24px 0;">
+        <section class="section-card coach-tab-section" data-coach-tab="forca" hidden style="padding:24px 0;">
           <h2 style="margin-bottom:16px; color:#c9d1d9;">Instâncias de Força</h2>
           <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px; flex-wrap:wrap;">
             <select id="inst-status-filter" style="padding:6px 10px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9;">
@@ -1217,7 +1283,7 @@
         </div>
 
         <!-- ═══════════ ASSIGNMENTS SECTION ═══════════ -->
-        <section class="section-card coach-tab-section" data-coach-tab="assignments" hidden style="padding:24px 0;">
+        <section class="section-card coach-tab-section" data-coach-tab="planeamento" hidden style="padding:24px 0;">
           <h2 style="margin-bottom:16px; color:#c9d1d9;">Assignments dos meus atletas</h2>
           <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px; flex-wrap:wrap;">
             <select id="coach-assign-status-filter" style="padding:6px 10px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9;">
@@ -1294,6 +1360,37 @@
           </div>
         </section>
 
+        <!-- ═══════════ SCHEDULE / CALENDÁRIO SECTION ═══════════ -->
+        <section class="section-card coach-tab-section" data-coach-tab="planeamento" hidden style="padding:24px 0;">
+          <h2 style="margin-bottom:16px; color:#c9d1d9;">Calendário do programa</h2>
+
+          <!-- Program selector -->
+          <div style="display:flex; align-items:center; gap:12px; margin-bottom:20px; flex-wrap:wrap;">
+            <label style="color:#8b949e; font-size:0.85rem;">Programa:</label>
+            <select id="sched-program-select" style="padding:6px 10px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9; min-width:240px;">
+              <option value="">Seleciona um programa...</option>
+            </select>
+          </div>
+
+          <!-- Sessions sub-section -->
+          <div id="sched-sessions-area" hidden>
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+              <h3 style="color:#c9d1d9; margin:0;">Sessões semanais</h3>
+              <button id="sched-add-session-btn" type="button" class="btn btn-primary" style="font-size:0.8rem; padding:6px 12px;">+ Sessão</button>
+            </div>
+            <div id="sched-sessions-list" style="display:grid; gap:8px; margin-bottom:24px;"></div>
+
+            <hr style="border-color:#30363d; margin:24px 0;">
+
+            <!-- Presets sub-section -->
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+              <h3 style="color:#c9d1d9; margin:0;">Presets de calendário</h3>
+              <button id="sched-add-preset-btn" type="button" class="btn btn-primary" style="font-size:0.8rem; padding:6px 12px;">+ Preset</button>
+            </div>
+            <div id="sched-presets-area"></div>
+          </div>
+        </section>
+
         <div id="result" class="result" hidden></div>
       </section>
     </main>
@@ -1317,6 +1414,47 @@
         <div class="modal-actions">
           <button id="createAthleteButton" class="btn btn-primary" type="submit">Criar atleta</button>
           <button id="cancelAddAthlete" class="btn btn-secondary" type="button">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="athleteUploadModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="athleteUploadTitle">
+    <div class="modal" style="max-width:720px; max-height:90vh; overflow-y:auto;">
+      <h3 id="athleteUploadTitle">Upload CSV por atleta</h3>
+      <p>Fluxo por atleta: confirma o atleta selecionado, carrega o ficheiro e processa o check-in semanal.</p>
+      <form id="athleteUploadForm">
+        <div class="form-grid">
+          <div class="field full">
+            <label for="athleteUploadSelectedAthlete">Atleta selecionado</label>
+            <input id="athleteUploadSelectedAthlete" readonly placeholder="Seleciona um atleta no painel principal" />
+          </div>
+          <div class="field full">
+            <label for="athleteUploadCsvFile">Ficheiro de export (CSV/GZ/ZIP)</label>
+            <input id="athleteUploadCsvFile" type="file" accept=".csv,.gz,.zip" required />
+          </div>
+          <div class="field full">
+            <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+              <input id="athleteUploadSkipCheckin" type="checkbox" />
+              <span>Importar sem criar check-in</span>
+            </label>
+          </div>
+          <div class="field">
+            <label for="athleteUploadStrengthPlannedDoneCount">Forca planned done (manual)</label>
+            <input id="athleteUploadStrengthPlannedDoneCount" type="number" min="0" step="1" value="0" required />
+          </div>
+          <div class="field">
+            <label for="athleteUploadStrengthPlannedNotDoneCount">Forca planned not done (manual)</label>
+            <input id="athleteUploadStrengthPlannedNotDoneCount" type="number" min="0" step="1" value="0" required />
+          </div>
+          <div class="field full">
+            <label for="athleteUploadManualStrengthFeedback">Feedback manual do treino de forca (opcional)</label>
+            <textarea id="athleteUploadManualStrengthFeedback" rows="3" placeholder="Ex.: 2 sessoes feitas com boa qualidade tecnica; 1 sessao cortada por fadiga"></textarea>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button id="athleteUploadSubmitButton" class="btn btn-primary" type="submit">Importar e gerar check-in</button>
+          <button id="athleteUploadCancelButton" class="btn btn-secondary" type="button">Cancelar</button>
         </div>
       </form>
     </div>
@@ -1418,6 +1556,43 @@
       <div id="exercisePickerList" style="max-height:300px; overflow-y:auto; border:1px solid var(--line); border-radius:var(--radius-md); padding:4px;"></div>
       <div class="modal-actions" style="margin-top:8px;">
         <button class="btn btn-secondary" type="button" id="cancelAddExerciseBtn">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="saveWarmupModal" class="modal-backdrop hidden" role="dialog" aria-modal="true">
+    <div class="modal" style="max-width:560px;">
+      <h3>Guardar Aquecimento</h3>
+      <p>Guarda o warm up do dia selecionado para reutilizar noutros planos.</p>
+      <form id="saveWarmupForm">
+        <div class="form-grid">
+          <div class="field" style="grid-column:1/-1;">
+            <label for="saveWarmupName">Nome *</label>
+            <input id="saveWarmupName" required placeholder="Ex.: Aquecimento Forca Base Dia 1" />
+          </div>
+          <div class="field" style="grid-column:1/-1;">
+            <label for="saveWarmupDescription">Descricao (opcional)</label>
+            <textarea id="saveWarmupDescription" rows="2" placeholder="Ex.: foco em mobilidade ancas e core"></textarea>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-primary" type="submit" id="saveWarmupSubmitBtn">Guardar</button>
+          <button class="btn btn-secondary" type="button" id="saveWarmupCancelBtn">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="warmupLibraryModal" class="modal-backdrop hidden" role="dialog" aria-modal="true">
+    <div class="modal" style="max-width:680px;">
+      <h3>Biblioteca de Aquecimentos</h3>
+      <p>Seleciona um preset para substituir o warm up do dia atual em todas as semanas.</p>
+      <div id="warmupPresetList" class="str-preset-list"></div>
+      <div id="warmupPresetPreview" class="microcopy" style="margin-top:10px;"></div>
+      <div class="modal-actions">
+        <button class="btn btn-primary" type="button" id="applyWarmupPresetBtn">Aplicar no dia atual</button>
+        <button class="btn btn-ghost" type="button" id="refreshWarmupPresetsBtn">Atualizar lista</button>
+        <button class="btn btn-secondary" type="button" id="closeWarmupLibraryBtn">Fechar</button>
       </div>
     </div>
   </div>
@@ -1579,6 +1754,15 @@
     const manualStrengthFeedbackInput = document.getElementById("manualStrengthFeedback");
     const checkinStatusFilter = document.getElementById("checkinStatusFilter");
     const checkinsContainer = document.getElementById("checkinsContainer");
+    const checkinOverviewWeekInput = document.getElementById("checkinOverviewWeek");
+    const checkinOverviewRefreshBtn = document.getElementById("checkinOverviewRefresh");
+    const ovResponded = document.getElementById("ovResponded");
+    const ovRate = document.getElementById("ovRate");
+    const ovPending = document.getElementById("ovPending");
+    const ovStrength = document.getElementById("ovStrength");
+    const ovPendingList = document.getElementById("ovPendingList");
+    const ovTrendList = document.getElementById("ovTrendList");
+    const ovStrengthTable = document.getElementById("ovStrengthTable");
     const trainingLoadMeta = document.getElementById("trainingLoadMeta");
     const trainingLoadWeekInput = document.getElementById("trainingLoadWeek");
     const applyTrainingLoadWeekButton = document.getElementById("applyTrainingLoadWeek");
@@ -1597,11 +1781,25 @@
     const coachTabs = document.getElementById("coachTabs");
     const coachTabButtons = Array.from(document.querySelectorAll(".coach-tab-btn"));
     const coachTabSections = Array.from(document.querySelectorAll(".coach-tab-section"));
+    const panelHeaderEyebrow = document.getElementById("panelHeaderEyebrow");
+    const panelHeaderTitle = document.getElementById("panelHeaderTitle");
+    const panelHeaderDescription = document.getElementById("panelHeaderDescription");
 
     const addAthleteModal = document.getElementById("addAthleteModal");
     const openAddAthleteModalButton = document.getElementById("openAddAthleteModal");
     const cancelAddAthleteButton = document.getElementById("cancelAddAthlete");
     const addAthleteForm = document.getElementById("addAthleteForm");
+    const openAthleteUploadModalButton = document.getElementById("openAthleteUploadModal");
+    const athleteUploadModal = document.getElementById("athleteUploadModal");
+    const athleteUploadForm = document.getElementById("athleteUploadForm");
+    const athleteUploadSelectedAthlete = document.getElementById("athleteUploadSelectedAthlete");
+    const athleteUploadCsvFile = document.getElementById("athleteUploadCsvFile");
+    const athleteUploadSkipCheckin = document.getElementById("athleteUploadSkipCheckin");
+    const athleteUploadStrengthPlannedDoneCount = document.getElementById("athleteUploadStrengthPlannedDoneCount");
+    const athleteUploadStrengthPlannedNotDoneCount = document.getElementById("athleteUploadStrengthPlannedNotDoneCount");
+    const athleteUploadManualStrengthFeedback = document.getElementById("athleteUploadManualStrengthFeedback");
+    const athleteUploadSubmitButton = document.getElementById("athleteUploadSubmitButton");
+    const athleteUploadCancelButton = document.getElementById("athleteUploadCancelButton");
 
     const checkinDetailModal = document.getElementById("checkinDetailModal");
     const checkinDetailBody = document.getElementById("checkinDetailBody");
@@ -1768,6 +1966,7 @@
         try {
           await loadAthletes();
           loadStrengthPlans();
+          syncAthleteUploadSelectedAthlete();
         } catch (err) {
           showResult(err.message, true);
         }
@@ -1777,6 +1976,7 @@
         renderAthleteOptions(athletes);
         renderTrainingLoadSummary(null, "Sem dados calculados ainda.");
         checkinsContainer.innerHTML = "Faz login para ver check-ins.";
+        syncAthleteUploadSelectedAthlete();
       }
     }
 
@@ -1792,6 +1992,172 @@
         : "Importar e gerar check-in";
     }
 
+    function syncAthleteUploadMode() {
+      if (!athleteUploadSkipCheckin) return;
+      const skipCheckin = Boolean(athleteUploadSkipCheckin.checked);
+      athleteUploadStrengthPlannedDoneCount.disabled = skipCheckin;
+      athleteUploadStrengthPlannedNotDoneCount.disabled = skipCheckin;
+      athleteUploadManualStrengthFeedback.disabled = skipCheckin;
+      athleteUploadStrengthPlannedDoneCount.required = !skipCheckin;
+      athleteUploadStrengthPlannedNotDoneCount.required = !skipCheckin;
+      athleteUploadSubmitButton.textContent = skipCheckin
+        ? "Importar sem check-in"
+        : "Importar e gerar check-in";
+    }
+
+    function syncAthleteUploadSelectedAthlete() {
+      if (!athleteUploadSelectedAthlete) return;
+      athleteUploadSelectedAthlete.value = selectedAthleteInput.value || "";
+      if (openAthleteUploadModalButton) {
+        openAthleteUploadModalButton.disabled = !selectedAthleteId;
+      }
+    }
+
+    async function processCsvUpload({
+      file,
+      skipCheckin,
+      strengthPlannedDoneCount,
+      strengthPlannedNotDoneCount,
+      manualStrengthFeedback,
+      submitControl,
+      closeAfterSuccess
+    }) {
+      if (!selectedAthleteId) {
+        showResult("Erro: seleciona primeiro um atleta no dropdown.", "error");
+        return;
+      }
+
+      if (!file) {
+        showResult("Erro: seleciona primeiro um ficheiro CSV/GZ/ZIP.", "error");
+        return;
+      }
+
+      submitControl.disabled = true;
+      showResult(
+        skipCheckin
+          ? "A processar upload sem criar check-in..."
+          : "A processar upload e a gerar check-in...",
+        ""
+      );
+
+      try {
+        const fileName = file.name || "";
+
+        if (!skipCheckin && (!Number.isInteger(strengthPlannedDoneCount) || strengthPlannedDoneCount < 0)) {
+          showResult("Erro: forca planned done tem de ser um inteiro >= 0.", "error");
+          submitControl.disabled = false;
+          return;
+        }
+
+        if (!skipCheckin && (!Number.isInteger(strengthPlannedNotDoneCount) || strengthPlannedNotDoneCount < 0)) {
+          showResult("Erro: forca planned not done tem de ser um inteiro >= 0.", "error");
+          submitControl.disabled = false;
+          return;
+        }
+
+        const lowerFileName = fileName.toLowerCase();
+        const isGz = lowerFileName.endsWith(".gz");
+        const isZip = lowerFileName.endsWith(".zip");
+        let payload;
+
+        if (isGz || isZip) {
+          const buffer = await file.arrayBuffer();
+          const bytes = new Uint8Array(buffer);
+          let binary = "";
+          for (let i = 0; i < bytes.length; i += 1) binary += String.fromCharCode(bytes[i]);
+          payload = {
+            athleteId: selectedAthleteId,
+            sourceFileName: fileName,
+            skipCheckin,
+            ...(skipCheckin
+              ? {}
+              : { strengthPlannedDoneCount, strengthPlannedNotDoneCount, manualStrengthFeedback }),
+            ...(isZip ? { zipBase64: btoa(binary) } : { gzBase64: btoa(binary) })
+          };
+        } else {
+          const csvText = await file.text();
+          payload = {
+            athleteId: selectedAthleteId,
+            sourceFileName: fileName,
+            csvText,
+            skipCheckin,
+            ...(skipCheckin
+              ? {}
+              : { strengthPlannedDoneCount, strengthPlannedNotDoneCount, manualStrengthFeedback })
+          };
+        }
+
+        const data = await apiRequest("POST", "/.netlify/functions/upload-csv", payload);
+
+        const athleteName = selectedAthleteInput.value || selectedAthleteId;
+        const checkinMessage = data.skipCheckin
+          ? "Importacao concluida sem criar check-in"
+          : data.reusedCheckin
+            ? "Check-in existente reutilizado"
+            : "Novo check-in criado";
+        const strengthInfo = data.skipCheckin
+          ? `Sessoes de forca detetadas no upload: ${data.totalStrengthSessionsDetected}`
+          : `Forca confirmada: ${data.strengthPlannedDoneCount} done / ${data.strengthPlannedNotDoneCount} not done (detetadas no upload: ${data.totalStrengthSessionsDetected})`;
+        const load = data.trainingLoadSummary || {};
+        const loadInfo = `Carga: CTL ${load.ctl ?? 0} | ATL ${load.atl ?? 0} | TSB ${load.tsb ?? 0}\nTotal Duration: ${load.totalDurationFormatted || "0:00"}\nTotal TSS: ${load.totalTss ?? 0}\nRun Distance: ${load.runDistanceKm ?? 0} km\nWork: ${load.workKj ?? 0} kJ`;
+        const warning = data.strengthConfirmationWarning ? `\nAviso: ${data.strengthConfirmationWarning}` : "";
+        const checkinLink = data.checkinUrl
+          ? `\nLink check-in: <a href="${data.checkinUrl}" target="_blank" rel="noopener">${data.checkinUrl}</a>`
+          : "";
+
+        setSelectedTrainingLoadWeekStart(data.weekStart || "");
+        renderTrainingLoadSummary(data.trainingLoadSummary, `Semana ${data.weekStart} a ${data.weekEnd}`);
+        showResult(
+          `Atleta: ${athleteName}\nBatch: ${data.uploadBatchId}\nImportado: ${data.imported} sessões\nAtualizado: ${data.updated}\nSemana: ${data.weekStart} a ${data.weekEnd}\n${strengthInfo}\n${loadInfo}\n${checkinMessage}${warning}${checkinLink}`,
+          "success"
+        );
+
+        await loadCheckinsForAthlete(selectedAthleteId);
+        if (typeof closeAfterSuccess === "function") closeAfterSuccess();
+      } catch (error) {
+        showResult("Erro: não foi possível concluir o upload. Tenta novamente.", "error");
+      }
+
+      submitControl.disabled = false;
+    }
+
+    function updatePanelHeader(tabName) {
+      if (!panelHeaderEyebrow || !panelHeaderTitle || !panelHeaderDescription) return;
+
+      const copyByTab = {
+        dashboard: {
+          eyebrow: "Coach Dashboard",
+          title: "Visão semanal da carteira",
+          description: "Acompanha resposta aos check-ins, pendentes de aprovação e aderência de força para priorizar as ações da semana."
+        },
+        athlete: {
+          eyebrow: "Gestão de Atletas",
+          title: "Seleciona e prepara o contexto",
+          description: "Escolhe o atleta, confirma estado de pagamento e valida rapidamente os dados-base antes de planear ou importar."
+        },
+        planeamento: {
+          eyebrow: "Planeamento",
+          title: "Assignments e calendário",
+          description: "Cria assignments, configura presets e gera o calendário semanal do atleta com controlo de regeneração por semana."
+        },
+        forca: {
+          eyebrow: "Treino de Força",
+          title: "Modela, atribui e monitoriza",
+          description: "Gere planos, exercícios e instâncias de força; acompanha execução por atleta e ajusta o treino quando necessário."
+        },
+        operacoes: {
+          eyebrow: "Operações Semanais",
+          title: "Importação e ciclo de check-ins",
+          description: "Importa CSV, gera ou reemite check-ins e faz revisão detalhada por atleta para fechar o ciclo semanal."
+        }
+      };
+
+      const copy = copyByTab[tabName] || copyByTab.dashboard;
+      panelHeaderEyebrow.textContent = copy.eyebrow;
+      panelHeaderTitle.textContent = copy.title;
+      panelHeaderDescription.textContent = copy.description;
+    }
+
     function setCoachTab(tabName) {
       coachTabButtons.forEach((btn) => {
         const isActive = btn.dataset.coachTab === tabName;
@@ -1802,26 +2168,30 @@
         section.hidden = section.dataset.coachTab !== tabName;
       });
 
-      // Hide the "Importação semanal" header on the strength/exercises tab
+      updatePanelHeader(tabName);
+
+      // Keep contextual instructions visible on all tabs.
       const panelHeader = document.querySelector(".panel-header");
-      if (panelHeader) panelHeader.hidden = tabName === "strength" || tabName === "exercises" || tabName === "assignments" || tabName === "instances";
+      if (panelHeader) panelHeader.hidden = false;
 
-      // Strength/exercises tabs use full width (hide sidebar)
-      document.querySelector(".layout").classList.toggle("full-width-mode", tabName === "strength" || tabName === "exercises" || tabName === "assignments" || tabName === "instances");
+      // Grouped operational tabs use full width (hide sidebar)
+      document.querySelector(".layout").classList.toggle("full-width-mode", tabName === "forca" || tabName === "planeamento" || tabName === "dashboard");
 
-      // Load exercises when switching to the exercises tab
-      if (tabName === "exercises") {
+      // Load data when switching to grouped Força tab
+      if (tabName === "forca") {
         loadExerciseCatalog().then(() => renderExerciseCrudList());
-      }
-
-      // Load assignments when switching to the assignments tab
-      if (tabName === "assignments") {
-        refreshCoachAssignmentsTab().catch((err) => showResult(err.message, true));
-      }
-
-      // Load instances when switching to the instances tab
-      if (tabName === "instances") {
         refreshCoachInstancesTab().catch((err) => showResult(err.message, true));
+        loadStrengthPlans();
+      }
+
+      // Load data when switching to grouped Planeamento tab
+      if (tabName === "planeamento") {
+        refreshCoachAssignmentsTab().catch((err) => showResult(err.message, true));
+        initScheduleTab().catch((err) => showResult(err.message, true));
+      }
+
+      if (tabName === "dashboard") {
+        loadCheckinOverview().catch((err) => showResult(err.message, true));
       }
     }
 
@@ -1944,6 +2314,104 @@
         return false;
       }
       return new Date(checkin.token_expires_at).getTime() < Date.now();
+    }
+
+    function getMondayIsoFromDate(dateValue) {
+      const date = dateValue ? new Date(`${dateValue}T00:00:00`) : new Date();
+      if (Number.isNaN(date.getTime())) return "";
+      const day = (date.getDay() + 6) % 7;
+      date.setDate(date.getDate() - day);
+      return date.toISOString().slice(0, 10);
+    }
+
+    function ensureOverviewWeekInput() {
+      if (!checkinOverviewWeekInput) return;
+      if (!checkinOverviewWeekInput.value) {
+        checkinOverviewWeekInput.value = new Date().toISOString().slice(0, 10);
+      }
+    }
+
+    async function loadCheckinOverview() {
+      if (!ovResponded || !ovRate || !ovPending || !ovStrength) return;
+      ensureOverviewWeekInput();
+      const mondayIso = getMondayIsoFromDate(checkinOverviewWeekInput ? checkinOverviewWeekInput.value : "");
+
+      ovResponded.textContent = "...";
+      ovRate.textContent = "...";
+      ovPending.textContent = "...";
+      ovStrength.textContent = "...";
+      if (ovPendingList) ovPendingList.textContent = "A carregar...";
+      if (ovTrendList) ovTrendList.textContent = "A carregar...";
+      if (ovStrengthTable) ovStrengthTable.textContent = "A carregar...";
+
+      try {
+        const data = await apiRequest("GET", `/.netlify/functions/coach-checkin-overview?weekStart=${encodeURIComponent(mondayIso)}&trendWeeks=8&pendingLimit=20`);
+        const summary = data.summary || {};
+
+        ovResponded.textContent = `${summary.responded || 0}/${summary.totalSent || 0}`;
+        ovRate.textContent = `${summary.responseRatePct || 0}%`;
+        ovPending.textContent = `${summary.pendingCoach || 0}`;
+        ovStrength.textContent = `${summary.strengthCompliancePct || 0}%`;
+
+        const pending = Array.isArray(data.pending) ? data.pending : [];
+        if (ovPendingList) {
+          if (!pending.length) {
+            ovPendingList.textContent = "Sem check-ins pendentes de aprovação nesta semana.";
+          } else {
+            ovPendingList.innerHTML = pending.map((p) => {
+              const responded = p.respondedAt ? new Date(p.respondedAt).toLocaleDateString("pt-PT") : "sem resposta";
+              return `<div style="padding:6px 0; border-bottom:1px solid #30363d; display:flex; justify-content:space-between; gap:8px; align-items:center;">
+                <div><strong>${escapeHtml(p.athleteName || "Atleta")}</strong><div class="microcopy">${escapeHtml(p.weekStart || "-")} · respondido: ${escapeHtml(responded)}</div></div>
+                <button type="button" class="btn btn-secondary ov-open-checkin" data-checkin-id="${escapeHtml(p.checkinId || "")}" style="padding:4px 8px; font-size:12px;">Abrir</button>
+              </div>`;
+            }).join("");
+          }
+        }
+
+        const trend = Array.isArray(data.trend) ? data.trend : [];
+        if (ovTrendList) {
+          if (!trend.length) {
+            ovTrendList.textContent = "Sem histórico nas últimas semanas.";
+          } else {
+            ovTrendList.innerHTML = trend.map((t) => (
+              `<div style="padding:4px 0; border-bottom:1px solid #30363d; display:flex; justify-content:space-between; gap:8px;">
+                <span>${escapeHtml(t.weekStart || "-")}</span>
+                <span>${escapeHtml(String(t.responded || 0))}/${escapeHtml(String(t.totalSent || 0))} (${escapeHtml(String(t.responseRatePct || 0))}%)</span>
+              </div>`
+            )).join("");
+          }
+        }
+
+        const strengthAudit = Array.isArray(data.strengthAudit) ? data.strengthAudit : [];
+        if (ovStrengthTable) {
+          if (!strengthAudit.length) {
+            ovStrengthTable.textContent = "Sem dados de força para esta semana.";
+          } else {
+            ovStrengthTable.innerHTML = `<table style="width:100%; border-collapse:collapse; font-size:12px;">
+              <thead>
+                <tr style="border-bottom:1px solid #30363d; color:#8b949e;">
+                  <th style="text-align:left; padding:6px;">Atleta</th>
+                  <th style="text-align:right; padding:6px;">Feitas</th>
+                  <th style="text-align:right; padding:6px;">Não feitas</th>
+                  <th style="text-align:right; padding:6px;">%</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${strengthAudit.map((r) => `<tr style="border-bottom:1px solid #30363d;">
+                  <td style="padding:6px;">${escapeHtml(r.athleteName || "-")}</td>
+                  <td style="padding:6px; text-align:right;">${escapeHtml(String(r.totalDone || 0))}</td>
+                  <td style="padding:6px; text-align:right;">${escapeHtml(String(r.totalNotDone || 0))}</td>
+                  <td style="padding:6px; text-align:right;">${escapeHtml(String(r.compliancePct || 0))}%</td>
+                </tr>`).join("")}
+              </tbody>
+            </table>`;
+          }
+        }
+      } catch (error) {
+        if (ovPendingList) ovPendingList.textContent = "Erro ao carregar overview.";
+        if (ovTrendList) ovTrendList.textContent = "Erro ao carregar overview.";
+        if (ovStrengthTable) ovStrengthTable.textContent = "Erro ao carregar overview.";
+      }
     }
 
     function renderCheckins(checkins) {
@@ -2318,6 +2786,10 @@
         showResult("Check-in aprovado com sucesso.", "success");
         closeCheckinDetail();
         await loadCheckinsForAthlete(selectedAthleteId);
+        const activeTab = document.querySelector(".coach-tab-btn.active");
+        if (activeTab && activeTab.dataset.coachTab === "dashboard") {
+          await loadCheckinOverview();
+        }
       } catch (error) {
         showResult(`Erro ao aprovar: ${escapeHtml(error.message)}`, "error");
         checkinApproveBtn.disabled = false;
@@ -2405,6 +2877,7 @@
       selectedAthleteId = athleteId || "";
       if (!selectedAthleteId) {
         selectedAthleteInput.value = "";
+        syncAthleteUploadSelectedAthlete();
         setSelectedTrainingLoadWeekStart("");
         syncTrainingLoadWeekControls();
         renderTrainingLoadSummary(null, "Sem dados calculados ainda.");
@@ -2414,12 +2887,14 @@
       const athlete = athletes.find((item) => item.id === selectedAthleteId);
       if (!athlete) {
         selectedAthleteInput.value = "";
+        syncAthleteUploadSelectedAthlete();
         syncTrainingLoadWeekControls();
         return;
       }
       selectedAthleteInput.value = athlete.name
         ? `${athlete.name} (${athlete.email || athlete.id})`
         : (athlete.email || athlete.id);
+      syncAthleteUploadSelectedAthlete();
       syncTrainingLoadWeekControls();
 
       if (strCurrentPlan && strCurrentPlan.plan) {
@@ -2478,6 +2953,57 @@
 
     openAddAthleteModalButton.addEventListener("click", openAddAthleteModal);
     cancelAddAthleteButton.addEventListener("click", closeAddAthleteModal);
+
+    if (openAthleteUploadModalButton) {
+      openAthleteUploadModalButton.addEventListener("click", () => {
+        if (!selectedAthleteId) {
+          showResult("Seleciona um atleta primeiro para abrir o upload por atleta.", "error");
+          return;
+        }
+        syncAthleteUploadSelectedAthlete();
+        syncAthleteUploadMode();
+        athleteUploadModal.classList.remove("hidden");
+      });
+    }
+
+    if (athleteUploadCancelButton) {
+      athleteUploadCancelButton.addEventListener("click", () => {
+        athleteUploadModal.classList.add("hidden");
+      });
+    }
+
+    if (athleteUploadModal) {
+      athleteUploadModal.addEventListener("click", (event) => {
+        if (event.target === athleteUploadModal) {
+          athleteUploadModal.classList.add("hidden");
+        }
+      });
+    }
+
+    if (athleteUploadSkipCheckin) {
+      athleteUploadSkipCheckin.addEventListener("change", syncAthleteUploadMode);
+    }
+
+    if (athleteUploadForm) {
+      athleteUploadForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        await processCsvUpload({
+          file: athleteUploadCsvFile.files && athleteUploadCsvFile.files[0],
+          skipCheckin: Boolean(athleteUploadSkipCheckin.checked),
+          strengthPlannedDoneCount: Number(athleteUploadStrengthPlannedDoneCount.value),
+          strengthPlannedNotDoneCount: Number(athleteUploadStrengthPlannedNotDoneCount.value),
+          manualStrengthFeedback: (athleteUploadManualStrengthFeedback.value || "").trim(),
+          submitControl: athleteUploadSubmitButton,
+          closeAfterSuccess: () => {
+            athleteUploadModal.classList.add("hidden");
+            athleteUploadForm.reset();
+            athleteUploadStrengthPlannedDoneCount.value = "0";
+            athleteUploadStrengthPlannedNotDoneCount.value = "0";
+            syncAthleteUploadMode();
+          }
+        });
+      });
+    }
 
     addAthleteModal.addEventListener("click", (event) => {
       if (event.target === addAthleteModal) {
@@ -2636,11 +3162,21 @@
     athleteSearchInput.addEventListener("input", applyAthleteFilter);
     filterPayingOnly.addEventListener("change", applyAthleteFilter);
     checkinStatusFilter.addEventListener("change", applyCheckinsFilter);
+    if (checkinOverviewRefreshBtn) {
+      checkinOverviewRefreshBtn.addEventListener("click", () => {
+        loadCheckinOverview().catch((err) => showResult(err.message, true));
+      });
+    }
+    if (checkinOverviewWeekInput) {
+      checkinOverviewWeekInput.addEventListener("change", () => {
+        loadCheckinOverview().catch((err) => showResult(err.message, true));
+      });
+    }
 
     coachTabs.addEventListener("click", (event) => {
       const btn = event.target.closest(".coach-tab-btn");
       if (!btn) return;
-      setCoachTab(btn.dataset.coachTab || "athlete");
+      setCoachTab(btn.dataset.coachTab || "dashboard");
     });
 
     checkinsContainer.addEventListener("click", (event) => {
@@ -2671,109 +3207,26 @@
       cancelUploadBatch(uploadBatchId, weekStart);
     });
 
+    if (ovPendingList) {
+      ovPendingList.addEventListener("click", (event) => {
+        const target = event.target;
+        if (!(target instanceof HTMLElement)) return;
+        if (!target.classList.contains("ov-open-checkin")) return;
+        const checkinId = target.getAttribute("data-checkin-id") || "";
+        if (checkinId) openCheckinDetail(checkinId);
+      });
+    }
+
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
-      const file = csvFileInput.files[0];
-      const skipCheckin = Boolean(skipCheckinInput.checked);
-
-      if (!selectedAthleteId) {
-        showResult("Erro: seleciona primeiro um atleta no dropdown.", "error");
-        return;
-      }
-
-      if (!file) {
-        showResult("Erro: seleciona primeiro um ficheiro CSV/GZ/ZIP.", "error");
-        return;
-      }
-
-      submitButton.disabled = true;
-      showResult(
-        skipCheckin
-          ? "A processar upload sem criar check-in..."
-          : "A processar upload e a gerar check-in...",
-        ""
-      );
-
-      try {
-        const fileName = file.name || "";
-        const strengthPlannedDoneCount = Number(strengthPlannedDoneCountInput.value);
-        const strengthPlannedNotDoneCount = Number(strengthPlannedNotDoneCountInput.value);
-        const manualStrengthFeedback = (manualStrengthFeedbackInput.value || "").trim();
-
-        if (!skipCheckin && (!Number.isInteger(strengthPlannedDoneCount) || strengthPlannedDoneCount < 0)) {
-          showResult("Erro: forca planned done tem de ser um inteiro >= 0.", "error");
-          submitButton.disabled = false;
-          return;
-        }
-
-        if (!skipCheckin && (!Number.isInteger(strengthPlannedNotDoneCount) || strengthPlannedNotDoneCount < 0)) {
-          showResult("Erro: forca planned not done tem de ser um inteiro >= 0.", "error");
-          submitButton.disabled = false;
-          return;
-        }
-
-        const lowerFileName = fileName.toLowerCase();
-        const isGz = lowerFileName.endsWith(".gz");
-        const isZip = lowerFileName.endsWith(".zip");
-        let payload;
-
-        if (isGz || isZip) {
-          const buffer = await file.arrayBuffer();
-          const bytes = new Uint8Array(buffer);
-          let binary = "";
-          for (let i = 0; i < bytes.length; i += 1) binary += String.fromCharCode(bytes[i]);
-          payload = {
-            athleteId: selectedAthleteId,
-            sourceFileName: fileName,
-            skipCheckin,
-            ...(skipCheckin
-              ? {}
-              : { strengthPlannedDoneCount, strengthPlannedNotDoneCount, manualStrengthFeedback }),
-            ...(isZip ? { zipBase64: btoa(binary) } : { gzBase64: btoa(binary) })
-          };
-        } else {
-          const csvText = await file.text();
-          payload = {
-            athleteId: selectedAthleteId,
-            sourceFileName: fileName,
-            csvText,
-            skipCheckin,
-            ...(skipCheckin
-              ? {}
-              : { strengthPlannedDoneCount, strengthPlannedNotDoneCount, manualStrengthFeedback })
-          };
-        }
-
-        const response = await apiRequest("POST", "/.netlify/functions/upload-csv", payload);
-        const data = response;
-
-        const athleteName = selectedAthleteInput.value || selectedAthleteId;
-        const checkinMessage = data.skipCheckin
-          ? "Importacao concluida sem criar check-in"
-          : data.reusedCheckin
-            ? "Check-in existente reutilizado"
-            : "Novo check-in criado";
-        const strengthInfo = data.skipCheckin
-          ? `Sessoes de forca detetadas no upload: ${data.totalStrengthSessionsDetected}`
-          : `Forca confirmada: ${data.strengthPlannedDoneCount} done / ${data.strengthPlannedNotDoneCount} not done (detetadas no upload: ${data.totalStrengthSessionsDetected})`;
-        const load = data.trainingLoadSummary || {};
-        const loadInfo = `Carga: CTL ${load.ctl ?? 0} | ATL ${load.atl ?? 0} | TSB ${load.tsb ?? 0}\nTotal Duration: ${load.totalDurationFormatted || "0:00"}\nTotal TSS: ${load.totalTss ?? 0}\nRun Distance: ${load.runDistanceKm ?? 0} km\nWork: ${load.workKj ?? 0} kJ`;
-        const warning = data.strengthConfirmationWarning ? `\nAviso: ${data.strengthConfirmationWarning}` : "";
-        const checkinLink = data.checkinUrl
-          ? `\nLink check-in: <a href="${data.checkinUrl}" target="_blank" rel="noopener">${data.checkinUrl}</a>`
-          : "";
-        setSelectedTrainingLoadWeekStart(data.weekStart || "");
-        renderTrainingLoadSummary(data.trainingLoadSummary, `Semana ${data.weekStart} a ${data.weekEnd}`);
-        showResult(
-          `Atleta: ${athleteName}\nBatch: ${data.uploadBatchId}\nImportado: ${data.imported} sessões\nAtualizado: ${data.updated}\nSemana: ${data.weekStart} a ${data.weekEnd}\n${strengthInfo}\n${loadInfo}\n${checkinMessage}${warning}${checkinLink}`,
-          "success"
-        );
-        await loadCheckinsForAthlete(selectedAthleteId);
-      } catch (error) {
-        showResult("Erro: não foi possível concluir o upload. Tenta novamente.", "error");
-      }
-
-      submitButton.disabled = false;
+      await processCsvUpload({
+        file: csvFileInput.files && csvFileInput.files[0],
+        skipCheckin: Boolean(skipCheckinInput.checked),
+        strengthPlannedDoneCount: Number(strengthPlannedDoneCountInput.value),
+        strengthPlannedNotDoneCount: Number(strengthPlannedNotDoneCountInput.value),
+        manualStrengthFeedback: (manualStrengthFeedbackInput.value || "").trim(),
+        submitControl: submitButton
+      });
     });
 
     skipCheckinInput.addEventListener("change", syncCheckinMode);
@@ -2876,7 +3329,7 @@
 
     syncTrainingLoadWeekControls();
     syncCheckinMode();
-    setCoachTab("athlete");
+    setCoachTab("dashboard");
 
     // ══════════════════════════════════════════════════════════
     // Strength Planning Module
@@ -3034,6 +3487,124 @@
     let strLoadedInstances = []; // active instances for current plan
     let strMonitor = { loading: false, error: null, progression: null, sessions: [] };
     let strDragState = { peId: null, section: null };
+    let strWarmupPresets = [];
+    let strSelectedWarmupPresetId = "";
+    let strPendingWarmupPayload = null;
+    let strEditingInstance = null;
+    let strEditingTemplatePlanId = null;
+    let strInstanceSnapshotDirty = false;
+
+    function cloneJson(value) {
+      return value == null ? value : JSON.parse(JSON.stringify(value));
+    }
+
+    function parseInstanceSnapshot(raw) {
+      if (!raw) return null;
+      if (typeof raw === "string") {
+        try {
+          return JSON.parse(raw);
+        } catch (_) {
+          return null;
+        }
+      }
+      return raw;
+    }
+
+    function makeClientUuid() {
+      if (window.crypto && typeof window.crypto.randomUUID === "function") {
+        return window.crypto.randomUUID();
+      }
+      return `tmp_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+    }
+
+    function getEditingInstanceAthleteName() {
+      if (!strEditingInstance) return "";
+      const athlete = athletes.find((item) => item.id === strEditingInstance.athlete_id);
+      return athlete ? (athlete.name || athlete.email || athlete.id) : (strEditingInstance.athlete_id || "");
+    }
+
+    function isEditingInstanceMode() {
+      return Boolean(strEditingInstance && strEditingInstance.id);
+    }
+
+    async function openStrengthInstanceEditor(instanceId) {
+      const instance = [...strLoadedInstances, ...instAllInstances].find((item) => item.id === instanceId);
+      if (!instance) {
+        alert("Instância não encontrada.");
+        return;
+      }
+
+      if (saveTimer) {
+        clearTimeout(saveTimer);
+        saveTimer = null;
+      }
+      await flushSave();
+
+      const snapshot = parseInstanceSnapshot(instance.plan_snapshot);
+      let full = null;
+      if (!snapshot) {
+        full = await apiRequest("GET", `/.netlify/functions/strength-plan?planId=${encodeURIComponent(instance.plan_id)}`);
+      }
+
+      strEditingTemplatePlanId = instance.plan_id;
+      strEditingInstance = cloneJson(instance);
+      strInstanceSnapshotDirty = false;
+      athleteSelect.value = instance.athlete_id || "";
+      syncSelectedAthlete(instance.athlete_id || "");
+      await load1RMsForAthlete(instance.athlete_id || "");
+      document.getElementById("openOneRmModal").disabled = !instance.athlete_id;
+      strCurrentPlan = snapshot
+        ? {
+            plan: {
+              id: instance.plan_id,
+              name: instance.plan?.name || "Instância de força",
+              total_weeks: Number(instance.plan?.total_weeks) || 4,
+              status: instance.status || "active",
+              training_program_id: instance.plan?.training_program_id || null,
+              start_date: instance.start_date || null
+            },
+            exercises: cloneJson(snapshot.exercises || []),
+            prescriptions: cloneJson(snapshot.prescriptions || []),
+            phaseNotes: cloneJson(snapshot.phaseNotes || [])
+          }
+        : full;
+
+      pendingPrescriptionChanges = {};
+      pendingExerciseChanges = {};
+      pendingPhaseNoteChanges = {};
+      strSelectedDay = 1;
+      strSelectedWeek = 1;
+      strengthPlanSelect.value = instance.plan_id || "";
+      renderPlanHeader();
+      renderDayTabs();
+      renderWeekTabs();
+      renderDayView();
+      if (selectedAthleteId) {
+        await loadStrengthMonitoring(instance.plan_id, selectedAthleteId);
+      } else {
+        renderStrengthMonitoring();
+      }
+      showResult(`A editar a instância de ${escapeHtml(getEditingInstanceAthleteName())}. As alterações afetam apenas esta instância.`, "success");
+    }
+
+    async function exitStrengthInstanceEditor() {
+      if (!isEditingInstanceMode()) return;
+      const planId = strEditingTemplatePlanId || (strEditingInstance ? strEditingInstance.plan_id : null);
+      strEditingInstance = null;
+      strEditingTemplatePlanId = null;
+      strInstanceSnapshotDirty = false;
+      pendingPrescriptionChanges = {};
+      pendingExerciseChanges = {};
+      pendingPhaseNoteChanges = {};
+      if (planId) {
+        await loadStrengthPlanFull(planId);
+      } else {
+        renderPlanHeader();
+        renderDayTabs();
+        renderWeekTabs();
+        renderDayView();
+      }
+    }
 
     function resetDragIndicators(root) {
       const scope = root || document;
@@ -3114,6 +3685,8 @@
     const strengthSections = document.getElementById("strengthSections");
     const strengthDayTabs = document.getElementById("strengthDayTabs");
     const strengthWeekTabs = document.getElementById("strengthWeekTabs");
+    const strengthInstanceModeLabel = document.getElementById("strengthInstanceModeLabel");
+    const exitInstanceEditBtn = document.getElementById("exitInstanceEditBtn");
     const strengthMonitorMeta = document.getElementById("strengthMonitorMeta");
     const strengthMonitorSessions = document.getElementById("strengthMonitorSessions");
     const strengthPlanModal = document.getElementById("strengthPlanModal");
@@ -3121,6 +3694,11 @@
     const spProgramSelect = document.getElementById("spProgram");
     let strPrograms = [];
     const addExerciseModal = document.getElementById("addExerciseModal");
+    const saveWarmupModal = document.getElementById("saveWarmupModal");
+    const saveWarmupForm = document.getElementById("saveWarmupForm");
+    const warmupLibraryModal = document.getElementById("warmupLibraryModal");
+    const warmupPresetList = document.getElementById("warmupPresetList");
+    const warmupPresetPreview = document.getElementById("warmupPresetPreview");
     let addExerciseTargetSection = "";
 
     // ── Client-side engine functions ──
@@ -3168,6 +3746,9 @@
     }
     function getEffectiveLoadRound() {
       if (!strCurrentPlan) return 2.5;
+      if (isEditingInstanceMode() && strEditingInstance && strEditingInstance.load_round != null) {
+        return Number(strEditingInstance.load_round);
+      }
       // If an athlete is selected and has an active instance, use instance's load_round
       if (selectedAthleteId && strLoadedInstances.length > 0) {
         const inst = strLoadedInstances.find(i => i.athlete_id === selectedAthleteId && i.status === "active");
@@ -3412,6 +3993,9 @@
       if (!planId) return;
       try {
         const data = await apiRequest("GET", `/.netlify/functions/strength-plan?planId=${planId}`);
+        strEditingInstance = null;
+        strEditingTemplatePlanId = null;
+        strInstanceSnapshotDirty = false;
         strCurrentPlan = data;
         strengthNoPlan.textContent = "";
         renderPlanHeader();
@@ -3569,23 +4153,33 @@
         document.getElementById("strengthPlanStatus").textContent = "";
         document.getElementById("strengthPlanStatus").className = "status-badge";
         document.getElementById("strengthPlanWeeks").textContent = "";
+        strengthInstanceModeLabel.textContent = "";
         document.getElementById("activatePlanBtn").hidden = true;
         document.getElementById("archivePlanBtn").hidden = true;
         document.getElementById("unarchivePlanBtn").hidden = true;
         document.getElementById("assignPlanBtn").hidden = true;
+        exitInstanceEditBtn.hidden = true;
         return;
       }
       const p = strCurrentPlan.plan;
+      const editingInstance = isEditingInstanceMode();
       document.getElementById("strengthPlanName").textContent = p.name;
       const badge = document.getElementById("strengthPlanStatus");
-      badge.textContent = p.status;
-      badge.className = "status-badge " + p.status;
+      badge.textContent = editingInstance ? `instância ${strEditingInstance.status || "active"}` : p.status;
+      badge.className = "status-badge " + (editingInstance ? (strEditingInstance.status || "active") : p.status);
       document.getElementById("strengthPlanWeeks").textContent = `${p.total_weeks} semanas · Carga arred. ${getEffectiveLoadRound()}kg`;
-      document.getElementById("activatePlanBtn").hidden = p.status !== "draft";
-      document.getElementById("archivePlanBtn").hidden = (p.status === "archived");
-      document.getElementById("unarchivePlanBtn").hidden = (p.status !== "archived");
-      document.getElementById("assignPlanBtn").hidden = (p.status !== "active");
-      loadPlanInstances(p.id);
+      strengthInstanceModeLabel.textContent = editingInstance
+        ? `Modo instância · ${getEditingInstanceAthleteName()}`
+        : "";
+      document.getElementById("editPlanMetaBtn").hidden = editingInstance;
+      document.getElementById("activatePlanBtn").hidden = editingInstance || p.status !== "draft";
+      document.getElementById("archivePlanBtn").hidden = editingInstance || (p.status === "archived");
+      document.getElementById("unarchivePlanBtn").hidden = editingInstance || (p.status !== "archived");
+      document.getElementById("assignPlanBtn").hidden = editingInstance || (p.status !== "active");
+      exitInstanceEditBtn.hidden = !editingInstance;
+      if (!editingInstance) {
+        loadPlanInstances(p.id);
+      }
     }
 
     function renderDayTabs() {
@@ -3632,6 +4226,318 @@
       );
     }
 
+    function ensureCurrentPlanArrays() {
+      if (!strCurrentPlan) return;
+      strCurrentPlan.exercises = Array.isArray(strCurrentPlan.exercises) ? strCurrentPlan.exercises : [];
+      strCurrentPlan.prescriptions = Array.isArray(strCurrentPlan.prescriptions) ? strCurrentPlan.prescriptions : [];
+      strCurrentPlan.phaseNotes = Array.isArray(strCurrentPlan.phaseNotes) ? strCurrentPlan.phaseNotes : [];
+    }
+
+    function addExerciseToCurrentSnapshot(section, exercise) {
+      if (!strCurrentPlan || !exercise) return null;
+      ensureCurrentPlanArrays();
+      const existing = getExercisesForDaySection(strSelectedDay, section);
+      const nextOrder = existing.length > 0 ? Math.max(...existing.map((item) => item.exercise_order)) + 1 : 1;
+      const createdAt = new Date().toISOString();
+      const newExercise = {
+        id: makeClientUuid(),
+        plan_id: strCurrentPlan.plan.id,
+        day_number: strSelectedDay,
+        section,
+        exercise_order: nextOrder,
+        exercise_id: exercise.id,
+        each_side: Boolean(exercise.default_each_side),
+        weight_per_side: Boolean(exercise.default_weight_per_side),
+        plyo_mechanical_load: section === "plyos_speed" ? "medium" : null,
+        rm_percent_increase_per_week: null,
+        superset_group: null,
+        created_at: createdAt,
+        exercise: cloneJson(exercise),
+        alt_progression_exercise: null,
+        alt_regression_exercise: null,
+        alt_progression_exercise_id: null,
+        alt_regression_exercise_id: null
+      };
+      strCurrentPlan.exercises.push(newExercise);
+      const totalWeeks = Number(strCurrentPlan.plan.total_weeks) || 1;
+      for (let week = 1; week <= totalWeeks; week++) {
+        strCurrentPlan.prescriptions.push({
+          id: makeClientUuid(),
+          plan_exercise_id: newExercise.id,
+          week_number: week,
+          prescription_type: "reps",
+          sets: 1,
+          reps: null,
+          reps_min: null,
+          reps_max: null,
+          duration_seconds: null,
+          rest_seconds: null,
+          rir: null,
+          tempo: null,
+          gct: null,
+          method: "standard",
+          rm_percent_override: null,
+          load_override_kg: null,
+          coach_notes: null,
+          created_at: createdAt,
+          updated_at: createdAt
+        });
+      }
+      queueExerciseChange(newExercise.id, "exercise_order", nextOrder);
+      renderDayView();
+      return newExercise;
+    }
+
+    function removeExerciseFromCurrentSnapshot(peId) {
+      if (!strCurrentPlan || !peId) return;
+      ensureCurrentPlanArrays();
+      const removed = (strCurrentPlan.exercises || []).find((item) => item.id === peId);
+      if (!removed) return;
+      strCurrentPlan.exercises = (strCurrentPlan.exercises || []).filter((item) => item.id !== peId);
+      strCurrentPlan.prescriptions = (strCurrentPlan.prescriptions || []).filter((item) => item.plan_exercise_id !== peId);
+      const remaining = getExercisesForDaySection(removed.day_number, removed.section);
+      remaining.forEach((entry, index) => {
+        if (entry.exercise_order !== index + 1) {
+          entry.exercise_order = index + 1;
+          queueExerciseChange(entry.id, "exercise_order", index + 1);
+        }
+      });
+      delete pendingExerciseChanges[peId];
+      Object.keys(pendingPrescriptionChanges).forEach((key) => {
+        if (key.startsWith(`${peId}_`)) delete pendingPrescriptionChanges[key];
+      });
+      strInstanceSnapshotDirty = true;
+      renderDayView();
+      scheduleSave();
+    }
+
+    function applyWarmupPresetToCurrentSnapshot(preset) {
+      if (!strCurrentPlan || !strCurrentPlan.plan || !preset || !preset.payload) {
+        throw new Error("Preset inválido.");
+      }
+
+      ensureCurrentPlanArrays();
+      const payload = preset.payload;
+      const presetExercises = Array.isArray(payload.exercises) ? payload.exercises : [];
+      if (!presetExercises.length) throw new Error("O preset selecionado não tem exercícios.");
+
+      const day = strSelectedDay;
+      const nowIso = new Date().toISOString();
+      const warmupExisting = getExercisesForDaySection(day, "warm_up");
+      const warmupIds = new Set(warmupExisting.map((item) => item.id));
+      strCurrentPlan.exercises = (strCurrentPlan.exercises || []).filter((item) => !warmupIds.has(item.id));
+      strCurrentPlan.prescriptions = (strCurrentPlan.prescriptions || []).filter((item) => !warmupIds.has(item.plan_exercise_id));
+      strCurrentPlan.phaseNotes = (strCurrentPlan.phaseNotes || []).filter((item) => !(item.day_number === day && item.section === "warm_up"));
+
+      const exerciseIndexMap = {};
+      presetExercises.forEach((item, index) => {
+        const exercise = strExercises.find((entry) => entry.id === item.exercise_id);
+        if (!exercise) return;
+        const created = {
+          id: makeClientUuid(),
+          plan_id: strCurrentPlan.plan.id,
+          day_number: day,
+          section: "warm_up",
+          exercise_order: index + 1,
+          exercise_id: item.exercise_id,
+          each_side: Boolean(item.each_side),
+          weight_per_side: Boolean(item.weight_per_side),
+          plyo_mechanical_load: item.plyo_mechanical_load || null,
+          rm_percent_increase_per_week: item.rm_percent_increase_per_week == null ? null : Number(item.rm_percent_increase_per_week),
+          superset_group: item.superset_group || null,
+          created_at: nowIso,
+          exercise: cloneJson(exercise),
+          alt_progression_exercise: null,
+          alt_regression_exercise: null,
+          alt_progression_exercise_id: null,
+          alt_regression_exercise_id: null
+        };
+        exerciseIndexMap[index + 1] = created.id;
+        strCurrentPlan.exercises.push(created);
+      });
+
+      const totalWeeks = Number(strCurrentPlan.plan.total_weeks) || 1;
+      const sourcePrescriptions = Array.isArray(payload.prescriptions) ? payload.prescriptions : [];
+      for (let exIndex = 1; exIndex <= presetExercises.length; exIndex++) {
+        const planExerciseId = exerciseIndexMap[exIndex];
+        if (!planExerciseId) continue;
+        for (let week = 1; week <= totalWeeks; week++) {
+          const source = sourcePrescriptions.find((entry) => Number(entry.preset_exercise_index) === exIndex && Number(entry.week_number) === week) || null;
+          strCurrentPlan.prescriptions.push({
+            id: makeClientUuid(),
+            plan_exercise_id: planExerciseId,
+            week_number: week,
+            prescription_type: source && source.prescription_type ? source.prescription_type : "reps",
+            sets: source && source.sets != null ? Number(source.sets) : 1,
+            reps: source && source.reps != null ? Number(source.reps) : null,
+            reps_min: null,
+            reps_max: null,
+            duration_seconds: source && source.duration_seconds != null ? Number(source.duration_seconds) : null,
+            rest_seconds: source && source.rest_seconds != null ? Number(source.rest_seconds) : null,
+            rir: source && source.rir != null ? Number(source.rir) : null,
+            tempo: source && source.tempo != null ? source.tempo : null,
+            gct: source && source.gct != null ? source.gct : null,
+            method: source && source.method != null ? source.method : "standard",
+            rm_percent_override: source && source.rm_percent_override != null ? Number(source.rm_percent_override) : null,
+            load_override_kg: source && source.load_override_kg != null ? Number(source.load_override_kg) : null,
+            coach_notes: source && source.coach_notes != null ? source.coach_notes : null,
+            created_at: nowIso,
+            updated_at: nowIso
+          });
+        }
+      }
+
+      const sourceNotes = Array.isArray(payload.phase_notes) ? payload.phase_notes : [];
+      for (let week = 1; week <= totalWeeks; week++) {
+        const source = sourceNotes.find((entry) => Number(entry.week_number) === week) || null;
+        strCurrentPlan.phaseNotes.push({
+          id: makeClientUuid(),
+          plan_id: strCurrentPlan.plan.id,
+          day_number: day,
+          section: "warm_up",
+          week_number: week,
+          notes: source ? (source.notes || "") : "",
+          created_at: nowIso,
+          updated_at: nowIso
+        });
+      }
+
+      pendingExerciseChanges = {};
+      pendingPrescriptionChanges = {};
+      pendingPhaseNoteChanges = {};
+      strInstanceSnapshotDirty = true;
+      scheduleSave();
+      renderDayView();
+    }
+
+    function toIntOrNull(value) {
+      if (value == null || value === "") return null;
+      const parsed = Number(value);
+      if (!Number.isFinite(parsed)) return null;
+      return Math.trunc(parsed);
+    }
+
+    function toNumberOrNull(value) {
+      if (value == null || value === "") return null;
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? parsed : null;
+    }
+
+    function toStringOrNull(value) {
+      if (typeof value !== "string") return null;
+      const trimmed = value.trim();
+      return trimmed ? trimmed : null;
+    }
+
+    function buildWarmupPayloadForDay(day) {
+      if (!strCurrentPlan || !strCurrentPlan.plan) throw new Error("Seleciona um plano primeiro.");
+
+      const warmups = getExercisesForDaySection(day, "warm_up");
+      if (!Array.isArray(warmups) || warmups.length === 0) {
+        throw new Error("Nao ha exercicios no warm up deste dia.");
+      }
+
+      const byPlanExerciseId = {};
+      const exercises = warmups.map((item, idx) => {
+        const presetIndex = idx + 1;
+        byPlanExerciseId[item.id] = presetIndex;
+        return {
+          preset_exercise_index: presetIndex,
+          exercise_id: item.exercise_id,
+          each_side: Boolean(item.each_side),
+          weight_per_side: Boolean(item.weight_per_side),
+          superset_group: toStringOrNull(item.superset_group),
+          plyo_mechanical_load: toStringOrNull(item.plyo_mechanical_load),
+          rm_percent_increase_per_week: toNumberOrNull(item.rm_percent_increase_per_week)
+        };
+      });
+
+      const prescriptions = (strCurrentPlan.prescriptions || [])
+        .filter((rx) => byPlanExerciseId[rx.plan_exercise_id])
+        .map((rx) => ({
+          preset_exercise_index: byPlanExerciseId[rx.plan_exercise_id],
+          week_number: toIntOrNull(rx.week_number),
+          prescription_type: toStringOrNull(rx.prescription_type) || "reps",
+          sets: toIntOrNull(rx.sets),
+          reps: toIntOrNull(rx.reps),
+          duration_seconds: toIntOrNull(rx.duration_seconds),
+          rest_seconds: toIntOrNull(rx.rest_seconds),
+          rir: toIntOrNull(rx.rir),
+          tempo: toStringOrNull(rx.tempo),
+          gct: toStringOrNull(rx.gct),
+          method: toStringOrNull(rx.method),
+          rm_percent_override: toNumberOrNull(rx.rm_percent_override),
+          load_override_kg: toNumberOrNull(rx.load_override_kg),
+          coach_notes: toStringOrNull(rx.coach_notes)
+        }))
+        .filter((rx) => rx.week_number != null);
+
+      const phaseNotes = (strCurrentPlan.phaseNotes || [])
+        .filter((note) => note.day_number === day && note.section === "warm_up")
+        .map((note) => ({
+          week_number: toIntOrNull(note.week_number),
+          notes: note.notes || ""
+        }))
+        .filter((note) => note.week_number != null)
+        .sort((a, b) => a.week_number - b.week_number);
+
+      return {
+        version: 1,
+        section: "warm_up",
+        source_day_number: day,
+        source_plan_id: strCurrentPlan.plan.id,
+        source_plan_name: strCurrentPlan.plan.name || "",
+        source_total_weeks: toIntOrNull(strCurrentPlan.plan.total_weeks),
+        exercises,
+        prescriptions,
+        phase_notes: phaseNotes
+      };
+    }
+
+    async function loadWarmupPresets(forceReload = false) {
+      if (!forceReload && strWarmupPresets.length > 0) return;
+      const data = await apiRequest("GET", "/.netlify/functions/strength-warmups");
+      strWarmupPresets = Array.isArray(data.presets) ? data.presets : [];
+    }
+
+    function getSelectedWarmupPreset() {
+      return strWarmupPresets.find((preset) => preset.id === strSelectedWarmupPresetId) || null;
+    }
+
+    function renderWarmupPresetPicker() {
+      if (!warmupPresetList) return;
+      if (!Array.isArray(strWarmupPresets) || strWarmupPresets.length === 0) {
+        warmupPresetList.innerHTML = '<div class="microcopy" style="padding:10px;">Ainda nao existem aquecimentos guardados.</div>';
+        if (warmupPresetPreview) warmupPresetPreview.textContent = "";
+        return;
+      }
+
+      warmupPresetList.innerHTML = strWarmupPresets.map((preset) => {
+        const payload = preset && preset.payload && typeof preset.payload === "object" ? preset.payload : {};
+        const exCount = Array.isArray(payload.exercises) ? payload.exercises.length : 0;
+        const weekSet = new Set((Array.isArray(payload.prescriptions) ? payload.prescriptions : []).map((rx) => rx.week_number));
+        const noteCount = Array.isArray(payload.phase_notes) ? payload.phase_notes.filter((n) => (n.notes || "").trim()).length : 0;
+        const activeClass = preset.id === strSelectedWarmupPresetId ? " active" : "";
+        const desc = preset.description ? `<div class="meta">${escapeHtml(preset.description)}</div>` : "";
+        return `<div class="str-preset-item${activeClass}" data-warmup-preset-id="${preset.id}">
+          <div class="name">${escapeHtml(preset.name || "Sem nome")}</div>
+          ${desc}
+          <div class="meta">${exCount} exercicio(s) · ${weekSet.size} semana(s) · ${noteCount} nota(s)</div>
+        </div>`;
+      }).join("");
+
+      const selected = getSelectedWarmupPreset();
+      if (!selected || !warmupPresetPreview) {
+        if (warmupPresetPreview) warmupPresetPreview.textContent = "";
+        return;
+      }
+
+      const payload = selected.payload && typeof selected.payload === "object" ? selected.payload : {};
+      const day = payload.source_day_number || "?";
+      const source = payload.source_plan_name || "Plano sem nome";
+      warmupPresetPreview.textContent = `Preset selecionado: ${selected.name} | origem: ${source} | dia ${day}`;
+    }
+
     function renderDayView() {
       strengthSections.innerHTML = "";
       const day = strSelectedDay;
@@ -3646,12 +4552,26 @@
         header.className = "str-section-header";
         const phaseNote = getPhaseNote(day, sec, week);
         const phaseNoteText = phaseNote ? phaseNote.notes : '';
+        const warmupButtons = sec === "warm_up"
+          ? '<button class="btn-small btn-ghost str-save-warmup-btn" type="button">Guardar aquecimento</button><button class="btn-small btn-ghost str-pick-warmup-btn" type="button">Escolher da lista</button>'
+          : "";
         header.innerHTML = `
           <h4>${SECTION_LABELS[sec]}</h4>
-          <span class="phase-note" data-day="${day}" data-section="${sec}" data-week="${week}" title="${phaseNoteText}">${phaseNoteText}</span>
-          <button class="btn-small str-add-btn" data-section="${sec}">+ Exercício</button>
+          <div class="str-section-actions">
+            <span class="phase-note" data-day="${day}" data-section="${sec}" data-week="${week}" title="${phaseNoteText}">${phaseNoteText}</span>
+            ${warmupButtons}
+            <button class="btn-small str-add-btn" data-section="${sec}">+ Exercício</button>
+          </div>
         `;
         header.querySelector(".str-add-btn").addEventListener("click", () => openAddExerciseModal(sec));
+        const saveWarmupBtn = header.querySelector(".str-save-warmup-btn");
+        if (saveWarmupBtn) {
+          saveWarmupBtn.addEventListener("click", () => openSaveWarmupModal());
+        }
+        const pickWarmupBtn = header.querySelector(".str-pick-warmup-btn");
+        if (pickWarmupBtn) {
+          pickWarmupBtn.addEventListener("click", () => openWarmupLibraryModal());
+        }
         header.querySelector(".phase-note").addEventListener("click", (ev) => {
           const span = ev.currentTarget;
           if (span.querySelector("input")) return;
@@ -3912,6 +4832,7 @@
           strCurrentPlan.phaseNotes.push({ plan_id: strCurrentPlan.plan.id, day_number: day, section: section, week_number: week, notes: notes || "" });
         }
       }
+      if (isEditingInstanceMode()) strInstanceSnapshotDirty = true;
       scheduleSave();
     }
 
@@ -3936,6 +4857,7 @@
         }
         rx[field] = stored;
       }
+      if (isEditingInstanceMode()) strInstanceSnapshotDirty = true;
       scheduleSave();
     }
 
@@ -3949,6 +4871,7 @@
         const ex = (strCurrentPlan.exercises || []).find(e => e.id === peId);
         if (ex) ex[field] = stored;
       }
+      if (isEditingInstanceMode()) strInstanceSnapshotDirty = true;
       scheduleSave();
     }
 
@@ -3968,43 +4891,58 @@
     async function flushSave() {
       saveTimer = null;
       if (!strCurrentPlan) return;
+      const editingInstance = isEditingInstanceMode();
       const rxList = Object.values(pendingPrescriptionChanges);
       const exList = Object.values(pendingExerciseChanges);
       const pnList = Object.values(pendingPhaseNoteChanges);
       pendingPrescriptionChanges = {};
       pendingExerciseChanges = {};
       pendingPhaseNoteChanges = {};
-      if (rxList.length === 0 && exList.length === 0 && pnList.length === 0) { setSaveStatus("idle"); return; }
+      if (rxList.length === 0 && exList.length === 0 && pnList.length === 0 && !(editingInstance && strInstanceSnapshotDirty)) { setSaveStatus("idle"); return; }
 
       console.log("[flushSave] Saving:", { rxCount: rxList.length, exCount: exList.length, exercises: exList, prescriptions: rxList });
       setSaveStatus("saving", "A guardar…");
       try {
-        const body = { plan_id: strCurrentPlan.plan.id };
-        if (exList.length > 0) {
-          // Enrich exercise changes with all required NOT NULL fields for Supabase upsert
-          body.exercises = exList.map(ex => {
-            const full = (strCurrentPlan.exercises || []).find(e => e.id === ex.id);
-            if (!full) return ex;
-            return {
-              id: full.id,
-              plan_id: full.plan_id,
-              day_number: full.day_number,
-              section: full.section,
-              exercise_order: full.exercise_order,
-              exercise_id: full.exercise_id,
-              each_side: full.each_side,
-              weight_per_side: full.weight_per_side,
-              plyo_mechanical_load: full.plyo_mechanical_load,
-              rm_percent_increase_per_week: full.rm_percent_increase_per_week,
-              superset_group: full.superset_group,
-              ...ex
-            };
-          });
+        if (editingInstance && strEditingInstance) {
+          const body = {
+            instance_id: strEditingInstance.id,
+            exercises: cloneJson(strCurrentPlan.exercises || []),
+            prescriptions: cloneJson(strCurrentPlan.prescriptions || []),
+            phase_notes: cloneJson(strCurrentPlan.phaseNotes || [])
+          };
+          const data = await apiRequest("PATCH", "/.netlify/functions/strength-plan", body);
+          if (data && data.instance) {
+            strEditingInstance = { ...strEditingInstance, ...data.instance };
+          }
+          strInstanceSnapshotDirty = false;
+        } else {
+          const body = { plan_id: strCurrentPlan.plan.id };
+          if (exList.length > 0) {
+            // Enrich exercise changes with all required NOT NULL fields for Supabase upsert
+            body.exercises = exList.map(ex => {
+              const full = (strCurrentPlan.exercises || []).find(e => e.id === ex.id);
+              if (!full) return ex;
+              return {
+                id: full.id,
+                plan_id: full.plan_id,
+                day_number: full.day_number,
+                section: full.section,
+                exercise_order: full.exercise_order,
+                exercise_id: full.exercise_id,
+                each_side: full.each_side,
+                weight_per_side: full.weight_per_side,
+                plyo_mechanical_load: full.plyo_mechanical_load,
+                rm_percent_increase_per_week: full.rm_percent_increase_per_week,
+                superset_group: full.superset_group,
+                ...ex
+              };
+            });
+          }
+          if (rxList.length > 0) body.prescriptions = rxList;
+          if (pnList.length > 0) body.phase_notes = pnList;
+          const data = await apiRequest("PUT", "/.netlify/functions/strength-plan", body);
+          strCurrentPlan = data;
         }
-        if (rxList.length > 0) body.prescriptions = rxList;
-        if (pnList.length > 0) body.phase_notes = pnList;
-        const data = await apiRequest("PUT", "/.netlify/functions/strength-plan", body);
-        strCurrentPlan = data;
 
         // Re-apply any changes queued while the API call was in flight
         reapplyPendingToMemory();
@@ -4016,6 +4954,7 @@
         setTimeout(() => { if (!saveTimer) setSaveStatus("idle"); }, 2500);
       } catch (e) {
         console.error("Auto-save failed", e);
+        if (editingInstance) strInstanceSnapshotDirty = true;
         // Restore pending changes so they are retried on the next save (max 3 retries)
         for (const rx of rxList) {
           const key = `${rx.plan_exercise_id}_${rx.week_number}`;
@@ -4268,6 +5207,10 @@
       if (!btn) return;
       const peId = btn.getAttribute("data-rmpe");
       if (!peId || !strCurrentPlan) return;
+      if (isEditingInstanceMode()) {
+        removeExerciseFromCurrentSnapshot(peId);
+        return;
+      }
       try {
         await apiRequest("PUT", "/.netlify/functions/strength-plan", {
           plan_id: strCurrentPlan.plan.id,
@@ -4287,6 +5230,158 @@
       document.getElementById("exerciseSubcatFilter").innerHTML = '<option value="">Todas subcategorias</option>';
       renderExercisePicker();
       document.getElementById("exerciseSearchInput").focus();
+    }
+
+    function openSaveWarmupModal() {
+      if (!strCurrentPlan) {
+        alert("Seleciona um plano primeiro.");
+        return;
+      }
+      try {
+        strPendingWarmupPayload = buildWarmupPayloadForDay(strSelectedDay);
+      } catch (error) {
+        alert(error.message || "Nao foi possivel recolher o aquecimento deste dia.");
+        return;
+      }
+
+      const defaultName = `Warm Up Dia ${strSelectedDay} - ${strCurrentPlan.plan.name || "Plano"}`;
+      document.getElementById("saveWarmupName").value = defaultName;
+      document.getElementById("saveWarmupDescription").value = "";
+      saveWarmupModal.classList.remove("hidden");
+      document.getElementById("saveWarmupName").focus();
+      document.getElementById("saveWarmupName").select();
+    }
+
+    async function openWarmupLibraryModal() {
+      if (!strCurrentPlan) {
+        alert("Seleciona um plano primeiro.");
+        return;
+      }
+
+      try {
+        await loadWarmupPresets(true);
+        strSelectedWarmupPresetId = "";
+        renderWarmupPresetPicker();
+        warmupLibraryModal.classList.remove("hidden");
+      } catch (error) {
+        alert("Erro ao carregar biblioteca de aquecimentos: " + (error.message || ""));
+      }
+    }
+
+    async function applyWarmupPresetToCurrentDay(preset) {
+      if (!strCurrentPlan || !strCurrentPlan.plan) throw new Error("Seleciona um plano primeiro.");
+      if (!preset || !preset.payload) throw new Error("Preset invalido.");
+
+      if (isEditingInstanceMode()) {
+        applyWarmupPresetToCurrentSnapshot(preset);
+        return;
+      }
+
+      const payload = preset.payload;
+      const presetExercises = Array.isArray(payload.exercises) ? payload.exercises : [];
+      if (presetExercises.length === 0) throw new Error("O preset selecionado nao tem exercicios.");
+
+      const planId = strCurrentPlan.plan.id;
+      const day = strSelectedDay;
+      const totalWeeks = Number(strCurrentPlan.plan.total_weeks) || 1;
+
+      if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
+      await flushSave();
+
+      const currentWarmup = getExercisesForDaySection(day, "warm_up");
+      if (currentWarmup.length > 0) {
+        await apiRequest("PUT", "/.netlify/functions/strength-plan", {
+          plan_id: planId,
+          delete_exercise_ids: currentWarmup.map((item) => item.id)
+        });
+      }
+
+      const insertExercises = presetExercises.map((exercise, idx) => ({
+        plan_id: planId,
+        day_number: day,
+        section: "warm_up",
+        exercise_order: idx + 1,
+        exercise_id: exercise.exercise_id,
+        each_side: Boolean(exercise.each_side),
+        weight_per_side: Boolean(exercise.weight_per_side),
+        superset_group: exercise.superset_group || null,
+        plyo_mechanical_load: exercise.plyo_mechanical_load || null,
+        rm_percent_increase_per_week: exercise.rm_percent_increase_per_week == null
+          ? null
+          : Number(exercise.rm_percent_increase_per_week)
+      }));
+
+      const afterInsert = await apiRequest("PUT", "/.netlify/functions/strength-plan", {
+        plan_id: planId,
+        exercises: insertExercises
+      });
+
+      strCurrentPlan = afterInsert;
+      const insertedWarmups = getExercisesForDaySection(day, "warm_up");
+      const createdByIndex = {};
+      for (const item of insertedWarmups) {
+        createdByIndex[item.exercise_order] = item.id;
+      }
+
+      const sourcePrescriptions = Array.isArray(payload.prescriptions) ? payload.prescriptions : [];
+      const prescriptionByKey = {};
+      for (const rx of sourcePrescriptions) {
+        const pIdx = Number(rx.preset_exercise_index);
+        const week = Number(rx.week_number);
+        if (!Number.isFinite(pIdx) || !Number.isFinite(week)) continue;
+        prescriptionByKey[`${pIdx}_${week}`] = rx;
+      }
+
+      const upsertPrescriptions = [];
+      for (let exIndex = 1; exIndex <= presetExercises.length; exIndex++) {
+        const planExerciseId = createdByIndex[exIndex];
+        if (!planExerciseId) continue;
+        for (let week = 1; week <= totalWeeks; week++) {
+          const source = prescriptionByKey[`${exIndex}_${week}`] || null;
+          const entry = { plan_exercise_id: planExerciseId, week_number: week };
+          if (source) {
+            if (source.prescription_type) entry.prescription_type = source.prescription_type;
+            if (source.sets != null) entry.sets = Number(source.sets);
+            if (source.reps != null) entry.reps = Number(source.reps);
+            if (source.duration_seconds != null) entry.duration_seconds = Number(source.duration_seconds);
+            if (source.rest_seconds != null) entry.rest_seconds = Number(source.rest_seconds);
+            if (source.rir != null) entry.rir = Number(source.rir);
+            if (source.tempo != null) entry.tempo = source.tempo;
+            if (source.gct != null) entry.gct = source.gct;
+            if (source.method != null) entry.method = source.method;
+            if (source.rm_percent_override != null) entry.rm_percent_override = Number(source.rm_percent_override);
+            if (source.load_override_kg != null) entry.load_override_kg = Number(source.load_override_kg);
+            if (source.coach_notes != null) entry.coach_notes = source.coach_notes;
+          }
+          upsertPrescriptions.push(entry);
+        }
+      }
+
+      const sourceNotes = Array.isArray(payload.phase_notes) ? payload.phase_notes : [];
+      const notesByWeek = {};
+      for (const note of sourceNotes) {
+        const week = Number(note.week_number);
+        if (!Number.isFinite(week) || week < 1) continue;
+        notesByWeek[week] = note.notes || "";
+      }
+      const upsertPhaseNotes = [];
+      for (let week = 1; week <= totalWeeks; week++) {
+        upsertPhaseNotes.push({
+          plan_id: planId,
+          day_number: day,
+          section: "warm_up",
+          week_number: week,
+          notes: notesByWeek[week] || ""
+        });
+      }
+
+      await apiRequest("PUT", "/.netlify/functions/strength-plan", {
+        plan_id: planId,
+        prescriptions: upsertPrescriptions,
+        phase_notes: upsertPhaseNotes
+      });
+
+      await loadStrengthPlanFull(planId);
     }
 
     function renderExercisePicker() {
@@ -4323,6 +5418,13 @@
       const exId = item.getAttribute("data-exid");
       const exercise = strExercises.find(ex => ex.id === exId);
       if (!exercise) return;
+
+      if (isEditingInstanceMode()) {
+        addExerciseToCurrentSnapshot(addExerciseTargetSection, exercise);
+        addExerciseModal.classList.add("hidden");
+        scheduleSave();
+        return;
+      }
 
       const existing = getExercisesForDaySection(strSelectedDay, addExerciseTargetSection);
       const nextOrder = existing.length > 0 ? Math.max(...existing.map(e => e.exercise_order)) + 1 : 1;
@@ -4375,6 +5477,98 @@
 
     document.getElementById("cancelAddExerciseBtn").addEventListener("click", () => {
       addExerciseModal.classList.add("hidden");
+    });
+
+    document.getElementById("saveWarmupCancelBtn").addEventListener("click", () => {
+      saveWarmupModal.classList.add("hidden");
+      strPendingWarmupPayload = null;
+    });
+
+    saveWarmupForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (!strPendingWarmupPayload) {
+        alert("Nao foi possivel gerar o preset do aquecimento.");
+        return;
+      }
+
+      const submitBtn = document.getElementById("saveWarmupSubmitBtn");
+      const originalLabel = submitBtn.textContent;
+      const name = (document.getElementById("saveWarmupName").value || "").trim();
+      const description = (document.getElementById("saveWarmupDescription").value || "").trim();
+      if (!name) {
+        alert("Indica um nome para o preset.");
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = "A guardar...";
+      try {
+        await apiRequest("POST", "/.netlify/functions/strength-warmups", {
+          name,
+          description: description || null,
+          payload: strPendingWarmupPayload
+        });
+        saveWarmupModal.classList.add("hidden");
+        strPendingWarmupPayload = null;
+        await loadWarmupPresets(true);
+        alert("Aquecimento guardado na biblioteca partilhada.");
+      } catch (error) {
+        alert("Erro ao guardar aquecimento: " + (error.message || ""));
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalLabel;
+      }
+    });
+
+    warmupPresetList.addEventListener("click", (e) => {
+      const item = e.target.closest("[data-warmup-preset-id]");
+      if (!item) return;
+      strSelectedWarmupPresetId = item.getAttribute("data-warmup-preset-id") || "";
+      renderWarmupPresetPicker();
+    });
+
+    document.getElementById("refreshWarmupPresetsBtn").addEventListener("click", async () => {
+      try {
+        await loadWarmupPresets(true);
+        renderWarmupPresetPicker();
+      } catch (error) {
+        alert("Erro ao atualizar biblioteca: " + (error.message || ""));
+      }
+    });
+
+    document.getElementById("closeWarmupLibraryBtn").addEventListener("click", () => {
+      warmupLibraryModal.classList.add("hidden");
+      strSelectedWarmupPresetId = "";
+      renderWarmupPresetPicker();
+    });
+
+    document.getElementById("applyWarmupPresetBtn").addEventListener("click", async () => {
+      const preset = getSelectedWarmupPreset();
+      if (!preset) {
+        alert("Seleciona um aquecimento da lista.");
+        return;
+      }
+
+      const confirmed = window.confirm(
+        `Aplicar ${preset.name || "este preset"} no dia ${strSelectedDay}? Isto substitui o warm up do dia em todas as semanas.`
+      );
+      if (!confirmed) return;
+
+      const applyBtn = document.getElementById("applyWarmupPresetBtn");
+      const originalLabel = applyBtn.textContent;
+      applyBtn.disabled = true;
+      applyBtn.textContent = "A aplicar...";
+      try {
+        await applyWarmupPresetToCurrentDay(preset);
+        warmupLibraryModal.classList.add("hidden");
+        strSelectedWarmupPresetId = "";
+        renderWarmupPresetPicker();
+      } catch (error) {
+        alert("Erro ao aplicar aquecimento: " + (error.message || ""));
+      } finally {
+        applyBtn.disabled = false;
+        applyBtn.textContent = originalLabel;
+      }
     });
 
     // ── Plan CRUD ──
@@ -4793,6 +5987,7 @@
           row.style.cssText = "display:flex; gap:8px; align-items:center; margin-bottom:4px;";
           row.innerHTML = `<span style="flex:1;">${escapeHtml(name)}</span>`
             + `<span class="microcopy">${inst.start_date || "sem data"} · ${inst.load_round}kg</span>`
+            + `<button class="btn btn-small btn-ghost" data-instance-edit="${inst.id}" title="Editar treino desta instância">✏</button>`
             + `<button class="btn btn-small btn-ghost" data-instance-pause="${inst.id}" title="Pausar">⏸</button>`
             + `<button class="btn btn-small btn-ghost" data-instance-complete="${inst.id}" title="Completar">✓</button>`
             + `<button class="btn btn-small btn-ghost" data-instance-cancel="${inst.id}" title="Cancelar">✕</button>`;
@@ -4806,6 +6001,11 @@
     }
 
     strengthInstancesList.addEventListener("click", async (e) => {
+      const editBtn = e.target.closest("[data-instance-edit]");
+      if (editBtn) {
+        await openStrengthInstanceEditor(editBtn.dataset.instanceEdit);
+        return;
+      }
       const btn = e.target.closest("[data-instance-pause],[data-instance-complete],[data-instance-cancel]");
       if (!btn) return;
       let status, instanceId;
@@ -4849,6 +6049,11 @@
 
     document.getElementById("assignCancelBtn").addEventListener("click", () => {
       assignPlanModal.classList.add("hidden");
+    });
+
+    exitInstanceEditBtn.addEventListener("click", async () => {
+      await exitStrengthInstanceEditor();
+      showResult("Voltaste ao template base do plano.", "success");
     });
 
     assignPlanForm.addEventListener("submit", async (e) => {
@@ -5135,7 +6340,8 @@
         const canComplete = inst.status === "active";
         const canCancel = inst.status === "active" || inst.status === "paused";
 
-        let actionsHtml = '<button class="btn btn-sm" data-inst-edit="' + escapeHtml(inst.id) + '" style="font-size:0.75rem;padding:2px 6px;" title="Editar">✏️</button>';
+        let actionsHtml = '<button class="btn btn-sm" data-inst-edit-training="' + escapeHtml(inst.id) + '" style="font-size:0.75rem;padding:2px 6px;" title="Editar treino">🏋</button>';
+        actionsHtml += ' <button class="btn btn-sm" data-inst-edit="' + escapeHtml(inst.id) + '" style="font-size:0.75rem;padding:2px 6px;" title="Editar metadados">✏️</button>';
         if (canPause) actionsHtml += ' <button class="btn btn-sm" data-inst-action="paused" data-inst-id="' + escapeHtml(inst.id) + '" style="font-size:0.75rem;padding:2px 6px;" title="Pausar">⏸</button>';
         if (canComplete) actionsHtml += ' <button class="btn btn-sm" data-inst-action="completed" data-inst-id="' + escapeHtml(inst.id) + '" style="font-size:0.75rem;padding:2px 6px;" title="Completar">✓</button>';
         if (canCancel) actionsHtml += ' <button class="btn btn-sm" data-inst-action="cancelled" data-inst-id="' + escapeHtml(inst.id) + '" style="font-size:0.75rem;padding:2px 6px;" title="Cancelar">✕</button>';
@@ -5255,7 +6461,13 @@
       if (instRefreshBtn) instRefreshBtn.addEventListener("click", () => refreshCoachInstances());
 
       if (instTableBody) {
-        instTableBody.addEventListener("click", (e) => {
+        instTableBody.addEventListener("click", async (e) => {
+          const trainingBtn = e.target.closest("[data-inst-edit-training]");
+          if (trainingBtn) {
+            await openStrengthInstanceEditor(trainingBtn.dataset.instEditTraining);
+            setCoachTab("forca");
+            return;
+          }
           const editBtn = e.target.closest("[data-inst-edit]");
           if (editBtn) {
             openInstEditModal(editBtn.dataset.instEdit);
@@ -5359,6 +6571,9 @@
         } else if (canResume) {
           actionHtml = `<button class="btn btn-primary btn-sm" data-assign-action="resume" data-assign-id="${escapeHtml(a.id)}" style="font-size:0.8rem;padding:3px 8px;">Retomar</button>`;
         }
+        if (a.status === "active" || a.status === "scheduled") {
+          actionHtml += ` <button class="btn btn-sm" data-assign-action="generate-calendar" data-assign-id="${escapeHtml(a.id)}" data-program-id="${escapeHtml(a.trainingProgramId || "")}" style="font-size:0.8rem;padding:3px 8px;color:#d4a54f;">Calendário</button>`;
+        }
         return `<tr style="border-bottom:1px solid #21262d;">
           <td style="padding:8px;">${escapeHtml(a.athleteName || a.athleteEmail || a.athleteId || "-")}</td>
           <td style="padding:8px;">${escapeHtml(a.programName || "-")}</td>
@@ -5410,6 +6625,14 @@
           const action = btn.dataset.assignAction;
           const id = btn.dataset.assignId;
           if (!id) return;
+
+          // Handle calendar generation
+          if (action === "generate-calendar") {
+            const programId = btn.dataset.programId;
+            if (!programId) { showResult("Programa não encontrado.", true); return; }
+            await openCalendarGenerationModal(id, programId, btn);
+            return;
+          }
 
           const newStatus = action === "pause" ? "paused" : action === "resume" ? "active" : null;
           if (!newStatus) return;
@@ -5552,6 +6775,571 @@
       if (coachNewAssignLock) coachNewAssignLock.checked = false;
       const lockDateEl = document.getElementById("coach-new-assign-lock-date");
       if (lockDateEl) lockDateEl.value = "";
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // SCHEDULE TAB — Sessions + Presets + Slots
+    // ═══════════════════════════════════════════════════════════
+    const SCHED_SESSION_TYPES = ["strength", "running", "rest", "mobility", "other"];
+    const SCHED_RUNNING_TYPES = ["easy", "threshold", "interval", "long", "tempo", "repetition", "recovery"];
+    const SCHED_INTENSITIES = ["low", "moderate", "high", "very_high"];
+    const SCHED_DAY_LABELS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
+
+    let _schedInitialized = false;
+    let schedSessions = [];
+    let schedPresets = [];
+    let schedSelectedProgramId = null;
+
+    const schedProgramSelect = document.getElementById("sched-program-select");
+    const schedSessionsArea = document.getElementById("sched-sessions-area");
+    const schedSessionsList = document.getElementById("sched-sessions-list");
+    const schedPresetsArea = document.getElementById("sched-presets-area");
+    const schedAddSessionBtn = document.getElementById("sched-add-session-btn");
+    const schedAddPresetBtn = document.getElementById("sched-add-preset-btn");
+
+    async function initScheduleTab() {
+      if (!_schedInitialized) {
+        _schedInitialized = true;
+        await loadScheduleProgramOptions();
+        schedProgramSelect.addEventListener("change", onScheduleProgramChange);
+        schedAddSessionBtn.addEventListener("click", () => openSessionEditor(null));
+        schedAddPresetBtn.addEventListener("click", () => openPresetEditor(null));
+      }
+    }
+
+    async function loadScheduleProgramOptions() {
+      try {
+        const data = await apiRequest("GET", "/.netlify/functions/admin-programs");
+        const programs = data.programs || [];
+        schedProgramSelect.innerHTML = '<option value="">Seleciona um programa...</option>';
+        programs.forEach((p) => {
+          const opt = document.createElement("option");
+          opt.value = p.id;
+          opt.textContent = p.name || p.title || p.id;
+          schedProgramSelect.appendChild(opt);
+        });
+      } catch (_) {
+        // Fallback for non-admin users that still have coach access.
+        try {
+          const data = await apiRequest("GET", "/.netlify/functions/list-programs");
+          const programs = data.programs || [];
+          schedProgramSelect.innerHTML = '<option value="">Seleciona um programa...</option>';
+          programs.forEach((p) => {
+            const opt = document.createElement("option");
+            opt.value = p.id;
+            opt.textContent = p.name || p.title || p.id;
+            schedProgramSelect.appendChild(opt);
+          });
+        } catch (err) {
+          showResult("Erro ao carregar programas: " + err.message, true);
+        }
+      }
+    }
+
+    async function onScheduleProgramChange() {
+      schedSelectedProgramId = schedProgramSelect.value || null;
+      if (!schedSelectedProgramId) {
+        schedSessionsArea.hidden = true;
+        return;
+      }
+      schedSessionsArea.hidden = false;
+      await Promise.all([loadScheduleSessions(), loadSchedulePresets()]);
+    }
+
+    async function loadScheduleSessions() {
+      try {
+        const data = await apiRequest("GET", `/.netlify/functions/admin-program-sessions?trainingProgramId=${schedSelectedProgramId}`);
+        schedSessions = data.sessions || [];
+        renderScheduleSessions();
+      } catch (err) {
+        showResult("Erro ao carregar sessões: " + err.message, true);
+      }
+    }
+
+    async function loadSchedulePresets() {
+      try {
+        const data = await apiRequest("GET", `/.netlify/functions/admin-program-schedule?trainingProgramId=${schedSelectedProgramId}&includeSlots=1`);
+        schedPresets = data.presets || [];
+        renderSchedulePresets();
+      } catch (err) {
+        showResult("Erro ao carregar presets: " + err.message, true);
+      }
+    }
+
+    function renderScheduleSessions() {
+      if (!schedSessions.length) {
+        schedSessionsList.innerHTML = '<p style="color:#8b949e; font-size:0.85rem;">Nenhuma sessão definida. Clica em "+ Sessão" para criar.</p>';
+        return;
+      }
+      schedSessionsList.innerHTML = schedSessions.map((s) => {
+        const typeBadge = `<span style="background:#21262d; border:1px solid #30363d; border-radius:4px; padding:2px 6px; font-size:0.75rem; color:#79c0ff;">${s.session_type}</span>`;
+        const extraBadges = [];
+        if (s.strength_day_number) extraBadges.push(`Dia ${s.strength_day_number}`);
+        if (s.running_session_type) extraBadges.push(s.running_session_type);
+        if (s.duration_estimate_min) extraBadges.push(`${s.duration_estimate_min}min`);
+        if (s.intensity) extraBadges.push(s.intensity);
+        if (s.is_optional) extraBadges.push("opcional");
+        const extras = extraBadges.map((b) => `<span style="background:#161b22; border:1px solid #30363d; border-radius:4px; padding:2px 6px; font-size:0.7rem; color:#8b949e;">${b}</span>`).join(" ");
+        return `<div style="display:flex; align-items:center; gap:10px; padding:10px 14px; background:#161b22; border:1px solid #30363d; border-radius:8px;">
+          <div style="flex:1;">
+            <div style="color:#c9d1d9; font-weight:600;">${s.session_label}</div>
+            <div style="display:flex; gap:6px; margin-top:4px; flex-wrap:wrap;">${typeBadge} ${extras}</div>
+          </div>
+          <code style="color:#484f58; font-size:0.7rem;">${s.session_key}</code>
+          <button onclick="openSessionEditor('${s.id}')" class="btn btn-secondary" style="font-size:0.75rem; padding:4px 10px;">Editar</button>
+          <button onclick="deleteScheduleSession('${s.id}')" class="btn" style="font-size:0.75rem; padding:4px 10px; color:#f85149;">Apagar</button>
+        </div>`;
+      }).join("");
+    }
+
+    function renderSchedulePresets() {
+      if (!schedPresets.length) {
+        schedPresetsArea.innerHTML = '<p style="color:#8b949e; font-size:0.85rem;">Nenhum preset. Clica em "+ Preset" para criar.</p>';
+        return;
+      }
+      schedPresetsArea.innerHTML = schedPresets.map((p) => {
+        const defaultBadge = p.is_default ? ' <span style="background:#1a7f37; color:#fff; border-radius:4px; padding:1px 6px; font-size:0.7rem;">padrão</span>' : "";
+        const slotsGrid = renderPresetGrid(p.slots || []);
+        return `<div style="background:#161b22; border:1px solid #30363d; border-radius:8px; padding:14px; margin-bottom:12px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+            <div>
+              <span style="color:#c9d1d9; font-weight:600;">${p.preset_name}</span>${defaultBadge}
+              <span style="color:#8b949e; font-size:0.8rem; margin-left:8px;">${p.total_training_days} dias</span>
+              ${p.description ? `<div style="color:#8b949e; font-size:0.8rem; margin-top:2px;">${p.description}</div>` : ""}
+            </div>
+            <div style="display:flex; gap:6px;">
+              <button onclick="openPresetEditor('${p.id}')" class="btn btn-secondary" style="font-size:0.75rem; padding:4px 10px;">Editar</button>
+              <button onclick="deleteSchedulePreset('${p.id}')" class="btn" style="font-size:0.75rem; padding:4px 10px; color:#f85149;">Apagar</button>
+            </div>
+          </div>
+          ${slotsGrid}
+        </div>`;
+      }).join("");
+    }
+
+    function renderPresetGrid(slots) {
+      const grid = Array.from({ length: 7 }, () => []);
+      slots.forEach((s) => {
+        if (s.day_of_week >= 0 && s.day_of_week <= 6) {
+          grid[s.day_of_week].push(s);
+        }
+      });
+      const cols = grid.map((daySlots, i) => {
+        const cells = daySlots.length > 0
+          ? daySlots.sort((a, b) => a.time_slot - b.time_slot).map((sl) => {
+            const sess = schedSessions.find((s) => s.id === sl.session_id);
+            const label = sess ? sess.session_label : sl.session_id.slice(0, 8);
+            const bg = sess ? getSessionColor(sess.session_type) : "#21262d";
+            return `<div style="background:${bg}; border-radius:4px; padding:4px 6px; font-size:0.7rem; color:#c9d1d9; margin-bottom:2px; text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${label}">${label}</div>`;
+          }).join("")
+          : '<div style="color:#30363d; font-size:0.7rem; text-align:center;">—</div>';
+        return `<div style="min-width:0;"><div style="color:#8b949e; font-size:0.7rem; text-align:center; margin-bottom:4px; font-weight:600;">${SCHED_DAY_LABELS[i]}</div>${cells}</div>`;
+      }).join("");
+      return `<div style="display:grid; grid-template-columns:repeat(7, 1fr); gap:4px;">${cols}</div>`;
+    }
+
+    function getSessionColor(type) {
+      switch (type) {
+        case "strength": return "#1c3a5f";
+        case "running": return "#2d4a22";
+        case "rest": return "#30363d";
+        case "mobility": return "#4a3060";
+        default: return "#21262d";
+      }
+    }
+
+    // ── Session CRUD ──
+
+    function openSessionEditor(sessionId) {
+      const existing = sessionId ? schedSessions.find((s) => s.id === sessionId) : null;
+      const title = existing ? "Editar sessão" : "Nova sessão";
+
+      const html = `<div class="modal-backdrop" style="position:fixed; inset:0; background:rgba(0,0,0,0.6); display:flex; align-items:center; justify-content:center; z-index:1000;">
+        <div class="modal" style="background:#161b22; border:1px solid #30363d; border-radius:12px; padding:24px; max-width:440px; width:90%;">
+          <h3 style="color:#c9d1d9; margin-bottom:16px;">${title}</h3>
+          <form id="sched-session-form">
+            <div style="display:grid; gap:12px;">
+              <div>
+                <label style="display:block; font-size:0.8rem; color:#8b949e; margin-bottom:4px;">Chave (session_key)*</label>
+                <input name="session_key" value="${existing ? existing.session_key : ""}" required style="width:100%; padding:6px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9;" placeholder="ex: strength_a, run_easy" />
+              </div>
+              <div>
+                <label style="display:block; font-size:0.8rem; color:#8b949e; margin-bottom:4px;">Tipo*</label>
+                <select name="session_type" required style="width:100%; padding:6px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9;">
+                  ${SCHED_SESSION_TYPES.map((t) => `<option value="${t}" ${existing && existing.session_type === t ? "selected" : ""}>${t}</option>`).join("")}
+                </select>
+              </div>
+              <div>
+                <label style="display:block; font-size:0.8rem; color:#8b949e; margin-bottom:4px;">Label*</label>
+                <input name="session_label" value="${existing ? existing.session_label : ""}" required style="width:100%; padding:6px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9;" placeholder="ex: Força - Dia A (Upper)" />
+              </div>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                <div>
+                  <label style="display:block; font-size:0.8rem; color:#8b949e; margin-bottom:4px;">Dia de força (1-7)</label>
+                  <input name="strength_day_number" type="number" min="1" max="7" value="${existing && existing.strength_day_number ? existing.strength_day_number : ""}" style="width:100%; padding:6px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9;" />
+                </div>
+                <div>
+                  <label style="display:block; font-size:0.8rem; color:#8b949e; margin-bottom:4px;">Tipo corrida</label>
+                  <select name="running_session_type" style="width:100%; padding:6px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9;">
+                    <option value="">—</option>
+                    ${SCHED_RUNNING_TYPES.map((t) => `<option value="${t}" ${existing && existing.running_session_type === t ? "selected" : ""}>${t}</option>`).join("")}
+                  </select>
+                </div>
+              </div>
+              <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px;">
+                <div>
+                  <label style="display:block; font-size:0.8rem; color:#8b949e; margin-bottom:4px;">Duração (min)</label>
+                  <input name="duration_estimate_min" type="number" min="0" value="${existing && existing.duration_estimate_min ? existing.duration_estimate_min : ""}" style="width:100%; padding:6px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9;" />
+                </div>
+                <div>
+                  <label style="display:block; font-size:0.8rem; color:#8b949e; margin-bottom:4px;">Intensidade</label>
+                  <select name="intensity" style="width:100%; padding:6px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9;">
+                    <option value="">—</option>
+                    ${SCHED_INTENSITIES.map((t) => `<option value="${t}" ${existing && existing.intensity === t ? "selected" : ""}>${t}</option>`).join("")}
+                  </select>
+                </div>
+                <div>
+                  <label style="display:block; font-size:0.8rem; color:#8b949e; margin-bottom:4px;">Prioridade</label>
+                  <input name="sort_priority" type="number" value="${existing ? existing.sort_priority : schedSessions.length}" style="width:100%; padding:6px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9;" />
+                </div>
+              </div>
+              <label style="display:flex; align-items:center; gap:6px; font-size:0.85rem; color:#8b949e; cursor:pointer;">
+                <input type="checkbox" name="is_optional" ${existing && existing.is_optional ? "checked" : ""} /> Opcional
+              </label>
+            </div>
+            <div style="display:flex; gap:8px; margin-top:16px;">
+              <button type="submit" class="btn btn-primary">Guardar</button>
+              <button type="button" class="btn btn-secondary" onclick="this.closest('.modal-backdrop').remove()">Cancelar</button>
+            </div>
+          </form>
+        </div>
+      </div>`;
+
+      const wrapper = document.createElement("div");
+      wrapper.innerHTML = html;
+      const backdrop = wrapper.firstElementChild;
+      document.body.appendChild(backdrop);
+
+      const form = document.getElementById("sched-session-form");
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const fd = new FormData(form);
+        const payload = {
+          training_program_id: schedSelectedProgramId,
+          sessions: [{
+            id: existing ? existing.id : undefined,
+            session_key: fd.get("session_key"),
+            session_type: fd.get("session_type"),
+            session_label: fd.get("session_label"),
+            strength_day_number: fd.get("strength_day_number") || null,
+            running_session_type: fd.get("running_session_type") || null,
+            duration_estimate_min: fd.get("duration_estimate_min") || null,
+            intensity: fd.get("intensity") || null,
+            sort_priority: Number(fd.get("sort_priority")) || 0,
+            is_optional: form.querySelector('[name="is_optional"]').checked
+          }]
+        };
+        try {
+          await apiRequest("PUT", "/.netlify/functions/admin-program-sessions", payload);
+          backdrop.remove();
+          await loadScheduleSessions();
+          showResult("Sessão guardada.", false);
+        } catch (err) {
+          showResult("Erro: " + err.message, true);
+        }
+      });
+    }
+
+    async function deleteScheduleSession(sessionId) {
+      if (!confirm("Apagar esta sessão? Slots que a referenciam também serão removidos.")) return;
+      try {
+        await apiRequest("PUT", "/.netlify/functions/admin-program-sessions", {
+          training_program_id: schedSelectedProgramId,
+          sessions: [],
+          delete_session_ids: [sessionId]
+        });
+        await Promise.all([loadScheduleSessions(), loadSchedulePresets()]);
+        showResult("Sessão apagada.", false);
+      } catch (err) {
+        showResult("Erro: " + err.message, true);
+      }
+    }
+
+    // ── Preset CRUD ──
+
+    function openPresetEditor(presetId) {
+      const existing = presetId ? schedPresets.find((p) => p.id === presetId) : null;
+      const existingSlots = existing && existing.slots ? existing.slots : [];
+      const title = existing ? "Editar preset" : "Novo preset";
+
+      // Build slot grid state
+      const slotGrid = Array.from({ length: 7 }, () => ({ 1: null, 2: null }));
+      existingSlots.forEach((s) => {
+        if (s.day_of_week >= 0 && s.day_of_week <= 6 && (s.time_slot === 1 || s.time_slot === 2)) {
+          slotGrid[s.day_of_week][s.time_slot] = s.session_id;
+        }
+      });
+
+      const html = `<div class="modal-backdrop" style="position:fixed; inset:0; background:rgba(0,0,0,0.6); display:flex; align-items:center; justify-content:center; z-index:1000;">
+        <div class="modal" style="background:#161b22; border:1px solid #30363d; border-radius:12px; padding:24px; max-width:640px; width:95%;">
+          <h3 style="color:#c9d1d9; margin-bottom:16px;">${title}</h3>
+          <form id="sched-preset-form">
+            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-bottom:16px;">
+              <div>
+                <label style="display:block; font-size:0.8rem; color:#8b949e; margin-bottom:4px;">Nome*</label>
+                <input name="preset_name" value="${existing ? existing.preset_name : ""}" required style="width:100%; padding:6px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9;" placeholder="ex: 6 dias" />
+              </div>
+              <div>
+                <label style="display:block; font-size:0.8rem; color:#8b949e; margin-bottom:4px;">Dias treino (1-7)*</label>
+                <input name="total_training_days" type="number" min="1" max="7" value="${existing ? existing.total_training_days : 5}" required style="width:100%; padding:6px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9;" />
+              </div>
+              <div>
+                <label style="display:block; font-size:0.8rem; color:#8b949e; margin-bottom:4px;">Descrição</label>
+                <input name="description" value="${existing && existing.description ? existing.description : ""}" style="width:100%; padding:6px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9;" placeholder="Opcional" />
+              </div>
+            </div>
+            <label style="display:flex; align-items:center; gap:6px; font-size:0.85rem; color:#8b949e; margin-bottom:16px; cursor:pointer;">
+              <input type="checkbox" name="is_default" ${existing && existing.is_default ? "checked" : ""} /> Preset padrão
+            </label>
+            <div style="margin-bottom:12px; color:#8b949e; font-size:0.8rem;">Edita sessões por dia/slot e usa ◀ ▶ para reordenar rapidamente pela semana.</div>
+            <div id="sched-preset-grid" style="display:grid; grid-template-columns:repeat(7, 1fr); gap:6px; margin-bottom:16px;">
+            </div>
+            <div style="display:flex; gap:8px;">
+              <button type="submit" class="btn btn-primary">Guardar</button>
+              <button type="button" class="btn btn-secondary" onclick="this.closest('.modal-backdrop').remove()">Cancelar</button>
+            </div>
+          </form>
+        </div>
+      </div>`;
+
+      const wrapper = document.createElement("div");
+      wrapper.innerHTML = html;
+      const backdrop = wrapper.firstElementChild;
+      document.body.appendChild(backdrop);
+
+      const gridContainer = document.getElementById("sched-preset-grid");
+
+      function renderPresetGridEditor() {
+        if (!gridContainer) return;
+        gridContainer.innerHTML = SCHED_DAY_LABELS.map((label, dayIdx) => {
+          const renderSlot = (slot) => {
+            const current = slotGrid[dayIdx][slot];
+            return `<div style="display:grid; grid-template-columns:1fr auto; gap:4px; margin-bottom:4px;">
+              <select data-day="${dayIdx}" data-slot="${slot}" style="width:100%; padding:4px; border-radius:4px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9; font-size:0.75rem;">
+                <option value="">—</option>
+                ${schedSessions.map((s) => `<option value="${s.id}" ${current === s.id ? "selected" : ""}>${s.session_label}</option>`).join("")}
+              </select>
+              <div style="display:flex; flex-direction:column; gap:2px;">
+                <button type="button" class="btn btn-secondary" data-shift-day="${dayIdx}" data-shift-slot="${slot}" data-shift-dir="left" style="padding:2px 6px; font-size:10px;">◀</button>
+                <button type="button" class="btn btn-secondary" data-shift-day="${dayIdx}" data-shift-slot="${slot}" data-shift-dir="right" style="padding:2px 6px; font-size:10px;">▶</button>
+              </div>
+            </div>`;
+          };
+          return `<div style="text-align:center;">
+            <div style="color:#8b949e; font-size:0.75rem; font-weight:600; margin-bottom:4px;">${label}</div>
+            ${renderSlot(1)}
+            ${renderSlot(2)}
+          </div>`;
+        }).join("");
+      }
+
+      function moveSlot(day, slot, dir) {
+        const targetDay = dir === "left" ? day - 1 : day + 1;
+        if (targetDay < 0 || targetDay > 6) return;
+        const currentValue = slotGrid[day][slot];
+        slotGrid[day][slot] = slotGrid[targetDay][slot];
+        slotGrid[targetDay][slot] = currentValue;
+        renderPresetGridEditor();
+      }
+
+      renderPresetGridEditor();
+
+      if (gridContainer) {
+        gridContainer.addEventListener("change", (event) => {
+          const target = event.target;
+          if (!(target instanceof HTMLSelectElement)) return;
+          const day = Number(target.dataset.day);
+          const slot = Number(target.dataset.slot);
+          if (!Number.isInteger(day) || !Number.isInteger(slot)) return;
+          slotGrid[day][slot] = target.value || null;
+        });
+
+        gridContainer.addEventListener("click", (event) => {
+          const target = event.target;
+          if (!(target instanceof HTMLElement)) return;
+          const btn = target.closest("button[data-shift-day]");
+          if (!(btn instanceof HTMLElement)) return;
+          const day = Number(btn.dataset.shiftDay);
+          const slot = Number(btn.dataset.shiftSlot);
+          const dir = btn.dataset.shiftDir;
+          if (!Number.isInteger(day) || !Number.isInteger(slot)) return;
+          if (dir !== "left" && dir !== "right") return;
+          moveSlot(day, slot, dir);
+        });
+      }
+
+      const form = document.getElementById("sched-preset-form");
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const fd = new FormData(form);
+
+        // Collect slots from the grid state
+        const slots = [];
+        for (let day = 0; day <= 6; day++) {
+          for (let slot = 1; slot <= 2; slot++) {
+            const sessionId = slotGrid[day][slot];
+            if (sessionId) {
+              slots.push({
+                day_of_week: day,
+                time_slot: slot,
+                session_id: sessionId,
+                sort_order: day * 10 + slot
+              });
+            }
+          }
+        }
+
+        try {
+          if (existing) {
+            await apiRequest("PUT", "/.netlify/functions/admin-program-schedule", {
+              preset_id: existing.id,
+              preset_name: fd.get("preset_name"),
+              total_training_days: Number(fd.get("total_training_days")),
+              description: fd.get("description") || null,
+              is_default: form.querySelector('[name="is_default"]').checked,
+              slots
+            });
+          } else {
+            await apiRequest("POST", "/.netlify/functions/admin-program-schedule", {
+              training_program_id: schedSelectedProgramId,
+              preset_name: fd.get("preset_name"),
+              total_training_days: Number(fd.get("total_training_days")),
+              description: fd.get("description") || null,
+              is_default: form.querySelector('[name="is_default"]').checked,
+              slots
+            });
+          }
+          backdrop.remove();
+          await loadSchedulePresets();
+          showResult("Preset guardado.", false);
+        } catch (err) {
+          showResult("Erro: " + err.message, true);
+        }
+      });
+    }
+
+    async function deleteSchedulePreset(presetId) {
+      if (!confirm("Apagar este preset? Todos os slots serão removidos.")) return;
+      try {
+        await apiRequest("DELETE", `/.netlify/functions/admin-program-schedule?presetId=${presetId}`);
+        await loadSchedulePresets();
+        showResult("Preset apagado.", false);
+      } catch (err) {
+        showResult("Erro: " + err.message, true);
+      }
+    }
+
+    // ── Calendar Generation Modal (from Assignments tab) ──
+
+    async function openCalendarGenerationModal(assignmentId, programId, triggerBtn) {
+      try {
+        triggerBtn.disabled = true;
+        triggerBtn.textContent = "...";
+
+        const data = await apiRequest("GET", `/.netlify/functions/admin-program-schedule?trainingProgramId=${programId}&includeSlots=1`);
+        const presets = data.presets || [];
+
+        triggerBtn.disabled = false;
+        triggerBtn.textContent = "Calendário";
+
+        if (!presets.length) {
+          showResult("Sem presets de calendário configurados para este programa. Vai ao separador Calendário para configurar.", true);
+          return;
+        }
+
+        const optionsHtml = presets.map((p) => {
+          const defaultTag = p.is_default ? " (padrão)" : "";
+          return `<option value="${p.id}">${p.preset_name}${defaultTag} — ${p.total_training_days} dias</option>`;
+        }).join("");
+
+        const defaultPreset = presets.find((p) => p.is_default) || presets[0];
+
+        const html = `<div class="modal-backdrop" style="position:fixed; inset:0; background:rgba(0,0,0,0.6); display:flex; align-items:center; justify-content:center; z-index:1000;">
+          <div class="modal" style="background:#161b22; border:1px solid #30363d; border-radius:12px; padding:24px; max-width:400px; width:90%;">
+            <h3 style="color:#c9d1d9; margin-bottom:12px;">Gerar calendário semanal</h3>
+            <p style="color:#8b949e; font-size:0.85rem; margin-bottom:16px;">Isto vai regenerar o plano semanal para este atleta.</p>
+            <div style="margin-bottom:16px;">
+              <label style="display:block; font-size:0.8rem; color:#8b949e; margin-bottom:4px;">Preset:</label>
+              <select id="cal-gen-preset-select" style="width:100%; padding:6px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9;">
+                ${optionsHtml}
+              </select>
+            </div>
+            <div style="margin-bottom:16px;">
+              <label style="display:block; font-size:0.8rem; color:#8b949e; margin-bottom:4px;">Modo:</label>
+              <select id="cal-gen-mode-select" style="width:100%; padding:6px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9;">
+                <option value="full">Regenerar tudo (substitui plano existente)</option>
+                <option value="from_current">Aplicar a partir da semana atual (preservar histórico)</option>
+              </select>
+            </div>
+            <div id="cal-gen-from-week-row" style="margin-bottom:16px; display:none;">
+              <label style="display:block; font-size:0.8rem; color:#8b949e; margin-bottom:4px;">A partir da semana:</label>
+              <input id="cal-gen-from-week" type="number" min="1" value="1" style="width:80px; padding:6px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9;">
+            </div>
+            <div style="display:flex; gap:8px;">
+              <button id="cal-gen-confirm-btn" class="btn btn-primary">Gerar</button>
+              <button id="cal-gen-cancel-btn" class="btn btn-secondary">Cancelar</button>
+            </div>
+          </div>
+        </div>`;
+
+        const wrapper = document.createElement("div");
+        wrapper.innerHTML = html;
+        const backdrop = wrapper.firstElementChild;
+        document.body.appendChild(backdrop);
+
+        const presetSelect = document.getElementById("cal-gen-preset-select");
+        if (defaultPreset) presetSelect.value = defaultPreset.id;
+
+        const modeSelect = document.getElementById("cal-gen-mode-select");
+        const fromWeekRow = document.getElementById("cal-gen-from-week-row");
+        modeSelect.addEventListener("change", () => {
+          fromWeekRow.style.display = modeSelect.value === "from_current" ? "block" : "none";
+        });
+
+        document.getElementById("cal-gen-cancel-btn").addEventListener("click", () => backdrop.remove());
+        document.getElementById("cal-gen-confirm-btn").addEventListener("click", async () => {
+          const presetId = presetSelect.value;
+          if (!presetId) { showResult("Seleciona um preset.", true); return; }
+
+          const confirmBtn = document.getElementById("cal-gen-confirm-btn");
+          confirmBtn.disabled = true;
+          confirmBtn.textContent = "A gerar...";
+
+          const payload = {
+            assignment_id: assignmentId,
+            preset_id: presetId,
+            source: "preset"
+          };
+          if (modeSelect.value === "from_current") {
+            const fw = parseInt(document.getElementById("cal-gen-from-week").value, 10);
+            if (fw > 0) payload.from_week = fw;
+          }
+
+          try {
+            const result = await apiRequest("POST", "/.netlify/functions/athlete-weekly-plan", payload);
+            backdrop.remove();
+            showResult(`Calendário gerado: ${result.generated} sessões para ${result.totalWeeks} semanas (${result.presetName}).`, false);
+          } catch (err) {
+            showResult("Erro ao gerar calendário: " + err.message, true);
+            confirmBtn.disabled = false;
+            confirmBtn.textContent = "Gerar";
+          }
+        });
+      } catch (err) {
+        triggerBtn.disabled = false;
+        triggerBtn.textContent = "Calendário";
+        showResult("Erro: " + err.message, true);
+      }
     }
 
   </script>

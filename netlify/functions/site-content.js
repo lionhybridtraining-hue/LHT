@@ -9,6 +9,40 @@ const {
   listPublicTrainingPrograms
 } = require("./_lib/supabase");
 
+function normalizeText(value) {
+  if (value == null) return "";
+  return String(value).trim();
+}
+
+function formatPriceLabel(priceCents, currency) {
+  if (!Number.isFinite(Number(priceCents))) return "";
+  const amount = Number(priceCents) / 100;
+  const isoCurrency = normalizeText(currency) || "EUR";
+  try {
+    return new Intl.NumberFormat("pt-PT", {
+      style: "currency",
+      currency: isoCurrency
+    }).format(amount);
+  } catch (_err) {
+    return `${amount.toFixed(2)} ${isoCurrency.toUpperCase()}`;
+  }
+}
+
+function deriveFeatureItems(featured) {
+  const items = [];
+  const description = normalizeText(featured && featured.description);
+  const eventName = normalizeText(featured && featured.event_name);
+  const durationWeeks = featured && Number.isFinite(Number(featured.duration_weeks))
+    ? Number(featured.duration_weeks)
+    : null;
+
+  if (description) items.push(description);
+  if (eventName) items.push(`Evento associado: ${eventName}.`);
+  if (durationWeeks && durationWeeks > 0) items.push(`Plano com ${durationWeeks} semanas.`);
+
+  return items.slice(0, 3);
+}
+
 function deriveFeaturedProgram(programs) {
   if (!Array.isArray(programs) || programs.length === 0) return null;
 
@@ -32,18 +66,28 @@ function deriveFeaturedProgram(programs) {
     });
 
   const featured = highlighted[0] || programs[0];
+  const billingType = featured && featured.billing_type ? String(featured.billing_type) : "one_time";
+  const priceCents = featured && featured.price_cents != null ? Number(featured.price_cents) : null;
+  const currency = featured && featured.currency ? String(featured.currency) : "EUR";
 
   return {
     id: featured && featured.id ? String(featured.id) : null,
     name: featured && featured.name ? String(featured.name) : null,
-    description: featured && featured.description ? String(featured.description) : null,
+    description: normalizeText(featured && featured.description) || null,
+    imageUrl: normalizeText(featured && featured.image_url) || null,
     durationWeeks: featured && featured.duration_weeks != null ? Number(featured.duration_weeks) : null,
-    priceCents: featured && featured.price_cents != null ? Number(featured.price_cents) : null,
-    currency: featured && featured.currency ? String(featured.currency) : "EUR",
+    priceCents,
+    currency,
+    priceLabel: formatPriceLabel(priceCents, currency),
+    billingType,
+    tagline: billingType === "recurring" ? "Subscricao" : "Pagamento unico",
+    subtitle: normalizeText(featured && featured.description) || null,
+    followupLabel: billingType === "recurring" ? "Acompanhamento continuo" : "Acesso imediato",
     eventDate: featured && featured.event_date ? String(featured.event_date) : null,
     eventName: featured && featured.event_name ? String(featured.event_name) : null,
     eventLocation: featured && featured.event_location ? String(featured.event_location) : null,
     eventDescription: featured && featured.event_description ? String(featured.event_description) : null,
+    features: deriveFeatureItems(featured),
     calendarHighlightRank:
       featured && featured.calendar_highlight_rank != null
         ? Number(featured.calendar_highlight_rank)

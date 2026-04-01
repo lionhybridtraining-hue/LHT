@@ -16,7 +16,7 @@ document.querySelectorAll('.anim-in').forEach(el => io.observe(el));
 document.querySelectorAll('a[href^="#"]').forEach(a => {
   a.addEventListener('click', (ev) => {
     const href = a.getAttribute('href');
-    if (href.length > 1) {
+    if (href && href.startsWith('#') && href.length > 1) {
       ev.preventDefault();
       document.querySelector(href)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
@@ -41,6 +41,9 @@ window.addEventListener('load', handleScrollIndicator);
 // ===== Dynamic content via Netlify Function =====
 (function(){
   const CACHE_KEY = 'lht_dynamic_cache_v3';
+  const HOME_PROGRAMS_CACHE_KEY = 'lht_home_programs_cache_v1';
+  const HOME_PROGRAMS_ENDPOINT = '/.netlify/functions/list-programs';
+  const HOME_PROGRAMS_LIMIT = 4;
 
   function syncAnchorTarget(node, href){
     if(!node || !href) return;
@@ -69,9 +72,9 @@ window.addEventListener('load', handleScrollIndicator);
     };
   }
 
-  function readCache(maxAgeMs){
+  function readCache(maxAgeMs, key){
     try {
-      const raw = localStorage.getItem(CACHE_KEY);
+      const raw = localStorage.getItem(key || CACHE_KEY);
       if(!raw) return null;
       const parsed = JSON.parse(raw);
       if(!parsed || !parsed.ts || !parsed.data) return null;
@@ -82,9 +85,9 @@ window.addEventListener('load', handleScrollIndicator);
     }
   }
 
-  function writeCache(data){
+  function writeCache(data, key){
     try {
-      localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data }));
+      localStorage.setItem(key || CACHE_KEY, JSON.stringify({ ts: Date.now(), data }));
     } catch(e){
       // no-op
     }
@@ -243,15 +246,15 @@ window.addEventListener('load', handleScrollIndicator);
       setJsonLd('home-event-jsonld', {
         '@context': 'https://schema.org',
         '@type': 'Product',
-        name: (featuredProgram && featuredProgram.name) || metadataValue(metadata, ['featured_program_name', 'product_name'], 'Programa em destaque LHT'),
+        name: (featuredProgram && featuredProgram.name) || metadataValue(metadata, ['product_name'], 'Programa em destaque LHT'),
         brand: metadataValue(metadata, ['product_brand', 'organization_name', 'site_name'], 'Lion Hybrid Training'),
-        image: metadataValue(metadata, ['featured_program_image', 'event_image'], 'https://lionhybridtraining.com/assets/img/logo-aer.png'),
-        description: metadataValue(metadata, ['featured_program_tagline', 'event_description'], 'Programa em destaque da Lion Hybrid Training com progressão guiada, comunidade e acompanhamento.'),
+        image: (featuredProgram && featuredProgram.imageUrl) ? featuredProgram.imageUrl : undefined,
+        description: (featuredProgram && (featuredProgram.subtitle || featuredProgram.description)) || metadataValue(metadata, ['event_description'], 'Programa em destaque da Lion Hybrid Training com progressao guiada, comunidade e acompanhamento.'),
         offers: {
           '@type': 'Offer',
-          url: (featuredProgram && featuredProgram.ctaUrl) || metadataValue(metadata, ['featured_program_cta_url', 'event_offer_url'], 'https://lionhybridtraining.com/programas'),
-          price: metadataValue(metadata, ['event_offer_price'], '0'),
-          priceCurrency: metadataValue(metadata, ['event_offer_currency'], 'EUR'),
+          url: (featuredProgram && featuredProgram.ctaUrl) || metadataValue(metadata, ['event_offer_url'], 'https://lionhybridtraining.com/programas'),
+          price: (featuredProgram && Number.isFinite(Number(featuredProgram.priceCents))) ? String(Number(featuredProgram.priceCents) / 100) : metadataValue(metadata, ['event_offer_price'], '0'),
+          priceCurrency: (featuredProgram && featuredProgram.currency) ? String(featuredProgram.currency) : metadataValue(metadata, ['event_offer_currency'], 'EUR'),
           availability: metadataValue(metadata, ['event_offer_availability'], 'https://schema.org/InStock')
         }
       });
@@ -306,55 +309,211 @@ window.addEventListener('load', handleScrollIndicator);
 
   function bindFeaturedProgram(data){
     if(!data) return;
-    var m = data.metadata || {};
-    var links = data.links || {};
     var fp = data.featuredProgram || null;
+    var defaultProgramsUrl = '/programas';
+    var featuredProgramId = fp && fp.id ? String(fp.id) : '';
+    var featuredCatalogUrl = featuredProgramId ? `${defaultProgramsUrl}?program_id=${encodeURIComponent(featuredProgramId)}` : defaultProgramsUrl;
 
     var tagline = document.getElementById('fp-tagline');
-    if(tagline && m.featured_program_tagline) text(tagline, m.featured_program_tagline);
+    if(tagline) text(tagline, (fp && fp.tagline) || 'Catalogo rapido');
 
     var nameEl = document.getElementById('fp-name');
-    if(nameEl){
-      if(fp && fp.name) text(nameEl, fp.name);
-      else if(m.featured_program_name) text(nameEl, m.featured_program_name);
-    }
-
-    var img = document.getElementById('fp-image');
-    if(img && m.featured_program_image){
-      img.setAttribute('src', m.featured_program_image);
-      img.setAttribute('alt', (fp && fp.name) || m.featured_program_name || 'Programa em destaque');
-    }
+    if(nameEl) text(nameEl, (fp && fp.name) || 'Programa em destaque LHT');
 
     var nextDate = document.getElementById('fp-next-date');
-    var nextDateValue = firstDefinedValue([fp && fp.eventDate ? fp.eventDate : '', m.featured_program_next_date, m.aer_next_date], '');
+    var nextDateWrap = document.getElementById('fp-next-date-wrap');
+    var nextDateValue = firstDefinedValue([fp && fp.eventDate ? fp.eventDate : ''], '');
     if(nextDate && nextDateValue) text(nextDate, nextDateValue);
+    if(nextDateWrap) nextDateWrap.hidden = !nextDateValue;
 
     var subtitle = document.getElementById('fp-subtitle');
-    if(subtitle && m.featured_program_subtitle) subtitle.innerHTML = m.featured_program_subtitle;
+    var subtitleText = firstDefinedValue([
+      fp && fp.subtitle ? fp.subtitle : '',
+      fp && fp.description ? fp.description : ''
+    ], 'Explora o destaque atual e entra no catalogo completo com o contexto certo para continuares a evoluir.');
+    if(subtitle) subtitle.textContent = subtitleText;
+
+    var price = document.getElementById('fp-price');
+    if(price){
+      text(price, firstDefinedValue([
+        fp && fp.priceLabel ? fp.priceLabel : '',
+      ], 'Catalogo LHT'));
+    }
+
+    var followup = document.getElementById('fp-followup');
+    if(followup){
+      text(followup, firstDefinedValue([
+        fp && fp.followupLabel ? fp.followupLabel : '',
+        'Progressao guiada'
+      ], 'Progressao guiada'));
+    }
 
     var features = document.getElementById('fp-features');
-    if(features && m.featured_program_features){
-      try {
-        var items = JSON.parse(m.featured_program_features);
-        if(Array.isArray(items) && items.length > 0){
-          features.innerHTML = '';
-          items.forEach(function(item){
-            var li = document.createElement('li');
-            li.innerHTML = item;
-            features.appendChild(li);
-          });
-        }
-      } catch(e){ /* keep hardcoded fallback */ }
+    if(features){
+      var runtimeItems = Array.isArray(fp && fp.features) ? fp.features : [];
+      var fallbackItems = ['Programa em destaque no catalogo LHT.'];
+      var baseSubtitle = String(subtitleText || '').trim().toLowerCase();
+      var seen = new Set();
+      features.innerHTML = '';
+      (runtimeItems.length ? runtimeItems : fallbackItems).forEach(function(item){
+        var value = String(item || '').trim();
+        var normalized = value.toLowerCase();
+        if(!value) return;
+        if(baseSubtitle && normalized === baseSubtitle) return;
+        if(seen.has(normalized)) return;
+        seen.add(normalized);
+        var li = document.createElement('li');
+        li.textContent = value;
+        features.appendChild(li);
+      });
+
+      if(!features.childNodes.length){
+        var li = document.createElement('li');
+        li.textContent = 'Programa em destaque no catalogo LHT.';
+        features.appendChild(li);
+      }
     }
 
     var cta = document.getElementById('fp-cta');
     if(cta){
-      var featuredProgramUrl = firstDefinedValue([fp && fp.ctaUrl ? fp.ctaUrl : '', m.featured_program_cta_url, links.cta_reserva_aer], '');
+      var featuredProgramUrl = firstDefinedValue([featuredCatalogUrl, defaultProgramsUrl], defaultProgramsUrl);
       if(featuredProgramUrl) {
         cta.setAttribute('href', featuredProgramUrl);
         syncAnchorTarget(cta, featuredProgramUrl);
       }
-      if(m.featured_program_cta_label) text(cta, m.featured_program_cta_label);
+      text(cta, 'Ver programa no catalogo');
+    }
+  }
+
+  function formatProgramPrice(priceCents, currency){
+    var value = Number(priceCents);
+    if(!Number.isFinite(value)) return 'Catalogo LHT';
+    try {
+      return new Intl.NumberFormat('pt-PT', {
+        style: 'currency',
+        currency: currency || 'EUR'
+      }).format(value / 100);
+    } catch(e){
+      return `${(value / 100).toFixed(2)} ${(currency || 'EUR').toUpperCase()}`;
+    }
+  }
+
+  function buildProgramCatalogUrl(programId){
+    if(!programId) return '/programas';
+    return `/programas?program_id=${encodeURIComponent(programId)}`;
+  }
+
+  function createQuickProgramCard(program){
+    var card = document.createElement('article');
+    card.className = 'program-quick-card';
+
+    if(program && program.imageUrl){
+      var visual = document.createElement('div');
+      visual.className = 'program-quick-visual';
+      var image = document.createElement('img');
+      image.className = 'program-quick-image';
+      image.src = String(program.imageUrl);
+      image.alt = (program && program.name ? program.name : 'Programa LHT') + ' - imagem';
+      image.loading = 'lazy';
+      image.decoding = 'async';
+      visual.appendChild(image);
+      card.appendChild(visual);
+    }
+
+    var eyebrow = document.createElement('p');
+    eyebrow.className = 'program-quick-eyebrow';
+    text(eyebrow, program && program.billingType === 'recurring' ? 'Subscricao' : 'Pagamento unico');
+
+    var title = document.createElement('h4');
+    text(title, program && program.name ? program.name : 'Programa LHT');
+
+    var description = document.createElement('p');
+    description.className = 'program-quick-description';
+    text(description, program && program.description ? program.description : 'Explora o programa no catalogo completo e entra com o contexto certo.');
+
+    var meta = document.createElement('div');
+    meta.className = 'program-quick-meta';
+    [
+      formatProgramPrice(program && program.priceCents, program && program.currency),
+      program && program.durationWeeks ? `${program.durationWeeks} semanas` : '',
+      program && program.followupType ? program.followupType : ''
+    ].filter(Boolean).slice(0, 3).forEach(function(item){
+      var chip = document.createElement('span');
+      text(chip, item);
+      meta.appendChild(chip);
+    });
+
+    var cta = document.createElement('a');
+    cta.className = 'program-quick-cta';
+    cta.setAttribute('href', buildProgramCatalogUrl(program && program.id ? program.id : ''));
+    cta.setAttribute('data-track', 'cta_programs_quick_card');
+    if(program && program.id) cta.setAttribute('data-program-id', program.id);
+    text(cta, 'Ver no catalogo');
+
+    card.appendChild(eyebrow);
+    card.appendChild(title);
+    card.appendChild(description);
+    if(meta.childNodes.length){
+      card.appendChild(meta);
+    }
+    card.appendChild(cta);
+    return card;
+  }
+
+  function bindHomePrograms(programs, featuredProgramId){
+    var rail = document.getElementById('home-programs-rail');
+    if(!rail) return;
+    if(!Array.isArray(programs) || programs.length === 0) return;
+
+    var featuredId = featuredProgramId ? String(featuredProgramId) : '';
+    var items = programs.filter(function(program){
+      return String(program && program.id ? program.id : '') !== featuredId;
+    }).slice(0, HOME_PROGRAMS_LIMIT);
+
+    if(items.length === 0){
+      rail.innerHTML = '';
+      var placeholder = document.createElement('article');
+      placeholder.className = 'program-quick-card program-quick-card-fallback';
+      placeholder.innerHTML = '' +
+        '<p class="program-quick-eyebrow">Catalogo</p>' +
+        '<h4>Mais programas em breve</h4>' +
+        '<p class="program-quick-description program-quick-description-fallback">Estamos a preparar novas opcoes. Abre o catalogo completo para veres todas as atualizacoes.</p>' +
+        '<div class="cta-row program-quick-fallback-actions">' +
+          '<a class="btn ghost program-quick-fallback-btn" data-track="cta_programs_catalog_home" href="/programas">Ver catalogo completo</a>' +
+        '</div>';
+      rail.appendChild(placeholder);
+      return;
+    }
+
+    if(items.length === 0) return;
+
+    rail.innerHTML = '';
+    items.forEach(function(program){
+      rail.appendChild(createQuickProgramCard(program));
+    });
+  }
+
+  async function fetchHomePrograms(featuredProgramId){
+    if(currentPageKey() !== 'home') return;
+
+    var cachedPrograms = readCache(10 * 60 * 1000, HOME_PROGRAMS_CACHE_KEY);
+    if(Array.isArray(cachedPrograms) && cachedPrograms.length){
+      bindHomePrograms(cachedPrograms, featuredProgramId);
+    }
+
+    try {
+      var response = await fetch(HOME_PROGRAMS_ENDPOINT, {
+        method: 'GET',
+        cache: 'no-store'
+      });
+      var payload = await response.json().catch(function(){ return {}; });
+      if(!response.ok) return;
+      var programs = Array.isArray(payload.programs) ? payload.programs : [];
+      if(!programs.length) return;
+      writeCache(programs, HOME_PROGRAMS_CACHE_KEY);
+      bindHomePrograms(programs, featuredProgramId);
+    } catch(e){
+      // keep fallback markup or cached data
     }
   }
 
@@ -451,10 +610,11 @@ window.addEventListener('load', handleScrollIndicator);
     Object.keys(data.links).forEach((key) => {
       const href = data.links[key];
       if(!href) return;
-      const node = document.querySelector(`[data-track="${key}"]`);
-      if(node && node.tagName === 'A'){
-        node.setAttribute('href', href);
-      }
+      document.querySelectorAll(`[data-track="${key}"]`).forEach((node) => {
+        if(node && node.tagName === 'A'){
+          node.setAttribute('href', href);
+        }
+      });
     });
   }
 
@@ -496,6 +656,7 @@ window.addEventListener('load', handleScrollIndicator);
     if(!data || typeof data !== 'object') return;
     bindSeoMetadata(data);
     bindFeaturedProgram(data);
+    fetchHomePrograms(data && data.featuredProgram && data.featuredProgram.id ? data.featuredProgram.id : '');
     bindMetrics(data);
     bindReviews(data);
     bindFaqs(data);
@@ -504,6 +665,7 @@ window.addEventListener('load', handleScrollIndicator);
 
   async function fetchDynamicData(){
     const cfg = getConfig();
+    if(currentPageKey() === 'home') fetchHomePrograms('');
     if(!cfg.endpoint) return;
 
     const cacheMaxAgeMs = Math.max(1, cfg.cacheMinutes) * 60 * 1000;
@@ -673,6 +835,9 @@ if(document.readyState === 'loading'){
     cta_ser_notificado: { event: 'Subscribe', params: { content_name: 'Alertas Programas WhatsApp', content_category: 'Comunidade' } },
     // Reserva do AER (Stripe) — sem valor definido, manter 0
     cta_reserva_aer: { event: 'InitiateCheckout', params: { content_name: 'Reserva AER', content_category: 'AER', value: 97, currency: 'EUR' } },
+    cta_programs_featured_home: { event: 'ViewContent', params: { content_name: 'Programa em destaque', content_category: 'Programas' } },
+    cta_programs_catalog_home: { event: 'ViewContent', params: { content_name: 'Catalogo Programas', content_category: 'Programas' } },
+    cta_programs_quick_card: { event: 'ViewContent', params: { content_name: 'Catalogo Rapido', content_category: 'Programas' } },
     // Passo final para começar AER (ancora interna)
     cta_final_comecar_aer: { event: 'ViewContent', params: { content_name: 'Começar AER', content_category: 'AER' } }
   };
@@ -765,8 +930,11 @@ if(document.readyState === 'loading'){
           cta_reserva_aer: { event: 'begin_checkout', params: { value: 97, currency: 'EUR', items: [{ item_id: 'AER', item_name: 'Reserva AER' }] } },
           // Featured program CTA
           cta_featured_program: { event: 'select_item', params: { items: [{ item_id: 'featured_program', item_name: 'Programa em Destaque' }] } },
+          cta_programs_featured_home: { event: 'select_item', params: { items: [{ item_id: 'featured_program_home', item_name: 'Programa em Destaque Home' }] } },
+          cta_programs_quick_card: { event: 'select_item', params: { item_list_name: 'Catalogo Rapido', content_name: 'Programa rapido Home' } },
           // Programas page
           cta_programas: { event: 'view_item_list', params: { item_list_name: 'Programas', content_name: 'Programas LHT' } },
+          cta_programs_catalog_home: { event: 'view_item_list', params: { item_list_name: 'Programas', content_name: 'Catalogo Programas Home' } },
           // AER view
           cta_final_comecar_aer: { event: 'view_item', params: { item_id: 'AER', item_name: 'Começar AER' } },
           // Steps selections

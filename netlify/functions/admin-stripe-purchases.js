@@ -3,6 +3,14 @@ const { getConfig } = require("./_lib/config");
 const { requireRole } = require("./_lib/authz");
 const { listStripePurchases, listTrainingPrograms } = require("./_lib/supabase");
 
+function resolveCheckoutChannel(purchase) {
+  if (!purchase || typeof purchase !== "object") return "other";
+  if (purchase.source === "admin_override") return "admin_override";
+  if (purchase.stripe_payment_intent_id && !purchase.stripe_session_id) return "onsite";
+  if (purchase.stripe_session_id) return "checkout_session";
+  return "other";
+}
+
 exports.handler = async (event) => {
   if (event.httpMethod !== "GET") {
     return json(405, { error: "Method not allowed" });
@@ -50,22 +58,30 @@ exports.handler = async (event) => {
       stripeSubscriptionId: p.stripe_subscription_id,
       stripeCustomerId: p.stripe_customer_id,
       identityId: p.identity_id,
+      checkoutChannel: resolveCheckoutChannel(p),
       paidAt: p.paid_at,
       expiresAt: p.expires_at,
       createdAt: p.created_at
     }));
 
+    const channelFilter = (qs.channel || "").trim().toLowerCase();
+    const filtered = channelFilter
+      ? mapped.filter((p) => p.checkoutChannel === channelFilter)
+      : mapped;
+
     // KPIs
-    const totalSales = mapped.length;
-    const paidSales = mapped.filter((p) => p.status === "paid");
+    const totalSales = filtered.length;
+    const paidSales = filtered.filter((p) => p.status === "paid");
     const totalRevenueCents = paidSales.reduce((sum, p) => sum + (p.amountCents || 0), 0);
-    const refundedCount = mapped.filter((p) => p.status === "refunded").length;
-    const cancelledCount = mapped.filter((p) => p.status === "cancelled").length;
-    const pendingCount = mapped.filter((p) => p.status === "pending").length;
-    const abandonedCount = mapped.filter((p) => p.status === "abandoned").length;
+    const refundedCount = filtered.filter((p) => p.status === "refunded").length;
+    const cancelledCount = filtered.filter((p) => p.status === "cancelled").length;
+    const pendingCount = filtered.filter((p) => p.status === "pending").length;
+    const abandonedCount = filtered.filter((p) => p.status === "abandoned").length;
+    const onsiteCount = filtered.filter((p) => p.checkoutChannel === "onsite").length;
+    const checkoutSessionCount = filtered.filter((p) => p.checkoutChannel === "checkout_session").length;
 
     return json(200, {
-      purchases: mapped,
+      purchases: filtered,
       kpis: {
         totalSales,
         paidCount: paidSales.length,
@@ -73,7 +89,9 @@ exports.handler = async (event) => {
         refundedCount,
         cancelledCount,
         pendingCount,
-        abandonedCount
+        abandonedCount,
+        onsiteCount,
+        checkoutSessionCount
       }
     });
   } catch (err) {

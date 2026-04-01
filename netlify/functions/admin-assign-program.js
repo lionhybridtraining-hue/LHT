@@ -11,6 +11,7 @@ const {
   listStrengthPlans,
   listStrengthPlanInstances,
   createStrengthPlanInstance,
+  getStrengthPlanFull,
   updateStrengthPlanInstance,
   getTrainingProgramById,
   verifyCoachOwnsAthlete,
@@ -118,6 +119,20 @@ function mapStrengthInstance(row) {
   };
 }
 
+async function buildPlanSnapshot(config, planId) {
+  try {
+    const full = await getStrengthPlanFull(config, planId);
+    if (!full) return null;
+    return {
+      exercises: full.exercises,
+      prescriptions: full.prescriptions,
+      phaseNotes: full.phaseNotes || []
+    };
+  } catch (_) {
+    return null;
+  }
+}
+
 async function ensureStrengthInstanceForAssignment(config, assignment, program, { coachLock = false, strengthPlanId = null } = {}) {
   const activeInstances = await listStrengthPlanInstances(config, {
     athleteId: assignment.athlete_id,
@@ -155,6 +170,7 @@ async function ensureStrengthInstanceForAssignment(config, assignment, program, 
   }
 
   const lockDate = coachLock ? (assignment.access_end_date || assignment.computed_end_date || null) : null;
+  const planSnapshot = await buildPlanSnapshot(config, selectedPlan.id);
 
   const createdInstance = await createStrengthPlanInstance(config, {
     plan_id: selectedPlan.id,
@@ -165,7 +181,8 @@ async function ensureStrengthInstanceForAssignment(config, assignment, program, 
     assigned_by: assignment.coach_id,
     program_assignment_id: assignment.id || null,
     coach_locked_until: lockDate,
-    access_model: program ? program.access_model : null
+    access_model: program ? program.access_model : null,
+    plan_snapshot: planSnapshot ? JSON.stringify(planSnapshot) : null
   });
 
   return { instance: createdInstance, autoCreated: true, reason: "created" };

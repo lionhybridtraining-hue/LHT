@@ -1,7 +1,7 @@
 const { parseJsonBody, json } = require("./_lib/http");
 const { getConfig } = require("./_lib/config");
 const { createAthleteForCoach } = require("./_lib/supabase");
-const { getAuthenticatedUser } = require("./_lib/auth-supabase");
+const { requireRole } = require("./_lib/authz");
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
@@ -10,12 +10,12 @@ exports.handler = async (event) => {
 
   try {
     const config = getConfig();
-    const user = await getAuthenticatedUser(event, config);
-    
-    if (!user) {
-      return json(401, { error: "Authentication required" });
+    const auth = await requireRole(event, config, "coach");
+    if (auth.error) {
+      return auth.error;
     }
 
+    const user = auth.user;
     const coachId = user.sub;
     const payload = parseJsonBody(event);
     const name = (payload.name || "").trim();

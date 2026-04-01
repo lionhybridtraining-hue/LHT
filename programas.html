@@ -24,9 +24,43 @@
         <p class="programs-lead">Autentica-te com Google, escolhe o programa e conclui o checkout sem sair da infraestrutura do site. O acesso ao onboarding fica ligado automaticamente a tua conta.</p>
       </div>
 
+
+      <div id="checkout-overlay" class="checkout-overlay" hidden>
+        <div class="checkout-modal" role="dialog" aria-modal="true" aria-labelledby="checkout-program-name">
+          <button id="checkout-close" class="checkout-close" aria-label="Fechar">&times;</button>
+          <div class="checkout-summary">
+            <p id="checkout-billing-label" class="checkout-kicker"></p>
+            <h3 id="checkout-program-name"></h3>
+            <p id="checkout-price" class="checkout-price"></p>
+          </div>
+          <div id="checkout-interval-container" class="checkout-interval-container" hidden>
+            <fieldset class="checkout-interval-fieldset">
+              <legend class="checkout-interval-legend">Intervalo de pagamento</legend>
+              <div class="checkout-interval-options" id="checkout-interval-options"></div>
+            </fieldset>
+          </div>
+          <div class="checkout-coupon-row" id="checkout-coupon-row" hidden>
+            <input type="text" id="checkout-coupon-input" class="checkout-coupon-input" placeholder="Codigo de desconto" autocomplete="off" />
+            <button type="button" id="checkout-coupon-apply" class="btn checkout-coupon-apply">Aplicar</button>
+          </div>
+          <div id="checkout-coupon-feedback" class="checkout-coupon-feedback" hidden></div>
+          <div id="checkout-payment-element" class="checkout-payment-element"></div>
+          <div id="checkout-error" class="checkout-error" hidden></div>
+          <div id="checkout-processing" class="checkout-processing" hidden>
+            <span class="checkout-spinner"></span>
+            <span>A processar o pagamento. Receberás confirmação por email.</span>
+          </div>
+          <button id="checkout-submit" class="btn checkout-submit" disabled>
+            <span id="checkout-submit-text">Pagar</span>
+            <span id="checkout-spinner" class="checkout-spinner" hidden></span>
+          </button>
+          <p class="checkout-footer">Pagamento seguro processado pelo Stripe.</p>
+        </div>
+      </div>
       <div class="programs-stage">
         <div class="programs-stage-head">
           <div>
+  <script src="https://js.stripe.com/v3/"></script>
             <p class="programs-kicker">Checkout interno</p>
             <h2>Escolhe o programa certo para o teu momento.</h2>
           </div>

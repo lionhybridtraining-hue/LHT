@@ -274,6 +274,7 @@ function mapTrainingPeaksRecord(record, athleteId) {
 
   return {
     athlete_id: athleteId,
+    source: "manual_csv",
     session_date: date,
     title,
     sport_type: workoutType || null,

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import { fetchAthleteProfile, saveAthleteProfile } from '@/services/athlete-profile';
+import { getStravaConnectUrl, getStravaStatus, syncStrava, type StravaStatusData } from '@/services/strava';
 import type { AthleteOutletContext } from '@/components/atleta/AthleteLayout';
 
 type ProfileForm = {
@@ -40,6 +41,10 @@ function PerfilContent() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [stravaStatus, setStravaStatus] = useState<StravaStatusData | null>(null);
+  const [stravaLoading, setStravaLoading] = useState(true);
+  const [stravaSyncing, setStravaSyncing] = useState(false);
+  const [stravaMessage, setStravaMessage] = useState<string | null>(null);
   const [form, setForm] = useState<ProfileForm>({
     fullName: '',
     phone: '',
@@ -82,6 +87,38 @@ function PerfilContent() {
       }
     };
     load();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    const qs = new URLSearchParams(window.location.search);
+    const strava = qs.get('strava');
+    if (strava === 'connected') {
+      setStravaMessage('Strava ligado com sucesso.');
+    } else if (strava === 'error') {
+      const reason = qs.get('reason');
+      setStravaMessage(reason ? `Erro ao ligar Strava: ${reason}` : 'Erro ao ligar Strava.');
+    }
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    const loadStravaStatus = async () => {
+      setStravaLoading(true);
+      try {
+        const data = await getStravaStatus();
+        if (!mounted) return;
+        setStravaStatus(data);
+      } catch (e) {
+        if (!mounted) return;
+        setStravaMessage(e instanceof Error ? e.message : 'Nao foi possivel carregar estado do Strava.');
+      } finally {
+        if (mounted) setStravaLoading(false);
+      }
+    };
+    loadStravaStatus();
     return () => {
       mounted = false;
     };
@@ -145,6 +182,31 @@ function PerfilContent() {
     }
   };
 
+  const handleConnectStrava = async () => {
+    setStravaMessage(null);
+    try {
+      const authorizeUrl = await getStravaConnectUrl();
+      window.location.assign(authorizeUrl);
+    } catch (e) {
+      setStravaMessage(e instanceof Error ? e.message : 'Nao foi possivel iniciar ligacao Strava.');
+    }
+  };
+
+  const handleSyncStrava = async () => {
+    setStravaSyncing(true);
+    setStravaMessage(null);
+    try {
+      const data = await syncStrava();
+      setStravaMessage(`Sync concluido: ${data.activitiesFetched} atividades lidas, ${data.sessionsUpserted} sessoes atualizadas.`);
+      const status = await getStravaStatus();
+      setStravaStatus(status);
+    } catch (e) {
+      setStravaMessage(e instanceof Error ? e.message : 'Erro ao sincronizar Strava.');
+    } finally {
+      setStravaSyncing(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
@@ -184,6 +246,51 @@ function PerfilContent() {
               style={{ width: `${progressPct}%` }}
             />
           </div>
+        </div>
+
+        <div className="mt-6 rounded-xl border border-[#d4a54f33] bg-[#171717] p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#d4a54f]">Integracao Strava</p>
+              <p className="mt-1 text-xs text-[#8f99a8]">
+                {stravaLoading
+                  ? 'A carregar estado...'
+                  : stravaStatus?.connected
+                    ? `Conta ligada${stravaStatus.lastSyncAt ? ` · ultima sync ${new Date(stravaStatus.lastSyncAt).toLocaleString('pt-PT')}` : ''}`
+                    : 'Liga a tua conta para importar historico e alimentar carga/check-ins.'}
+              </p>
+            </div>
+            {!stravaStatus?.connected ? (
+              <button
+                type="button"
+                onClick={handleConnectStrava}
+                className="rounded-lg border border-[#d4a54f55] px-3 py-2 text-xs font-semibold text-[#f7f1e8] hover:bg-[#1f1f1f]"
+              >
+                Ligar
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleSyncStrava}
+                disabled={stravaSyncing}
+                className="rounded-lg border border-[#d4a54f55] px-3 py-2 text-xs font-semibold text-[#f7f1e8] hover:bg-[#1f1f1f] disabled:opacity-60"
+              >
+                {stravaSyncing ? 'A sincronizar...' : 'Sync agora'}
+              </button>
+            )}
+          </div>
+
+          {stravaStatus?.connected && stravaStatus.tokenExpiresAt ? (
+            <p className="mt-2 text-[11px] text-[#8f99a8]">
+              Token expira em: {new Date(stravaStatus.tokenExpiresAt).toLocaleString('pt-PT')}
+            </p>
+          ) : null}
+
+          {stravaMessage ? (
+            <p className="mt-3 rounded-lg border border-[#2f2f2f] bg-[#0f0f0f] px-3 py-2 text-xs text-[#d9dde6]">
+              {stravaMessage}
+            </p>
+          ) : null}
         </div>
 
         <div className="mt-6 grid gap-4 md:grid-cols-2">

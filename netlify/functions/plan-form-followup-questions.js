@@ -1,4 +1,6 @@
 const MODEL = process.env.PLAN_FORM_AI_MODEL || "gemini-2.5-flash";
+const { getConfig } = require("./_lib/config");
+const { requireAuthenticatedUser } = require("./_lib/authz");
 
 function json(statusCode, payload) {
   return {
@@ -172,6 +174,12 @@ async function getAiQuestions(answers) {
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
     return json(405, { error: "Method not allowed" });
+  }
+
+  const config = getConfig();
+  const auth = await requireAuthenticatedUser(event, config);
+  if (auth.error) {
+    return auth.error;
   }
 
   let body;

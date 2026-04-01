@@ -22,12 +22,12 @@ export default function StepIndicator({
       </div>
 
       {/* Step counter + labels */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
         <span className="text-sm font-medium text-[#d4a54f]">
           Passo {currentStep} de {totalSteps}
         </span>
         {stepLabels && stepLabels[currentStep - 1] && (
-          <span className="text-sm text-[#c9ced9]">{stepLabels[currentStep - 1]}</span>
+          <span className="text-sm text-[#c9ced9] break-words">{stepLabels[currentStep - 1]}</span>
         )}
       </div>
     </div>

@@ -1,8 +1,15 @@
 const { json } = require("./_lib/http");
 const { getConfig } = require("./_lib/config");
-const { getStripeClient, normalizeStripeError, toIsoFromUnix, toStripePurchaseRecord } = require("./_lib/stripe");
+const {
+  getStripeClient,
+  normalizeStripeError,
+  toIsoFromUnix,
+  toStripePurchaseRecord,
+  toPaymentIntentPurchaseRecord
+} = require("./_lib/stripe");
 const {
   upsertStripePurchaseBySessionId,
+  upsertStripePurchaseByPaymentIntentId,
   updateStripePurchasesBySubscriptionId,
   updateStripePurchasesByPaymentIntentId,
   getTrainingProgramById,
@@ -11,6 +18,7 @@ const {
   listStrengthPlans,
   getStrengthInstanceByStripePurchaseId,
   createStrengthPlanInstance,
+  getStrengthPlanFull,
   pauseInstancesByStripeSubscription,
   resumeInstancesByStripeSubscription,
   createProgramAssignment,
@@ -52,6 +60,20 @@ function buildGaItems(program) {
     item_id: program.external_id || program.id,
     item_name: program.name
   }];
+}
+
+async function buildPlanSnapshot(config, planId) {
+  try {
+    const full = await getStrengthPlanFull(config, planId);
+    if (!full) return null;
+    return {
+      exercises: full.exercises,
+      prescriptions: full.prescriptions,
+      phaseNotes: full.phaseNotes || []
+    };
+  } catch (_) {
+    return null;
+  }
 }
 
 async function handleCheckoutCompleted(config, stripe, session) {
@@ -194,6 +216,8 @@ async function ensureStrengthInstanceForPurchase(config, { identityId, email, pr
     return { created: false, reason: "athlete_not_found", instance: null };
   }
 
+  const planSnapshot = await buildPlanSnapshot(config, template.id);
+
   const instance = await createStrengthPlanInstance(config, {
     plan_id: template.id,
     athlete_id: athlete.id,
@@ -204,13 +228,81 @@ async function ensureStrengthInstanceForPurchase(config, { identityId, email, pr
     access_model: program.access_model || null,
     stripe_purchase_id: purchase.id,
     program_assignment_id: assignmentId || null,
-    coach_locked_until: null
+    coach_locked_until: null,
+    plan_snapshot: planSnapshot ? JSON.stringify(planSnapshot) : null
   });
 
   return {
     created: Boolean(instance),
     reason: instance ? "created" : "create_failed",
     instance: instance || null
+  };
+}
+
+async function handlePaymentIntentSucceeded(config, stripe, paymentIntent) {
+  const metadata = paymentIntent && paymentIntent.metadata ? paymentIntent.metadata : {};
+  const identityId = typeof metadata.identity_id === "string" ? metadata.identity_id : "";
+  const programId = typeof metadata.program_id === "string" ? metadata.program_id : "";
+  if (!identityId || !programId) {
+    return { persisted: false, reason: "missing_identity_or_program_metadata" };
+  }
+
+  const program = await getTrainingProgramById(config, programId);
+  if (!program) {
+    return { persisted: false, reason: "program_not_found" };
+  }
+
+  let subscriptionId = typeof metadata.subscription_id === "string" && metadata.subscription_id
+    ? metadata.subscription_id
+    : null;
+  let expiresAt = null;
+  if (subscriptionId) {
+    const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+    if (subscription && Number.isFinite(subscription.current_period_end)) {
+      expiresAt = toIsoFromUnix(subscription.current_period_end);
+    }
+  }
+
+  const purchase = toPaymentIntentPurchaseRecord({
+    paymentIntent,
+    identityId,
+    programId: program.id,
+    billingType: metadata.billing_type || program.billing_type,
+    email: metadata.email || null,
+    source: "stripe_elements",
+    subscriptionId,
+    expiresAt
+  });
+
+  const record = await upsertStripePurchaseByPaymentIntentId(config, purchase);
+
+  let autoAssignment = null;
+  if (record && record.id) {
+    autoAssignment = await ensureAssignmentForPurchase(config, {
+      identityId,
+      email: metadata.email || record.email || null,
+      program,
+      purchase: record
+    });
+  }
+
+  let autoInstance = null;
+  if (record && record.id) {
+    autoInstance = await ensureStrengthInstanceForPurchase(config, {
+      identityId,
+      email: metadata.email || record.email || null,
+      program,
+      purchase: record,
+      assignmentId: autoAssignment && autoAssignment.assignment ? autoAssignment.assignment.id : null
+    });
+  }
+
+  return {
+    persisted: true,
+    record,
+    program,
+    autoAssignment,
+    autoInstance
   };
 }
 
@@ -286,6 +378,46 @@ exports.handler = async (event) => {
           }
         });
       }
+      return json(200, { received: true, type: stripeEvent.type, result, ga, capi: capi ? { ok: capi.ok } : null });
+    }
+
+    if (stripeEvent.type === "payment_intent.succeeded") {
+      const paymentIntent = stripeEvent.data.object;
+      const result = await handlePaymentIntentSucceeded(config, stripe, paymentIntent);
+      let ga = null;
+      let capi = null;
+
+      if (result.persisted && result.record) {
+        ga = await sendGaPurchase({
+          measurementId: process.env.GA_MEASUREMENT_ID,
+          apiSecret: process.env.GA_API_SECRET,
+          transactionId: result.record.stripe_payment_intent_id || result.record.id,
+          value: (result.record.amount_cents || 0) / 100,
+          currency: result.record.currency,
+          items: buildGaItems(result.program)
+        });
+
+        const meta = paymentIntent.metadata || {};
+        capi = await sendCAPIEvent(config, {
+          event_name: "Purchase",
+          event_time: Math.floor(Date.now() / 1000),
+          event_id: `purchase_${paymentIntent.id}`,
+          event_source_url: meta.event_source_url || `${config.siteUrl}/programas.html`,
+          action_source: "website",
+          user_data: buildUserData({
+            email: meta.email || undefined,
+            fbp: meta.fbp || undefined,
+            fbc: meta.fbc || undefined
+          }),
+          custom_data: {
+            value: (result.record.amount_cents || 0) / 100,
+            currency: (result.record.currency || "EUR").toUpperCase(),
+            content_ids: [result.program ? (result.program.external_id || result.program.id) : "purchase"],
+            content_type: "product"
+          }
+        });
+      }
+
       return json(200, { received: true, type: stripeEvent.type, result, ga, capi: capi ? { ok: capi.ok } : null });
     }
 

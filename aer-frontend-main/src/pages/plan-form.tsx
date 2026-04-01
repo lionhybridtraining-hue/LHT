@@ -538,30 +538,30 @@ function PlanForm() {
 
   // ── JSX ─────────────────────────────────────────────────────────────────────
   return (
-    <div className="relative min-h-screen py-10 px-4 text-[#e4e8ef]" style={planocorridaPageStyle}>
+    <div className="relative min-h-screen overflow-x-hidden py-8 px-3 text-[#e4e8ef] sm:px-4 sm:py-10" style={planocorridaPageStyle}>
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(7,7,7,0.46),rgba(7,7,7,0.82)),radial-gradient(circle_at_20%_0,rgba(212,165,79,0.14),transparent_35%),radial-gradient(circle_at_80%_10%,rgba(22,102,216,0.16),transparent_30%),radial-gradient(circle_at_50%_100%,rgba(212,165,79,0.08),transparent_28%)]" />
       <div className="relative max-w-4xl mx-auto">
 
         {/* ── Header ── */}
         <div
-          className="mb-6 flex flex-col gap-4 rounded-[24px] border border-[#d4a54f29] p-5 shadow-[0_22px_54px_rgba(0,0,0,0.36)] md:flex-row md:items-center md:justify-between"
+          className="mb-6 flex flex-col gap-4 rounded-[24px] border border-[#d4a54f29] p-4 shadow-[0_22px_54px_rgba(0,0,0,0.36)] sm:p-5 md:flex-row md:items-center md:justify-between"
           style={planocorridaPanelStyle}
         >
-          <div className="flex items-center gap-4">
+          <div className="flex items-start gap-3 sm:gap-4">
             <img
               src="/assets/img/logo-lht.png"
               alt="Lion Hybrid Training"
-              className="h-[56px] w-auto"
+              className="h-[48px] w-auto sm:h-[56px]"
               loading="lazy"
             />
             <div>
             <p className="text-[#d4a54f] text-xs font-semibold uppercase tracking-[0.18em] mb-1">
               Lion Hybrid Training
             </p>
-            <h1 className="font-['Oswald'] text-3xl font-semibold uppercase tracking-[0.03em] text-[#f4f6fa]">
+            <h1 className="font-['Oswald'] text-2xl font-semibold uppercase tracking-[0.03em] text-[#f4f6fa] sm:text-3xl">
               Plano de Corrida LHT
             </h1>
-            <p className="text-[#c9ced9] mt-1">
+            <p className="text-[#c9ced9] mt-1 text-sm sm:text-base">
               Define o objetivo e gera o plano.
             </p>
             </div>
@@ -615,7 +615,7 @@ function PlanForm() {
             e.preventDefault();
             handleNext();
           }}
-          className="rounded-[28px] border border-[#d4a54f29] p-6 shadow-[0_22px_54px_rgba(0,0,0,0.36)] space-y-8"
+          className="rounded-[28px] border border-[#d4a54f29] p-4 shadow-[0_22px_54px_rgba(0,0,0,0.36)] space-y-8 sm:p-6"
           style={planocorridaPanelStyle}
         >
           {/* Step Indicator */}
@@ -761,7 +761,7 @@ function PlanForm() {
               <div className="space-y-4 pl-1">
                 <div className="space-y-2">
                   <p className="text-sm font-medium text-[#d9dde6]">Tipo de pace</p>
-                  <div className="flex gap-4">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:gap-4">
                     {(["easy", "threshold"] as PaceType[]).map((pt) => (
                       <label
                         key={pt}
@@ -964,10 +964,10 @@ function PlanForm() {
           />
 
           {/* Additional Links */}
-          <div className="flex flex-wrap gap-3 pt-2">
+          <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:flex-wrap">
             <Link
               to="/"
-              className="px-5 py-2 rounded-md border border-[#d4a54f66] text-[#e4e8ef] text-sm font-semibold hover:bg-[#2a2a2a]"
+              className="w-full sm:w-auto px-5 py-2 rounded-md border border-[#d4a54f66] text-[#e4e8ef] text-sm font-semibold text-center hover:bg-[#2a2a2a]"
             >
               Cancelar
             </Link>
@@ -976,7 +976,7 @@ function PlanForm() {
                 href={COMMUNITY_URL}
                 target="_blank"
                 rel="noopener"
-                className="px-5 py-2 rounded-md border border-[#3a7c59] text-[#bde8d0] text-sm font-semibold hover:bg-[#143726]"
+                className="w-full sm:w-auto px-5 py-2 rounded-md border border-[#3a7c59] text-[#bde8d0] text-sm font-semibold text-center hover:bg-[#143726]"
               >
                 Entrar na Comunidade LHT
               </a>

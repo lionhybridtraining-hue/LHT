@@ -72,6 +72,9 @@ alter table training_sessions add column if not exists execution_ratio numeric(6
 alter table training_sessions add column if not exists context_class text;
 alter table training_sessions add column if not exists normalized_title text;
 alter table training_sessions add column if not exists classification_version integer;
+alter table training_sessions add column if not exists source text;
+alter table training_sessions add column if not exists source_session_id text;
+alter table training_sessions add column if not exists source_payload jsonb;
 
 update training_sessions set title = coalesce(title, '') where title is null;
 update training_sessions set sport_type = coalesce(sport_type, '') where sport_type is null;
@@ -79,6 +82,7 @@ update training_sessions set execution_status = 'unknown' where execution_status
 update training_sessions set context_class = 'unknown' where context_class is null;
 update training_sessions set normalized_title = lower(regexp_replace(coalesce(title, ''), '[[:space:]]+', ' ', 'g')) where normalized_title is null or normalized_title = '';
 update training_sessions set classification_version = 1 where classification_version is null;
+update training_sessions set source = 'manual_csv' where source is null or source = '';
 
 alter table training_sessions alter column title set default '';
 alter table training_sessions alter column sport_type set default '';
@@ -92,13 +96,52 @@ alter table training_sessions alter column execution_status set not null;
 alter table training_sessions alter column context_class set not null;
 alter table training_sessions alter column normalized_title set not null;
 alter table training_sessions alter column classification_version set not null;
+alter table training_sessions alter column source set default 'manual_csv';
+alter table training_sessions alter column source set not null;
 
 drop index if exists training_sessions_unique_session;
 create unique index if not exists training_sessions_unique_session
 on training_sessions (athlete_id, session_date, title, sport_type);
 
+drop index if exists training_sessions_source_unique_idx;
+create unique index if not exists training_sessions_source_unique_idx
+on training_sessions (athlete_id, source, source_session_id);
+
 create index if not exists training_sessions_athlete_batch_idx
 on training_sessions (athlete_id, upload_batch_id);
+
+create table if not exists athlete_strava_connections (
+  athlete_id uuid primary key references athletes(id) on delete cascade,
+  strava_athlete_id bigint unique,
+  strava_athlete_username text,
+  strava_athlete_firstname text,
+  strava_athlete_lastname text,
+  scope text,
+  access_token text not null,
+  refresh_token text not null,
+  token_expires_at timestamptz not null,
+  last_sync_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+drop trigger if exists set_athlete_strava_connections_updated_at on athlete_strava_connections;
+create trigger set_athlete_strava_connections_updated_at
+before update on athlete_strava_connections
+for each row
+execute function set_updated_at();
+
+create table if not exists strava_sync_events (
+  id uuid primary key default gen_random_uuid(),
+  athlete_id uuid not null references athletes(id) on delete cascade,
+  event_type text not null,
+  source text not null default 'manual_sync',
+  payload jsonb,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists strava_sync_events_athlete_created_idx
+on strava_sync_events (athlete_id, created_at desc);
 
 create table if not exists weekly_checkins (
   id uuid primary key default gen_random_uuid(),
@@ -374,6 +417,7 @@ create table if not exists training_programs (
   external_id text,
   name text not null,
   description text,
+  image_url text,
   duration_weeks integer not null check (duration_weeks > 0),
   price_cents integer not null default 0,
   currency text not null default 'EUR',

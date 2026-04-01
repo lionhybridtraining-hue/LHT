@@ -18,6 +18,7 @@ exports.handler = async (event) => {
           externalId: program.external_id || null,
           name: program.name,
           description: program.description || null,
+          imageUrl: program.image_url || null,
           durationWeeks: program.duration_weeks,
           priceCents: program.price_cents,
           currency: program.currency,

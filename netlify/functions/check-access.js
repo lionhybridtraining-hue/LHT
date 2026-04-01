@@ -9,11 +9,26 @@ const {
   upsertAthleteByIdentity,
   listStrengthPlans,
   getStrengthInstanceByStripePurchaseId,
-  createStrengthPlanInstance
+  createStrengthPlanInstance,
+  getStrengthPlanFull
 } = require("./_lib/supabase");
 
 function getQuery(event) {
   return event && event.queryStringParameters ? event.queryStringParameters : {};
+}
+
+async function buildPlanSnapshot(config, planId) {
+  try {
+    const full = await getStrengthPlanFull(config, planId);
+    if (!full) return null;
+    return {
+      exercises: full.exercises,
+      prescriptions: full.prescriptions,
+      phaseNotes: full.phaseNotes || []
+    };
+  } catch (_) {
+    return null;
+  }
 }
 
 async function syncFromSession(config, user, sessionId, fallbackProgramId) {
@@ -88,6 +103,8 @@ async function ensureStrengthInstanceForPurchase(config, { identityId, email, pr
   }
   if (!athlete) return;
 
+  const planSnapshot = await buildPlanSnapshot(config, template.id);
+
   await createStrengthPlanInstance(config, {
     plan_id: template.id,
     athlete_id: athlete.id,
@@ -98,7 +115,8 @@ async function ensureStrengthInstanceForPurchase(config, { identityId, email, pr
     access_model: program.access_model || null,
     stripe_purchase_id: purchase.id,
     program_assignment_id: null,
-    coach_locked_until: null
+    coach_locked_until: null,
+    plan_snapshot: planSnapshot ? JSON.stringify(planSnapshot) : null
   });
 }
 

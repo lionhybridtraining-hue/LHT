@@ -17,9 +17,22 @@ const {
   findActiveStrengthSession,
   cancelOrphanedSessions,
   getStrengthSessionHistory,
-  getStrengthLogSetsForSessions
+  getStrengthLogSetsForSessions,
+  markWeeklyPlanSlotCompleted
 } = require("./_lib/supabase");
 const { estimate1rm } = require("./_lib/strength");
+
+function parseSnapshot(raw) {
+  if (!raw) return null;
+  if (typeof raw === "string") {
+    try {
+      return JSON.parse(raw);
+    } catch (_) {
+      return null;
+    }
+  }
+  return raw;
+}
 
 exports.handler = async (event) => {
   const config = getConfig();
@@ -147,6 +160,17 @@ exports.handler = async (event) => {
           finished_at: new Date().toISOString(),
           status: "completed"
         });
+
+        // Sync: mark matching athlete_weekly_plan slot as completed
+        if (existing.instance_id && existing.week_number && existing.day_number) {
+          markWeeklyPlanSlotCompleted(config, {
+            athleteId: athlete.id,
+            strengthInstanceId: existing.instance_id,
+            weekNumber: existing.week_number,
+            dayNumber: existing.day_number
+          }).catch(() => {}); // fire-and-forget, non-blocking
+        }
+
         return json(200, { session });
       }
 
@@ -212,6 +236,15 @@ exports.handler = async (event) => {
             if (pe.exercise_id) peToExercise[pe.id] = pe.exercise_id;
           }
         } catch (_) { /* best-effort */ }
+      }
+
+      if (instanceId) {
+        const snapshot = parseSnapshot(activeInstance && activeInstance.plan_snapshot);
+        const snapshotExercises = snapshot && Array.isArray(snapshot.exercises) ? snapshot.exercises : [];
+        for (const pe of snapshotExercises) {
+          if (!pe || !pe.id || !pe.exercise_id) continue;
+          if (!peToExercise[pe.id]) peToExercise[pe.id] = pe.exercise_id;
+        }
       }
 
       const oneRmInserted = [];

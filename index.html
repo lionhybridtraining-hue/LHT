@@ -97,31 +97,157 @@
     </div>
   </header>
 
-  <!-- ===== PROGRAMA EM DESTAQUE ===== -->
-  <section class="hero-2" id="featured-program">
-    <div class="container">
-      <h3 id="fp-tagline">Programa em destaque</h3>
-        <h2 id="fp-name">Athletic Endurance Runner (AER)</h2>
-        <div class="aer-logo-wrap">
-          <img id="fp-image" src="assets/img/logo-aer.png" alt="AER — Athletic Endurance Runner" class="aer-logo" decoding="async">
+  <!-- ===== CATALOGO RAPIDO DE PROGRAMAS ===== -->
+  <section class="hero-2" id="featured-program" aria-labelledby="fp-title">
+    <div class="container programs-featured-shell">
+      <div class="programs-featured-head">
+        <div>
+          <p class="programs-featured-kicker" id="fp-tagline">Catalogo rapido</p>
+          <h2 id="fp-title">Programas para evoluires sem perder momentum.</h2>
         </div>
-        <div class="launch-info"><span class="badge">Próxima data: <span id="fp-next-date">16 de Fevereiro</span></span></div>
-      <h4 id="fp-subtitle">Conhece o programa em destaque e entra no ecossistema LHT com uma progressão pensada para o teu objetivo.</h4>
-  <ul class="list left" id="fp-features">
-        <li><strong>Programa completo no TrainingPeaks</strong>, ajustado ao teu nível e objetivo;</li>
-        <li><strong>Duas consultorias individuais</strong> com o treinador;</li>
-        <li>Acesso à <strong>Comunidade LHT no WhatsApp</strong>, com desafios, <a href="calendario.html" data-track="cta_calendar_page_inline"><strong>calendário de provas</strong></a> e um <strong>Sistema de Progressão exclusivo</strong>;</li>
-        <li>Ferramentas para acompanhares a tua evolução e <strong>medires o teu progresso</strong>.</li>
-      </ul>
-      <div class="cta-row">
-        <a class="btn gold" id="fp-cta" data-track="cta_featured_program" href="https://buy.stripe.com/14AcN63Qi7p451SbkY97G00" target="_blank" rel="noopener" aria-label="Abrir o programa em destaque">Explorar programa em destaque</a>
-        <a class="btn ghost" data-track="cta_programas" href="/programas" aria-label="Ver todos os programas de treino LHT">Ver todos os programas</a>
+        <p class="programs-featured-intro">Descobre o programa certo para o teu momento e entra no catalogo completo com o contexto certo.</p>
+      </div>
+
+      <div class="programs-featured-layout">
+        <article class="program-feature-card" id="fp-card">
+          <div class="program-feature-content">
+            <div class="program-feature-copy">
+              <p class="program-feature-label">Programa em destaque</p>
+              <h3 id="fp-name">Athletic Endurance Runner (AER)</h3>
+              <p id="fp-subtitle" class="program-feature-subtitle">Conhece o programa em destaque e entra no ecossistema LHT com uma progressao pensada para o teu objetivo.</p>
+            </div>
+
+            <div class="program-feature-meta" id="fp-meta">
+              <span class="program-feature-chip" id="fp-next-date-wrap">Proxima data: <span id="fp-next-date">16 de Fevereiro</span></span>
+              <span class="program-feature-chip" id="fp-price">Catalogo LHT</span>
+              <span class="program-feature-chip" id="fp-followup">Progressao guiada</span>
+            </div>
+
+            <ul class="program-feature-points" id="fp-features">
+              <li>Programa completo com progressao clara para o teu objetivo.</li>
+              <li>Estrutura pensada para encaixar no ecossistema LHT.</li>
+              <li>Continuidade direta para o catalogo completo de programas.</li>
+            </ul>
+
+            <div class="cta-row program-feature-actions">
+              <a class="btn gold" id="fp-cta" data-track="cta_programs_featured_home" href="/programas" aria-label="Abrir o programa em destaque no catalogo">Ver programa no catalogo</a>
+              <a class="btn ghost" data-track="cta_programs_catalog_home" href="/programas" aria-label="Ver todos os programas de treino LHT">Ver catalogo completo</a>
+            </div>
+          </div>
+        </article>
+
+        <aside class="programs-quick-rail-wrap" aria-labelledby="programs-quick-rail-title">
+          <div class="programs-quick-rail-head">
+            <div>
+              <p class="programs-quick-rail-kicker">Mais programas</p>
+              <h3 id="programs-quick-rail-title">Explora rapido antes de entrares no catalogo.</h3>
+            </div>
+            <a class="programs-quick-link" data-track="cta_programs_catalog_home" href="/programas">Ver todos</a>
+          </div>
+
+          <div class="programs-quick-rail" id="home-programs-rail" aria-label="Catalogo rapido de programas">
+            <article class="program-quick-card">
+              <p class="program-quick-eyebrow">Subscricao</p>
+              <h4>Athletic Endurance Runner</h4>
+              <p>Progressao estruturada para construir consistencia e capacidade sem perder forca.</p>
+              <div class="program-quick-meta">
+                <span>Catalogo</span>
+                <span>TrainingPeaks</span>
+              </div>
+              <a class="program-quick-cta" data-track="cta_programs_quick_card" href="/programas">Ver no catalogo</a>
+            </article>
+            <article class="program-quick-card">
+              <p class="program-quick-eyebrow">Pagamento unico</p>
+              <h4>Programa de corrida</h4>
+              <p>Escolhe um plano alinhado com o teu nivel e entra no onboarding com contexto preservado.</p>
+              <div class="program-quick-meta">
+                <span>Onboarding</span>
+                <span>LHT</span>
+              </div>
+              <a class="program-quick-cta" data-track="cta_programs_quick_card" href="/programas">Abrir programa</a>
+            </article>
+            <article class="program-quick-card">
+              <p class="program-quick-eyebrow">Catalogo ativo</p>
+              <h4>Mais opcoes LHT</h4>
+              <p>Entra na pagina de programas para comparar duracao, preco e acompanhamento.</p>
+              <div class="program-quick-meta">
+                <span>Comparar</span>
+                <span>Checkout interno</span>
+              </div>
+              <a class="program-quick-cta" data-track="cta_programs_catalog_home" href="/programas">Ver todos</a>
+            </article>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== CALENDÁRIO DE PROVAS ===== -->
+  <section id="calendario-provas">
+    <div class="container center">
+      <h2>Provas da Comunidade</h2>
+      <p class="intro">Descobre os eventos onde a comunidade LHT participa e <strong>prepara-te para o teu próximo desafio.</strong></p>
+      
+      <!-- Carrossel infinito de logos -->
+      <div class="carousel-container">
+        <div class="carousel-wrapper" id="carousel-wrapper">
+          <!-- Prova 1 -->
+          <div class="carousel-item">
+            <img src="assets/img/uploads/logo-maratona-porto.png" alt="Maratona do Porto" loading="lazy" decoding="async">
+          </div>
+          
+          <!-- Prova 2 -->
+          <div class="carousel-item">
+            <img src="assets/img/uploads/logobackyardultra.png" alt="Backyard Ultra" loading="lazy" decoding="async">
+          </div>
+          
+          <!-- Prova 3 -->
+          <div class="carousel-item">
+            <img src="assets/img/uploads/Logo_MMLX_SuperHalfs.png" alt="MMLX Super Halfs" loading="lazy" decoding="async">
+          </div>
+          
+          <!-- Prova 4 -->
+          <div class="carousel-item">
+            <img src="assets/img/uploads/logo_OWR_pos.png" alt="OWR" loading="lazy" decoding="async">
+          </div>
+
+          <!-- Prova 5 -->
+          <div class="carousel-item">
+            <img src="assets/img/uploads/atrp_logo.png" alt="ATRP" loading="lazy" decoding="async">
+          </div>
+
+          <!-- Prova 6 -->
+          <div class="carousel-item">
+            <img src="assets/img/uploads/hyrox_logo.png" alt="Hyrox" loading="lazy" decoding="async">
+          </div>
+
+          <!-- Prova 7 -->
+          <div class="carousel-item">
+            <img src="assets/img/uploads/ironman_logo.png" alt="Ironman" loading="lazy" decoding="async">
+          </div>
+
+          <!-- Prova 8 -->
+          <div class="carousel-item">
+            <img src="assets/img/uploads/logo_fpa.png" alt="FPA" loading="lazy" decoding="async">
+          </div>
+
+          <!-- Prova 9 -->
+          <div class="carousel-item">
+            <img src="assets/img/uploads/spartan_logo.png" alt="Spartan Race" loading="lazy" decoding="async">
+          </div>
+        </div>
+      </div>
+
+      <p class="mini" style="margin-top: var(--py);">Queres ter acesso ao calendário completo de provas? <strong>Adere já à comunidade LHT no WhatsApp!</strong></p>
+      <div class="cta-row" style="margin-top: 28px;">
+        <a class="btn gold" data-track="cta_calendario_page_home" href="calendario.html" aria-label="Abrir a página do calendário de provas LHT">Ver calendário completo →</a>
+        <a class="btn ghost" data-track="cta_calendario_whatsapp" href="https://chat.whatsapp.com/JVsqO05fm4kLhbSaSiKL8n" target="_blank" rel="noopener" aria-label="Junte-se à comunidade LHT no WhatsApp">Comunidade LHT →</a>
       </div>
     </div>
   </section>
 
   <!-- ===== COMO FUNCIONA ===== -->
-  <section id="como-funciona">
+  <section id="como-funciona" hidden>
     <div class="container center">
       <h2>Torna-te um verdadeiro atleta híbrido</h2>
       <div class="steps">
@@ -230,70 +356,6 @@
     </script>
   </section>
 
-  <!-- ===== CALENDÁRIO DE PROVAS ===== -->
-  <section id="calendario-provas">
-    <div class="container center">
-      <h2>Provas da Comunidade</h2>
-      <p class="intro">Descobre os eventos onde a comunidade LHT participa e <strong>prepara-te para o teu próximo desafio.</strong></p>
-      
-      <!-- Carrossel infinito de logos -->
-      <div class="carousel-container">
-        <div class="carousel-wrapper" id="carousel-wrapper">
-          <!-- Prova 1 -->
-          <div class="carousel-item">
-            <img src="assets/img/uploads/logo-maratona-porto.png" alt="Maratona do Porto" loading="lazy" decoding="async">
-          </div>
-          
-          <!-- Prova 2 -->
-          <div class="carousel-item">
-            <img src="assets/img/uploads/logobackyardultra.png" alt="Backyard Ultra" loading="lazy" decoding="async">
-          </div>
-          
-          <!-- Prova 3 -->
-          <div class="carousel-item">
-            <img src="assets/img/uploads/Logo_MMLX_SuperHalfs.png" alt="MMLX Super Halfs" loading="lazy" decoding="async">
-          </div>
-          
-          <!-- Prova 4 -->
-          <div class="carousel-item">
-            <img src="assets/img/uploads/logo_OWR_pos.png" alt="OWR" loading="lazy" decoding="async">
-          </div>
-
-          <!-- Prova 5 -->
-          <div class="carousel-item">
-            <img src="assets/img/uploads/atrp_logo.png" alt="ATRP" loading="lazy" decoding="async">
-          </div>
-
-          <!-- Prova 6 -->
-          <div class="carousel-item">
-            <img src="assets/img/uploads/hyrox_logo.png" alt="Hyrox" loading="lazy" decoding="async">
-          </div>
-
-          <!-- Prova 7 -->
-          <div class="carousel-item">
-            <img src="assets/img/uploads/ironman_logo.png" alt="Ironman" loading="lazy" decoding="async">
-          </div>
-
-          <!-- Prova 8 -->
-          <div class="carousel-item">
-            <img src="assets/img/uploads/logo_fpa.png" alt="FPA" loading="lazy" decoding="async">
-          </div>
-
-          <!-- Prova 9 -->
-          <div class="carousel-item">
-            <img src="assets/img/uploads/spartan_logo.png" alt="Spartan Race" loading="lazy" decoding="async">
-          </div>
-        </div>
-      </div>
-
-      <p class="mini" style="margin-top: var(--py);">Queres ter acesso ao calendário completo de provas? <strong>Adere já à comunidade LHT no WhatsApp!</strong></p>
-      <div class="cta-row" style="margin-top: 28px;">
-        <a class="btn gold" data-track="cta_calendario_page_home" href="calendario.html" aria-label="Abrir a página do calendário de provas LHT">Ver calendário completo →</a>
-        <a class="btn ghost" data-track="cta_calendario_whatsapp" href="https://chat.whatsapp.com/JVsqO05fm4kLhbSaSiKL8n" target="_blank" rel="noopener" aria-label="Junte-se à comunidade LHT no WhatsApp">Comunidade LHT →</a>
-      </div>
-    </div>
-  </section>
-
   <!-- ===== CTA BLOG ===== -->
   <section id="final" class="center">
     <div class="container">
@@ -397,7 +459,6 @@
     "@type": "Product",
     "name": "Programa em destaque LHT",
     "brand": "Lion Hybrid Training",
-    "image": "https://lionhybridtraining.com/assets/img/logo-aer.png",
     "description": "Programa em destaque da Lion Hybrid Training com progressão guiada, comunidade e acompanhamento.",
     "offers": {"@type": "Offer", "url": "https://lionhybridtraining.com/programas", "price": "0", "priceCurrency": "EUR", "availability": "https://schema.org/InStock"}
   }

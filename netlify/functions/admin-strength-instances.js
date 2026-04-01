@@ -6,10 +6,25 @@ const {
   getStrengthPlanInstanceById,
   updateStrengthPlanInstance,
   createStrengthPlanInstance,
-  getStrengthPlanById
+  getStrengthPlanById,
+  getStrengthPlanFull
 } = require("./_lib/supabase");
 
 const ALLOWED_STATUS = new Set(["active", "paused", "completed", "cancelled"]);
+
+async function buildPlanSnapshot(config, planId) {
+  try {
+    const full = await getStrengthPlanFull(config, planId);
+    if (!full) return null;
+    return {
+      exercises: full.exercises,
+      prescriptions: full.prescriptions,
+      phaseNotes: full.phaseNotes || []
+    };
+  } catch (_) {
+    return null;
+  }
+}
 
 exports.handler = async (event) => {
   if (!["GET", "POST", "PATCH"].includes(event.httpMethod)) {
@@ -81,6 +96,8 @@ exports.handler = async (event) => {
         }
       }
 
+      const planSnapshot = await buildPlanSnapshot(config, planId);
+
       const created = await createStrengthPlanInstance(config, {
         plan_id: planId,
         athlete_id: athleteId,
@@ -90,7 +107,8 @@ exports.handler = async (event) => {
         assigned_by: auth.user?.sub || null,
         program_assignment_id: programAssignmentId,
         coach_locked_until: coachLockedUntil,
-        access_model: accessModel
+        access_model: accessModel,
+        plan_snapshot: planSnapshot ? JSON.stringify(planSnapshot) : null
       });
 
       return json(201, {

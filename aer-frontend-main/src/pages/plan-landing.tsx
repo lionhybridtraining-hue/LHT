@@ -11,7 +11,6 @@ import {
 import {
   planocorridaPageStyle,
   planocorridaPanelStyle,
-  planocorridaSoftPanelStyle,
 } from "@/lib/planocorrida-theme";
 import { getAccessToken, signInWithGoogle, supabase } from "@/lib/supabase";
 
@@ -48,24 +47,6 @@ const CONSISTENCY_OPTIONS = [
   {
     value: "high",
     title: "Otimizar",
-  },
-];
-
-const LANDING_STEPS = [
-  {
-    id: "1",
-    text: "Respondes rapido ao essencial.",
-    image: "/assets/img/DSC00702.jpg",
-  },
-  {
-    id: "2",
-    text: "Fazes login sem perder nada.",
-    image: "/assets/img/TP_Coach.jpg",
-  },
-  {
-    id: "3",
-    text: "Segues para gerar o plano final.",
-    image: "/assets/img/DSC00791.jpg",
   },
 ];
 
@@ -229,50 +210,32 @@ export default function PlanLanding() {
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden text-[#edf1f7]" style={planocorridaPageStyle}>
+    <div className="relative min-h-screen overflow-x-hidden text-[#edf1f7]" style={planocorridaPageStyle}>
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(7,7,7,0.42),rgba(7,7,7,0.78)),radial-gradient(circle_at_20%_0,rgba(212,165,79,0.14),transparent_35%),radial-gradient(circle_at_80%_10,rgba(22,102,216,0.16),transparent_30%),radial-gradient(circle_at_50%_100%,rgba(212,165,79,0.08),transparent_28%)]" />
-      <div className="relative mx-auto grid min-h-screen max-w-6xl items-center gap-10 px-4 py-10 lg:grid-cols-[1.05fr_0.95fr]">
+      <div className="relative mx-auto grid min-h-screen max-w-6xl items-center gap-8 px-3 py-8 sm:px-4 sm:py-10 lg:grid-cols-[1.05fr_0.95fr] lg:gap-10">
         <section>
           <img
             src="/assets/img/logo-lht.png"
             alt="Lion Hybrid Training"
-            className="mb-4 h-[72px] w-auto"
+            className="mb-4 h-[120px] w-auto sm:h-[138px]"
             loading="eager"
           />
           <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[#d4a54f]">
             Lion Hybrid Training
           </p>
-          <h1 className="mt-4 max-w-2xl font-['Oswald'] text-5xl font-semibold uppercase leading-[0.98] tracking-[0.03em] text-[#f7f1e8] md:text-6xl">
-            Plano de corrida personalizado em poucos passos.
+          <h1 className="mt-4 max-w-2xl font-['Oswald'] text-4xl font-semibold uppercase leading-[0.98] tracking-[0.03em] text-[#f7f1e8] sm:text-5xl md:text-6xl">
+            Plano de Corrida Gratuito
           </h1>
           <p className="mt-5 max-w-xl text-base leading-7 text-[#c8cfda] md:text-lg">
-            Responde, entra com Google e avanca para o teu plano.
+            Comeca hoje com intencao: cria um plano estruturado, treina com consistencia e aproxima-te da tua melhor versao em cada semana.
           </p>
-
-          <div className="mt-8 grid gap-4 sm:grid-cols-3">
-            {LANDING_STEPS.map((step) => (
-              <div
-                key={step.id}
-                className="relative overflow-hidden rounded-2xl border border-[#d4a54f29] p-4 shadow-[0_18px_40px_rgba(0,0,0,0.28)]"
-                style={{
-                  ...planocorridaSoftPanelStyle,
-                  backgroundImage: `linear-gradient(180deg, rgba(10,10,10,0.66), rgba(7,7,7,0.86)), url('${step.image}')`,
-                  backgroundSize: "cover",
-                  backgroundPosition: "center",
-                }}
-              >
-                <p className="text-2xl font-semibold text-[#f7f1e8]">{step.id}</p>
-                <p className="mt-2 text-sm text-[#e4e8ef]">{step.text}</p>
-              </div>
-            ))}
-          </div>
         </section>
 
         <section
           className="rounded-[30px] border border-[#d4a54f29] p-6 shadow-[0_22px_54px_rgba(0,0,0,0.36)] backdrop-blur-[2px] md:p-7"
           style={planocorridaPanelStyle}
         >
-            <div className="mb-5 flex items-center justify-between gap-3">
+            <div className="mb-5 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
             <div>
               <p className="text-sm font-semibold text-[#f7f1e8]">Comeca agora</p>
               <p className="text-xs text-[#98a3b6]">

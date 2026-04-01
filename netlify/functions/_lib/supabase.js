@@ -1,3 +1,5 @@
+const { randomBytes } = require("crypto");
+
 async function supabaseRequest({ url, serviceRoleKey, path, method = "GET", body, prefer }) {
   const response = await fetch(`${url}/rest/v1/${path}`, {
     method,
@@ -40,6 +42,18 @@ async function insertTrainingSessions(config, sessions) {
     method: "POST",
     body: sessions,
     prefer: "return=representation"
+  });
+}
+
+async function upsertTrainingSessionsBySource(config, sessions) {
+  if (!sessions.length) return [];
+  return supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: "training_sessions?on_conflict=athlete_id,source,source_session_id",
+    method: "POST",
+    body: sessions,
+    prefer: "resolution=merge-duplicates,return=representation"
   });
 }
 
@@ -153,6 +167,70 @@ async function updateAthlete(config, athleteId, patch) {
     prefer: "return=representation"
   });
   return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function getStravaConnectionByAthleteId(config, athleteId) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `athlete_strava_connections?athlete_id=eq.${encodeURIComponent(athleteId)}&select=*&limit=1`
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function getStravaConnectionByStravaAthleteId(config, stravaAthleteId) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `athlete_strava_connections?strava_athlete_id=eq.${encodeURIComponent(stravaAthleteId)}&select=*&limit=1`
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function upsertStravaConnection(config, payload) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: "athlete_strava_connections?on_conflict=athlete_id",
+    method: "POST",
+    body: [payload],
+    prefer: "resolution=merge-duplicates,return=representation"
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function updateStravaConnection(config, athleteId, patch) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `athlete_strava_connections?athlete_id=eq.${encodeURIComponent(athleteId)}`,
+    method: "PATCH",
+    body: patch,
+    prefer: "return=representation"
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function createStravaSyncEvent(config, payload) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: "strava_sync_events",
+    method: "POST",
+    body: [payload],
+    prefer: "return=representation"
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function deleteTrainingSessionBySourceId(config, athleteId, source, sourceSessionId) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `training_sessions?athlete_id=eq.${encodeURIComponent(athleteId)}&source=eq.${encodeURIComponent(source)}&source_session_id=eq.${encodeURIComponent(sourceSessionId)}`,
+    method: "DELETE"
+  });
+  return Array.isArray(rows) ? rows.length : 0;
 }
 
 async function upsertAthleteByIdentity(config, { identityId, email, name }) {
@@ -923,8 +1001,8 @@ async function assignRoleToIdentity(config, identityId, roleName) {
 }
 
 async function createAuthUser(config, email) {
-  // Generate a temporary password for the user
-  const tempPassword = Math.random().toString(36).slice(-12) + Math.random().toString(36).slice(-12);
+  // Use a cryptographically secure temporary password.
+  const tempPassword = randomBytes(24).toString("base64url");
   
   const response = await fetch(`${config.supabaseUrl}/auth/v1/admin/users`, {
     method: "POST",
@@ -1072,7 +1150,7 @@ async function listTrainingPrograms(config) {
   return supabaseRequest({
     url: config.supabaseUrl,
     serviceRoleKey: config.supabaseServiceRoleKey,
-    path: "training_programs?deleted_at=is.null&select=id,external_source,external_id,name,description,duration_weeks,price_cents,currency,stripe_product_id,stripe_price_id,billing_type,status,access_model,event_date,event_name,event_location,calendar_visible,calendar_highlight_rank,created_at,updated_at&order=created_at.desc"
+    path: "training_programs?deleted_at=is.null&select=id,external_source,external_id,name,description,image_url,duration_weeks,price_cents,currency,stripe_product_id,stripe_price_id,billing_type,status,access_model,event_date,event_name,event_location,event_description,calendar_visible,calendar_highlight_rank,created_at,updated_at&order=created_at.desc"
   });
 }
 
@@ -1104,7 +1182,7 @@ async function getTrainingProgramById(config, id) {
   const rows = await supabaseRequest({
     url: config.supabaseUrl,
     serviceRoleKey: config.supabaseServiceRoleKey,
-    path: `training_programs?id=eq.${encodeURIComponent(id)}&deleted_at=is.null&select=id,external_source,external_id,name,description,duration_weeks,price_cents,currency,status,stripe_product_id,stripe_price_id,billing_type,created_at,updated_at&limit=1`
+    path: `training_programs?id=eq.${encodeURIComponent(id)}&deleted_at=is.null&select=id,external_source,external_id,name,description,image_url,duration_weeks,price_cents,currency,status,stripe_product_id,stripe_price_id,billing_type,created_at,updated_at&limit=1`
   });
   return Array.isArray(rows) ? rows[0] || null : null;
 }
@@ -1113,7 +1191,7 @@ async function getTrainingProgramByExternalId(config, externalId) {
   const rows = await supabaseRequest({
     url: config.supabaseUrl,
     serviceRoleKey: config.supabaseServiceRoleKey,
-    path: `training_programs?external_id=eq.${encodeURIComponent(externalId)}&deleted_at=is.null&select=id,external_source,external_id,name,description,duration_weeks,price_cents,currency,status,stripe_product_id,stripe_price_id,billing_type,created_at,updated_at&limit=1`
+    path: `training_programs?external_id=eq.${encodeURIComponent(externalId)}&deleted_at=is.null&select=id,external_source,external_id,name,description,image_url,duration_weeks,price_cents,currency,status,stripe_product_id,stripe_price_id,billing_type,created_at,updated_at&limit=1`
   });
   return Array.isArray(rows) ? rows[0] || null : null;
 }
@@ -1122,7 +1200,7 @@ async function listPublicTrainingPrograms(config) {
   return supabaseRequest({
     url: config.supabaseUrl,
     serviceRoleKey: config.supabaseServiceRoleKey,
-    path: "training_programs?deleted_at=is.null&status=eq.active&select=id,external_id,name,description,duration_weeks,price_cents,currency,billing_type,event_date,event_name,event_location,calendar_visible,calendar_highlight_rank,created_at,updated_at&order=price_cents.asc,created_at.asc"
+    path: "training_programs?deleted_at=is.null&status=eq.active&select=id,external_id,name,description,image_url,duration_weeks,price_cents,currency,billing_type,event_date,event_name,event_location,event_description,calendar_visible,calendar_highlight_rank,created_at,updated_at&order=price_cents.asc,created_at.asc"
   });
 }
 
@@ -1239,6 +1317,19 @@ async function updateStripePurchasesByPaymentIntentId(config, paymentIntentId, p
     prefer: "return=representation"
   });
   return Array.isArray(rows) ? rows : [];
+}
+
+async function upsertStripePurchaseByPaymentIntentId(config, payload) {
+  if (!payload || !payload.stripe_payment_intent_id) {
+    throw new Error("stripe_payment_intent_id is required for payment intent upsert");
+  }
+
+  const existing = await getStripePurchaseByPaymentIntentId(config, payload.stripe_payment_intent_id);
+  if (existing && existing.id) {
+    return updateStripePurchaseById(config, existing.id, payload);
+  }
+
+  return createStripePurchase(config, payload);
 }
 
 async function listStripePurchases(config, { status, programId, email, source, from, to, limit, offset } = {}) {
@@ -1664,6 +1755,16 @@ async function listExercises(config) {
   });
 }
 
+async function getExercisesByIds(config, exerciseIds) {
+  if (!exerciseIds || exerciseIds.length === 0) return [];
+  const inList = exerciseIds.map((id) => `"${id}"`).join(",");
+  return supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `exercises?id=in.(${inList})&select=id,name,category,subcategory,video_url,description,default_weight_per_side,default_each_side,default_tempo,progression_of,regression_of`
+  });
+}
+
 async function createExercise(config, payload) {
   const rows = await supabaseRequest({
     url: config.supabaseUrl,
@@ -1855,6 +1956,47 @@ async function updateStrengthPlan(config, planId, patch) {
   return Array.isArray(rows) ? rows[0] || null : null;
 }
 
+async function listStrengthWarmupPresets(config) {
+  return supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: "strength_warmup_presets?select=id,name,description,payload,created_by,created_at,updated_at&order=updated_at.desc"
+  });
+}
+
+async function createStrengthWarmupPreset(config, payload) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: "strength_warmup_presets",
+    method: "POST",
+    body: [payload],
+    prefer: "return=representation"
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function updateStrengthWarmupPreset(config, presetId, patch) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `strength_warmup_presets?id=eq.${encodeURIComponent(presetId)}`,
+    method: "PATCH",
+    body: patch,
+    prefer: "return=representation"
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function deleteStrengthWarmupPreset(config, presetId) {
+  return supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `strength_warmup_presets?id=eq.${encodeURIComponent(presetId)}`,
+    method: "DELETE"
+  });
+}
+
 async function upsertStrengthPlanExercises(config, exercises) {
   if (!exercises.length) return [];
   return supabaseRequest({
@@ -2031,6 +2173,16 @@ async function findActiveStrengthSession(config, athleteId, planId, weekNumber, 
   return Array.isArray(rows) ? rows[0] || null : null;
 }
 
+async function getInProgressStrengthSessionForInstanceOnDate(config, instanceId, sessionDate) {
+  if (!instanceId || !sessionDate) return null;
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `strength_log_sessions?instance_id=eq.${encodeURIComponent(instanceId)}&session_date=eq.${encodeURIComponent(sessionDate)}&status=eq.in_progress&select=*&order=created_at.desc&limit=1`
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
 async function cancelOrphanedSessions(config, athleteId, maxAgeHours = 4) {
   const cutoff = new Date(Date.now() - maxAgeHours * 60 * 60 * 1000).toISOString();
   const rows = await supabaseRequest({
@@ -2158,8 +2310,212 @@ async function resumeInstancesByStripeSubscription(config, subscriptionId) {
   return resumed;
 }
 
+// ═══════════════════════════════════════════════════════════
+// Program Weekly Sessions
+// ═══════════════════════════════════════════════════════════
+
+async function listProgramWeeklySessions(config, trainingProgramId) {
+  return supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `program_weekly_sessions?training_program_id=eq.${encodeURIComponent(trainingProgramId)}&order=sort_priority.asc`
+  });
+}
+
+async function upsertProgramWeeklySessions(config, sessions) {
+  if (!sessions.length) return [];
+  return supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: 'program_weekly_sessions?on_conflict=training_program_id,session_key',
+    method: 'POST',
+    body: sessions,
+    prefer: 'return=representation,resolution=merge-duplicates'
+  });
+}
+
+async function deleteProgramWeeklySessions(config, ids) {
+  if (!ids.length) return 0;
+  const filter = ids.map(id => encodeURIComponent(id)).join(',');
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `program_weekly_sessions?id=in.(${filter})`,
+    method: 'DELETE'
+  });
+  return Array.isArray(rows) ? rows.length : 0;
+}
+
+// ═══════════════════════════════════════════════════════════
+// Program Schedule Presets
+// ═══════════════════════════════════════════════════════════
+
+async function listProgramSchedulePresets(config, trainingProgramId) {
+  return supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `program_schedule_presets?training_program_id=eq.${encodeURIComponent(trainingProgramId)}&order=sort_order.asc`
+  });
+}
+
+async function getProgramSchedulePresetById(config, presetId) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `program_schedule_presets?id=eq.${encodeURIComponent(presetId)}&select=*`
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function createProgramSchedulePreset(config, payload) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: 'program_schedule_presets',
+    method: 'POST',
+    body: [payload]
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function updateProgramSchedulePreset(config, presetId, patch) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `program_schedule_presets?id=eq.${encodeURIComponent(presetId)}`,
+    method: 'PATCH',
+    body: patch,
+    prefer: 'return=representation'
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function deleteProgramSchedulePreset(config, presetId) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `program_schedule_presets?id=eq.${encodeURIComponent(presetId)}`,
+    method: 'DELETE'
+  });
+  return Array.isArray(rows) ? rows.length : 0;
+}
+
+// ═══════════════════════════════════════════════════════════
+// Program Schedule Slots
+// ═══════════════════════════════════════════════════════════
+
+async function listProgramScheduleSlots(config, presetId) {
+  return supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `program_schedule_slots?preset_id=eq.${encodeURIComponent(presetId)}&order=sort_order.asc,day_of_week.asc,time_slot.asc`
+  });
+}
+
+async function upsertProgramScheduleSlots(config, slots) {
+  if (!slots.length) return [];
+  return supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: 'program_schedule_slots?on_conflict=preset_id,day_of_week,time_slot',
+    method: 'POST',
+    body: slots,
+    prefer: 'return=representation,resolution=merge-duplicates'
+  });
+}
+
+async function deleteProgramScheduleSlots(config, presetId) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `program_schedule_slots?preset_id=eq.${encodeURIComponent(presetId)}`,
+    method: 'DELETE'
+  });
+  return Array.isArray(rows) ? rows.length : 0;
+}
+
+// ═══════════════════════════════════════════════════════════
+// Athlete Weekly Plan
+// ═══════════════════════════════════════════════════════════
+
+async function listAthleteWeeklyPlan(config, { athleteId, programAssignmentId, weekNumber }) {
+  let path = `athlete_weekly_plan?athlete_id=eq.${encodeURIComponent(athleteId)}`;
+  if (programAssignmentId) {
+    path += `&program_assignment_id=eq.${encodeURIComponent(programAssignmentId)}`;
+  }
+  if (weekNumber != null) {
+    path += `&week_number=eq.${encodeURIComponent(weekNumber)}`;
+  }
+  path += '&order=week_number.asc,day_of_week.asc,time_slot.asc';
+  return supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path
+  });
+}
+
+async function insertAthleteWeeklyPlanRows(config, rows) {
+  if (!rows.length) return [];
+  return supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: 'athlete_weekly_plan',
+    method: 'POST',
+    body: rows,
+    prefer: 'return=representation'
+  });
+}
+
+async function upsertAthleteWeeklyPlanRows(config, rows) {
+  if (!rows.length) return [];
+  return supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: 'athlete_weekly_plan?on_conflict=athlete_id,program_assignment_id,week_number,day_of_week,time_slot',
+    method: 'POST',
+    body: rows,
+    prefer: 'return=representation,resolution=merge-duplicates'
+  });
+}
+
+async function updateAthleteWeeklyPlanRow(config, rowId, patch) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `athlete_weekly_plan?id=eq.${encodeURIComponent(rowId)}`,
+    method: 'PATCH',
+    body: patch,
+    prefer: 'return=representation'
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function deleteAthleteWeeklyPlan(config, programAssignmentId) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `athlete_weekly_plan?program_assignment_id=eq.${encodeURIComponent(programAssignmentId)}`,
+    method: 'DELETE'
+  });
+  return Array.isArray(rows) ? rows.length : 0;
+}
+
+async function markWeeklyPlanSlotCompleted(config, { athleteId, strengthInstanceId, weekNumber, dayNumber }) {
+  const path = `athlete_weekly_plan?athlete_id=eq.${encodeURIComponent(athleteId)}&strength_instance_id=eq.${encodeURIComponent(strengthInstanceId)}&week_number=eq.${encodeURIComponent(weekNumber)}&strength_day_number=eq.${encodeURIComponent(dayNumber)}&status=eq.planned`;
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path,
+    method: 'PATCH',
+    body: { status: 'completed' },
+    prefer: 'return=representation'
+  });
+  return Array.isArray(rows) ? rows : [];
+}
+
 module.exports = {
   insertTrainingSessions,
+  upsertTrainingSessionsBySource,
   findExistingSessions,
   updateSessionResults,
   getLatestUploadBatchId,
@@ -2168,6 +2524,12 @@ module.exports = {
   getAthleteById,
   getAthleteByIdentity,
   getAthleteByEmail,
+  getStravaConnectionByAthleteId,
+  getStravaConnectionByStravaAthleteId,
+  upsertStravaConnection,
+  updateStravaConnection,
+  createStravaSyncEvent,
+  deleteTrainingSessionBySourceId,
   listAthletes,
   createAthlete,
   upsertAthleteByIdentity,
@@ -2214,6 +2576,7 @@ module.exports = {
   getActiveStripePurchaseForIdentity,
   updateStripePurchasesBySubscriptionId,
   updateStripePurchasesByPaymentIntentId,
+  upsertStripePurchaseByPaymentIntentId,
   listStripePurchases,
   listSiteMetadata,
   listSiteMetrics,
@@ -2270,6 +2633,7 @@ module.exports = {
   listAiLogs,
   // Strength Training
   listExercises,
+  getExercisesByIds,
   createExercise,
   updateExercise,
   listStrengthPlans,
@@ -2283,6 +2647,10 @@ module.exports = {
   getStrengthPlanFull,
   createStrengthPlan,
   updateStrengthPlan,
+  listStrengthWarmupPresets,
+  createStrengthWarmupPreset,
+  updateStrengthWarmupPreset,
+  deleteStrengthWarmupPreset,
   upsertStrengthPlanExercises,
   deleteStrengthPlanExercises,
   getStrengthPlanExercisesByIds,
@@ -2299,6 +2667,7 @@ module.exports = {
   updateStrengthLogSession,
   getStrengthLogSession,
   findActiveStrengthSession,
+  getInProgressStrengthSessionForInstanceOnDate,
   cancelOrphanedSessions,
   getStrengthSessionHistory,
   getStrengthLogSetsForSessions,
@@ -2310,4 +2679,22 @@ module.exports = {
   pauseInstancesByStripeSubscription,
   resumeInstancesByStripeSubscription,
   updateAthlete,
+  // Program Schedule
+  listProgramWeeklySessions,
+  upsertProgramWeeklySessions,
+  deleteProgramWeeklySessions,
+  listProgramSchedulePresets,
+  getProgramSchedulePresetById,
+  createProgramSchedulePreset,
+  updateProgramSchedulePreset,
+  deleteProgramSchedulePreset,
+  listProgramScheduleSlots,
+  upsertProgramScheduleSlots,
+  deleteProgramScheduleSlots,
+  listAthleteWeeklyPlan,
+  insertAthleteWeeklyPlanRows,
+  upsertAthleteWeeklyPlanRows,
+  updateAthleteWeeklyPlanRow,
+  deleteAthleteWeeklyPlan,
+  markWeeklyPlanSlotCompleted,
 };

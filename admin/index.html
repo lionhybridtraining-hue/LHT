@@ -971,20 +971,27 @@
             <h2>Programas e Acesso</h2>
             <p>Catalogo de programas Stripe, configuracao comercial e concessao manual de acesso.</p>
           </div>
+          <div class="programs-header-actions">
+            <button id="refresh-programs-btn" type="button" class="header-action-btn">🔄 Atualizar</button>
+            <button id="toggle-create-program-btn" type="button" class="header-action-btn header-action-btn-primary">➕ Novo programa</button>
+          </div>
         </div>
 
         <p id="programs-message" class="message" role="status"></p>
 
-        <div class="athletes-toolbar">
-          <button id="refresh-programs-btn" type="button">Atualizar catalogo</button>
-        </div>
+        <!-- CREATE PROGRAM COLLAPSIBLE SECTION -->
+        <details class="programs-create-section" id="programs-create-details">
+          <summary class="programs-create-summary">
+            <span class="create-summary-icon">➕</span>
+            <span class="create-summary-text">Criar novo programa</span>
+          </summary>
 
-        <div class="admin-inline-form">
-          <div class="programs-form-section field-wide">
-            <div class="programs-form-section-head">
-              <h3>Identidade do programa</h3>
-              <p>Define o programa no catalogo e os metadados base usados no site e nas atribuicoes.</p>
-            </div>
+          <div class="admin-inline-form programs-create-form">
+            <div class="programs-form-section field-wide">
+              <div class="programs-form-section-head">
+                <h3>Identidade do programa</h3>
+                <p>Define o programa no catalogo e os metadados base usados no site e nas atribuicoes.</p>
+              </div>
             <div class="programs-form-grid">
               <div class="field field-wide">
                 <label for="program-name">Nome</label>
@@ -1000,7 +1007,23 @@
               </div>
               <div class="field field-wide">
                 <label for="program-description">Descricao</label>
-                <textarea id="program-description" rows="2" placeholder="Resumo comercial e operacional do programa"></textarea>
+                <div class="richtext-editor-group" data-richtext-source="program-description" data-richtext-editor="program-description-editor">
+                  <div class="richtext-toolbar" role="toolbar" aria-label="Formatar descrição do programa">
+                    <button type="button" class="richtext-btn" data-richtext-command="bold" title="Negrito"><strong>B</strong></button>
+                    <button type="button" class="richtext-btn" data-richtext-command="italic" title="Itálico"><em>I</em></button>
+                    <button type="button" class="richtext-btn" data-richtext-command="underline" title="Sublinhado"><u>U</u></button>
+                    <button type="button" class="richtext-btn" data-richtext-command="insertUnorderedList" title="Lista com bullets">• Lista</button>
+                    <button type="button" class="richtext-btn" data-richtext-command="insertOrderedList" title="Lista numerada">1. Lista</button>
+                    <button type="button" class="richtext-btn" data-richtext-command="removeFormat" title="Limpar formatação">Limpar</button>
+                  </div>
+                  <div id="program-description-editor" class="richtext-editor" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Editor de descrição do programa"></div>
+                  <textarea id="program-description" class="richtext-source" rows="2" placeholder="Resumo comercial e operacional do programa"></textarea>
+                </div>
+              </div>
+              <div class="field field-wide">
+                <label for="program-image-url">Imagem (URL)</label>
+                <input id="program-image-url" type="url" placeholder="https://..." />
+                <small class="field-hint">Usada no destaque da home e nos cards de programas.</small>
               </div>
               <div class="field">
                 <label for="program-duration-weeks">Duracao (semanas)</label>
@@ -1106,7 +1129,18 @@
               </div>
               <div class="field field-wide">
                 <label for="program-event-description">Descrição da prova</label>
-                <textarea id="program-event-description" rows="3" placeholder="Texto de marketing para o cartão de desafio no calendário"></textarea>
+                <div class="richtext-editor-group" data-richtext-source="program-event-description" data-richtext-editor="program-event-description-editor">
+                  <div class="richtext-toolbar" role="toolbar" aria-label="Formatar descrição da prova">
+                    <button type="button" class="richtext-btn" data-richtext-command="bold" title="Negrito"><strong>B</strong></button>
+                    <button type="button" class="richtext-btn" data-richtext-command="italic" title="Itálico"><em>I</em></button>
+                    <button type="button" class="richtext-btn" data-richtext-command="underline" title="Sublinhado"><u>U</u></button>
+                    <button type="button" class="richtext-btn" data-richtext-command="insertUnorderedList" title="Lista com bullets">• Lista</button>
+                    <button type="button" class="richtext-btn" data-richtext-command="insertOrderedList" title="Lista numerada">1. Lista</button>
+                    <button type="button" class="richtext-btn" data-richtext-command="removeFormat" title="Limpar formatação">Limpar</button>
+                  </div>
+                  <div id="program-event-description-editor" class="richtext-editor" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Editor de descrição da prova"></div>
+                  <textarea id="program-event-description" class="richtext-source" rows="3" placeholder="Texto de marketing para o cartão de desafio no calendário"></textarea>
+                </div>
               </div>
               <div class="field">
                 <label for="program-calendar-highlight-rank">Ordem de destaque</label>
@@ -1123,77 +1157,71 @@
           </div>
           <div class="form-actions">
             <button id="create-program-btn" type="button">Criar programa</button>
+            <button type="button" class="action-btn action-btn-secondary" onclick="document.getElementById('programs-create-details').open = false">Cancelar</button>
+          </div>
+        </div>
+        </details>
+
+        <!-- FILTERS SECTION -->
+        <div class="programs-section-wrapper">
+          <div class="programs-filters-header">
+            <h3 class="section-subhead">Filtros e pesquisa</h3>
+          </div>
+          <div class="programs-filter-bar">
+            <div class="programs-filter-search-wrap">
+              <input id="programs-filter-search" type="text" placeholder="Pesquisar: Nome, prova, ID externo..." class="programs-filter-search" />
+            </div>
+            <div class="programs-filter-grid">
+              <select id="programs-filter-status" class="programs-filter-select">
+                <option value="">Estado: Todos</option>
+                <option value="draft">draft</option>
+                <option value="active">active</option>
+                <option value="archived">archived</option>
+              </select>
+              <select id="programs-filter-calendar" class="programs-filter-select">
+                <option value="">Calendario: Todos</option>
+                <option value="event_visible">Com prova visivel</option>
+                <option value="event_hidden">Com prova oculta</option>
+                <option value="event_any">Com prova associada</option>
+                <option value="no_event">Sem prova associada</option>
+              </select>
+              <select id="programs-filter-access" class="programs-filter-select">
+                <option value="">Acesso: Todos</option>
+                <option value="self_serve">self_serve</option>
+                <option value="coached_one_time">coached_one_time</option>
+                <option value="coached_recurring">coached_recurring</option>
+              </select>
+              <select id="programs-filter-billing" class="programs-filter-select">
+                <option value="">Billing: Todos</option>
+                <option value="one_time">one_time</option>
+                <option value="recurring">recurring</option>
+              </select>
+              <button id="programs-clear-filters-btn" type="button" class="programs-filter-clear-btn">Limpar tudo</button>
+            </div>
           </div>
         </div>
 
-        <div class="programs-filter-bar admin-inline-form">
-          <div class="field field-wide">
-            <label for="programs-filter-search">Pesquisar</label>
-            <input id="programs-filter-search" type="text" placeholder="Nome, prova, external id ou Stripe price" />
+        <!-- PROGRAMS TABLE SECTION -->
+        <div class="programs-table-wrapper">
+          <div class="programs-table-header">
+            <h3 class="section-subhead">Programas registados</h3>
+            <span class="programs-count-badge" id="programs-count-badge">0 programas</span>
           </div>
-          <div class="field">
-            <label for="programs-filter-status">Estado</label>
-            <select id="programs-filter-status">
-              <option value="">Todos</option>
-              <option value="draft">draft</option>
-              <option value="active">active</option>
-              <option value="archived">archived</option>
-            </select>
+          <div class="athletes-list-wrap">
+            <table class="athletes-table programs-table">
+              <thead>
+                <tr>
+                  <th class="col-name">Programa</th>
+                  <th class="col-info">Detalhes</th>
+                  <th class="col-status">Estado</th>
+                  <th class="col-actions">Ações</th>
+                </tr>
+              </thead>
+              <tbody id="programs-body"></tbody>
+            </table>
           </div>
-          <div class="field">
-            <label for="programs-filter-calendar">Calendario</label>
-            <select id="programs-filter-calendar">
-              <option value="">Todos</option>
-              <option value="event_visible">Com prova visivel</option>
-              <option value="event_hidden">Com prova oculta</option>
-              <option value="event_any">Com prova associada</option>
-              <option value="no_event">Sem prova associada</option>
-            </select>
-          </div>
-          <div class="field">
-            <label for="programs-filter-access">Tipo de acesso</label>
-            <select id="programs-filter-access">
-              <option value="">Todos</option>
-              <option value="self_serve">self_serve</option>
-              <option value="coached_one_time">coached_one_time</option>
-              <option value="coached_recurring">coached_recurring</option>
-            </select>
-          </div>
-          <div class="field">
-            <label for="programs-filter-billing">Billing</label>
-            <select id="programs-filter-billing">
-              <option value="">Todos</option>
-              <option value="one_time">one_time</option>
-              <option value="recurring">recurring</option>
-            </select>
-          </div>
-          <div class="form-actions programs-filter-actions">
-            <button id="programs-clear-filters-btn" type="button">Limpar filtros</button>
-          </div>
+          <p class="programs-footnote">💡 A tabela acima mostra um resumo dos programas. Clique em <strong>Editar</strong> para ver todos os detalhes e fazer alterações. Os dados de prova aparecem no calendario publico quando o programa estiver ativo, visível e com data futura.</p>
         </div>
-
-        <div class="athletes-list-wrap">
-          <table class="athletes-table">
-            <thead>
-              <tr>
-                <th>Nome</th>
-                <th>Externo</th>
-                <th>Prova</th>
-                <th>Data</th>
-                <th>Calendario</th>
-                <th>Acesso</th>
-                <th>Billing</th>
-                <th>Preco</th>
-                <th>Estado</th>
-                <th>Stripe Price</th>
-                <th>Acoes</th>
-              </tr>
-            </thead>
-            <tbody id="programs-body"></tbody>
-          </table>
-        </div>
-
-        <p class="programs-footnote">A lista abaixo serve para controlo rapido. Os metadados de prova so aparecem no calendario publico quando o programa estiver ativo, visivel e com data futura.</p>
 
         <dialog id="edit-program-dialog" class="admin-action-dialog admin-action-dialog-wide">
           <div class="modal-header">
@@ -1225,7 +1253,22 @@
                   </div>
                   <div class="field field-wide">
                     <label for="edit-program-description">Descricao</label>
-                    <textarea id="edit-program-description" rows="2"></textarea>
+                    <div class="richtext-editor-group" data-richtext-source="edit-program-description" data-richtext-editor="edit-program-description-editor">
+                      <div class="richtext-toolbar" role="toolbar" aria-label="Formatar descrição do programa">
+                        <button type="button" class="richtext-btn" data-richtext-command="bold" title="Negrito"><strong>B</strong></button>
+                        <button type="button" class="richtext-btn" data-richtext-command="italic" title="Itálico"><em>I</em></button>
+                        <button type="button" class="richtext-btn" data-richtext-command="underline" title="Sublinhado"><u>U</u></button>
+                        <button type="button" class="richtext-btn" data-richtext-command="insertUnorderedList" title="Lista com bullets">• Lista</button>
+                        <button type="button" class="richtext-btn" data-richtext-command="insertOrderedList" title="Lista numerada">1. Lista</button>
+                        <button type="button" class="richtext-btn" data-richtext-command="removeFormat" title="Limpar formatação">Limpar</button>
+                      </div>
+                      <div id="edit-program-description-editor" class="richtext-editor" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Editor de descrição do programa"></div>
+                      <textarea id="edit-program-description" class="richtext-source" rows="2"></textarea>
+                    </div>
+                  </div>
+                  <div class="field field-wide">
+                    <label for="edit-program-image-url">Imagem (URL)</label>
+                    <input id="edit-program-image-url" type="url" placeholder="https://..." />
                   </div>
                   <div class="field">
                     <label for="edit-program-duration-weeks">Duracao (semanas)</label>
@@ -1302,7 +1345,18 @@
                   </div>
                   <div class="field field-wide">
                     <label for="edit-program-event-description">Descrição da prova</label>
-                    <textarea id="edit-program-event-description" rows="3" placeholder="Texto de marketing para o cartão de desafio no calendário"></textarea>
+                    <div class="richtext-editor-group" data-richtext-source="edit-program-event-description" data-richtext-editor="edit-program-event-description-editor">
+                      <div class="richtext-toolbar" role="toolbar" aria-label="Formatar descrição da prova">
+                        <button type="button" class="richtext-btn" data-richtext-command="bold" title="Negrito"><strong>B</strong></button>
+                        <button type="button" class="richtext-btn" data-richtext-command="italic" title="Itálico"><em>I</em></button>
+                        <button type="button" class="richtext-btn" data-richtext-command="underline" title="Sublinhado"><u>U</u></button>
+                        <button type="button" class="richtext-btn" data-richtext-command="insertUnorderedList" title="Lista com bullets">• Lista</button>
+                        <button type="button" class="richtext-btn" data-richtext-command="insertOrderedList" title="Lista numerada">1. Lista</button>
+                        <button type="button" class="richtext-btn" data-richtext-command="removeFormat" title="Limpar formatação">Limpar</button>
+                      </div>
+                      <div id="edit-program-event-description-editor" class="richtext-editor" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Editor de descrição da prova"></div>
+                      <textarea id="edit-program-event-description" class="richtext-source" rows="3" placeholder="Texto de marketing para o cartão de desafio no calendário"></textarea>
+                    </div>
                   </div>
                   <div class="field">
                     <label for="edit-program-calendar-highlight-rank">Ordem de destaque</label>
@@ -1368,9 +1422,13 @@
         <div class="sc-ess-section" style="margin-top:2rem;">
           <div class="sc-ess-section-header">
             <h3>Links de subscrição do calendário</h3>
-            <p>URLs globais para os botões "Adicionar ao Google Calendar" e "Subscrever via iCal" na página de calendário.</p>
+            <p>URLs globais para o embed e para os botões "Adicionar ao Google Calendar" e "Subscrever via iCal" na página de calendário.</p>
           </div>
           <div class="sc-ess-grid">
+            <div class="sc-ess-field" style="grid-column:1 / -1;">
+              <label class="sc-ess-label" for="cal-embed-url">Embed URL</label>
+              <input id="cal-embed-url" type="url" class="sc-ess-input" placeholder="https://calendar.google.com/calendar/embed?..." />
+            </div>
             <div class="sc-ess-field">
               <label class="sc-ess-label" for="cal-google-url">Google Calendar URL</label>
               <input id="cal-google-url" type="url" class="sc-ess-input" placeholder="https://calendar.google.com/..." />
@@ -1436,7 +1494,7 @@
           <div>
             <p class="section-eyebrow">Stripe Ops</p>
             <h2>Vendas e Controlo Stripe</h2>
-            <p>Dashboard de vendas, reembolsos, cupoes, gestao de precos e payment links.</p>
+            <p>Dashboard de vendas, checkout no site, reembolsos, cupoes, gestao de precos e links de fallback.</p>
           </div>
         </div>
 
@@ -1472,6 +1530,14 @@
             <span class="kpi-label">Abandonadas</span>
             <span class="kpi-value" id="kpi-abandoned">-</span>
           </div>
+          <div class="kpi-card">
+            <span class="kpi-label">Checkout no site</span>
+            <span class="kpi-value" id="kpi-onsite">-</span>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-label">Checkout por sessao</span>
+            <span class="kpi-value" id="kpi-session">-</span>
+          </div>
         </div>
 
         <!-- Subtabs -->
@@ -1480,7 +1546,7 @@
           <button id="vendas-subtab-coupons" class="vendas-subtab" type="button">Cupoes</button>
           <button id="vendas-subtab-prices" class="vendas-subtab" type="button">Precos</button>
           <button id="vendas-subtab-sync" class="vendas-subtab" type="button">Sync Stripe</button>
-          <button id="vendas-subtab-links" class="vendas-subtab" type="button">Payment Links</button>
+          <button id="vendas-subtab-links" class="vendas-subtab" type="button">Links (fallback)</button>
         </div>
 
         <!-- SUBTAB: Compras -->
@@ -1517,6 +1583,16 @@
               </select>
             </div>
             <div class="field">
+              <label for="vendas-filter-channel">Canal</label>
+              <select id="vendas-filter-channel">
+                <option value="">Todos</option>
+                <option value="onsite">checkout_no_site</option>
+                <option value="checkout_session">checkout_session</option>
+                <option value="admin_override">admin_override</option>
+                <option value="other">other</option>
+              </select>
+            </div>
+            <div class="field">
               <label for="vendas-filter-from">Desde</label>
               <input id="vendas-filter-from" type="date" />
             </div>
@@ -1538,6 +1614,7 @@
                   <th>Valor</th>
                   <th>Estado</th>
                   <th>Tipo</th>
+                  <th>Canal</th>
                   <th>Source</th>
                   <th>Pago em</th>
                   <th>Expira</th>
@@ -1695,8 +1772,9 @@
           </div>
         </div>
 
-        <!-- SUBTAB: Payment Links -->
+        <!-- SUBTAB: Links de fallback -->
         <div id="vendas-links-view" class="vendas-view" hidden>
+          <p class="message">Usa apenas como fallback/manual. O fluxo principal deve ser checkout no site.</p>
           <div class="admin-inline-form">
             <div class="field field-wide">
               <label for="link-program-select">Programa</label>
@@ -2224,8 +2302,7 @@
       ['onboarding_twitter_image_alt', 'Lion Hybrid Training — Onboarding'],
       ['onboarding_page_name', 'Onboarding — Lion Hybrid Training'],
       ['onboarding_page_url', 'https://lionhybridtraining.com/onboarding'],
-      ['onboarding_page_description', 'Bem-vindo à Lion Hybrid Training! Segue estes passos para começar a treinar com o programa AER.'],
-      ['aer_next_date', '16 de Fevereiro']
+      ['onboarding_page_description', 'Bem-vindo à Lion Hybrid Training! Segue estes passos para começar a treinar com o programa AER.']
     ];
 
     const SITE_LINK_PRESETS = [
@@ -2335,6 +2412,7 @@
       calendarioPanel: document.getElementById('calendario-panel'),
       calendarioMessage: document.getElementById('calendario-message'),
       calendarioTableBody: document.getElementById('calendario-table-body'),
+      calEmbedUrl: document.getElementById('cal-embed-url'),
       calGoogleUrl: document.getElementById('cal-google-url'),
       calIcalUrl: document.getElementById('cal-ical-url'),
       calSaveLinksBtn: document.getElementById('cal-save-links-btn'),
@@ -2421,6 +2499,8 @@
       leadsBody: document.getElementById('leads-body'),
       programsMessage: document.getElementById('programs-message'),
       refreshProgramsBtn: document.getElementById('refresh-programs-btn'),
+      toggleCreateProgramBtn: document.getElementById('toggle-create-program-btn'),
+      programsCreateDetails: document.getElementById('programs-create-details'),
       programsBody: document.getElementById('programs-body'),
       programsFilterSearch: document.getElementById('programs-filter-search'),
       programsFilterStatus: document.getElementById('programs-filter-status'),
@@ -2432,6 +2512,7 @@
       programExternalSource: document.getElementById('program-external-source'),
       programExternalId: document.getElementById('program-external-id'),
       programDescription: document.getElementById('program-description'),
+      programImageUrl: document.getElementById('program-image-url'),
       programDurationWeeks: document.getElementById('program-duration-weeks'),
       programPriceCents: document.getElementById('program-price-cents'),
       programCurrency: document.getElementById('program-currency'),
@@ -2458,6 +2539,7 @@
       editProgramExternalSource: document.getElementById('edit-program-external-source'),
       editProgramExternalId: document.getElementById('edit-program-external-id'),
       editProgramDescription: document.getElementById('edit-program-description'),
+      editProgramImageUrl: document.getElementById('edit-program-image-url'),
       editProgramDurationWeeks: document.getElementById('edit-program-duration-weeks'),
       editProgramPriceCents: document.getElementById('edit-program-price-cents'),
       editProgramCurrency: document.getElementById('edit-program-currency'),
@@ -2522,6 +2604,8 @@
       kpiRefunded: document.getElementById('kpi-refunded'),
       kpiCancelled: document.getElementById('kpi-cancelled'),
       kpiAbandoned: document.getElementById('kpi-abandoned'),
+      kpiOnsite: document.getElementById('kpi-onsite'),
+      kpiSession: document.getElementById('kpi-session'),
       vendasSubtabPurchases: document.getElementById('vendas-subtab-purchases'),
       vendasSubtabCoupons: document.getElementById('vendas-subtab-coupons'),
       vendasSubtabPrices: document.getElementById('vendas-subtab-prices'),
@@ -2536,6 +2620,7 @@
       vendasFilterProgram: document.getElementById('vendas-filter-program'),
       vendasFilterEmail: document.getElementById('vendas-filter-email'),
       vendasFilterSource: document.getElementById('vendas-filter-source'),
+      vendasFilterChannel: document.getElementById('vendas-filter-channel'),
       vendasFilterFrom: document.getElementById('vendas-filter-from'),
       vendasFilterTo: document.getElementById('vendas-filter-to'),
       vendasRefreshBtn: document.getElementById('vendas-refresh-btn'),
@@ -6064,16 +6149,23 @@
 
       if (!Array.isArray(state.programs) || !state.programs.length) {
         const row = document.createElement('tr');
-        row.innerHTML = '<td colspan="11">Sem programas registados.</td>';
+        row.innerHTML = '<td colspan="4" style="text-align:center; padding: 32px; color: var(--muted);">Sem programas registados.</td>';
         els.programsBody.appendChild(row);
         return;
       }
 
       if (!list.length) {
         const row = document.createElement('tr');
-        row.innerHTML = '<td colspan="11">Nenhum programa corresponde aos filtros atuais.</td>';
+        row.innerHTML = '<td colspan="4" style="text-align:center; padding: 32px; color: var(--muted);">Nenhum programa corresponde aos filtros atuais.</td>';
         els.programsBody.appendChild(row);
         return;
+      }
+
+      // Update count badge
+      const countBadge = document.getElementById('programs-count-badge');
+      if (countBadge) {
+        const count = list.length;
+        countBadge.textContent = count === 1 ? '1 programa' : count + ' programas';
       }
 
       const fragment = document.createDocumentFragment();
@@ -6087,29 +6179,50 @@
           : program.status === 'archived'
             ? 'admin-tag muted'
             : 'admin-tag warning';
-        row.innerHTML = `
-          <td>
-            <div class="program-name-cell">
+
+        // Main info col
+        const nameCell = `
+          <div class="program-info-main">
+            <div class="program-name-badge">
               <strong>${escapeHtml(program.name || '-')}</strong>
-              <span>${escapeHtml(String(program.durationWeeks || '-'))} sem.</span>
+              ${program.status === 'active' ? '<span class="mini-badge active">●</span>' : ''}
             </div>
-          </td>
-          <td>${escapeHtml(program.externalSource || '-')}/${escapeHtml(program.externalId || '-')}</td>
-          <td>${escapeHtml(eventName)}</td>
-          <td>${escapeHtml(eventDate)}</td>
-          <td><span class="${calendarMeta.className}">${calendarMeta.label}</span></td>
-          <td>${escapeHtml(getProgramAccessLabel(program.accessModel))}</td>
-          <td>${escapeHtml(program.billingType || 'one_time')}</td>
-          <td>${escapeHtml(formatCurrencyCents(program.priceCents, program.currency))}</td>
-          <td><span class="${statusBadgeClass}">${escapeHtml(program.status || 'draft')}</span></td>
-          <td>${escapeHtml(program.stripePriceId || '-')}</td>
-          <td>
-            <div class="program-row-actions">
-              <button type="button" class="action-btn action-btn-secondary program-edit-btn">Editar</button>
-              <button type="button" class="action-btn action-btn-danger-soft program-archive-btn" ${program.status === 'archived' ? 'disabled' : ''}>Arquivar</button>
+            <div class="program-meta-inline">
+              <span class="meta-item">${escapeHtml(program.externalId || '-')}</span>
+              ${program.externalSource ? '<span class="meta-separator">•</span>' : ''}
+              ${program.externalSource ? '<span class="meta-item">' + escapeHtml(program.externalSource) + '</span>' : ''}
             </div>
-          </td>
+          </div>
         `;
+
+        // Details col
+        const detailsCell = `
+          <div class="program-info-details">
+            <div class="detail-row">
+              <span class="detail-label">Preço:</span>
+              <span class="detail-value">${escapeHtml(formatCurrencyCents(program.priceCents, program.currency))}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Acesso:</span>
+              <span class="detail-value">${escapeHtml(getProgramAccessLabel(program.accessModel))}</span>
+            </div>
+            ${eventName !== '-' ? '<div class="detail-row"><span class="detail-label">Prova:</span><span class="detail-value">' + escapeHtml(eventName) + '</span></div>' : ''}
+          </div>
+        `;
+
+        // Status badge
+        const statusCell = `<span class="${statusBadgeClass}">${escapeHtml(program.status || 'draft')}</span>`;
+
+        // Actions
+        const actionsCell = `
+          <div class="program-row-actions-mini">
+            <button type="button" class="action-icon-btn program-edit-btn" title="Editar" aria-label="Editar programa">✎</button>
+            <button type="button" class="action-icon-btn program-archive-btn" title="Arquivar" aria-label="Arquivar programa" ${program.status === 'archived' ? 'disabled' : ''}>🗑</button>
+          </div>
+        `;
+
+        row.innerHTML = `<td>${nameCell}</td><td>${detailsCell}</td><td>${statusCell}</td><td>${actionsCell}</td>`;
+        
         const editButton = row.querySelector('.program-edit-btn');
         const archiveButton = row.querySelector('.program-archive-btn');
         if (editButton) {
@@ -6129,12 +6242,96 @@
       els.programsBody.appendChild(fragment);
     }
 
+    const richTextEditors = new Map();
+
+    function looksLikeHtml(value) {
+      return /<\/?[a-z][\s\S]*>/i.test(String(value || ''));
+    }
+
+    function initializeRichTextEditors() {
+      const groups = Array.from(document.querySelectorAll('.richtext-editor-group'));
+      groups.forEach((group) => {
+        const sourceId = group.getAttribute('data-richtext-source');
+        const editorId = group.getAttribute('data-richtext-editor');
+        if (!sourceId || !editorId) return;
+
+        const source = document.getElementById(sourceId);
+        const editor = document.getElementById(editorId);
+        if (!source || !editor) return;
+
+        const syncFromSource = () => {
+          const value = String(source.value || '');
+          if (!value.trim()) {
+            editor.innerHTML = '';
+            return;
+          }
+          if (looksLikeHtml(value)) {
+            editor.innerHTML = value;
+            return;
+          }
+          editor.textContent = value;
+        };
+
+        const syncToSource = () => {
+          const plain = String(editor.textContent || '').replace(/\u00a0/g, ' ').trim();
+          if (!plain) {
+            source.value = '';
+            return;
+          }
+          source.value = String(editor.innerHTML || '').trim();
+        };
+
+        syncFromSource();
+        syncToSource();
+
+        if (!editor.dataset.bound) {
+          editor.dataset.bound = '1';
+
+          editor.addEventListener('input', syncToSource);
+          editor.addEventListener('blur', syncToSource);
+          editor.addEventListener('keyup', syncToSource);
+
+          const buttons = Array.from(group.querySelectorAll('[data-richtext-command]'));
+          buttons.forEach((button) => {
+            button.addEventListener('mousedown', (event) => {
+              event.preventDefault();
+            });
+            button.addEventListener('click', () => {
+              const command = button.getAttribute('data-richtext-command');
+              if (!command) return;
+              editor.focus();
+              document.execCommand(command, false, null);
+              syncToSource();
+            });
+          });
+        }
+
+        richTextEditors.set(sourceId, { syncToSource, syncFromSource });
+      });
+    }
+
+    function syncAllRichTextEditorsToSource() {
+      richTextEditors.forEach((entry) => {
+        if (entry && typeof entry.syncToSource === 'function') {
+          entry.syncToSource();
+        }
+      });
+    }
+
+    function syncRichTextEditorBySourceId(sourceId) {
+      const entry = richTextEditors.get(sourceId);
+      if (entry && typeof entry.syncFromSource === 'function') {
+        entry.syncFromSource();
+      }
+    }
+
     function getProgramCreateFieldRefs() {
       return {
         name: els.programName,
         externalSource: els.programExternalSource,
         externalId: els.programExternalId,
         description: els.programDescription,
+        imageUrl: els.programImageUrl,
         durationWeeks: els.programDurationWeeks,
         priceCents: els.programPriceCents,
         currency: els.programCurrency,
@@ -6161,6 +6358,7 @@
         externalSource: els.editProgramExternalSource,
         externalId: els.editProgramExternalId,
         description: els.editProgramDescription,
+        imageUrl: els.editProgramImageUrl,
         durationWeeks: els.editProgramDurationWeeks,
         priceCents: els.editProgramPriceCents,
         currency: els.editProgramCurrency,
@@ -6179,10 +6377,13 @@
     }
 
     function collectProgramPayloadFromFields(fields, options = {}) {
+      syncAllRichTextEditorsToSource();
+
       const name = (fields.name.value || '').trim();
       const externalSource = (fields.externalSource.value || '').trim() || 'trainingpeaks';
       const externalId = (fields.externalId.value || '').trim() || null;
       const description = (fields.description.value || '').trim() || null;
+      const imageUrl = fields.imageUrl ? ((fields.imageUrl.value || '').trim() || null) : null;
       const durationWeeks = Number(fields.durationWeeks.value);
       const priceInput = String(fields.priceCents.value || '').replace(',', '.');
       const priceCents = Math.round(Number(priceInput) * 100);
@@ -6224,6 +6425,7 @@
         externalSource,
         externalId,
         description,
+        imageUrl,
         durationWeeks,
         priceCents,
         currency,
@@ -6265,6 +6467,7 @@
       fields.externalSource.value = program.externalSource || 'trainingpeaks';
       fields.externalId.value = program.externalId || '';
       fields.description.value = program.description || '';
+      if (fields.imageUrl) fields.imageUrl.value = program.imageUrl || '';
       fields.durationWeeks.value = String(program.durationWeeks || '');
       fields.priceCents.value = Number.isFinite(Number(program.priceCents)) ? (Number(program.priceCents) / 100).toFixed(2) : '0.00';
       fields.currency.value = (program.currency || 'EUR').toUpperCase();
@@ -6279,6 +6482,9 @@
       if (fields.eventDescription) fields.eventDescription.value = program.eventDescription || '';
       fields.calendarVisible.checked = program.calendarVisible !== false;
       fields.calendarHighlightRank.value = program.calendarHighlightRank == null ? '' : String(program.calendarHighlightRank);
+
+      syncRichTextEditorBySourceId('edit-program-description');
+      syncRichTextEditorBySourceId('edit-program-event-description');
     }
 
     function openProgramEditDialog(program) {
@@ -6791,10 +6997,6 @@
     }
 
     async function getToken() {
-      if (state.token) {
-        return state.token;
-      }
-
       const { data: { session } } = await supabaseClient.auth.getSession();
       const expired = await enforceSessionMaxAge(session || null);
       if (expired) {
@@ -7649,6 +7851,7 @@
     }
 
     // Inicializar auth
+    initializeRichTextEditors();
     bindAdminCoachAthleteButtons();
     initializeAuth();
 
@@ -7795,6 +7998,12 @@
         await refreshProgramsData();
       } catch (err) {
         showProgramsMessage(err.message, true);
+      }
+    });
+
+    els.toggleCreateProgramBtn.addEventListener('click', () => {
+      if (els.programsCreateDetails) {
+        els.programsCreateDetails.open = !els.programsCreateDetails.open;
       }
     });
 
@@ -8098,6 +8307,9 @@
         if (!resp.ok) return;
         const data = await resp.json();
         const links = data.links || {};
+        if (els.calEmbedUrl && !els.calEmbedUrl.value) {
+          els.calEmbedUrl.value = links.calendar_embed_url || '';
+        }
         if (els.calGoogleUrl && !els.calGoogleUrl.value) {
           els.calGoogleUrl.value = links.calendar_google_url || '';
         }
@@ -8110,26 +8322,47 @@
     }
 
     async function saveCalendarLinks() {
+      const embedUrl = (els.calEmbedUrl.value || '').trim();
       const googleUrl = (els.calGoogleUrl.value || '').trim();
       const icalUrl = (els.calIcalUrl.value || '').trim();
       showCalendarioMessage('A guardar links...', false);
       try {
         const token = await getToken();
-        const resp = await fetch('/.netlify/functions/admin-site-content', {
-          method: 'POST',
+        const currentResp = await fetch(siteContentApiBase, {
+          method: 'GET',
+          headers: {
+            'Authorization': 'Bearer ' + token
+          },
+          cache: 'no-store'
+        });
+        if (!currentResp.ok) {
+          const errData = await currentResp.json().catch(() => ({}));
+          throw new Error(errData.error || 'Erro ao carregar conteudo atual do site');
+        }
+
+        const currentData = await currentResp.json();
+        const existingLinks = Array.isArray(currentData.links) ? currentData.links : [];
+        const linksMap = new Map();
+        existingLinks.forEach((item) => {
+          if (!item || !item.key) return;
+          linksMap.set(String(item.key), item.url == null ? '' : String(item.url));
+        });
+        linksMap.set('calendar_embed_url', embedUrl);
+        linksMap.set('calendar_google_url', googleUrl);
+        linksMap.set('calendar_ical_url', icalUrl);
+
+        const resp = await fetch(siteContentApiBase, {
+          method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': 'Bearer ' + token
           },
           body: JSON.stringify({
-            metadata: [],
-            links: [
-              { key: 'calendar_google_url', value: googleUrl },
-              { key: 'calendar_ical_url', value: icalUrl }
-            ],
-            metrics: [],
-            reviews: [],
-            faqs: []
+            metadata: Array.isArray(currentData.metadata) ? currentData.metadata : [],
+            links: Array.from(linksMap.entries()).map(([key, url]) => ({ key, url })),
+            metrics: Array.isArray(currentData.metrics) ? currentData.metrics : [],
+            reviews: Array.isArray(currentData.reviews) ? currentData.reviews : [],
+            faqs: Array.isArray(currentData.faqs) ? currentData.faqs : []
           })
         });
         if (!resp.ok) {
@@ -8184,6 +8417,16 @@
       els.kpiRefunded.textContent = k.refundedCount;
       els.kpiCancelled.textContent = k.cancelledCount;
       els.kpiAbandoned.textContent = k.abandonedCount || 0;
+      els.kpiOnsite.textContent = k.onsiteCount || 0;
+      els.kpiSession.textContent = k.checkoutSessionCount || 0;
+    }
+
+    function formatCheckoutChannel(channel) {
+      const normalized = (channel || '').toLowerCase();
+      if (normalized === 'onsite') return 'checkout_no_site';
+      if (normalized === 'checkout_session') return 'checkout_session';
+      if (normalized === 'admin_override') return 'admin_override';
+      return normalized || '-';
     }
 
     function statusBadge(status) {
@@ -8199,7 +8442,7 @@
     function renderVendasTable() {
       els.vendasBody.innerHTML = '';
       if (!state.purchases.length) {
-        els.vendasBody.innerHTML = '<tr><td colspan="9">Sem compras registadas.</td></tr>';
+        els.vendasBody.innerHTML = '<tr><td colspan="10">Sem compras registadas.</td></tr>';
         return;
       }
       const frag = document.createDocumentFragment();
@@ -8221,6 +8464,7 @@
           '<td>' + escapeHtml(formatCurrencyCents(p.amountCents, p.currency)) + '</td>' +
           '<td>' + statusBadge(p.status) + '</td>' +
           '<td>' + escapeHtml(p.billingType || '-') + '</td>' +
+          '<td>' + escapeHtml(formatCheckoutChannel(p.checkoutChannel)) + '</td>' +
           '<td>' + escapeHtml(p.source || '-') + '</td>' +
           '<td>' + formatDate(p.paidAt) + '</td>' +
           '<td>' + formatDate(p.expiresAt) + '</td>' +
@@ -8250,12 +8494,14 @@
       const prog = els.vendasFilterProgram.value;
       const em = els.vendasFilterEmail.value.trim();
       const src = els.vendasFilterSource.value;
+      const channel = els.vendasFilterChannel.value;
       const from = els.vendasFilterFrom.value;
       const to = els.vendasFilterTo.value;
       if (st) filters.set('status', st);
       if (prog) filters.set('program_id', prog);
       if (em) filters.set('email', em);
       if (src) filters.set('source', src);
+      if (channel) filters.set('channel', channel);
       if (from) filters.set('from', from + 'T00:00:00Z');
       if (to) filters.set('to', to + 'T23:59:59Z');
       const qs = filters.toString();

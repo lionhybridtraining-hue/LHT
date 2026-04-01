@@ -12,6 +12,7 @@ const ForcaPage = lazy(() => import("./pages/atleta/forca"));
 const AtletaLoginPage = lazy(() => import("./pages/atleta/login"));
 const AtletaProgramasPage = lazy(() => import("./pages/atleta/programas"));
 const AtletaPerfilPage = lazy(() => import("./pages/atleta/perfil"));
+const CalendarioPage = lazy(() => import("./pages/atleta/calendario"));
 
 const LazyFallback = (
   <div className="flex min-h-screen items-center justify-center">
@@ -40,6 +41,7 @@ function App() {
           <Route index element={<Suspense fallback={LazyFallback}><AtletaPage /></Suspense>} />
           <Route path="forca" element={<Suspense fallback={LazyFallback}><ForcaPage /></Suspense>} />
           <Route path="programas" element={<Suspense fallback={LazyFallback}><AtletaProgramasPage /></Suspense>} />
+          <Route path="calendario" element={<Suspense fallback={LazyFallback}><CalendarioPage /></Suspense>} />
           <Route path="perfil" element={<Suspense fallback={LazyFallback}><AtletaPerfilPage /></Suspense>} />
         </Route>
       </Routes>
