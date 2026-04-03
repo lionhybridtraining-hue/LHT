@@ -23,7 +23,6 @@ exports.handler = async (event) => {
           priceCents: program.price_cents,
           currency: program.currency,
           billingType: program.billing_type || "one_time",
-          followupType: program.followup_type || "standard",
           eventDate: program.event_date || null,
           eventName: program.event_name || null,
           eventLocation: program.event_location || null,

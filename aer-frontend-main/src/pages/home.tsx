@@ -15,7 +15,7 @@ import {
   FaSnowflake,
 } from "react-icons/fa";
 import GraficoPace from "@/components/grafico-corrida";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { TrainingPlan } from "trainingPlanCalculatorAPI";
 import getTrainingProgram from "@/services/get-trainingplan/get-training-plan";
 import { ImSpinner11 } from "react-icons/im";
@@ -316,9 +316,11 @@ function Home() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isPlanSaved, setIsPlanSaved] = useState<boolean>(false);
   const [savingPlan, setSavingPlan] = useState<boolean>(false);
+  const saveAttemptedRef = useRef(false);
 
   // Retrieve params from URL
   const { search } = useLocation();
+  const location = useLocation();
   const params = new URLSearchParams(search);
   const progression_rate = params.get("progression_rate");
   const phase_duration = params.get("phase_duration");
@@ -339,6 +341,10 @@ function Home() {
 
   const tabTriggerStyle =
     "w-1/3 data-[state=active]:bg-[#d4a54f] data-[state=active]:text-[#121212] data-[state=active]:font-semibold";
+  const insideAthleteApp = location.pathname.startsWith("/atleta/");
+  const backToProgramsPath = "/atleta/programas";
+  const regeneratePlanPath = "/atleta/onboarding/formulario";
+  const catalogPath = "/programas";
 
   // Effect 1: Generate the training program
   useEffect(() => {
@@ -420,9 +426,10 @@ function Home() {
 
   // Effect 2: Save the plan to the database once it's generated
   useEffect(() => {
-    if (!trainingProgram || isPlanSaved || savingPlan) return;
+    if (!trainingProgram || saveAttemptedRef.current) return;
 
     const savePlanToDatabase = async () => {
+      saveAttemptedRef.current = true;
       setSavingPlan(true);
       try {
         const accessToken = await getAccessToken();
@@ -459,18 +466,18 @@ function Home() {
           setIsPlanSaved(true);
           console.log("Plan saved successfully");
         } else {
-          console.warn("Failed to save plan, but plan is still displayed");
+          const errText = await response.text();
+          console.warn("Failed to save plan:", response.status, errText);
         }
       } catch (err) {
         console.warn("Error saving plan to database:", err);
-        // Don't stop displaying the plan if save fails
       } finally {
         setSavingPlan(false);
       }
     };
 
     savePlanToDatabase();
-  }, [trainingProgram, isPlanSaved, savingPlan, parsedProgressionRate, parsedPhaseDuration, parsedTrainingFrequency, parsedProgramDistance, parsedRaceDist, parsedRaceTime, parsedInitialVolume, name]);
+  }, [trainingProgram, parsedProgressionRate, parsedPhaseDuration, parsedTrainingFrequency, parsedProgramDistance, parsedRaceDist, parsedRaceTime, parsedInitialVolume, name]);
 
   if (loadingProgram) {
     return (
@@ -492,11 +499,19 @@ function Home() {
             phase_duration, training_frequency, program_distance.
           </p>
           <Link
-            to="/formulario"
+            to={regeneratePlanPath}
             className="inline-block mt-4 px-4 py-2 rounded-md bg-[#d4a54f] text-[#111111] text-sm font-semibold hover:bg-[#c29740]"
           >
             Abrir formulario de plano
           </Link>
+          {insideAthleteApp ? (
+            <Link
+              to={backToProgramsPath}
+              className="inline-block mt-4 ml-2 px-4 py-2 rounded-md border border-[#d4a54f44] text-[#f4f6fa] text-sm font-semibold hover:bg-[#1f1f1f]"
+            >
+              Voltar aos programas
+            </Link>
+          ) : null}
         </div>
       </div>
     );
@@ -520,23 +535,37 @@ function Home() {
             ✓ Plano guardado
           </div>
         )}
-        
-        <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
-          <Link
-            to="/formulario"
-            className="px-4 py-2 rounded-md bg-[#d4a54f] text-[#121212] text-sm font-semibold hover:bg-[#c29740]"
-          >
-            Gerar novo plano
-          </Link>
-          <a
-            href="https://chat.whatsapp.com/JVsqO05fm4kLhbSaSiKL8n"
-            target="_blank"
-            rel="noopener"
-            className="px-4 py-2 rounded-md bg-[#1f4f37] text-[#d9f6e5] text-sm font-semibold hover:bg-[#256145]"
-          >
-            Comunidade LHT
-          </a>
-        </div>
+
+        {insideAthleteApp ? (
+          <div className="mt-4 w-full max-w-4xl rounded-2xl border border-[#d4a54f2c] bg-[#141414] px-5 py-4 shadow-[0_14px_34px_rgba(0,0,0,0.32)]">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-[#d4a54f]">
+                    Descobre outros programas
+                </p>
+                  <h2 className="mt-1 font-['Oswald'] text-xl font-semibold uppercase tracking-[0.04em] text-[#f7f1e8]">
+                    Força e outros programas
+                  </h2>
+              </div>
+                <div className="flex w-full flex-wrap items-center justify-center gap-2 md:w-auto md:justify-end">
+                  <a
+                    href="https://chat.whatsapp.com/JVsqO05fm4kLhbSaSiKL8n"
+                    target="_blank"
+                    rel="noopener"
+                    className="rounded-xl border border-[#2f855a88] bg-[#163325] px-4 py-2 text-sm font-semibold text-[#d9f6e5] hover:bg-[#1d4330]"
+                  >
+                    Aderir a comunidade
+                  </a>
+                <a
+                  href={catalogPath}
+                  className="rounded-xl bg-[linear-gradient(180deg,#e3b861,#d4a54f_55%,#bf8e3e)] px-4 py-2 text-sm font-semibold text-[#111111] shadow-[0_8px_22px_rgba(212,165,79,0.28)]"
+                >
+                  Ver catalogo completo
+                </a>
+              </div>
+            </div>
+          </div>
+        ) : null}
         {/* Escolha de Fase */}
         <Tabs
           defaultValue="fase1"
@@ -696,11 +725,19 @@ function Home() {
           O servico respondeu sem dados para os parametros enviados.
         </p>
         <Link
-          to="/formulario"
+          to={regeneratePlanPath}
           className="inline-block mt-4 px-4 py-2 rounded-md bg-[#d4a54f] text-[#111111] text-sm font-semibold hover:bg-[#c29740]"
         >
           Preencher formulario
         </Link>
+        {insideAthleteApp ? (
+          <Link
+            to={backToProgramsPath}
+            className="inline-block mt-4 ml-2 px-4 py-2 rounded-md border border-[#d4a54f44] text-[#f4f6fa] text-sm font-semibold hover:bg-[#1f1f1f]"
+          >
+            Voltar aos programas
+          </Link>
+        ) : null}
       </div>
     </div>
   );

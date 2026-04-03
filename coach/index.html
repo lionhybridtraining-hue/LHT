@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="pt-PT">
 <head>
   <meta charset="utf-8" />
@@ -717,6 +717,27 @@
     .str-table td {
       padding:4px 6px; border-bottom:1px solid var(--line); vertical-align:middle;
     }
+    .str-table .str-exercise-cell {
+      display:flex;
+      flex-direction:column;
+      gap:2px;
+      min-width:140px;
+    }
+    .str-table .str-ex-name { line-height:1.2; }
+    .str-table .str-ex-flags { display:flex; gap:4px; flex-wrap:wrap; }
+    .str-table .str-ex-flag {
+      display:inline-flex;
+      align-items:center;
+      font-size:9px;
+      letter-spacing:0.05em;
+      text-transform:uppercase;
+      padding:1px 6px;
+      border-radius:999px;
+      color:var(--muted);
+      border:1px solid rgba(212, 165, 79, 0.35);
+      background:rgba(212, 165, 79, 0.1);
+      white-space:nowrap;
+    }
     .str-table tr:last-child td { border-bottom:none; }
     .str-table input, .str-table select {
       padding:2px 4px; font-size:12px; border:1px solid var(--line);
@@ -760,6 +781,31 @@
     .reps-dur-cell input { flex:1; min-width:0; }
     .reps-dur-toggle { background:none; border:1px solid var(--line); border-radius:3px; color:var(--muted); cursor:pointer; font-size:9px; padding:2px 4px; line-height:1; white-space:nowrap; flex-shrink:0; }
     .reps-dur-toggle:hover { color:var(--gold); border-color:var(--gold); }
+
+    .exercise-pick-item {
+      padding:6px 8px;
+      cursor:pointer;
+      border-bottom:1px solid var(--line);
+    }
+    .exercise-pick-item:last-child { border-bottom:none; }
+    .exercise-pick-item:hover { background:rgba(255,255,255,0.04); }
+    .exercise-pick-main { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+    .exercise-pick-name { font-weight:600; color:var(--text); }
+    .exercise-pick-meta { font-size:11px; color:var(--muted); }
+    .exercise-pick-flags { display:flex; gap:4px; flex-wrap:wrap; }
+    .exercise-pick-flag {
+      display:inline-flex;
+      align-items:center;
+      font-size:9px;
+      letter-spacing:0.05em;
+      text-transform:uppercase;
+      padding:1px 6px;
+      border-radius:999px;
+      color:var(--muted);
+      border:1px solid rgba(212, 165, 79, 0.35);
+      background:rgba(212, 165, 79, 0.1);
+      white-space:nowrap;
+    }
 
     /* Exercise CRUD list */
     .ex-crud-table { width:100%; border-collapse:collapse; font-size:13px; }
@@ -1163,13 +1209,33 @@
                 <div class="vol-metric"><span class="vol-label">Sessões</span><span id="smSessions" class="vol-value">—</span></div>
               </div>
               <div id="strengthMonitorSessions" class="microcopy" style="margin-top:8px;">Sem sessões para apresentar.</div>
+                          <div id="smWeeklyTable" style="margin-top:10px; overflow-x:auto; display:none;"></div>
+                          <div id="smExerciseBreakdown" style="margin-top:6px; display:none;"></div>
             </div>
 
             <!-- Day tabs -->
             <div id="strengthDayTabs" style="display:flex; gap:4px; flex-wrap:wrap; margin-bottom:8px;"></div>
 
+            <div id="strengthDayLabelEditor" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:8px;">
+              <label for="strengthDayLabelInput" class="microcopy" style="min-width:140px;">Nome do dia selecionado:</label>
+              <input id="strengthDayLabelInput" type="text" placeholder="Ex.: Upper, Pull, Tempo" style="padding:6px 8px; border-radius:6px; border:1px solid var(--line); background:var(--surface-2); color:var(--text); min-width:220px;" />
+            </div>
+
             <!-- Week tabs -->
             <div id="strengthWeekTabs" style="display:flex; gap:4px; flex-wrap:wrap; margin-bottom:12px;"></div>
+
+            <div id="strengthWorkoutNotesEditor" style="margin-bottom:12px; padding:12px; border:1px solid var(--line); border-radius:var(--radius-md); background:var(--surface-2);">
+              <div style="display:flex; flex-direction:column; gap:10px;">
+                <div>
+                  <label for="strengthPlanNotesInput" class="microcopy" style="font-weight:600; display:block; margin-bottom:4px;">Notas do plano</label>
+                  <textarea id="strengthPlanNotesInput" rows="2" placeholder="Notas gerais do plano..." style="width:100%; padding:8px; border-radius:6px; border:1px solid var(--line); background:var(--surface-1); color:var(--text); resize:vertical;"></textarea>
+                </div>
+                <div>
+                  <label for="strengthWeekNotesInput" class="microcopy" style="font-weight:600; display:block; margin-bottom:4px;">Notas da semana</label>
+                  <textarea id="strengthWeekNotesInput" rows="2" placeholder="Notas da semana selecionada..." style="width:100%; padding:8px; border-radius:6px; border:1px solid var(--line); background:var(--surface-1); color:var(--text); resize:vertical;"></textarea>
+                </div>
+              </div>
+            </div>
           </div>
 
           <!-- Day view container (5 sections) -->
@@ -1296,48 +1362,7 @@
               <input type="checkbox" id="coach-assign-history-toggle" />
               Mostrar historico
             </label>
-            <button id="coach-assign-create-btn" type="button" class="btn btn-primary" style="margin-left:auto;">+ Novo assignment</button>
-          </div>
-
-          <div id="coach-assign-create-form" hidden style="background:#161b22; border:1px solid #30363d; border-radius:8px; padding:16px; margin-bottom:16px;">
-            <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:12px;">
-              <div>
-                <label for="coach-new-assign-athlete" style="display:block; font-size:0.85rem; color:#8b949e; margin-bottom:4px;">Atleta</label>
-                <select id="coach-new-assign-athlete" style="width:100%; padding:6px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9;"><option value="">Seleciona...</option></select>
-              </div>
-              <div>
-                <label for="coach-new-assign-program" style="display:block; font-size:0.85rem; color:#8b949e; margin-bottom:4px;">Programa</label>
-                <select id="coach-new-assign-program" style="width:100%; padding:6px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9;"><option value="">Seleciona...</option></select>
-              </div>
-              <div>
-                <label for="coach-new-assign-start" style="display:block; font-size:0.85rem; color:#8b949e; margin-bottom:4px;">Data inicio</label>
-                <input id="coach-new-assign-start" type="date" style="width:100%; padding:6px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9;" />
-              </div>
-              <div>
-                <label for="coach-new-assign-weeks" style="display:block; font-size:0.85rem; color:#8b949e; margin-bottom:4px;">Semanas</label>
-                <input id="coach-new-assign-weeks" type="number" min="1" value="12" style="width:80px; padding:6px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9;" />
-              </div>
-              <div>
-                <label for="coach-new-assign-notes" style="display:block; font-size:0.85rem; color:#8b949e; margin-bottom:4px;">Notas</label>
-                <input id="coach-new-assign-notes" type="text" placeholder="Opcional" style="width:100%; padding:6px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9;" />
-              </div>
-              <div>
-                <label for="coach-new-assign-plan" style="display:block; font-size:0.85rem; color:#8b949e; margin-bottom:4px;">Plano de forca</label>
-                <select id="coach-new-assign-plan" style="width:100%; padding:6px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9;">
-                  <option value="">Atleta escolhe</option>
-                </select>
-              </div>
-              <div>
-                <label style="display:flex; align-items:center; gap:6px; font-size:0.85rem; color:#8b949e; margin-top:18px; cursor:pointer;">
-                  <input id="coach-new-assign-lock" type="checkbox" style="accent-color:#d4a54f;" />
-                  Bloquear para o coach
-                </label>
-              </div>
-            </div>
-            <div style="margin-top:12px; display:flex; gap:8px;">
-              <button id="coach-assign-submit-btn" type="button" class="btn btn-primary">Criar</button>
-              <button id="coach-assign-cancel-btn" type="button" class="btn">Cancelar</button>
-            </div>
+            <span style="margin-left:auto; font-size:0.8rem; color:#8b949e;">Criação de assignment disponível apenas no Admin.</span>
           </div>
 
           <div style="overflow-x:auto;">
@@ -1358,6 +1383,26 @@
               </tbody>
             </table>
           </div>
+
+          <div id="coach-athlete-calendar-panel" hidden style="margin-top:18px; border:1px solid #30363d; border-radius:10px; background:#0d1117; padding:14px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
+              <h3 style="margin:0; color:#c9d1d9;">Calendário unificado do atleta</h3>
+              <button id="coach-calendar-close-btn" type="button" class="btn btn-small btn-ghost">Fechar</button>
+            </div>
+            <div id="coach-calendar-meta" class="microcopy" style="margin-bottom:10px; color:#8b949e;">Seleciona um atleta para ver o calendário.</div>
+            <div style="display:flex; align-items:flex-end; gap:10px; flex-wrap:wrap; margin-bottom:12px;">
+              <div>
+                <label for="coach-calendar-week-select" style="display:block; font-size:0.8rem; color:#8b949e; margin-bottom:4px;">Semana</label>
+                <select id="coach-calendar-week-select" style="padding:6px 10px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9; min-width:180px;"></select>
+              </div>
+              <div>
+                <label for="coach-calendar-assignment-filter" style="display:block; font-size:0.8rem; color:#8b949e; margin-bottom:4px;">Assignment</label>
+                <select id="coach-calendar-assignment-filter" style="padding:6px 10px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9; min-width:220px;"></select>
+              </div>
+              <button id="coach-calendar-refresh-btn" type="button" class="btn btn-small">Atualizar</button>
+            </div>
+            <div id="coach-calendar-grid" style="min-height:68px;"></div>
+          </div>
         </section>
 
         <!-- ═══════════ SCHEDULE / CALENDÁRIO SECTION ═══════════ -->
@@ -1372,22 +1417,18 @@
             </select>
           </div>
 
-          <!-- Sessions sub-section -->
+          <!-- Calendar template view -->
           <div id="sched-sessions-area" hidden>
-            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
-              <h3 style="color:#c9d1d9; margin:0;">Sessões semanais</h3>
-              <button id="sched-add-session-btn" type="button" class="btn btn-primary" style="font-size:0.8rem; padding:6px 12px;">+ Sessão</button>
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px; flex-wrap:wrap;">
+              <label style="color:#8b949e; font-size:0.85rem;">Preset:</label>
+              <select id="sched-preset-select" style="padding:6px 10px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9; min-width:220px;">
+                <option value="">Seleciona um preset...</option>
+              </select>
+              <button class="btn btn-small" id="sched-new-preset-btn" type="button">+ Novo preset</button>
+              <button class="btn btn-small btn-ghost" id="sched-rename-preset-btn" type="button">Renomear</button>
+              <button class="btn btn-small btn-ghost" id="sched-delete-preset-btn" type="button">Apagar</button>
             </div>
-            <div id="sched-sessions-list" style="display:grid; gap:8px; margin-bottom:24px;"></div>
-
-            <hr style="border-color:#30363d; margin:24px 0;">
-
-            <!-- Presets sub-section -->
-            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
-              <h3 style="color:#c9d1d9; margin:0;">Presets de calendário</h3>
-              <button id="sched-add-preset-btn" type="button" class="btn btn-primary" style="font-size:0.8rem; padding:6px 12px;">+ Preset</button>
-            </div>
-            <div id="sched-presets-area"></div>
+            <div id="sched-inline-calendar-view"></div>
           </div>
         </section>
 
@@ -3345,8 +3386,8 @@
     const MLOAD_RECOVERY = {low:1.5,medium:2.5,high:4.0};
     const MLOAD_WEIGHT = {high:1,medium:2/3,low:1/3};
 
-    const SECTIONS = ["warm_up","plyos_speed","main","conditioning","observations"];
-    const SECTION_LABELS = {warm_up:"Warm Up",plyos_speed:"Plyos / Speed",main:"Main",conditioning:"Conditioning",observations:"Observations"};
+    const SECTIONS = ["warm_up","plyos_speed","main","conditioning"];
+    const SECTION_LABELS = {warm_up:"Warm Up",plyos_speed:"Plyos / Speed",main:"Main",conditioning:"Conditioning"};
     const METHOD_OPTIONS = ["standard","amrap","drop_set","rest_pause","cluster","myo_reps","isometric"];
     const GROUP_LETTERS = "ABCDEFG";
 
@@ -3601,6 +3642,7 @@
       } else {
         renderPlanHeader();
         renderDayTabs();
+        refreshStrengthDayLabelEditor();
         renderWeekTabs();
         renderDayView();
       }
@@ -3685,6 +3727,9 @@
     const strengthSections = document.getElementById("strengthSections");
     const strengthDayTabs = document.getElementById("strengthDayTabs");
     const strengthWeekTabs = document.getElementById("strengthWeekTabs");
+    const strengthDayLabelInput = document.getElementById("strengthDayLabelInput");
+    const strengthPlanNotesInput = document.getElementById("strengthPlanNotesInput");
+    const strengthWeekNotesInput = document.getElementById("strengthWeekNotesInput");
     const strengthInstanceModeLabel = document.getElementById("strengthInstanceModeLabel");
     const exitInstanceEditBtn = document.getElementById("exitInstanceEditBtn");
     const strengthMonitorMeta = document.getElementById("strengthMonitorMeta");
@@ -3791,12 +3836,12 @@
     async function loadProgramOptions() {
       if (strPrograms.length > 0) return;
       try {
-        const data = await apiRequest("GET", "/.netlify/functions/admin-programs");
+        const data = await apiRequest("GET", "/.netlify/functions/list-programs");
         strPrograms = data.programs || [];
       } catch (e) {
-        // Fallback to public list if not admin
+        // Fallback to admin endpoint if list endpoint is unavailable.
         try {
-          const data = await apiRequest("GET", "/.netlify/functions/list-programs");
+          const data = await apiRequest("GET", "/.netlify/functions/admin-programs");
           strPrograms = data.programs || [];
         } catch (e2) { console.error("Failed to load programs", e2); }
       }
@@ -4000,6 +4045,7 @@
         strengthNoPlan.textContent = "";
         renderPlanHeader();
         renderDayTabs();
+        refreshStrengthDayLabelEditor();
         renderWeekTabs();
         renderDayView();
         if (selectedAthleteId) {
@@ -4013,6 +4059,7 @@
         strengthNoPlan.textContent = "Erro ao carregar plano.";
         renderPlanHeader();
         renderDayTabs();
+        refreshStrengthDayLabelEditor();
         renderWeekTabs();
         renderDayView();
         renderStrengthMonitoring();
@@ -4031,6 +4078,15 @@
       const plannedEl = document.getElementById("smPlannedKg");
       const actualEl = document.getElementById("smActualKg");
       const sessionsEl = document.getElementById("smSessions");
+      const smWeeklyTableEl = document.getElementById("smWeeklyTable");
+      const smExBreakEl = document.getElementById("smExerciseBreakdown");
+
+      function clearExtras() {
+        smWeeklyTableEl.innerHTML = "";
+        smWeeklyTableEl.style.display = "none";
+        smExBreakEl.innerHTML = "";
+        smExBreakEl.style.display = "none";
+      }
 
       if (!strCurrentPlan || !strCurrentPlan.plan) {
         strengthMonitorMeta.textContent = "Seleciona um plano para ver monitorização.";
@@ -4039,6 +4095,7 @@
         plannedEl.textContent = "—";
         actualEl.textContent = "—";
         sessionsEl.textContent = "—";
+        clearExtras();
         return;
       }
 
@@ -4049,12 +4106,14 @@
         plannedEl.textContent = "—";
         actualEl.textContent = "—";
         sessionsEl.textContent = "—";
+        clearExtras();
         return;
       }
 
       if (strMonitor.loading) {
         strengthMonitorMeta.textContent = "A carregar monitorização…";
         strengthMonitorSessions.textContent = "A carregar sessões…";
+        clearExtras();
         return;
       }
 
@@ -4065,6 +4124,7 @@
         plannedEl.textContent = "—";
         actualEl.textContent = "—";
         sessionsEl.textContent = "—";
+        clearExtras();
         return;
       }
 
@@ -4097,19 +4157,93 @@
       const athleteName = athlete ? (athlete.name || athlete.email || athlete.id) : selectedAthleteId;
       strengthMonitorMeta.textContent = `${athleteName} · ${completedWeeks}/${plannedWeeks || 0} semana(s) com execução.`;
 
-      if (!sessions.length) {
-        strengthMonitorSessions.textContent = "Sem sessões concluídas para este plano.";
-        return;
+      // Per-week breakdown table
+      const allWeeks = Object.keys(weeklyPlanned).map(Number).sort((a, b) => a - b);
+      if (allWeeks.length > 0) {
+        let tHtml = `<table style="width:100%;font-size:12px;border-collapse:collapse;">` +
+          `<thead><tr style="border-bottom:1px solid var(--line);">` +
+          `<th style="text-align:left;padding:3px 6px;font-weight:600;">Sem.</th>` +
+          `<th style="text-align:right;padding:3px 6px;font-weight:600;">Planeado (kg)</th>` +
+          `<th style="text-align:right;padding:3px 6px;font-weight:600;">Executado (kg)</th>` +
+          `<th style="text-align:right;padding:3px 6px;font-weight:600;">Sets</th>` +
+          `<th style="text-align:right;padding:3px 6px;font-weight:600;">Aderência</th>` +
+          `</tr></thead><tbody>`;
+        for (const w of allWeeks) {
+          const wPlan = Number((weeklyPlanned[w] && weeklyPlanned[w].totalKg) || 0);
+          const wAct = Number((weeklyActual[w] && weeklyActual[w].totalKg) || 0);
+          const wSets = Number((weeklyActual[w] && weeklyActual[w].setCount) || 0);
+          const adh = wPlan > 0 ? (wAct / wPlan) * 100 : null;
+          const adhColor = adh == null ? "" : adh >= 100 ? "color:#4caf50;" : adh < 80 ? "color:var(--amber,#d4a54f);" : "";
+          tHtml += `<tr style="border-bottom:1px solid color-mix(in srgb,var(--line) 50%,transparent);">` +
+            `<td style="padding:3px 6px;">S${w}</td>` +
+            `<td style="text-align:right;padding:3px 6px;">${wPlan > 0 ? wPlan.toFixed(0) : "—"}</td>` +
+            `<td style="text-align:right;padding:3px 6px;">${wAct > 0 ? wAct.toFixed(0) : "—"}</td>` +
+            `<td style="text-align:right;padding:3px 6px;">${wSets > 0 ? wSets : "—"}</td>` +
+            `<td style="text-align:right;padding:3px 6px;${adhColor}">${adh != null ? adh.toFixed(0) + "%" : "—"}</td>` +
+            `</tr>`;
+        }
+        tHtml += "</tbody></table>";
+        smWeeklyTableEl.innerHTML = tHtml;
+        smWeeklyTableEl.style.display = "";
+      } else {
+        smWeeklyTableEl.style.display = "none";
       }
 
-      const lines = sessions.slice(0, 5).map((s) => {
-        const date = formatMonitorDate(s.session_date || s.started_at || s.created_at);
-        const totalSets = Number(s.totalSets || 0);
-        const totalVolume = Number(s.totalVolume || 0);
-        const uniqueExercises = Number(s.uniqueExercises || 0);
-        return `${date} · ${uniqueExercises} exerc. · ${totalSets} sets · ${totalVolume.toFixed(0)} kg`;
-      });
-      strengthMonitorSessions.innerHTML = lines.map((line) => `<div>${escapeHtml(line)}</div>`).join("");
+      // Sessions list
+      if (!sessions.length) {
+        strengthMonitorSessions.textContent = "Sem sessões concluídas para este plano.";
+      } else {
+        const lines = sessions.slice(0, 5).map((s) => {
+          const date = formatMonitorDate(s.session_date || s.started_at || s.created_at);
+          const totalSets = Number(s.totalSets || 0);
+          const totalVolume = Number(s.totalVolume || 0);
+          const uniqueExercises = Number(s.uniqueExercises || 0);
+          return `${date} · ${uniqueExercises} exerc. · ${totalSets} sets · ${totalVolume.toFixed(0)} kg`;
+        });
+        strengthMonitorSessions.innerHTML = lines.map((line) => `<div>${escapeHtml(line)}</div>`).join("");
+      }
+
+      // Per-exercise breakdown
+      const byExercise = strMonitor.progression && strMonitor.progression.byExercise;
+      const exList = byExercise
+        ? Object.values(byExercise).filter((ex) => Object.keys(ex.weeks).length > 0)
+        : [];
+      if (exList.length > 0) {
+        let exHtml = `<details><summary class="microcopy" style="font-weight:600;cursor:pointer;padding:4px 0;">` +
+          `Por exercício (${exList.length})</summary>` +
+          `<div style="margin-top:6px;display:flex;flex-direction:column;gap:6px;">`;
+        for (const ex of exList) {
+          const wks = Object.keys(ex.weeks).map(Number).sort((a, b) => a - b);
+          exHtml += `<details style="border:1px solid var(--line);border-radius:6px;padding:4px 8px;">` +
+            `<summary class="microcopy" style="cursor:pointer;font-weight:600;">` +
+            `${escapeHtml(ex.name)}<span style="opacity:.6;font-weight:400;"> · D${ex.dayNumber || "?"}</span></summary>` +
+            `<table style="width:100%;font-size:11px;border-collapse:collapse;margin-top:6px;">` +
+            `<thead><tr style="border-bottom:1px solid var(--line);">` +
+            `<th style="text-align:left;padding:2px 4px;">Sem</th>` +
+            `<th style="text-align:right;padding:2px 4px;">Séries P</th>` +
+            `<th style="text-align:right;padding:2px 4px;">Séries E</th>` +
+            `<th style="text-align:right;padding:2px 4px;">Kg P</th>` +
+            `<th style="text-align:right;padding:2px 4px;">Kg E</th>` +
+            `</tr></thead><tbody>`;
+          for (const w of wks) {
+            const d = ex.weeks[w];
+            exHtml += `<tr>` +
+              `<td style="padding:2px 4px;">S${w}</td>` +
+              `<td style="text-align:right;padding:2px 4px;">${d.plannedSets || "—"}</td>` +
+              `<td style="text-align:right;padding:2px 4px;">${d.actualSets > 0 ? d.actualSets : "—"}</td>` +
+              `<td style="text-align:right;padding:2px 4px;">${d.plannedKg != null ? d.plannedKg.toFixed(0) : "—"}</td>` +
+              `<td style="text-align:right;padding:2px 4px;">${d.actualKg > 0 ? d.actualKg.toFixed(0) : "—"}</td>` +
+              `</tr>`;
+          }
+          exHtml += `</tbody></table></details>`;
+        }
+        exHtml += `</div></details>`;
+        smExBreakEl.innerHTML = exHtml;
+        smExBreakEl.style.display = "";
+      } else {
+        smExBreakEl.innerHTML = "";
+        smExBreakEl.style.display = "none";
+      }
     }
 
     async function loadStrengthMonitoring(planId, athleteId) {
@@ -4159,6 +4293,7 @@
         document.getElementById("unarchivePlanBtn").hidden = true;
         document.getElementById("assignPlanBtn").hidden = true;
         exitInstanceEditBtn.hidden = true;
+        refreshStrengthDayLabelEditor();
         return;
       }
       const p = strCurrentPlan.plan;
@@ -4184,13 +4319,66 @@
 
     function renderDayTabs() {
       strengthDayTabs.innerHTML = "";
+      const dayLabelMap = ((strCurrentPlan && Array.isArray(strCurrentPlan.dayLabels)) ? strCurrentPlan.dayLabels : []).reduce((acc, item) => {
+        const d = Number(item.day_number);
+        const lbl = (item.day_label || "").toString().trim();
+        if (d >= 1 && d <= 7 && lbl) acc[d] = lbl;
+        return acc;
+      }, {});
       for (let d = 1; d <= 7; d++) {
         const btn = document.createElement("button");
         btn.className = "day-tab" + (d === strSelectedDay ? " active" : "");
-        btn.textContent = "Dia " + d;
-        btn.addEventListener("click", () => { strSelectedDay = d; renderDayTabs(); renderDayView(); });
+        btn.textContent = dayLabelMap[d] || ("Dia " + d);
+        btn.title = dayLabelMap[d] || ("Dia " + d);
+        btn.addEventListener("click", () => { strSelectedDay = d; renderDayTabs(); renderDayView(); refreshStrengthDayLabelEditor(); refreshStrengthWorkoutNoteEditor(); });
         strengthDayTabs.appendChild(btn);
       }
+    }
+
+    function refreshStrengthDayLabelEditor() {
+      if (!strengthDayLabelInput) return;
+      const hasPlan = !!(strCurrentPlan && strCurrentPlan.plan && strCurrentPlan.plan.id);
+      if (!hasPlan) {
+        strengthDayLabelInput.value = "";
+        strengthDayLabelInput.disabled = true;
+        return;
+      }
+      const dayLabelMap = ((strCurrentPlan && Array.isArray(strCurrentPlan.dayLabels)) ? strCurrentPlan.dayLabels : []).reduce((acc, item) => {
+        const d = Number(item.day_number);
+        const lbl = (item.day_label || "").toString().trim();
+        if (d >= 1 && d <= 7 && lbl) acc[d] = lbl;
+        return acc;
+      }, {});
+      strengthDayLabelInput.value = dayLabelMap[strSelectedDay] || "";
+      strengthDayLabelInput.disabled = false;
+    }
+
+    function refreshStrengthWorkoutNoteEditor() {
+      const hasPlan = !!(strCurrentPlan && strCurrentPlan.plan && strCurrentPlan.plan.id);
+      if (strengthPlanNotesInput) {
+        if (!hasPlan) { strengthPlanNotesInput.value = ""; strengthPlanNotesInput.disabled = true; }
+        else {
+          const planNote = getPhaseNote(0, "plan", 0);
+          strengthPlanNotesInput.value = planNote && planNote.notes ? planNote.notes : "";
+          strengthPlanNotesInput.disabled = false;
+        }
+      }
+      if (strengthWeekNotesInput) {
+        if (!hasPlan) { strengthWeekNotesInput.value = ""; strengthWeekNotesInput.disabled = true; }
+        else {
+          const weekNote = getPhaseNote(0, "week", strSelectedWeek);
+          strengthWeekNotesInput.value = weekNote && weekNote.notes ? weekNote.notes : "";
+          strengthWeekNotesInput.disabled = false;
+        }
+      }
+    }
+
+    function saveCurrentStrengthWorkoutNote(input, day, section, week) {
+      if (!strCurrentPlan || !strCurrentPlan.plan || !input) return;
+      const value = (input.value || "").toString().trim();
+      const existingValue = (((getPhaseNote(day, section, week) || {}).notes) || "").toString().trim();
+      if (value === existingValue) return;
+      queuePhaseNoteChange(day, section, week, value);
     }
 
     function renderWeekTabs() {
@@ -4200,7 +4388,7 @@
         const btn = document.createElement("button");
         btn.className = "week-tab" + (w === strSelectedWeek ? " active" : "");
         btn.textContent = "W" + w;
-        btn.addEventListener("click", () => { strSelectedWeek = w; renderWeekTabs(); renderDayView(); });
+        btn.addEventListener("click", () => { strSelectedWeek = w; renderWeekTabs(); renderDayView(); refreshStrengthWorkoutNoteEditor(); });
         strengthWeekTabs.appendChild(btn);
       }
     }
@@ -4542,6 +4730,7 @@
       strengthSections.innerHTML = "";
       const day = strSelectedDay;
       const week = strSelectedWeek;
+      refreshStrengthWorkoutNoteEditor();
 
       for (const sec of SECTIONS) {
         const block = document.createElement("div");
@@ -4650,6 +4839,12 @@
         const exName = pe.exercise ? pe.exercise.name : "??";
         const exId = pe.exercise ? pe.exercise.id : pe.exercise_id;
         const oneRm = strOneRms[exId];
+        const exMetaTags = [];
+        if (pe.weight_per_side) exMetaTags.push("peso/lado");
+        if (pe.each_side) exMetaTags.push("cada lado");
+        const exMetaHtml = exMetaTags.length > 0
+          ? `<div class="str-ex-flags">${exMetaTags.map((tag) => `<span class="str-ex-flag">${tag}</span>`).join("")}</div>`
+          : "";
         const loadRound = getEffectiveLoadRound();
         const row = document.createElement("tr");
         row.setAttribute("data-peid", pe.id);
@@ -4663,18 +4858,11 @@
         const orderSelect = `<select data-field="order_label" data-peid="${pe.id}" data-eidx="${ei}" data-section="${section}" style="width:50px; font-size:12px; font-weight:600;">${allOpts.map(o => `<option value="${o}" ${o===lbl.label?"selected":""}>${o}</option>`).join("")}</select>`;
         const moveButtons = `<span class="str-touch-move"><button type="button" class="str-move-btn" data-move-peid="${pe.id}" data-section="${section}" data-dir="-1" title="Mover para cima" aria-label="Mover para cima">↑</button><button type="button" class="str-move-btn" data-move-peid="${pe.id}" data-section="${section}" data-dir="1" title="Mover para baixo" aria-label="Mover para baixo">↓</button></span>`;
 
-        if (section === "observations") {
-          row.innerHTML = `
-            <td><div class="str-order-cell"><span class="str-drag-handle" draggable="true" data-drag-peid="${pe.id}" data-section="${section}" title="Arrastar para reordenar">⋮⋮</span>${moveButtons}<span>${pe.exercise_order}</span></div></td>
-            <td title="${exName}">${exName}</td>
-            <td><input value="${rx.coach_notes || ''}" data-field="coach_notes" data-peid="${pe.id}" data-week="${week}" /></td>
-            <td><button class="str-rm-btn" data-rmpe="${pe.id}" title="Remover">✕</button></td>
-          `;
-        } else if (section === "warm_up" || section === "conditioning") {
+        if (section === "warm_up" || section === "conditioning") {
           const isDur = rx.prescription_type === "duration";
           row.innerHTML = `
             <td><div class="str-order-cell"><span class="str-drag-handle" draggable="true" data-drag-peid="${pe.id}" data-section="${section}" title="Arrastar para reordenar">⋮⋮</span>${moveButtons}${orderSelect}</div></td>
-            <td title="${exName}">${exName}</td>
+            <td title="${exName}"><div class="str-exercise-cell"><div class="str-ex-name">${exName}</div>${exMetaHtml}</div></td>
             <td><input type="number" value="${rx.sets||''}" data-field="sets" data-peid="${pe.id}" data-week="${week}" min="1" /></td>
             <td><div class="reps-dur-cell">
               <input type="number" value="${isDur ? (rx.duration_seconds||'') : (rx.reps||'')}" data-field="${isDur ? 'duration_seconds' : 'reps'}" data-peid="${pe.id}" data-week="${week}" min="0" placeholder="${isDur ? 's' : ''}" />
@@ -4688,7 +4876,7 @@
           const isDur = rx.prescription_type === "duration";
           row.innerHTML = `
             <td><div class="str-order-cell"><span class="str-drag-handle" draggable="true" data-drag-peid="${pe.id}" data-section="${section}" title="Arrastar para reordenar">⋮⋮</span>${moveButtons}${orderSelect}</div></td>
-            <td title="${exName}">${exName}</td>
+            <td title="${exName}"><div class="str-exercise-cell"><div class="str-ex-name">${exName}</div>${exMetaHtml}</div></td>
             <td><input type="number" value="${rx.sets||''}" data-field="sets" data-peid="${pe.id}" data-week="${week}" min="1" /></td>
             <td><div class="reps-dur-cell">
               <input type="number" value="${isDur ? (rx.duration_seconds||'') : (rx.reps||'')}" data-field="${isDur ? 'duration_seconds' : 'reps'}" data-peid="${pe.id}" data-week="${week}" min="0" placeholder="${isDur ? 's' : ''}" />
@@ -4722,7 +4910,7 @@
           const loadPlaceholder = loadKg != null ? loadKg.toFixed(1) : (oneRm ? "" : "sem 1RM");
           row.innerHTML = `
             <td><div class="str-order-cell"><span class="str-drag-handle" draggable="true" data-drag-peid="${pe.id}" data-section="${section}" title="Arrastar para reordenar">⋮⋮</span>${moveButtons}${orderSelect}</div></td>
-            <td title="${exName}${oneRm ? ' · 1RM: '+oneRm+'kg' : ''}">${exName}</td>
+            <td title="${exName}${oneRm ? ' · 1RM: '+oneRm+'kg' : ''}"><div class="str-exercise-cell"><div class="str-ex-name">${exName}</div>${exMetaHtml}</div></td>
             <td><input type="number" value="${rx.sets||''}" data-field="sets" data-peid="${pe.id}" data-week="${week}" min="1" /></td>
             <td><div class="reps-dur-cell">
               <input type="number" value="${isDur ? (rx.duration_seconds||'') : (rx.reps||'')}" data-field="${isDur ? 'duration_seconds' : 'reps'}" data-peid="${pe.id}" data-week="${week}" min="0" placeholder="${isDur ? 's' : ''}" />
@@ -4781,7 +4969,7 @@
 
         if (sec === "plyos_speed") {
           plyoLd += calcPlyoLoad(sets, reps, pe.each_side, pe.plyo_mechanical_load);
-        } else if (sec !== "observations") {
+        } else {
           totalReps += sets * reps * sides;
           stimReps += sets * calcStimReps(reps, rx.rir) * sides;
           const { rmPercent, loadKg: lkg } = resolveLoad(rx, pe, oneRm, loadRound, week);
@@ -5394,11 +5582,21 @@
       if (search) filtered = filtered.filter(e => e.name.toLowerCase().includes(search));
 
       const list = document.getElementById("exercisePickerList");
-      list.innerHTML = filtered.slice(0, 50).map(e =>
-        `<div style="padding:4px 8px; cursor:pointer; border-bottom:1px solid var(--line);" data-exid="${e.id}" class="exercise-pick-item">
-          <strong>${e.name}</strong> <span style="font-size:11px; color:var(--muted);">${e.category} / ${e.subcategory}</span>
-        </div>`
-      ).join("");
+      list.innerHTML = filtered.slice(0, 50).map((e) => {
+        const tags = [];
+        if (e.default_weight_per_side) tags.push("peso/lado");
+        if (e.default_each_side) tags.push("cada lado");
+        const tagsHtml = tags.length > 0
+          ? `<div class="exercise-pick-flags">${tags.map((tag) => `<span class="exercise-pick-flag">${tag}</span>`).join("")}</div>`
+          : "";
+        return `<div data-exid="${e.id}" class="exercise-pick-item">
+          <div class="exercise-pick-main">
+            <span class="exercise-pick-name">${e.name}</span>
+            ${tagsHtml}
+          </div>
+          <div class="exercise-pick-meta">${e.category} / ${e.subcategory}</div>
+        </div>`;
+      }).join("");
     }
 
     document.getElementById("exerciseSearchInput").addEventListener("input", renderExercisePicker);
@@ -6047,6 +6245,66 @@
       assignPlanModal.classList.remove("hidden");
     });
 
+    async function saveCurrentStrengthDayLabel() {
+      if (!strCurrentPlan || !strCurrentPlan.plan || !strengthDayLabelInput) return;
+      const value = (strengthDayLabelInput.value || "").toString().trim();
+      const existingValue = (((strCurrentPlan.dayLabels || []).find((item) => Number(item.day_number) === strSelectedDay) || {}).day_label || "").toString().trim();
+      if (value === existingValue) return;
+      const payload = {
+        plan_id: strCurrentPlan.plan.id,
+        day_labels_action: "partial",
+        day_labels: value ? [{ day_number: strSelectedDay, day_label: value }] : [],
+        day_labels_delete_days: value ? [] : [strSelectedDay]
+      };
+      try {
+        const data = await apiRequest("PATCH", "/.netlify/functions/strength-plan", payload);
+        if (data && data.plan) {
+          strCurrentPlan = data;
+        }
+        renderDayTabs();
+        refreshStrengthDayLabelEditor();
+        showResult("Nome do dia guardado.", false);
+      } catch (e) {
+        showResult("Erro ao guardar nome do dia: " + (e.message || "erro"), true);
+      }
+    }
+
+    if (strengthDayLabelInput) {
+      strengthDayLabelInput.addEventListener("blur", async () => {
+        if (strengthDayLabelInput.disabled) return;
+        await saveCurrentStrengthDayLabel();
+      });
+      strengthDayLabelInput.addEventListener("keydown", async (ev) => {
+        if (ev.key !== "Enter") return;
+        ev.preventDefault();
+        await saveCurrentStrengthDayLabel();
+      });
+    }
+    if (strengthPlanNotesInput) {
+      strengthPlanNotesInput.addEventListener("blur", () => {
+        if (strengthPlanNotesInput.disabled) return;
+        saveCurrentStrengthWorkoutNote(strengthPlanNotesInput, 0, "plan", 0);
+      });
+      strengthPlanNotesInput.addEventListener("keydown", (ev) => {
+        if ((ev.metaKey || ev.ctrlKey) && ev.key === "Enter") {
+          ev.preventDefault();
+          saveCurrentStrengthWorkoutNote(strengthPlanNotesInput, 0, "plan", 0);
+        }
+      });
+    }
+    if (strengthWeekNotesInput) {
+      strengthWeekNotesInput.addEventListener("blur", () => {
+        if (strengthWeekNotesInput.disabled) return;
+        saveCurrentStrengthWorkoutNote(strengthWeekNotesInput, 0, "week", strSelectedWeek);
+      });
+      strengthWeekNotesInput.addEventListener("keydown", (ev) => {
+        if ((ev.metaKey || ev.ctrlKey) && ev.key === "Enter") {
+          ev.preventDefault();
+          saveCurrentStrengthWorkoutNote(strengthWeekNotesInput, 0, "week", strSelectedWeek);
+        }
+      });
+    }
+
     document.getElementById("assignCancelBtn").addEventListener("click", () => {
       assignPlanModal.classList.add("hidden");
     });
@@ -6495,10 +6753,21 @@
 
     const listAssignmentsApiBase = "/.netlify/functions/list-assignments";
     const adminAssignProgramApiBase = "/.netlify/functions/admin-assign-program";
+    const coachAthleteCalendarApiBase = "/.netlify/functions/coach-athlete-calendar";
+    const COACH_CAL_DAY_LABELS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sab", "Dom"];
 
     let coachAssignments = [];
     let coachAssignmentsFiltered = [];
     let _coachAssignmentsInitialized = false;
+    let coachCalendarState = {
+      athleteId: null,
+      athleteName: null,
+      weekStartDate: null,
+      availableWeekStartDates: [],
+      assignmentFilter: "",
+      rows: [],
+      assignments: []
+    };
 
     const coachAssignTableBody = document.getElementById("coach-assign-table-body");
     const coachAssignStatusFilter = document.getElementById("coach-assign-status-filter");
@@ -6512,8 +6781,13 @@
     const coachNewAssignStart = document.getElementById("coach-new-assign-start");
     const coachNewAssignWeeks = document.getElementById("coach-new-assign-weeks");
     const coachNewAssignNotes = document.getElementById("coach-new-assign-notes");
-    const coachNewAssignPlan = document.getElementById("coach-new-assign-plan");
-    const coachNewAssignLock = document.getElementById("coach-new-assign-lock");
+    const coachCalendarPanel = document.getElementById("coach-athlete-calendar-panel");
+    const coachCalendarMeta = document.getElementById("coach-calendar-meta");
+    const coachCalendarWeekSelect = document.getElementById("coach-calendar-week-select");
+    const coachCalendarAssignmentFilter = document.getElementById("coach-calendar-assignment-filter");
+    const coachCalendarRefreshBtn = document.getElementById("coach-calendar-refresh-btn");
+    const coachCalendarCloseBtn = document.getElementById("coach-calendar-close-btn");
+    const coachCalendarGrid = document.getElementById("coach-calendar-grid");
 
     async function refreshCoachAssignmentsTab() {
       if (!state.user) return;
@@ -6521,10 +6795,6 @@
         wireCoachAssignmentsEvents();
         _coachAssignmentsInitialized = true;
       }
-      await Promise.all([
-        loadAthletes().catch(() => {}),
-        loadProgramOptions().catch(() => {})
-      ]);
       await refreshCoachAssignments();
     }
 
@@ -6534,6 +6804,9 @@
         const data = await apiRequest("GET", `${listAssignmentsApiBase}?includeHistory=${includeHistory}`);
         coachAssignments = Array.isArray(data.assignments) ? data.assignments : [];
         applyCoachAssignmentsFilters();
+        if (coachCalendarState.athleteId && !coachCalendarPanel.hidden) {
+          await loadCoachAthleteCalendar({ silent: true });
+        }
       } catch (err) {
         console.error("[Coach Assignments] Refresh error:", err);
         showResult(err.message, true);
@@ -6571,6 +6844,7 @@
         } else if (canResume) {
           actionHtml = `<button class="btn btn-primary btn-sm" data-assign-action="resume" data-assign-id="${escapeHtml(a.id)}" style="font-size:0.8rem;padding:3px 8px;">Retomar</button>`;
         }
+        actionHtml += ` <button class="btn btn-sm" data-assign-action="view-calendar" data-assign-id="${escapeHtml(a.id)}" data-athlete-id="${escapeHtml(a.athleteId || "")}" data-athlete-name="${escapeHtml(a.athleteName || a.athleteEmail || a.athleteId || "Atleta")}" style="font-size:0.8rem;padding:3px 8px;">Ver calendário</button>`;
         if (a.status === "active" || a.status === "scheduled") {
           actionHtml += ` <button class="btn btn-sm" data-assign-action="generate-calendar" data-assign-id="${escapeHtml(a.id)}" data-program-id="${escapeHtml(a.trainingProgramId || "")}" style="font-size:0.8rem;padding:3px 8px;color:#d4a54f;">Calendário</button>`;
         }
@@ -6608,6 +6882,139 @@
       } catch (_) { return dateStr; }
     }
 
+    function statusColor(status) {
+      if (status === "completed") return "#238636";
+      if (status === "skipped") return "#d29922";
+      if (status === "moved") return "#1f6feb";
+      return "#8b949e";
+    }
+
+    function renderCoachCalendarFilters() {
+      if (!coachCalendarWeekSelect || !coachCalendarAssignmentFilter) return;
+
+      coachCalendarWeekSelect.innerHTML = "";
+      (coachCalendarState.availableWeekStartDates || []).forEach((w) => {
+        const opt = document.createElement("option");
+        opt.value = w;
+        opt.textContent = w;
+        coachCalendarWeekSelect.appendChild(opt);
+      });
+      coachCalendarWeekSelect.value = coachCalendarState.weekStartDate || "";
+
+      coachCalendarAssignmentFilter.innerHTML = '<option value="">Todos os assignments</option>';
+      (coachCalendarState.assignments || []).forEach((a) => {
+        const opt = document.createElement("option");
+        opt.value = a.id;
+        const programLabel = a.programName || a.programId || "Programa";
+        const statusLabel = a.status || "-";
+        opt.textContent = `${programLabel} · ${statusLabel}`;
+        coachCalendarAssignmentFilter.appendChild(opt);
+      });
+      coachCalendarAssignmentFilter.value = coachCalendarState.assignmentFilter || "";
+    }
+
+    function renderCoachAthleteCalendar() {
+      if (!coachCalendarGrid) return;
+
+      const allRows = Array.isArray(coachCalendarState.rows) ? coachCalendarState.rows : [];
+      const rows = coachCalendarState.assignmentFilter
+        ? allRows.filter((r) => r.program_assignment_id === coachCalendarState.assignmentFilter)
+        : allRows;
+
+      if (!rows.length) {
+        coachCalendarGrid.innerHTML = '<div class="microcopy" style="padding:10px 0;color:#8b949e;">Sem sessões nesta semana. Gera o calendário no botão "Calendário" da linha do assignment.</div>';
+        return;
+      }
+
+      const slots = [...new Set(rows.map((r) => Number(r.time_slot || 1)))].sort((a, b) => a - b);
+      const byCell = new Map();
+      rows.forEach((row) => {
+        const key = `${Number(row.day_of_week || 0)}|${Number(row.time_slot || 1)}`;
+        if (!byCell.has(key)) byCell.set(key, []);
+        byCell.get(key).push(row);
+      });
+
+      let html = '<div style="display:grid;grid-template-columns:90px repeat(7,minmax(130px,1fr));gap:6px;align-items:stretch;">';
+      html += '<div></div>';
+      COACH_CAL_DAY_LABELS.forEach((label) => {
+        html += `<div style="padding:6px 8px;border:1px solid #30363d;border-radius:6px;background:#101722;color:#8b949e;font-size:12px;font-weight:600;">${label}</div>`;
+      });
+
+      slots.forEach((slot) => {
+        html += `<div style="padding:8px;border:1px solid #30363d;border-radius:6px;background:#101722;color:#8b949e;font-size:12px;font-weight:600;">Slot ${slot}</div>`;
+        for (let day = 0; day <= 6; day += 1) {
+          const key = `${day}|${slot}`;
+          const sessions = byCell.get(key) || [];
+          let cellHtml = "";
+          sessions.forEach((r) => {
+            const assignmentLabel = (r.program && r.program.name) || (r.assignment && r.assignment.training_program_id) || r.program_assignment_id;
+            const plannedStatus = r.status || "planned";
+            const actualStatus = r.actual_status || plannedStatus;
+            const actual = r.actual_summary;
+            const actualLine = actual
+              ? `${actual.sets || 0} sets · ${actual.totalKg || 0} kg`
+              : (r.session_type === "strength" ? "Sem registo executado" : "Realizado (fase 2)");
+            cellHtml += `<div style="border:1px solid #30363d;border-radius:6px;padding:6px;margin-bottom:6px;background:#0b1320;">` +
+              `<div style="display:flex;justify-content:space-between;gap:6px;align-items:flex-start;">` +
+              `<strong style="font-size:12px;color:#d4a54f;">${escapeHtml(r.session_label || r.session_key || "Sessão")}</strong>` +
+              `<span style="font-size:10px;color:${statusColor(actualStatus)};">${escapeHtml(actualStatus)}</span>` +
+              `</div>` +
+              `<div style="font-size:11px;color:#8b949e;">${escapeHtml(assignmentLabel || "-")}</div>` +
+              `<div style="font-size:11px;color:#8b949e;">${escapeHtml(r.session_type || "-")} · ${escapeHtml(String(r.duration_estimate_min || "?"))} min</div>` +
+              `<div style="font-size:11px;color:#8b949e;">${escapeHtml(actualLine)}</div>` +
+              `</div>`;
+          });
+          html += `<div style="border:1px solid #30363d;border-radius:6px;min-height:90px;padding:6px;background:#0d1117;">${cellHtml}</div>`;
+        }
+      });
+
+      html += "</div>";
+      coachCalendarGrid.innerHTML = html;
+    }
+
+    async function loadCoachAthleteCalendar({ silent = false } = {}) {
+      if (!coachCalendarState.athleteId) return;
+      if (!silent && coachCalendarMeta) coachCalendarMeta.textContent = "A carregar calendário...";
+
+      const qs = new URLSearchParams({ athleteId: coachCalendarState.athleteId });
+      if (coachCalendarState.weekStartDate) {
+        qs.set("weekStartDate", coachCalendarState.weekStartDate);
+      }
+
+      const data = await apiRequest("GET", `${coachAthleteCalendarApiBase}?${qs.toString()}`);
+      coachCalendarState.weekStartDate = data.weekStartDate || null;
+      coachCalendarState.availableWeekStartDates = Array.isArray(data.availableWeekStartDates)
+        ? data.availableWeekStartDates
+        : [];
+      coachCalendarState.rows = Array.isArray(data.rows) ? data.rows : [];
+      coachCalendarState.assignments = Array.isArray(data.assignments) ? data.assignments : [];
+
+      const athleteLabel = data.athlete && (data.athlete.name || data.athlete.email || data.athlete.id)
+        ? (data.athlete.name || data.athlete.email || data.athlete.id)
+        : (coachCalendarState.athleteName || "Atleta");
+      if (coachCalendarMeta) {
+        coachCalendarMeta.textContent = `${athleteLabel} · semana ${coachCalendarState.weekStartDate || "-"} · ${coachCalendarState.rows.length} sessão(ões)`;
+      }
+
+      renderCoachCalendarFilters();
+      renderCoachAthleteCalendar();
+    }
+
+    async function openCoachAthleteCalendar(athleteId, athleteName) {
+      if (!athleteId) return;
+      coachCalendarState = {
+        athleteId,
+        athleteName: athleteName || athleteId,
+        weekStartDate: null,
+        availableWeekStartDates: [],
+        assignmentFilter: "",
+        rows: [],
+        assignments: []
+      };
+      if (coachCalendarPanel) coachCalendarPanel.hidden = false;
+      await loadCoachAthleteCalendar();
+    }
+
     function wireCoachAssignmentsEvents() {
       if (coachAssignStatusFilter) {
         coachAssignStatusFilter.addEventListener("change", () => applyCoachAssignmentsFilters());
@@ -6625,6 +7032,13 @@
           const action = btn.dataset.assignAction;
           const id = btn.dataset.assignId;
           if (!id) return;
+
+          if (action === "view-calendar") {
+            const athleteId = btn.dataset.athleteId;
+            const athleteName = btn.dataset.athleteName;
+            await openCoachAthleteCalendar(athleteId, athleteName);
+            return;
+          }
 
           // Handle calendar generation
           if (action === "generate-calendar") {
@@ -6648,6 +7062,40 @@
             btn.disabled = false;
             btn.textContent = action === "pause" ? "Pausar" : "Retomar";
           }
+        });
+      }
+
+      if (coachCalendarRefreshBtn) {
+        coachCalendarRefreshBtn.addEventListener("click", async () => {
+          try {
+            await loadCoachAthleteCalendar();
+          } catch (err) {
+            showResult(err.message, true);
+          }
+        });
+      }
+
+      if (coachCalendarWeekSelect) {
+        coachCalendarWeekSelect.addEventListener("change", async () => {
+          coachCalendarState.weekStartDate = coachCalendarWeekSelect.value || null;
+          try {
+            await loadCoachAthleteCalendar({ silent: true });
+          } catch (err) {
+            showResult(err.message, true);
+          }
+        });
+      }
+
+      if (coachCalendarAssignmentFilter) {
+        coachCalendarAssignmentFilter.addEventListener("change", () => {
+          coachCalendarState.assignmentFilter = coachCalendarAssignmentFilter.value || "";
+          renderCoachAthleteCalendar();
+        });
+      }
+
+      if (coachCalendarCloseBtn) {
+        coachCalendarCloseBtn.addEventListener("click", () => {
+          if (coachCalendarPanel) coachCalendarPanel.hidden = true;
         });
       }
 
@@ -6676,9 +7124,8 @@
           const startDate = (coachNewAssignStart.value || "").trim() || null;
           const durationWeeks = Number(coachNewAssignWeeks.value) || 12;
           const notes = (coachNewAssignNotes.value || "").trim() || null;
-          const coachLock = coachNewAssignLock ? coachNewAssignLock.checked : false;
-          const coachLockDate = (document.getElementById("coach-new-assign-lock-date") || {}).value || null;
-          const strengthPlanId = (coachNewAssignPlan ? coachNewAssignPlan.value : "") || null;
+          const presetSelect = document.getElementById("coach-new-assign-preset");
+          const selectedPresetId = presetSelect ? (presetSelect.value || null) : null;
 
           if (!athleteId) { showResult("Seleciona um atleta.", true); return; }
           if (!trainingProgramId) { showResult("Seleciona um programa.", true); return; }
@@ -6695,18 +7142,23 @@
               durationWeeks,
               priceCentsSnapshot: program ? (program.price_cents || 0) : 0,
               currencySnapshot: program ? (program.currency || "EUR") : "EUR",
-              notes,
-              coachLock,
-              coachLockDate,
-              strengthPlanId
+              notes
             });
             let msg = "Assignment criado com sucesso.";
-            if (result.strengthAutoCreated) {
-              msg += " Instância de força criada automaticamente.";
-            } else if (result.strengthReason === "already_active") {
-              msg += " Já existia instância de força ativa.";
-            } else if (result.strengthReason === "no_strength_template_for_program") {
-              msg += " Sem template de força para este programa.";
+
+            // If coach selected a preset, generate the calendar now
+            if (selectedPresetId && result.assignment && result.assignment.id) {
+              try {
+                await apiRequest("POST", "/.netlify/functions/athlete-weekly-plan", {
+                  assignmentId: result.assignment.id,
+                  presetId: selectedPresetId
+                });
+                msg += " Calendário gerado com preset selecionado.";
+              } catch (calErr) {
+                msg += " Aviso: erro ao gerar calendário — " + calErr.message;
+              }
+            } else {
+              msg += " Atleta deverá escolher um preset para gerar o calendário.";
             }
             showResult(msg, false);
             coachAssignCreateForm.hidden = true;
@@ -6742,23 +7194,25 @@
           opt.textContent = `${p.name || p.id} (${p.status || "draft"})`;
           coachNewAssignProgram.appendChild(opt);
         });
-        // Auto-fill weeks
+        // Auto-fill weeks and load presets
         coachNewAssignProgram.addEventListener("change", () => {
           const selected = strPrograms.find((p) => p.id === coachNewAssignProgram.value);
-          if (selected && selected.duration_weeks && coachNewAssignWeeks) {
-            coachNewAssignWeeks.value = selected.duration_weeks;
+          const selectedDuration = Number(selected && (selected.durationWeeks != null ? selected.durationWeeks : selected.duration_weeks));
+          if (Number.isInteger(selectedDuration) && selectedDuration > 0 && coachNewAssignWeeks) {
+            coachNewAssignWeeks.value = selectedDuration;
           }
-          // Populate plan dropdown for selected program
-          if (coachNewAssignPlan) {
-            coachNewAssignPlan.innerHTML = '<option value="">Atleta escolhe</option>';
+          // Populate preset dropdown for selected program
+          const presetSelect = document.getElementById("coach-new-assign-preset");
+          if (presetSelect) {
+            presetSelect.innerHTML = '<option value="">Atleta escolhe depois</option>';
             if (coachNewAssignProgram.value) {
-              apiRequest("GET", `/.netlify/functions/strength-plan?trainingProgramId=${coachNewAssignProgram.value}`)
-                .then((plans) => {
-                  (plans || []).forEach((pl) => {
+              apiRequest("GET", `/.netlify/functions/admin-program-schedule?trainingProgramId=${coachNewAssignProgram.value}&includeSlots=1`)
+                .then((data) => {
+                  ((data && data.presets) || []).forEach((pr) => {
                     const opt = document.createElement("option");
-                    opt.value = pl.id;
-                    opt.textContent = `${pl.name || pl.id} (${pl.total_weeks || "?"}sem)`;
-                    coachNewAssignPlan.appendChild(opt);
+                    opt.value = pr.id;
+                    opt.textContent = `${pr.preset_name || pr.id} (${pr.total_training_days || "?"}d)${pr.is_default ? " ★" : ""}`;
+                    presetSelect.appendChild(opt);
                   });
                 })
                 .catch(() => {});
@@ -6771,60 +7225,101 @@
       if (coachNewAssignStart) coachNewAssignStart.value = new Date().toISOString().slice(0, 10);
       if (coachNewAssignWeeks) coachNewAssignWeeks.value = "12";
       if (coachNewAssignNotes) coachNewAssignNotes.value = "";
-      if (coachNewAssignPlan) coachNewAssignPlan.innerHTML = '<option value="">Atleta escolhe</option>';
-      if (coachNewAssignLock) coachNewAssignLock.checked = false;
-      const lockDateEl = document.getElementById("coach-new-assign-lock-date");
-      if (lockDateEl) lockDateEl.value = "";
+      const presetSelect = document.getElementById("coach-new-assign-preset");
+      if (presetSelect) presetSelect.innerHTML = '<option value="">Atleta escolhe depois</option>';
     }
 
     // ═══════════════════════════════════════════════════════════
-    // SCHEDULE TAB — Sessions + Presets + Slots
+    // SCHEDULE TAB — Calendar Template (Inline drag-and-drop)
     // ═══════════════════════════════════════════════════════════
-    const SCHED_SESSION_TYPES = ["strength", "running", "rest", "mobility", "other"];
-    const SCHED_RUNNING_TYPES = ["easy", "threshold", "interval", "long", "tempo", "repetition", "recovery"];
-    const SCHED_INTENSITIES = ["low", "moderate", "high", "very_high"];
     const SCHED_DAY_LABELS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
 
     let _schedInitialized = false;
     let schedSessions = [];
+    let schedPrograms = [];
     let schedPresets = [];
     let schedSelectedProgramId = null;
+    let schedCurrentPreset = null;
 
     const schedProgramSelect = document.getElementById("sched-program-select");
+    const schedPresetSelect = document.getElementById("sched-preset-select");
+    const schedNewPresetBtn = document.getElementById("sched-new-preset-btn");
+    const schedRenamePresetBtn = document.getElementById("sched-rename-preset-btn");
+    const schedDeletePresetBtn = document.getElementById("sched-delete-preset-btn");
     const schedSessionsArea = document.getElementById("sched-sessions-area");
-    const schedSessionsList = document.getElementById("sched-sessions-list");
-    const schedPresetsArea = document.getElementById("sched-presets-area");
-    const schedAddSessionBtn = document.getElementById("sched-add-session-btn");
-    const schedAddPresetBtn = document.getElementById("sched-add-preset-btn");
+    const schedInlineCalendarView = document.getElementById("sched-inline-calendar-view");
 
     async function initScheduleTab() {
       if (!_schedInitialized) {
         _schedInitialized = true;
         await loadScheduleProgramOptions();
         schedProgramSelect.addEventListener("change", onScheduleProgramChange);
-        schedAddSessionBtn.addEventListener("click", () => openSessionEditor(null));
-        schedAddPresetBtn.addEventListener("click", () => openPresetEditor(null));
+        schedPresetSelect.addEventListener("change", onSchedulePresetChange);
+        schedNewPresetBtn.addEventListener("click", onCreateSchedulePreset);
+        schedRenamePresetBtn.addEventListener("click", onRenameSchedulePreset);
+        schedDeletePresetBtn.addEventListener("click", onDeleteSchedulePreset);
       }
+    }
+
+    function renderSchedulePresetOptions() {
+      if (!schedPresetSelect) return;
+      schedPresetSelect.innerHTML = '<option value="">Seleciona um preset...</option>';
+      schedPresets.forEach((preset) => {
+        const opt = document.createElement("option");
+        opt.value = preset.id;
+        opt.textContent = `${preset.preset_name || preset.id} (${preset.total_training_days || "?"}d)${preset.is_default ? " ★" : ""}`;
+        schedPresetSelect.appendChild(opt);
+      });
+      schedPresetSelect.value = schedCurrentPreset && schedCurrentPreset.id ? schedCurrentPreset.id : "";
+      const disabled = !schedCurrentPreset;
+      if (schedRenamePresetBtn) schedRenamePresetBtn.disabled = disabled;
+      if (schedDeletePresetBtn) schedDeletePresetBtn.disabled = disabled;
+    }
+
+    async function loadSchedulePresets(programId, { preferredPresetId = null, autoCreate = true } = {}) {
+      const data = await apiRequest("GET", `/.netlify/functions/admin-program-schedule?trainingProgramId=${programId}&includeSlots=1`);
+      let presets = Array.isArray(data.presets) ? data.presets : [];
+
+      if (!presets.length && autoCreate) {
+        const created = await apiRequest("POST", "/.netlify/functions/admin-program-schedule", {
+          training_program_id: programId,
+          preset_name: "Template",
+          total_training_days: 5,
+          is_default: true,
+          slots: []
+        });
+        presets = [{ ...created.preset, slots: created.slots || [] }];
+      }
+
+      schedPresets = presets;
+      schedCurrentPreset = schedPresets.find((preset) => preset.id === preferredPresetId)
+        || schedPresets.find((preset) => preset.is_default)
+        || schedPresets[0]
+        || null;
+      renderSchedulePresetOptions();
+      return schedCurrentPreset;
     }
 
     async function loadScheduleProgramOptions() {
       try {
-        const data = await apiRequest("GET", "/.netlify/functions/admin-programs");
+        const data = await apiRequest("GET", "/.netlify/functions/list-programs");
         const programs = data.programs || [];
+        schedPrograms = Array.isArray(programs) ? programs : [];
         schedProgramSelect.innerHTML = '<option value="">Seleciona um programa...</option>';
-        programs.forEach((p) => {
+        schedPrograms.forEach((p) => {
           const opt = document.createElement("option");
           opt.value = p.id;
           opt.textContent = p.name || p.title || p.id;
           schedProgramSelect.appendChild(opt);
         });
       } catch (_) {
-        // Fallback for non-admin users that still have coach access.
+        // Fallback to admin endpoint.
         try {
-          const data = await apiRequest("GET", "/.netlify/functions/list-programs");
+          const data = await apiRequest("GET", "/.netlify/functions/admin-programs");
           const programs = data.programs || [];
+          schedPrograms = Array.isArray(programs) ? programs : [];
           schedProgramSelect.innerHTML = '<option value="">Seleciona um programa...</option>';
-          programs.forEach((p) => {
+          schedPrograms.forEach((p) => {
             const opt = document.createElement("option");
             opt.value = p.id;
             opt.textContent = p.name || p.title || p.id;
@@ -6840,102 +7335,498 @@
       schedSelectedProgramId = schedProgramSelect.value || null;
       if (!schedSelectedProgramId) {
         schedSessionsArea.hidden = true;
+        schedPresets = [];
+        schedCurrentPreset = null;
+        renderSchedulePresetOptions();
         return;
       }
       schedSessionsArea.hidden = false;
-      await Promise.all([loadScheduleSessions(), loadSchedulePresets()]);
+      await loadSchedulePresets(schedSelectedProgramId);
+      await loadInlineCalendarView();
     }
 
-    async function loadScheduleSessions() {
-      try {
-        const data = await apiRequest("GET", `/.netlify/functions/admin-program-sessions?trainingProgramId=${schedSelectedProgramId}`);
-        schedSessions = data.sessions || [];
-        renderScheduleSessions();
-      } catch (err) {
-        showResult("Erro ao carregar sessões: " + err.message, true);
+    async function onSchedulePresetChange() {
+      const presetId = schedPresetSelect.value || null;
+      schedCurrentPreset = schedPresets.find((preset) => preset.id === presetId) || null;
+      renderSchedulePresetOptions();
+      await loadInlineCalendarView();
+    }
+
+    async function onCreateSchedulePreset() {
+      if (!schedSelectedProgramId) return;
+      const presetName = window.prompt("Nome do novo preset:", "Novo preset");
+      if (!presetName || !presetName.trim()) return;
+      const created = await apiRequest("POST", "/.netlify/functions/admin-program-schedule", {
+        training_program_id: schedSelectedProgramId,
+        preset_name: presetName.trim(),
+        total_training_days: 5,
+        is_default: schedPresets.length === 0,
+        slots: []
+      });
+      await loadSchedulePresets(schedSelectedProgramId, {
+        preferredPresetId: created && created.preset ? created.preset.id : null,
+        autoCreate: false
+      });
+      await loadInlineCalendarView();
+    }
+
+    async function onRenameSchedulePreset() {
+      if (!schedCurrentPreset) return;
+      const presetName = window.prompt("Novo nome do preset:", schedCurrentPreset.preset_name || "");
+      if (!presetName || !presetName.trim()) return;
+      await apiRequest("PUT", "/.netlify/functions/admin-program-schedule", {
+        preset_id: schedCurrentPreset.id,
+        preset_name: presetName.trim()
+      });
+      await loadSchedulePresets(schedSelectedProgramId, {
+        preferredPresetId: schedCurrentPreset.id,
+        autoCreate: false
+      });
+      await loadInlineCalendarView();
+    }
+
+    async function onDeleteSchedulePreset() {
+      if (!schedCurrentPreset) return;
+      const label = schedCurrentPreset.preset_name || schedCurrentPreset.id;
+      if (!window.confirm(`Apagar preset "${label}"?`)) return;
+      await apiRequest("DELETE", `/.netlify/functions/admin-program-schedule?presetId=${encodeURIComponent(schedCurrentPreset.id)}`);
+      await loadSchedulePresets(schedSelectedProgramId, { autoCreate: true });
+      await loadInlineCalendarView();
+    }
+
+    async function ensureStrengthSession(planId, dayNumber, plan, dayAlias) {
+      // Match by deterministic key prefix (plan slice + day)
+      const keyPrefix = `str_${String(planId).slice(0, 8)}_d${dayNumber}`;
+      const existing = schedSessions.find((s) =>
+        s.session_type === "strength"
+        && s.session_key.startsWith(keyPrefix)
+      );
+      const label = dayAlias
+        ? `${plan ? plan.name : "Plano"} — ${dayAlias}`
+        : `${plan ? plan.name : "Plano"} — Dia ${dayNumber}`;
+
+      if (existing) {
+        if (existing.session_label !== label) {
+          try {
+            await apiRequest("PUT", "/.netlify/functions/admin-program-sessions", {
+              training_program_id: schedSelectedProgramId,
+              sessions: [{
+                id: existing.id,
+                session_key: existing.session_key,
+                session_type: existing.session_type || "strength",
+                session_label: label,
+                strength_plan_id: planId,
+                strength_day_number: dayNumber,
+                sort_priority: Number(existing.sort_priority || 0),
+                is_optional: existing.is_optional === true
+              }]
+            });
+            existing.session_label = label;
+          } catch (_) {
+            // Non-blocking: keep existing label if rename fails.
+          }
+        }
+        return existing.id;
       }
+
+      const key = keyPrefix + "_" + Date.now().toString(36).slice(-4);
+
+      const response = await apiRequest("PUT", "/.netlify/functions/admin-program-sessions", {
+        training_program_id: schedSelectedProgramId,
+        sessions: [{
+          session_key: key,
+          session_type: "strength",
+          session_label: label,
+          strength_plan_id: planId,
+          strength_day_number: dayNumber,
+          sort_priority: schedSessions.length + 1,
+          is_optional: false
+        }]
+      });
+
+      const created = response && Array.isArray(response.sessions) ? response.sessions[0] : null;
+      if (!created || !created.id) throw new Error("Falha ao criar sessão de força");
+      schedSessions.push(created);
+      return created.id;
     }
 
-    async function loadSchedulePresets() {
-      try {
-        const data = await apiRequest("GET", `/.netlify/functions/admin-program-schedule?trainingProgramId=${schedSelectedProgramId}&includeSlots=1`);
-        schedPresets = data.presets || [];
-        renderSchedulePresets();
-      } catch (err) {
-        showResult("Erro ao carregar presets: " + err.message, true);
-      }
-    }
-
-    function renderScheduleSessions() {
-      if (!schedSessions.length) {
-        schedSessionsList.innerHTML = '<p style="color:#8b949e; font-size:0.85rem;">Nenhuma sessão definida. Clica em "+ Sessão" para criar.</p>';
-        return;
-      }
-      schedSessionsList.innerHTML = schedSessions.map((s) => {
-        const typeBadge = `<span style="background:#21262d; border:1px solid #30363d; border-radius:4px; padding:2px 6px; font-size:0.75rem; color:#79c0ff;">${s.session_type}</span>`;
-        const extraBadges = [];
-        if (s.strength_day_number) extraBadges.push(`Dia ${s.strength_day_number}`);
-        if (s.running_session_type) extraBadges.push(s.running_session_type);
-        if (s.duration_estimate_min) extraBadges.push(`${s.duration_estimate_min}min`);
-        if (s.intensity) extraBadges.push(s.intensity);
-        if (s.is_optional) extraBadges.push("opcional");
-        const extras = extraBadges.map((b) => `<span style="background:#161b22; border:1px solid #30363d; border-radius:4px; padding:2px 6px; font-size:0.7rem; color:#8b949e;">${b}</span>`).join(" ");
-        return `<div style="display:flex; align-items:center; gap:10px; padding:10px 14px; background:#161b22; border:1px solid #30363d; border-radius:8px;">
-          <div style="flex:1;">
-            <div style="color:#c9d1d9; font-weight:600;">${s.session_label}</div>
-            <div style="display:flex; gap:6px; margin-top:4px; flex-wrap:wrap;">${typeBadge} ${extras}</div>
-          </div>
-          <code style="color:#484f58; font-size:0.7rem;">${s.session_key}</code>
-          <button onclick="openSessionEditor('${s.id}')" class="btn btn-secondary" style="font-size:0.75rem; padding:4px 10px;">Editar</button>
-          <button onclick="deleteScheduleSession('${s.id}')" class="btn" style="font-size:0.75rem; padding:4px 10px; color:#f85149;">Apagar</button>
-        </div>`;
-      }).join("");
-    }
-
-    function renderSchedulePresets() {
-      if (!schedPresets.length) {
-        schedPresetsArea.innerHTML = '<p style="color:#8b949e; font-size:0.85rem;">Nenhum preset. Clica em "+ Preset" para criar.</p>';
-        return;
-      }
-      schedPresetsArea.innerHTML = schedPresets.map((p) => {
-        const defaultBadge = p.is_default ? ' <span style="background:#1a7f37; color:#fff; border-radius:4px; padding:1px 6px; font-size:0.7rem;">padrão</span>' : "";
-        const slotsGrid = renderPresetGrid(p.slots || []);
-        return `<div style="background:#161b22; border:1px solid #30363d; border-radius:8px; padding:14px; margin-bottom:12px;">
-          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
-            <div>
-              <span style="color:#c9d1d9; font-weight:600;">${p.preset_name}</span>${defaultBadge}
-              <span style="color:#8b949e; font-size:0.8rem; margin-left:8px;">${p.total_training_days} dias</span>
-              ${p.description ? `<div style="color:#8b949e; font-size:0.8rem; margin-top:2px;">${p.description}</div>` : ""}
-            </div>
-            <div style="display:flex; gap:6px;">
-              <button onclick="openPresetEditor('${p.id}')" class="btn btn-secondary" style="font-size:0.75rem; padding:4px 10px;">Editar</button>
-              <button onclick="deleteSchedulePreset('${p.id}')" class="btn" style="font-size:0.75rem; padding:4px 10px; color:#f85149;">Apagar</button>
-            </div>
-          </div>
-          ${slotsGrid}
-        </div>`;
-      }).join("");
-    }
-
-    function renderPresetGrid(slots) {
-      const grid = Array.from({ length: 7 }, () => []);
+    async function savePresetSlots(preset, slots) {
+      const slotPayload = [];
+      // Group by week_number + day_of_week, then assign time_slots sequentially
+      const grouped = {};
       slots.forEach((s) => {
-        if (s.day_of_week >= 0 && s.day_of_week <= 6) {
-          grid[s.day_of_week].push(s);
+        const key = (s.week_number || 1) + "_" + s.day_of_week;
+        if (!grouped[key]) grouped[key] = [];
+        grouped[key].push(s);
+      });
+      Object.values(grouped).forEach((group) => {
+        group.forEach((s, index) => {
+          slotPayload.push({
+            day_of_week: s.day_of_week,
+            week_number: s.week_number || 1,
+            time_slot: index + 1,
+            session_id: s.session_id,
+            sort_order: (s.week_number || 1) * 1000 + s.day_of_week * 100 + index + 1
+          });
+        });
+      });
+      await apiRequest("PUT", "/.netlify/functions/admin-program-schedule", {
+        preset_id: preset.id,
+        slots: slotPayload
+      });
+      if (preset) {
+        preset.slots = slotPayload.map((slot) => ({ ...slot, preset_id: preset.id }));
+      }
+    }
+
+    // ── Inline Calendar View with Drag-and-Drop ──
+
+    let _schedPlanDetailCache = {};
+
+    async function loadPlanDetail(planId, { force = false } = {}) {
+      if (!force && _schedPlanDetailCache[planId]) return _schedPlanDetailCache[planId];
+      try {
+        const data = await apiRequest("GET", `/.netlify/functions/strength-plan?planId=${planId}`);
+        const exercises = (data && data.exercises) || [];
+        const prescriptions = (data && data.prescriptions) || [];
+        const dayLabels = (data && data.dayLabels) || [];
+        const detail = {
+          exercises,
+          prescriptions,
+          dayLabels,
+          dayMap: getExerciseDayMap(exercises),
+          daySetMap: getExerciseSetMap(exercises, prescriptions),
+          dayLabelMap: dayLabels.reduce((acc, row) => {
+            const dayNumber = Number(row.day_number);
+            const label = (row.day_label || "").toString().trim();
+            if (dayNumber >= 1 && dayNumber <= 7 && label) acc[String(dayNumber)] = label;
+            return acc;
+          }, {})
+        };
+        _schedPlanDetailCache[planId] = detail;
+        return detail;
+      } catch (_) {
+        return { exercises: [], prescriptions: [], dayLabels: [], dayMap: {}, daySetMap: {}, dayLabelMap: {} };
+      }
+    }
+
+    function getExerciseDayMap(exercises) {
+      const dayMap = {};
+      exercises.forEach((ex) => {
+        const d = Number(ex.day_number);
+        if (!d) return;
+        if (!dayMap[d]) dayMap[d] = [];
+        if (ex.section === "main" && ex.exercise && ex.exercise.name) {
+          dayMap[d].push(ex.exercise.name);
         }
       });
-      const cols = grid.map((daySlots, i) => {
-        const cells = daySlots.length > 0
-          ? daySlots.sort((a, b) => a.time_slot - b.time_slot).map((sl) => {
-            const sess = schedSessions.find((s) => s.id === sl.session_id);
-            const label = sess ? sess.session_label : sl.session_id.slice(0, 8);
-            const bg = sess ? getSessionColor(sess.session_type) : "#21262d";
-            return `<div style="background:${bg}; border-radius:4px; padding:4px 6px; font-size:0.7rem; color:#c9d1d9; margin-bottom:2px; text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${label}">${label}</div>`;
-          }).join("")
-          : '<div style="color:#30363d; font-size:0.7rem; text-align:center;">—</div>';
-        return `<div style="min-width:0;"><div style="color:#8b949e; font-size:0.7rem; text-align:center; margin-bottom:4px; font-weight:600;">${SCHED_DAY_LABELS[i]}</div>${cells}</div>`;
-      }).join("");
-      return `<div style="display:grid; grid-template-columns:repeat(7, 1fr); gap:4px;">${cols}</div>`;
+      return dayMap;
+    }
+
+    function getExerciseSetMap(exercises, prescriptions) {
+      const exerciseDayMap = {};
+      (exercises || []).forEach((exercise) => {
+        if (!exercise || !exercise.id) return;
+        const dayNumber = Number(exercise.day_number);
+        if (dayNumber >= 1 && dayNumber <= 7) {
+          exerciseDayMap[exercise.id] = dayNumber;
+        }
+      });
+
+      const daySetMap = {};
+      (prescriptions || []).forEach((prescription) => {
+        const dayNumber = exerciseDayMap[prescription.plan_exercise_id];
+        if (!dayNumber) return;
+        const weekNumber = Number(prescription.week_number || 1);
+        const sets = Number(prescription.sets || 0);
+        if (!Number.isInteger(weekNumber) || weekNumber < 1 || !Number.isFinite(sets) || sets <= 0) return;
+        if (!daySetMap[dayNumber]) daySetMap[dayNumber] = {};
+        daySetMap[dayNumber][weekNumber] = (daySetMap[dayNumber][weekNumber] || 0) + sets;
+      });
+
+      return daySetMap;
+    }
+
+    function getPlanDurationWeeks(plan) {
+      const parsed = Number(plan && plan.total_weeks);
+      return Number.isInteger(parsed) && parsed > 0 ? parsed : 1;
+    }
+
+    async function loadInlineCalendarView() {
+      if (!schedInlineCalendarView) return;
+      schedInlineCalendarView.innerHTML = '<p style="color:#8b949e; font-size:0.85rem;">A carregar...</p>';
+
+      try {
+        if (!schedCurrentPreset) {
+          schedInlineCalendarView.innerHTML = '<p style="color:#8b949e; font-size:0.85rem;">Sem preset selecionado para este programa.</p>';
+          return;
+        }
+
+        const [plansData, sessionsData] = await Promise.all([
+          apiRequest("GET", `/.netlify/functions/strength-plan?trainingProgramId=${schedSelectedProgramId}`),
+          apiRequest("GET", `/.netlify/functions/admin-program-sessions?trainingProgramId=${schedSelectedProgramId}`)
+        ]);
+
+        const plans = plansData && Array.isArray(plansData.plans) ? plansData.plans : [];
+        const selectedProgram = (schedPrograms || []).find((p) => p.id === schedSelectedProgramId) || null;
+        const selectedProgramDuration = Number(selectedProgram && (selectedProgram.durationWeeks != null
+          ? selectedProgram.durationWeeks
+          : selectedProgram.duration_weeks));
+        const calendarWeeks = Number.isInteger(selectedProgramDuration) && selectedProgramDuration > 0
+          ? selectedProgramDuration
+          : 1;
+        schedSessions = sessionsData.sessions || [];
+        const currentSlots = schedCurrentPreset.slots || [];
+
+        if (!plans.length) {
+          schedInlineCalendarView.innerHTML = '<p style="color:#8b949e; font-size:0.85rem;">Sem planos de força associados a este programa.</p>';
+          return;
+        }
+
+        await Promise.all(plans.map((plan) => loadPlanDetail(plan.id)));
+
+        const optionsHtml = plans.map((pl) => `<option value="${pl.id}">${escapeHtml(pl.name || pl.id)}</option>`).join("");
+        schedInlineCalendarView.innerHTML = `
+          <div style="display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap;">
+            <div style="min-width:220px; max-width:280px; flex:0 0 auto;">
+              <div style="margin-bottom:10px;">
+                <label style="display:block; font-size:0.8rem; color:#8b949e; margin-bottom:4px;">Plano de força:</label>
+                <select id="sched-inline-plan-select" style="padding:6px 10px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9; width:100%;">
+                  ${optionsHtml}
+                </select>
+              </div>
+              <div id="sched-inline-plan-meta" style="font-size:0.72rem; color:#8b949e; margin-bottom:8px;"></div>
+              <div style="font-size:0.72rem; color:#8b949e; margin-bottom:8px;">Duração do calendário: ${calendarWeeks} semana(s) do programa.</div>
+              <div style="font-size:0.75rem; color:#8b949e; margin-bottom:8px;">Arrasta um dia para o calendário:</div>
+              <div id="sched-drag-chips" style="display:grid; gap:6px;"></div>
+            </div>
+            <div style="flex:1; min-width:0; overflow-x:auto;">
+              <div id="sched-inline-plan-grid"></div>
+            </div>
+          </div>
+        `;
+
+        const planSelect = document.getElementById("sched-inline-plan-select");
+  const planMeta = document.getElementById("sched-inline-plan-meta");
+        const chipContainer = document.getElementById("sched-drag-chips");
+        const gridContainer = document.getElementById("sched-inline-plan-grid");
+
+        let localSlots = currentSlots.map((s) => ({ ...s }));
+        let currentDayMap = {};
+        let currentDayLabelMap = {};
+
+        function getSelectedPlan() {
+          return plans.find((pl) => pl.id === planSelect.value) || plans[0];
+        }
+
+        function renderPlanMeta() {
+          const plan = getSelectedPlan();
+          if (!planMeta || !plan) return;
+          const planWeeks = getPlanDurationWeeks(plan);
+          planMeta.textContent = `Plano selecionado: ${planWeeks} semana(s). O drag pode preencher no máximo esse bloco dentro das ${calendarWeeks} semanas do programa.`;
+        }
+
+        function getDayAlias(dayNumber) {
+          const value = (currentDayLabelMap[String(dayNumber)] || "").toString().trim();
+          return value || null;
+        }
+
+        async function renderDragChips() {
+          const plan = getSelectedPlan();
+          const detail = await loadPlanDetail(plan.id);
+          currentDayMap = detail.dayMap || {};
+          currentDayLabelMap = detail.dayLabelMap || {};
+          const activeDays = Object.keys(currentDayMap).map(Number).sort((a, b) => a - b);
+
+          if (!activeDays.length) {
+            chipContainer.innerHTML = '<p style="color:#8b949e; font-size:0.75rem;">Nenhum exercício definido neste plano.</p>';
+            return;
+          }
+
+          chipContainer.innerHTML = activeDays.map((day) => {
+            const names = currentDayMap[day] || [];
+            const alias = getDayAlias(day);
+            const summary = names.length > 0
+              ? names.slice(0, 3).map((n) => escapeHtml(n)).join(", ") + (names.length > 3 ? " +" + (names.length - 3) : "")
+              : "";
+            return '<div draggable="true" data-strength-day="' + day + '" style="padding:8px 10px; background:#1c3a5f; border:1px solid #30363d; border-radius:6px; color:#c9d1d9; cursor:grab; user-select:none;">'
+              + '<div style="display:flex; align-items:center; gap:6px;">'
+              + '<div style="font-size:0.8rem; font-weight:600; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' + escapeHtml(alias || ("Dia " + day)) + '</div>'
+              + '</div>'
+              + (summary ? '<div style="font-size:0.65rem; color:#8b949e; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="' + escapeHtml(names.join(", ")) + '">' + summary + '</div>' : '')
+              + '</div>';
+          }).join("");
+
+          chipContainer.querySelectorAll("[data-strength-day]").forEach((el) => {
+            el.addEventListener("dragstart", (ev) => {
+              ev.dataTransfer.setData("text/plain", JSON.stringify({
+                type: "strength-day",
+                planId: plan.id,
+                day: Number(el.dataset.strengthDay)
+              }));
+              ev.dataTransfer.effectAllowed = "copy";
+            });
+          });
+        }
+
+        function getDaySummary(sessionId, weekNumber) {
+          const sess = schedSessions.find((ss) => ss.id === sessionId);
+          if (!sess) return { label: (sessionId || "").slice(0, 8), names: "", setsText: "", bg: "#21262d" };
+          const bg = getSessionColor(sess.session_type);
+
+          let detail = null;
+          if (sess.session_type === "strength") {
+            if (sess.strength_plan_id) {
+              detail = _schedPlanDetailCache[sess.strength_plan_id] || null;
+            }
+
+            // Legacy fallback: infer plan from deterministic session_key prefix (str_<planId8>_dX)
+            if (!detail && sess.session_key) {
+              const keyMatch = String(sess.session_key).match(/^str_([a-f0-9]{8})_d\d+/i);
+              if (keyMatch && keyMatch[1]) {
+                const prefix = keyMatch[1].toLowerCase();
+                const inferredPlan = plans.find((plan) => String(plan.id || "").slice(0, 8).toLowerCase() === prefix);
+                if (inferredPlan && inferredPlan.id) {
+                  detail = _schedPlanDetailCache[inferredPlan.id] || null;
+                }
+              }
+            }
+          }
+
+          const dayNum = Number(sess.strength_day_number || 0);
+          const names = detail && detail.dayMap ? (detail.dayMap[dayNum] || []) : [];
+          const setCount = detail && detail.daySetMap && detail.daySetMap[dayNum]
+            ? Number(detail.daySetMap[dayNum][weekNumber] || 0)
+            : 0;
+          const summary = names.length > 0
+            ? names.slice(0, 2).map((n) => escapeHtml(n)).join(", ") + (names.length > 2 ? "…" : "")
+            : "";
+          return {
+            label: sess.session_label,
+            names: summary,
+            setsText: setCount > 0 ? `${setCount} séries` : "",
+            bg,
+            fullNames: names.map((n) => escapeHtml(n)).join(", ")
+          };
+        }
+
+        function renderCalendarGrid() {
+          const totalWeeks = calendarWeeks;
+
+          const header = ['<div style="color:#8b949e; font-size:0.72rem; font-weight:700; text-align:center;">Sem</div>']
+            .concat(SCHED_DAY_LABELS.map((l) => '<div style="color:#8b949e; font-size:0.72rem; font-weight:700; text-align:center;">' + l + '</div>'))
+            .join("");
+
+          const rows = [];
+          for (let week = 1; week <= totalWeeks; week++) {
+            const cells = ['<div style="color:#8b949e; font-size:0.72rem; text-align:center; padding-top:6px;">' + week + '</div>'];
+            for (let dayIdx = 0; dayIdx < 7; dayIdx++) {
+              const cellSlots = localSlots.filter((s) => s.day_of_week === dayIdx && Number(s.week_number || 0) === week);
+              const slotHtml = cellSlots.map((s) => {
+                const info = getDaySummary(s.session_id, week);
+                const tooltip = info.fullNames || escapeHtml(info.label);
+                return '<div style="background:' + info.bg + '; border-radius:4px; padding:4px 6px; font-size:0.65rem; color:#c9d1d9; margin-bottom:2px; overflow:hidden;" title="' + tooltip + '">'
+                  + '<div style="display:flex; align-items:center; gap:3px;">'
+                  + '<span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:600;">' + escapeHtml(info.label) + '</span>'
+                  + '<span data-remove-slot="' + s.session_id + '" data-remove-day="' + dayIdx + '" data-remove-week="' + week + '" style="cursor:pointer; color:#f85149; font-size:0.7rem; flex-shrink:0;" title="Remover">&times;</span>'
+                  + '</div>'
+                  + (info.setsText ? '<div style="font-size:0.6rem; color:#d2a85a; margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">' + escapeHtml(info.setsText) + '</div>' : '')
+                  + (info.names ? '<div style="font-size:0.6rem; color:#8b949e; margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">' + info.names + '</div>' : '')
+                  + '</div>';
+              }).join("");
+
+              cells.push(
+                '<div class="sched-drop-cell" data-day="' + dayIdx + '" data-week="' + week + '" style="min-height:40px; border-radius:4px; border:1px dashed #30363d; background:#0d1117; padding:3px; transition:border-color 0.15s;">'
+                + (slotHtml || '')
+                + '</div>'
+              );
+            }
+            rows.push(cells.join(""));
+          }
+
+          gridContainer.innerHTML = '<div style="display:grid; grid-template-columns:40px repeat(7, minmax(90px, 1fr)); gap:4px;">' + header + rows.join("") + '</div>';
+
+          // Wire drop zones
+          gridContainer.querySelectorAll(".sched-drop-cell").forEach((zone) => {
+            zone.addEventListener("dragover", (ev) => {
+              ev.preventDefault();
+              ev.dataTransfer.dropEffect = "copy";
+              zone.style.borderColor = "#58a6ff";
+            });
+            zone.addEventListener("dragleave", () => {
+              zone.style.borderColor = "#30363d";
+            });
+            zone.addEventListener("drop", async (ev) => {
+              ev.preventDefault();
+              zone.style.borderColor = "#30363d";
+              const raw = ev.dataTransfer.getData("text/plain");
+              if (!raw) return;
+              try {
+                const payload = JSON.parse(raw);
+                if (payload.type !== "strength-day") return;
+                const dayIdx = Number(zone.dataset.day);
+                const weekNum = Number(zone.dataset.week);
+                const plan = plans.find((p) => p.id === payload.planId);
+
+                const planWeeks = getPlanDurationWeeks(plan);
+                const endWeek = Math.min(calendarWeeks, weekNum + planWeeks - 1);
+                let weeksToFill = [weekNum];
+                if (endWeek > weekNum) {
+                  const fillAll = confirm(
+                    "Aplicar Dia " + payload.day
+                    + " neste dia da semana para as semanas " + weekNum + "–" + endWeek
+                    + " (" + (endWeek - weekNum + 1) + " semanas do plano)?"
+                  );
+                  if (fillAll) {
+                    weeksToFill = Array.from({ length: endWeek - weekNum + 1 }, (_, i) => weekNum + i);
+                  }
+                }
+
+                const dayAlias = getDayAlias(payload.day);
+                const sessionId = await ensureStrengthSession(payload.planId, payload.day, plan, dayAlias);
+                for (const w of weeksToFill) {
+                  const alreadyExists = localSlots.some((s) => s.day_of_week === dayIdx && Number(s.week_number || 0) === w && s.session_id === sessionId);
+                  if (!alreadyExists) {
+                    localSlots.push({ day_of_week: dayIdx, week_number: w, session_id: sessionId, time_slot: 1, sort_order: 0 });
+                  }
+                }
+
+                await savePresetSlots(schedCurrentPreset, localSlots);
+                renderCalendarGrid();
+              } catch (err) {
+                showResult("Erro ao colocar sessão: " + (err.message || "erro"), true);
+              }
+            });
+          });
+
+          // Wire remove buttons
+          gridContainer.querySelectorAll("[data-remove-slot]").forEach((btn) => {
+            btn.addEventListener("click", async (ev) => {
+              ev.stopPropagation();
+              const sessionId = btn.dataset.removeSlot;
+              const dayIdx = Number(btn.dataset.removeDay);
+              const weekNum = Number(btn.dataset.removeWeek);
+              localSlots = localSlots.filter((s) => !(s.day_of_week === dayIdx && Number(s.week_number || 0) === weekNum && s.session_id === sessionId));
+              try {
+                await savePresetSlots(schedCurrentPreset, localSlots);
+              } catch (_) {}
+              renderCalendarGrid();
+            });
+          });
+        }
+
+        planSelect.addEventListener("change", async () => {
+          renderPlanMeta();
+          await renderDragChips();
+          renderCalendarGrid();
+        });
+
+        renderPlanMeta();
+        await renderDragChips();
+        renderCalendarGrid();
+      } catch (err) {
+        schedInlineCalendarView.innerHTML = '<p style="color:#f85149; font-size:0.85rem;">Erro ao carregar vista calendário: ' + escapeHtml(err.message || "erro") + '</p>';
+      }
     }
 
     function getSessionColor(type) {
@@ -6945,297 +7836,6 @@
         case "rest": return "#30363d";
         case "mobility": return "#4a3060";
         default: return "#21262d";
-      }
-    }
-
-    // ── Session CRUD ──
-
-    function openSessionEditor(sessionId) {
-      const existing = sessionId ? schedSessions.find((s) => s.id === sessionId) : null;
-      const title = existing ? "Editar sessão" : "Nova sessão";
-
-      const html = `<div class="modal-backdrop" style="position:fixed; inset:0; background:rgba(0,0,0,0.6); display:flex; align-items:center; justify-content:center; z-index:1000;">
-        <div class="modal" style="background:#161b22; border:1px solid #30363d; border-radius:12px; padding:24px; max-width:440px; width:90%;">
-          <h3 style="color:#c9d1d9; margin-bottom:16px;">${title}</h3>
-          <form id="sched-session-form">
-            <div style="display:grid; gap:12px;">
-              <div>
-                <label style="display:block; font-size:0.8rem; color:#8b949e; margin-bottom:4px;">Chave (session_key)*</label>
-                <input name="session_key" value="${existing ? existing.session_key : ""}" required style="width:100%; padding:6px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9;" placeholder="ex: strength_a, run_easy" />
-              </div>
-              <div>
-                <label style="display:block; font-size:0.8rem; color:#8b949e; margin-bottom:4px;">Tipo*</label>
-                <select name="session_type" required style="width:100%; padding:6px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9;">
-                  ${SCHED_SESSION_TYPES.map((t) => `<option value="${t}" ${existing && existing.session_type === t ? "selected" : ""}>${t}</option>`).join("")}
-                </select>
-              </div>
-              <div>
-                <label style="display:block; font-size:0.8rem; color:#8b949e; margin-bottom:4px;">Label*</label>
-                <input name="session_label" value="${existing ? existing.session_label : ""}" required style="width:100%; padding:6px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9;" placeholder="ex: Força - Dia A (Upper)" />
-              </div>
-              <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
-                <div>
-                  <label style="display:block; font-size:0.8rem; color:#8b949e; margin-bottom:4px;">Dia de força (1-7)</label>
-                  <input name="strength_day_number" type="number" min="1" max="7" value="${existing && existing.strength_day_number ? existing.strength_day_number : ""}" style="width:100%; padding:6px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9;" />
-                </div>
-                <div>
-                  <label style="display:block; font-size:0.8rem; color:#8b949e; margin-bottom:4px;">Tipo corrida</label>
-                  <select name="running_session_type" style="width:100%; padding:6px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9;">
-                    <option value="">—</option>
-                    ${SCHED_RUNNING_TYPES.map((t) => `<option value="${t}" ${existing && existing.running_session_type === t ? "selected" : ""}>${t}</option>`).join("")}
-                  </select>
-                </div>
-              </div>
-              <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px;">
-                <div>
-                  <label style="display:block; font-size:0.8rem; color:#8b949e; margin-bottom:4px;">Duração (min)</label>
-                  <input name="duration_estimate_min" type="number" min="0" value="${existing && existing.duration_estimate_min ? existing.duration_estimate_min : ""}" style="width:100%; padding:6px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9;" />
-                </div>
-                <div>
-                  <label style="display:block; font-size:0.8rem; color:#8b949e; margin-bottom:4px;">Intensidade</label>
-                  <select name="intensity" style="width:100%; padding:6px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9;">
-                    <option value="">—</option>
-                    ${SCHED_INTENSITIES.map((t) => `<option value="${t}" ${existing && existing.intensity === t ? "selected" : ""}>${t}</option>`).join("")}
-                  </select>
-                </div>
-                <div>
-                  <label style="display:block; font-size:0.8rem; color:#8b949e; margin-bottom:4px;">Prioridade</label>
-                  <input name="sort_priority" type="number" value="${existing ? existing.sort_priority : schedSessions.length}" style="width:100%; padding:6px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9;" />
-                </div>
-              </div>
-              <label style="display:flex; align-items:center; gap:6px; font-size:0.85rem; color:#8b949e; cursor:pointer;">
-                <input type="checkbox" name="is_optional" ${existing && existing.is_optional ? "checked" : ""} /> Opcional
-              </label>
-            </div>
-            <div style="display:flex; gap:8px; margin-top:16px;">
-              <button type="submit" class="btn btn-primary">Guardar</button>
-              <button type="button" class="btn btn-secondary" onclick="this.closest('.modal-backdrop').remove()">Cancelar</button>
-            </div>
-          </form>
-        </div>
-      </div>`;
-
-      const wrapper = document.createElement("div");
-      wrapper.innerHTML = html;
-      const backdrop = wrapper.firstElementChild;
-      document.body.appendChild(backdrop);
-
-      const form = document.getElementById("sched-session-form");
-      form.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const fd = new FormData(form);
-        const payload = {
-          training_program_id: schedSelectedProgramId,
-          sessions: [{
-            id: existing ? existing.id : undefined,
-            session_key: fd.get("session_key"),
-            session_type: fd.get("session_type"),
-            session_label: fd.get("session_label"),
-            strength_day_number: fd.get("strength_day_number") || null,
-            running_session_type: fd.get("running_session_type") || null,
-            duration_estimate_min: fd.get("duration_estimate_min") || null,
-            intensity: fd.get("intensity") || null,
-            sort_priority: Number(fd.get("sort_priority")) || 0,
-            is_optional: form.querySelector('[name="is_optional"]').checked
-          }]
-        };
-        try {
-          await apiRequest("PUT", "/.netlify/functions/admin-program-sessions", payload);
-          backdrop.remove();
-          await loadScheduleSessions();
-          showResult("Sessão guardada.", false);
-        } catch (err) {
-          showResult("Erro: " + err.message, true);
-        }
-      });
-    }
-
-    async function deleteScheduleSession(sessionId) {
-      if (!confirm("Apagar esta sessão? Slots que a referenciam também serão removidos.")) return;
-      try {
-        await apiRequest("PUT", "/.netlify/functions/admin-program-sessions", {
-          training_program_id: schedSelectedProgramId,
-          sessions: [],
-          delete_session_ids: [sessionId]
-        });
-        await Promise.all([loadScheduleSessions(), loadSchedulePresets()]);
-        showResult("Sessão apagada.", false);
-      } catch (err) {
-        showResult("Erro: " + err.message, true);
-      }
-    }
-
-    // ── Preset CRUD ──
-
-    function openPresetEditor(presetId) {
-      const existing = presetId ? schedPresets.find((p) => p.id === presetId) : null;
-      const existingSlots = existing && existing.slots ? existing.slots : [];
-      const title = existing ? "Editar preset" : "Novo preset";
-
-      // Build slot grid state
-      const slotGrid = Array.from({ length: 7 }, () => ({ 1: null, 2: null }));
-      existingSlots.forEach((s) => {
-        if (s.day_of_week >= 0 && s.day_of_week <= 6 && (s.time_slot === 1 || s.time_slot === 2)) {
-          slotGrid[s.day_of_week][s.time_slot] = s.session_id;
-        }
-      });
-
-      const html = `<div class="modal-backdrop" style="position:fixed; inset:0; background:rgba(0,0,0,0.6); display:flex; align-items:center; justify-content:center; z-index:1000;">
-        <div class="modal" style="background:#161b22; border:1px solid #30363d; border-radius:12px; padding:24px; max-width:640px; width:95%;">
-          <h3 style="color:#c9d1d9; margin-bottom:16px;">${title}</h3>
-          <form id="sched-preset-form">
-            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-bottom:16px;">
-              <div>
-                <label style="display:block; font-size:0.8rem; color:#8b949e; margin-bottom:4px;">Nome*</label>
-                <input name="preset_name" value="${existing ? existing.preset_name : ""}" required style="width:100%; padding:6px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9;" placeholder="ex: 6 dias" />
-              </div>
-              <div>
-                <label style="display:block; font-size:0.8rem; color:#8b949e; margin-bottom:4px;">Dias treino (1-7)*</label>
-                <input name="total_training_days" type="number" min="1" max="7" value="${existing ? existing.total_training_days : 5}" required style="width:100%; padding:6px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9;" />
-              </div>
-              <div>
-                <label style="display:block; font-size:0.8rem; color:#8b949e; margin-bottom:4px;">Descrição</label>
-                <input name="description" value="${existing && existing.description ? existing.description : ""}" style="width:100%; padding:6px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9;" placeholder="Opcional" />
-              </div>
-            </div>
-            <label style="display:flex; align-items:center; gap:6px; font-size:0.85rem; color:#8b949e; margin-bottom:16px; cursor:pointer;">
-              <input type="checkbox" name="is_default" ${existing && existing.is_default ? "checked" : ""} /> Preset padrão
-            </label>
-            <div style="margin-bottom:12px; color:#8b949e; font-size:0.8rem;">Edita sessões por dia/slot e usa ◀ ▶ para reordenar rapidamente pela semana.</div>
-            <div id="sched-preset-grid" style="display:grid; grid-template-columns:repeat(7, 1fr); gap:6px; margin-bottom:16px;">
-            </div>
-            <div style="display:flex; gap:8px;">
-              <button type="submit" class="btn btn-primary">Guardar</button>
-              <button type="button" class="btn btn-secondary" onclick="this.closest('.modal-backdrop').remove()">Cancelar</button>
-            </div>
-          </form>
-        </div>
-      </div>`;
-
-      const wrapper = document.createElement("div");
-      wrapper.innerHTML = html;
-      const backdrop = wrapper.firstElementChild;
-      document.body.appendChild(backdrop);
-
-      const gridContainer = document.getElementById("sched-preset-grid");
-
-      function renderPresetGridEditor() {
-        if (!gridContainer) return;
-        gridContainer.innerHTML = SCHED_DAY_LABELS.map((label, dayIdx) => {
-          const renderSlot = (slot) => {
-            const current = slotGrid[dayIdx][slot];
-            return `<div style="display:grid; grid-template-columns:1fr auto; gap:4px; margin-bottom:4px;">
-              <select data-day="${dayIdx}" data-slot="${slot}" style="width:100%; padding:4px; border-radius:4px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9; font-size:0.75rem;">
-                <option value="">—</option>
-                ${schedSessions.map((s) => `<option value="${s.id}" ${current === s.id ? "selected" : ""}>${s.session_label}</option>`).join("")}
-              </select>
-              <div style="display:flex; flex-direction:column; gap:2px;">
-                <button type="button" class="btn btn-secondary" data-shift-day="${dayIdx}" data-shift-slot="${slot}" data-shift-dir="left" style="padding:2px 6px; font-size:10px;">◀</button>
-                <button type="button" class="btn btn-secondary" data-shift-day="${dayIdx}" data-shift-slot="${slot}" data-shift-dir="right" style="padding:2px 6px; font-size:10px;">▶</button>
-              </div>
-            </div>`;
-          };
-          return `<div style="text-align:center;">
-            <div style="color:#8b949e; font-size:0.75rem; font-weight:600; margin-bottom:4px;">${label}</div>
-            ${renderSlot(1)}
-            ${renderSlot(2)}
-          </div>`;
-        }).join("");
-      }
-
-      function moveSlot(day, slot, dir) {
-        const targetDay = dir === "left" ? day - 1 : day + 1;
-        if (targetDay < 0 || targetDay > 6) return;
-        const currentValue = slotGrid[day][slot];
-        slotGrid[day][slot] = slotGrid[targetDay][slot];
-        slotGrid[targetDay][slot] = currentValue;
-        renderPresetGridEditor();
-      }
-
-      renderPresetGridEditor();
-
-      if (gridContainer) {
-        gridContainer.addEventListener("change", (event) => {
-          const target = event.target;
-          if (!(target instanceof HTMLSelectElement)) return;
-          const day = Number(target.dataset.day);
-          const slot = Number(target.dataset.slot);
-          if (!Number.isInteger(day) || !Number.isInteger(slot)) return;
-          slotGrid[day][slot] = target.value || null;
-        });
-
-        gridContainer.addEventListener("click", (event) => {
-          const target = event.target;
-          if (!(target instanceof HTMLElement)) return;
-          const btn = target.closest("button[data-shift-day]");
-          if (!(btn instanceof HTMLElement)) return;
-          const day = Number(btn.dataset.shiftDay);
-          const slot = Number(btn.dataset.shiftSlot);
-          const dir = btn.dataset.shiftDir;
-          if (!Number.isInteger(day) || !Number.isInteger(slot)) return;
-          if (dir !== "left" && dir !== "right") return;
-          moveSlot(day, slot, dir);
-        });
-      }
-
-      const form = document.getElementById("sched-preset-form");
-      form.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const fd = new FormData(form);
-
-        // Collect slots from the grid state
-        const slots = [];
-        for (let day = 0; day <= 6; day++) {
-          for (let slot = 1; slot <= 2; slot++) {
-            const sessionId = slotGrid[day][slot];
-            if (sessionId) {
-              slots.push({
-                day_of_week: day,
-                time_slot: slot,
-                session_id: sessionId,
-                sort_order: day * 10 + slot
-              });
-            }
-          }
-        }
-
-        try {
-          if (existing) {
-            await apiRequest("PUT", "/.netlify/functions/admin-program-schedule", {
-              preset_id: existing.id,
-              preset_name: fd.get("preset_name"),
-              total_training_days: Number(fd.get("total_training_days")),
-              description: fd.get("description") || null,
-              is_default: form.querySelector('[name="is_default"]').checked,
-              slots
-            });
-          } else {
-            await apiRequest("POST", "/.netlify/functions/admin-program-schedule", {
-              training_program_id: schedSelectedProgramId,
-              preset_name: fd.get("preset_name"),
-              total_training_days: Number(fd.get("total_training_days")),
-              description: fd.get("description") || null,
-              is_default: form.querySelector('[name="is_default"]').checked,
-              slots
-            });
-          }
-          backdrop.remove();
-          await loadSchedulePresets();
-          showResult("Preset guardado.", false);
-        } catch (err) {
-          showResult("Erro: " + err.message, true);
-        }
-      });
-    }
-
-    async function deleteSchedulePreset(presetId) {
-      if (!confirm("Apagar este preset? Todos os slots serão removidos.")) return;
-      try {
-        await apiRequest("DELETE", `/.netlify/functions/admin-program-schedule?presetId=${presetId}`);
-        await loadSchedulePresets();
-        showResult("Preset apagado.", false);
-      } catch (err) {
-        showResult("Erro: " + err.message, true);
       }
     }
 

@@ -94,9 +94,42 @@ exports.handler = async (event) => {
     }
 
     // Get actual logs
+    // Build per-exercise per-week planned breakdown
+    const byExercise = {};
+    for (const pe of full.exercises) {
+      byExercise[pe.id] = {
+        id: pe.id,
+        name: (pe.exercise && pe.exercise.name) || pe.exercise_id || pe.id,
+        section: pe.section,
+        dayNumber: pe.day_number,
+        weeks: {}
+      };
+    }
+    for (let w = 1; w <= full.plan.total_weeks; w++) {
+      for (const pe of full.exercises) {
+        const rx = (rxMap[pe.id] || {})[w];
+        if (!rx) continue;
+        const sets = rx.sets || 1;
+        const reps = resolveReps(rx, pe.section, pe);
+        const sides = pe.each_side ? 2 : 1;
+        const exerciseId = pe.exercise_id || (pe.exercise && pe.exercise.id);
+        const oneRm = exerciseId ? oneRmMap[exerciseId] : null;
+        const { loadKg } = resolveLoad(rx, pe, oneRm, loadRound, w);
+        byExercise[pe.id].weeks[w] = {
+          plannedSets: sets,
+          plannedReps: reps * sides,
+          plannedKg: loadKg != null ? sets * reps * sides * loadKg : null,
+          actualSets: 0,
+          actualReps: 0,
+          actualKg: 0
+        };
+      }
+    }
+
+    // Get actual logs
     const logs = await getStrengthLogs(config, qs.athleteId, qs.planId);
 
-    // Aggregate actual volume per week
+    // Aggregate actual volume per week and per exercise
     const weeklyActual = {};
     for (const log of (logs || [])) {
       const w = log.week_number;
@@ -108,9 +141,19 @@ exports.handler = async (event) => {
       weeklyActual[w].totalReps += reps;
       weeklyActual[w].totalKg += reps * load;
       weeklyActual[w].setCount += 1;
+
+      const peId = log.plan_exercise_id;
+      if (peId && byExercise[peId]) {
+        if (!byExercise[peId].weeks[w]) {
+          byExercise[peId].weeks[w] = { plannedSets: 0, plannedReps: 0, plannedKg: null, actualSets: 0, actualReps: 0, actualKg: 0 };
+        }
+        byExercise[peId].weeks[w].actualSets += 1;
+        byExercise[peId].weeks[w].actualReps += reps;
+        byExercise[peId].weeks[w].actualKg += reps * load;
+      }
     }
 
-    return json(200, { plan: full.plan, weeklyPlanned, weeklyActual });
+    return json(200, { plan: full.plan, weeklyPlanned, weeklyActual, byExercise });
   } catch (err) {
     const status = err.status || 500;
     return json(status, { error: err.message || "Internal server error" });

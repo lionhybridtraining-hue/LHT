@@ -54,7 +54,7 @@ export function buildAppRedirectUrl(path: string) {
   return `${window.location.origin}${normalizedBase}${normalizedPath}`;
 }
 
-export async function signInWithGoogle(path = "/formulario") {
+export async function signInWithGoogle(path = "/atleta/onboarding/formulario") {
   const redirectTo = buildAppRedirectUrl(path);
   const result = await supabase.auth.signInWithOAuth({
     provider: "google",

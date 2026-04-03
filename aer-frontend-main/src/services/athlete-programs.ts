@@ -12,6 +12,10 @@ export interface RunningPlanEntry {
   updatedAt: string | null;
   programDistanceKm: number | null;
   trainingFrequency: number | null;
+  hasPlanData: boolean;
+  source: "assignment" | "onboarding";
+  openPath: string;
+  regeneratePath: string;
 }
 
 export interface AthleteRunningProgramsResponse {

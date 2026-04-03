@@ -58,6 +58,12 @@ export interface MyProgram {
   /** "purchase" = Stripe-based, "assignment" = coach-assigned without Stripe */
   sourceType?: "purchase" | "assignment";
   availableTemplates?: MyProgramTemplate[];
+  /** Who picks the preset: 'coach' or 'athlete' */
+  presetSelection?: "coach" | "athlete";
+  /** Preset already selected for this assignment (null if not yet chosen) */
+  selectedPresetId?: string | null;
+  /** True if the assignment is active but no preset has been selected yet */
+  needsPresetSelection?: boolean;
 }
 
 export interface OrphanedInstance {

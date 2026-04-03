@@ -58,6 +58,8 @@ function ProgramasContent({ session }: { session: AthleteOutletContext["session"
     if (!runningPrograms.length) return null;
     return runningPrograms[0];
   }, [runningPrograms]);
+  const runningPlanOpenPath = runningPlan?.openPath || "/atleta/onboarding/formulario";
+  const runningPlanRegeneratePath = runningPlan?.regeneratePath || "/atleta/onboarding/formulario";
 
   const handleStartInstance = async (programId: string, planId?: string) => {
     setCreatingInstance(programId);
@@ -93,6 +95,18 @@ function ProgramasContent({ session }: { session: AthleteOutletContext["session"
           </h1>
           <p className="mt-2 text-xs text-[#8f99a8]">
             Sessao ativa: {session.user.user_metadata?.full_name || session.user.email}
+          </p>
+        </div>
+
+        <div className="mt-6 rounded-[28px] border border-[#d4a54f26] bg-[linear-gradient(180deg,rgba(27,27,27,0.96),rgba(15,15,15,0.96))] px-5 py-5 shadow-[0_20px_46px_rgba(0,0,0,0.34)]">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[#d4a54f]">
+            Biblioteca do atleta
+          </p>
+          <h2 className="mt-2 font-['Oswald'] text-3xl font-semibold uppercase tracking-[0.04em] text-[#f7f1e8]">
+            Continua o teu plano e descobre o proximo passo
+          </h2>
+          <p className="mt-2 text-sm leading-relaxed text-[#8f99a8]">
+            Acede rapidamente ao teu plano de corrida guardado e explora outras opcoes para complementar o teu progresso.
           </p>
         </div>
 
@@ -142,7 +156,8 @@ function ProgramasContent({ session }: { session: AthleteOutletContext["session"
           ) : null}
           <RunningProgramCard
             runningPlan={runningPlan}
-            onOpen={() => navigate("/formulario")}
+            onOpen={() => navigate(runningPlanOpenPath)}
+            onGenerateNew={() => navigate(runningPlanRegeneratePath)}
           />
 
           {/* Fallback strength card when no purchases/instances exist */}
@@ -153,6 +168,28 @@ function ProgramasContent({ session }: { session: AthleteOutletContext["session"
               badge="Disponivel"
               onOpen={() => navigate("/atleta/forca")}
               ctaLabel="Abrir Forca"
+            />
+          ) : null}
+        </div>
+
+        <div className="mt-8 space-y-4">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-[#8f99a8]">
+            Descobre outras opcoes
+          </p>
+          <DiscoveryCard
+            title="Catalogo LHT"
+            subtitle="Explora todos os programas e encontra a proxima opcao para complementar o teu plano atual."
+            badge="Explorar"
+            ctaLabel="Ver catalogo completo"
+            onOpen={() => window.location.assign("/programas")}
+          />
+          {!hasStrengthPrograms ? (
+            <DiscoveryCard
+              title="Complementa com Forca"
+              subtitle="Acrescenta um programa de forca para suportar consistencia, resiliencia e performance na corrida."
+              badge="Upsell"
+              ctaLabel="Descobrir opcoes de forca"
+              onOpen={() => window.location.assign("/programas")}
             />
           ) : null}
         </div>
@@ -194,6 +231,7 @@ function StrengthProgramCard({
   onOpen: () => void;
 }) {
   const { purchase, program: meta, instance, phase, isCoachLocked, canCreateInstance, sourceType, availableTemplates } = program;
+  const navigate = useNavigate();
   // Program name is the top-level product (AER), plan name is the specific strength block underneath
   const programName = meta?.name || instance?.planName || "Programa de Forca";
   const planName = instance?.planName && instance.planName !== meta?.name ? instance.planName : null;
@@ -248,7 +286,18 @@ function StrengthProgramCard({
       ) : null}
 
       {/* CTA */}
-      {canCreateInstance && !hasActiveInstance && availableTemplates && availableTemplates.length > 1 ? (
+      {program.needsPresetSelection && program.presetSelection === "athlete" ? (
+        <button
+          onClick={() => navigate("/atleta/calendario")}
+          className="mt-4 w-full rounded-xl bg-[linear-gradient(180deg,#e3b861,#d4a54f_55%,#bf8e3e)] py-3 font-['Oswald'] text-base font-semibold uppercase tracking-[0.08em] text-[#111111] shadow-[0_8px_22px_rgba(212,165,79,0.28)] active:scale-[0.98]"
+        >
+          Configurar Calendario
+        </button>
+      ) : program.needsPresetSelection && program.presetSelection === "coach" ? (
+        <p className="mt-4 rounded-xl border border-[#d4a54f33] bg-[#1a1612] px-4 py-3 text-center text-xs text-[#8f99a8]">
+          O teu coach esta a configurar o calendário
+        </p>
+      ) : canCreateInstance && !hasActiveInstance && availableTemplates && availableTemplates.length > 1 ? (
         <div className="mt-4 space-y-2">
           <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#8f99a8]">Escolhe o teu plano</p>
           {availableTemplates.map((t) => (
@@ -357,9 +406,11 @@ function OrphanedInstanceCard({
 function RunningProgramCard({
   runningPlan,
   onOpen,
+  onGenerateNew,
 }: {
   runningPlan: RunningPlanEntry | null;
   onOpen: () => void;
+  onGenerateNew: () => void;
 }) {
   return (
     <StaticCard
@@ -368,6 +419,14 @@ function RunningProgramCard({
       badge={resolveRunningBadge(runningPlan)}
       onOpen={onOpen}
       ctaLabel={runningPlan ? "Abrir Plano" : "Gerar Plano"}
+      secondaryAction={
+        runningPlan
+          ? {
+              label: "Gerar novo plano",
+              onClick: onGenerateNew,
+            }
+          : undefined
+      }
     />
   );
 }
@@ -380,8 +439,12 @@ function StaticCard(props: {
   badge: string;
   onOpen: () => void;
   ctaLabel: string;
+  secondaryAction?: {
+    label: string;
+    onClick: () => void;
+  };
 }) {
-  const { title, subtitle, badge, onOpen, ctaLabel } = props;
+  const { title, subtitle, badge, onOpen, ctaLabel, secondaryAction } = props;
 
   return (
     <article className="rounded-2xl border border-[#d4a54f33] bg-[#141414] p-5 shadow-[0_14px_34px_rgba(0,0,0,0.35)]">
@@ -392,14 +455,34 @@ function StaticCard(props: {
         </span>
       </div>
       <p className="mt-2 text-sm leading-relaxed text-[#8f99a8]">{subtitle}</p>
-      <button
-        onClick={onOpen}
-        className="mt-4 w-full rounded-xl bg-[linear-gradient(180deg,#e3b861,#d4a54f_55%,#bf8e3e)] py-3 font-['Oswald'] text-base font-semibold uppercase tracking-[0.08em] text-[#111111] shadow-[0_8px_22px_rgba(212,165,79,0.28)] active:scale-[0.98]"
-      >
-        {ctaLabel}
-      </button>
+      <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+        <button
+          onClick={onOpen}
+          className="w-full rounded-xl bg-[linear-gradient(180deg,#e3b861,#d4a54f_55%,#bf8e3e)] py-3 font-['Oswald'] text-base font-semibold uppercase tracking-[0.08em] text-[#111111] shadow-[0_8px_22px_rgba(212,165,79,0.28)] active:scale-[0.98]"
+        >
+          {ctaLabel}
+        </button>
+        {secondaryAction ? (
+          <button
+            onClick={secondaryAction.onClick}
+            className="w-full rounded-xl border border-[#d4a54f44] px-4 py-3 text-sm font-semibold text-[#f7f1e8] hover:bg-[#1b1b1b] active:scale-[0.98]"
+          >
+            {secondaryAction.label}
+          </button>
+        ) : null}
+      </div>
     </article>
   );
+}
+
+function DiscoveryCard(props: {
+  title: string;
+  subtitle: string;
+  badge: string;
+  ctaLabel: string;
+  onOpen: () => void;
+}) {
+  return <StaticCard {...props} />;
 }
 
 // ── Helpers ──
@@ -421,6 +504,10 @@ function resolveRunningSubtitle(runningPlan: RunningPlanEntry | null): string {
 
   if (runningPlan.generatedAt) {
     pieces.push(`gerado em ${toLocaleDate(runningPlan.generatedAt)}`);
+  }
+
+  if (runningPlan.storage === "program_assignments") {
+    pieces.push("sincronizado na app");
   }
 
   const summary = pieces.length ? pieces.join(" · ") : "Plano guardado";

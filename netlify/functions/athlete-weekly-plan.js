@@ -12,61 +12,17 @@ const {
   deleteAthleteWeeklyPlanFromWeek,
   listAthleteWeeklyPlan,
   updateAthleteWeeklyPlanRow,
-  updateStrengthPlanInstance,
-  getAthleteByIdentity
+  getAthleteByIdentity,
+  setAssignmentPreset,
+  createStrengthPlanInstance,
+  getTrainingProgramById
 } = require("./_lib/supabase");
 
 const DAY_LABELS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
 
 /**
- * Resolves running session data from plan_data JSONB for a given week.
- * plan_data structure: { phase1: { "1": [...sessions], "2": [...] }, phase2: { ... } }
- */
-function resolveRunningSession(planData, weekNumber, runningSessionType) {
-  if (!planData || !runningSessionType) return null;
-
-  // Determine which phase and relative week
-  let cumulativeWeek = 0;
-  for (const phaseKey of ["phase1", "phase2", "phase3"]) {
-    const phase = planData[phaseKey];
-    if (!phase || typeof phase !== "object") continue;
-
-    const weekKeys = Object.keys(phase)
-      .filter((k) => !isNaN(Number(k)))
-      .sort((a, b) => Number(a) - Number(b));
-
-    for (const wk of weekKeys) {
-      cumulativeWeek++;
-      if (cumulativeWeek === weekNumber) {
-        const sessions = phase[wk];
-        if (!Array.isArray(sessions)) return null;
-
-        // Match by session type
-        const typeMap = {
-          easy: ["easy", "recovery"],
-          threshold: ["threshold", "tempo"],
-          interval: ["intervals", "interval"],
-          long: ["long run", "long"],
-          tempo: ["tempo", "threshold"],
-          repetition: ["repetition", "repetitions"],
-          recovery: ["recovery", "easy"]
-        };
-
-        const matchTerms = typeMap[runningSessionType] || [runningSessionType];
-        const matched = sessions.find((s) => {
-          const title = (s.title || s.description || "").toLowerCase();
-          return matchTerms.some((term) => title.includes(term));
-        });
-
-        return matched || null;
-      }
-    }
-  }
-  return null;
-}
-
-/**
  * Generates athlete_weekly_plan rows from a preset + assignment data.
+ * strengthInstanceMap: Map<strength_plan_id, instance_id>
  */
 function generateWeeklyPlanRows({
   athleteId,
@@ -75,8 +31,7 @@ function generateWeeklyPlanRows({
   startDate,
   slots,
   sessions,
-  strengthInstanceId,
-  planData,
+  strengthInstanceMap,
   source,
   presetId,
   fromWeek
@@ -85,46 +40,41 @@ function generateWeeklyPlanRows({
   const rows = [];
   const effectiveFromWeek = fromWeek || 1;
 
-  for (let week = effectiveFromWeek; week <= totalWeeks; week++) {
-    // Calculate week_start_date (Monday of each week)
+  for (const slot of slots) {
+    const week = Number(slot.week_number || 1);
+    if (!Number.isInteger(week) || week < effectiveFromWeek || week > totalWeeks) continue;
+
+    const session = sessionMap.get(slot.session_id);
+    if (!session) continue;
+
+    // Calculate week_start_date (Monday of the slot's week)
     const weekStartDate = new Date(startDate);
     weekStartDate.setDate(weekStartDate.getDate() + (week - 1) * 7);
     const weekStartStr = weekStartDate.toISOString().slice(0, 10);
 
-    for (const slot of slots) {
-      const session = sessionMap.get(slot.session_id);
-      if (!session) continue;
+    const row = {
+      athlete_id: athleteId,
+      program_assignment_id: assignmentId,
+      week_number: week,
+      week_start_date: weekStartStr,
+      day_of_week: slot.day_of_week,
+      time_slot: slot.time_slot,
+      session_key: session.session_key,
+      session_type: session.session_type,
+      session_label: session.session_label,
+      duration_estimate_min: session.duration_estimate_min,
+      intensity: session.intensity,
+      strength_instance_id: session.session_type === "strength" && session.strength_plan_id && strengthInstanceMap
+        ? (strengthInstanceMap.get(session.strength_plan_id) || null)
+        : null,
+      strength_day_number: session.strength_day_number || null,
+      running_session_data: null,
+      source: source || "preset",
+      status: "planned",
+      generated_from_preset_id: presetId || null
+    };
 
-      const row = {
-        athlete_id: athleteId,
-        program_assignment_id: assignmentId,
-        week_number: week,
-        week_start_date: weekStartStr,
-        day_of_week: slot.day_of_week,
-        time_slot: slot.time_slot,
-        session_key: session.session_key,
-        session_type: session.session_type,
-        session_label: session.session_label,
-        duration_estimate_min: session.duration_estimate_min,
-        intensity: session.intensity,
-        strength_instance_id: session.session_type === "strength" && strengthInstanceId ? strengthInstanceId : null,
-        strength_day_number: session.strength_day_number || null,
-        running_session_data: null,
-        source: source || "preset",
-        status: "planned",
-        generated_from_preset_id: presetId || null
-      };
-
-      // Resolve running session data if available
-      if (session.session_type === "running" && planData) {
-        const runData = resolveRunningSession(planData, week, session.running_session_type);
-        if (runData) {
-          row.running_session_data = runData;
-        }
-      }
-
-      rows.push(row);
-    }
+    rows.push(row);
   }
 
   return rows;
@@ -218,26 +168,59 @@ exports.handler = async (event) => {
         return json(400, { error: "Program has no sessions defined" });
       }
 
-      // Find active strength instance for this athlete + program
-      let strengthInstanceId = null;
-      const instances = await listStrengthPlanInstances(config, {
-        athleteId: assignment.athlete_id,
-        status: "active"
-      });
-      if (Array.isArray(instances)) {
-        const match = instances.find((inst) => {
-          const tpId = inst?.plan?.training_program_id || null;
-          return tpId && tpId === assignment.training_program_id;
-        });
-        if (match) strengthInstanceId = match.id;
-      }
-
       const totalWeeks = assignment.duration_weeks || 12;
       const startDate = assignment.start_date || new Date().toISOString().slice(0, 10);
 
       const source = body.source || (isCoachOrAdmin ? "preset" : "athlete_setup");
       const fromWeek = body.from_week != null ? Number(body.from_week) : null;
       const effectiveStartWeek = fromWeek && Number.isInteger(fromWeek) && fromWeek > 0 ? fromWeek : 1;
+
+      // Create/find strength instances for each unique strength_plan_id in sessions
+      const strengthInstanceMap = new Map();
+      const program = await getTrainingProgramById(config, assignment.training_program_id);
+      const uniqueStrengthPlanIds = [...new Set(
+        sessions
+          .filter(s => s.session_type === "strength" && s.strength_plan_id)
+          .map(s => s.strength_plan_id)
+      )];
+
+      if (uniqueStrengthPlanIds.length > 0) {
+        const existingInstances = await listStrengthPlanInstances(config, {
+          athleteId: assignment.athlete_id,
+          status: "active"
+        });
+
+        for (const strengthPlanId of uniqueStrengthPlanIds) {
+          // Check for existing instance
+          const existing = Array.isArray(existingInstances)
+            && existingInstances.find(inst => inst.plan_id === strengthPlanId);
+
+          if (existing) {
+            strengthInstanceMap.set(strengthPlanId, existing.id);
+          } else {
+            // Create new instance
+            try {
+              const instance = await createStrengthPlanInstance(config, {
+                plan_id: strengthPlanId,
+                athlete_id: assignment.athlete_id,
+                start_date: startDate,
+                load_round: 2.5,
+                status: "active",
+                assigned_by: assignment.coach_id,
+                program_assignment_id: assignment.id,
+                coach_locked_until: null,
+                access_model: program ? program.access_model : null,
+                plan_snapshot: null
+              });
+              if (instance && instance.id) {
+                strengthInstanceMap.set(strengthPlanId, instance.id);
+              }
+            } catch (_err) {
+              console.error(`Failed to create strength instance for plan ${strengthPlanId}:`, _err.message);
+            }
+          }
+        }
+      }
 
       const planRows = generateWeeklyPlanRows({
         athleteId: assignment.athlete_id,
@@ -246,8 +229,7 @@ exports.handler = async (event) => {
         startDate,
         slots,
         sessions,
-        strengthInstanceId,
-        planData: assignment.plan_data || null,
+        strengthInstanceMap,
         source,
         presetId,
         fromWeek: effectiveStartWeek
@@ -268,23 +250,19 @@ exports.handler = async (event) => {
         if (Array.isArray(result)) inserted.push(...result);
       }
 
-      // Persist preset linkage on the strength instance
-      if (strengthInstanceId) {
-        try {
-          await updateStrengthPlanInstance(config, strengthInstanceId, {
-            schedule_preset_id: presetId,
-            preset_assigned_at: new Date().toISOString()
-          });
-        } catch (_err) {
-          // Non-fatal: calendar was generated, just linkage metadata failed
-        }
+      // Set selected_preset_id on the assignment
+      try {
+        await setAssignmentPreset(config, assignmentId, presetId);
+      } catch (_err) {
+        console.error("Failed to link preset to assignment:", _err.message);
       }
 
       return json(201, {
         generated: inserted.length,
         totalWeeks,
         presetName: preset.preset_name,
-        slotsPerWeek: slots.length
+        slotsPerWeek: slots.length,
+        instancesCreated: strengthInstanceMap.size
       });
     }
 

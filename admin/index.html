@@ -882,26 +882,26 @@
             <p>Gestao de program assignments: estado, datas, coach e acoes rapidas.</p>
           </div>
         </div>
-        <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px; flex-wrap:wrap;">
-          <select id="assignments-status-filter" style="padding:6px 10px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9;">
+        <div class="assignments-toolbar">
+          <select id="assignments-status-filter" class="assignments-status-filter">
             <option value="">Todos activos</option>
             <option value="active">Active</option>
             <option value="scheduled">Scheduled</option>
             <option value="paused">Paused</option>
           </select>
-          <label style="display:flex; align-items:center; gap:6px; color:#8b949e; font-size:0.85rem; cursor:pointer;">
+          <label class="assignments-history-toggle-label">
             <input type="checkbox" id="assignments-history-toggle" />
             Mostrar historico (completed/cancelled)
           </label>
-          <button id="assignments-create-btn" type="button" class="action-btn" style="margin-left:auto;">+ Novo assignment</button>
+          <button id="assignments-create-btn" type="button" class="action-btn assignments-create-btn">+ Novo assignment</button>
         </div>
 
-        <div id="assignments-create-form" hidden style="background:#161b22; border:1px solid #30363d; border-radius:8px; padding:16px; margin-bottom:16px;">
-          <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px;">
-            <strong id="assignments-form-title" style="color:#c9d1d9;">Novo assignment</strong>
+        <div id="assignments-create-form" class="assignments-create-form" hidden>
+          <div class="assignments-create-form-head">
+            <strong id="assignments-form-title">Novo assignment</strong>
             <input id="assignments-edit-id" type="hidden" />
           </div>
-          <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:12px;">
+          <div class="assignments-create-grid">
             <div class="field">
               <label for="new-assign-athlete">Atleta</label>
               <select id="new-assign-athlete"><option value="">Seleciona...</option></select>
@@ -937,28 +937,28 @@
               <input id="new-assign-notes" type="text" placeholder="Opcional" />
             </div>
           </div>
-          <div style="margin-top:12px; display:flex; gap:8px;">
+          <div class="assignments-create-actions">
             <button id="assignments-submit-btn" type="button" class="action-btn">Criar</button>
             <button id="assignments-cancel-create-btn" type="button" class="action-btn action-btn-secondary">Cancelar</button>
           </div>
         </div>
 
-        <div style="overflow-x:auto;">
-          <table class="admin-table" style="width:100%; border-collapse:collapse;">
+        <div class="athletes-list-wrap assignments-table-wrap">
+          <table class="athletes-table assignments-table">
             <thead>
               <tr>
-                <th style="padding:8px; text-align:left;">Atleta</th>
-                <th style="padding:8px; text-align:left;">Programa</th>
-                <th style="padding:8px; text-align:left;">Coach</th>
-                <th style="padding:8px; text-align:left;">Status</th>
-                <th style="padding:8px; text-align:left;">Inicio</th>
-                <th style="padding:8px; text-align:left;">Fim acesso</th>
-                <th style="padding:8px; text-align:left;">Criado</th>
-                <th style="padding:8px; text-align:left;">Acoes</th>
+                <th>Atleta</th>
+                <th>Programa</th>
+                <th>Coach</th>
+                <th>Status</th>
+                <th>Inicio</th>
+                <th>Fim acesso</th>
+                <th>Criado</th>
+                <th>Acoes</th>
               </tr>
             </thead>
             <tbody id="assignments-table-body">
-              <tr><td colspan="8" style="padding:16px; color:#8b949e;">Carregando...</td></tr>
+              <tr><td colspan="8" class="assignments-empty-cell">Carregando...</td></tr>
             </tbody>
           </table>
         </div>
@@ -997,11 +997,11 @@
                 <label for="program-name">Nome</label>
                 <input id="program-name" type="text" placeholder="Ex.: AER - Athletic Endurance Runner" />
               </div>
-              <div class="field">
+              <div class="field" style="display:none;" aria-hidden="true">
                 <label for="program-external-source">Origem externa</label>
-                <input id="program-external-source" type="text" value="trainingpeaks" />
+                <input id="program-external-source" type="text" value="lht" />
               </div>
-              <div class="field">
+              <div class="field" style="display:none;" aria-hidden="true">
                 <label for="program-external-id">ID externo</label>
                 <input id="program-external-id" type="text" placeholder="Ex.: AER" />
               </div>
@@ -1036,13 +1036,6 @@
                   <option value="active">active</option>
                   <option value="archived">archived</option>
                 </select>
-              </div>
-              <div class="field field-wide field-checkbox-card">
-                <label class="checkbox-line" for="program-scheduled-template">
-                  <input id="program-scheduled-template" type="checkbox" />
-                  <span>Template agendado</span>
-                </label>
-                <small class="field-hint">Marca se este programa e um template de plano agendado. E metadado operacional e nao afeta checkout nem acesso.</small>
               </div>
             </div>
           </div>
@@ -1100,11 +1093,6 @@
                   <option value="coached_recurring">coached_recurring - ativo enquanto subscricao paga</option>
                 </select>
                 <small class="field-hint">Define quem controla a instancia e como o acesso e gerido apos o pagamento.</small>
-              </div>
-              <div class="field">
-                <label for="program-followup-type">Follow-up</label>
-                <input id="program-followup-type" type="text" value="standard" />
-                <small class="field-hint">Usa standard na maioria dos casos. Este valor fica guardado como snapshot na atribuicao.</small>
               </div>
             </div>
           </div>
@@ -1243,11 +1231,11 @@
                     <label for="edit-program-name">Nome</label>
                     <input id="edit-program-name" type="text" />
                   </div>
-                  <div class="field">
+                  <div class="field" style="display:none;" aria-hidden="true">
                     <label for="edit-program-external-source">Origem externa</label>
                     <input id="edit-program-external-source" type="text" />
                   </div>
-                  <div class="field">
+                  <div class="field" style="display:none;" aria-hidden="true">
                     <label for="edit-program-external-id">ID externo</label>
                     <input id="edit-program-external-id" type="text" />
                   </div>
@@ -2148,6 +2136,7 @@
       dataAudit: null,
       athletesCatalog: [],
       programs: [],
+      programsExternalIdsNormalized: false,
       programsFiltered: [],
       programsFilterInputs: {
         search: '',
@@ -2186,21 +2175,39 @@
       return publicConfig;
     }
 
-    function getSessionIssuedAt(session) {
-      return session && session.user
-        ? (session.user.last_sign_in_at || session.user.created_at || null)
-        : null;
+    function decodeJwtPayload(token) {
+      if (!token || typeof token !== 'string') return null;
+      const parts = token.split('.');
+      if (parts.length < 2) return null;
+      const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+      const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4);
+      try {
+        return JSON.parse(window.atob(padded));
+      } catch (_) {
+        return null;
+      }
+    }
+
+    function getSessionIssuedAtSeconds(session) {
+      const payload = decodeJwtPayload(session && session.access_token ? session.access_token : '');
+      const iat = payload && Number(payload.iat);
+      if (Number.isFinite(iat) && iat > 0) return iat;
+      return null;
     }
 
     function isSessionOverMaxAge(session) {
-      const issuedAt = getSessionIssuedAt(session);
-      if (!issuedAt) return false;
-      const issuedMs = new Date(issuedAt).getTime();
-      if (!Number.isFinite(issuedMs)) return false;
+      const nowSeconds = Math.floor(Date.now() / 1000);
+      const expiresAtSeconds = Number(session && session.expires_at);
+      if (Number.isFinite(expiresAtSeconds) && expiresAtSeconds > 0) {
+        return nowSeconds >= expiresAtSeconds;
+      }
+
+      const issuedAtSeconds = getSessionIssuedAtSeconds(session);
+      if (!issuedAtSeconds) return false;
       const maxAge = publicConfig && publicConfig.authMaxSessionSeconds
         ? publicConfig.authMaxSessionSeconds
         : DEFAULT_AUTH_MAX_SESSION_SECONDS;
-      return Math.floor((Date.now() - issuedMs) / 1000) > maxAge;
+      return (nowSeconds - issuedAtSeconds) > maxAge;
     }
 
     async function enforceSessionMaxAge(session) {
@@ -2520,7 +2527,6 @@
       programStripePriceId: document.getElementById('program-stripe-price-id'),
       programBillingType: document.getElementById('program-billing-type'),
       programAccessModel: document.getElementById('program-access-model'),
-      programFollowupType: document.getElementById('program-followup-type'),
       programStatus: document.getElementById('program-status'),
       programEventName: document.getElementById('program-event-name'),
       programEventDate: document.getElementById('program-event-date'),
@@ -2528,7 +2534,6 @@
       programEventDescription: document.getElementById('program-event-description'),
       programCalendarVisible: document.getElementById('program-calendar-visible'),
       programCalendarHighlightRank: document.getElementById('program-calendar-highlight-rank'),
-      programScheduledTemplate: document.getElementById('program-scheduled-template'),
       programCreateStripe: document.getElementById('program-create-stripe'),
       createProgramBtn: document.getElementById('create-program-btn'),
       editProgramDialog: document.getElementById('edit-program-dialog'),
@@ -6339,7 +6344,6 @@
         stripePriceId: els.programStripePriceId,
         billingType: els.programBillingType,
         accessModel: els.programAccessModel,
-        followupType: els.programFollowupType,
         status: els.programStatus,
         eventName: els.programEventName,
         eventDate: els.programEventDate,
@@ -6347,7 +6351,6 @@
         eventDescription: els.programEventDescription,
         calendarVisible: els.programCalendarVisible,
         calendarHighlightRank: els.programCalendarHighlightRank,
-        isScheduledTemplate: els.programScheduledTemplate,
         createStripe: els.programCreateStripe
       };
     }
@@ -6380,7 +6383,7 @@
       syncAllRichTextEditorsToSource();
 
       const name = (fields.name.value || '').trim();
-      const externalSource = (fields.externalSource.value || '').trim() || 'trainingpeaks';
+      const externalSource = (fields.externalSource.value || '').trim() || 'lht';
       const externalId = (fields.externalId.value || '').trim() || null;
       const description = (fields.description.value || '').trim() || null;
       const imageUrl = fields.imageUrl ? ((fields.imageUrl.value || '').trim() || null) : null;
@@ -6392,7 +6395,6 @@
       const stripePriceId = (fields.stripePriceId.value || '').trim() || null;
       const billingType = (fields.billingType.value || 'one_time').trim();
       const accessModel = (fields.accessModel.value || 'coached_one_time').trim();
-      const followupType = fields.followupType ? ((fields.followupType.value || 'standard').trim() || 'standard') : undefined;
       const status = (fields.status.value || 'draft').trim();
       const eventName = (fields.eventName.value || '').trim() || null;
       const eventDate = (fields.eventDate.value || '').trim() || null;
@@ -6401,7 +6403,6 @@
       const calendarVisible = Boolean(fields.calendarVisible.checked);
       const rawCalendarHighlightRank = (fields.calendarHighlightRank.value || '').trim();
       const calendarHighlightRank = rawCalendarHighlightRank === '' ? null : Number(rawCalendarHighlightRank);
-      const isScheduledTemplate = fields.isScheduledTemplate ? Boolean(fields.isScheduledTemplate.checked) : undefined;
 
       if (!name) throw new Error('Nome do programa e obrigatorio.');
       if (!Number.isInteger(durationWeeks) || durationWeeks <= 0) {
@@ -6433,7 +6434,6 @@
         stripePriceId,
         billingType,
         accessModel,
-        followupType,
         status,
         eventName,
         eventDate,
@@ -6443,12 +6443,6 @@
         calendarHighlightRank,
       };
 
-      if (followupType !== undefined) {
-        payload.followupType = followupType;
-      }
-      if (isScheduledTemplate !== undefined) {
-        payload.isScheduledTemplate = isScheduledTemplate;
-      }
       if (options.includeCreateStripe && fields.createStripe && fields.createStripe.checked) {
         payload.createStripeProductAndPrice = true;
       }
@@ -6464,7 +6458,7 @@
       const fields = getProgramEditFieldRefs();
       els.editProgramId.value = program.id || '';
       fields.name.value = program.name || '';
-      fields.externalSource.value = program.externalSource || 'trainingpeaks';
+      fields.externalSource.value = program.externalSource || 'lht';
       fields.externalId.value = program.externalId || '';
       fields.description.value = program.description || '';
       if (fields.imageUrl) fields.imageUrl.value = program.imageUrl || '';
@@ -6530,6 +6524,16 @@
     async function refreshProgramsData() {
       if (!state.user) return;
       showProgramsMessage('A carregar programas...', false);
+
+      if (!state.programsExternalIdsNormalized) {
+        try {
+          await apiRequest('GET', adminProgramsApiBase + '?action=normalize-external-ids');
+          state.programsExternalIdsNormalized = true;
+        } catch (err) {
+          console.warn('[programs] normalize-external-ids failed:', err);
+        }
+      }
+
       const data = await apiRequest('GET', adminProgramsApiBase);
       state.programs = Array.isArray(data.programs) ? data.programs : [];
       applyProgramsFilters();
@@ -6570,8 +6574,6 @@
       const durationWeeks = Number(selectedProgram.durationWeeks || 0);
       const priceCentsSnapshot = Number(selectedProgram.priceCents || 0);
       const currencySnapshot = (selectedProgram.currency || 'EUR').toString().trim().toUpperCase() || 'EUR';
-      const followupTypeSnapshot = (selectedProgram.followupType || 'standard').toString().trim() || 'standard';
-
       if (!Number.isInteger(durationWeeks) || durationWeeks <= 0) {
         throw new Error('Programa sem duracao valida (semanas).');
       }
@@ -6587,7 +6589,7 @@
         durationWeeks,
         priceCentsSnapshot,
         currencySnapshot,
-        followupTypeSnapshot,
+        followupTypeSnapshot: 'standard',
         notes: notes || undefined
       };
     }
@@ -6687,13 +6689,6 @@
     }
 
     function getAssignmentsStatusBadge(status) {
-      const tones = {
-        active: '#238636',
-        scheduled: '#1f6feb',
-        paused: '#d29922',
-        completed: '#8b949e',
-        cancelled: '#f85149'
-      };
       const labels = {
         active: 'Ativo',
         scheduled: 'Agendado',
@@ -6701,9 +6696,9 @@
         completed: 'Concluido',
         cancelled: 'Cancelado'
       };
-      const tone = tones[status] || '#8b949e';
       const label = labels[status] || status || '-';
-      return `<span style="display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;font-size:0.8rem;color:#ffffff;background:${tone};">${escapeHtml(label)}</span>`;
+      const toneClass = `assignment-status-badge is-${String(status || '').toLowerCase()}`;
+      return `<span class="${toneClass}">${escapeHtml(label)}</span>`;
     }
 
     function renderAssignmentsTable() {
@@ -6711,7 +6706,7 @@
 
       const rows = Array.isArray(state.assignmentsFiltered) ? state.assignmentsFiltered : [];
       if (!rows.length) {
-        els.assignmentsTableBody.innerHTML = '<tr><td colspan="8" style="padding:16px; color:#8b949e;">Sem assignments encontrados.</td></tr>';
+        els.assignmentsTableBody.innerHTML = '<tr><td colspan="8" class="assignments-empty-cell">Sem assignments encontrados.</td></tr>';
         return;
       }
 
@@ -6733,18 +6728,18 @@
         } else if (assignment.status === 'paused') {
           actionParts.push(`<button type="button" class="action-btn" data-assignment-action="resume" data-assignment-id="${escapeHtml(assignment.id)}">Retomar</button>`);
         }
-        const actionsHtml = `<div style="display:flex; gap:6px; flex-wrap:wrap;">${actionParts.join('')}</div>`;
+        const actionsHtml = `<div class="assignments-row-actions">${actionParts.join('')}</div>`;
 
         return `
           <tr>
-            <td style="padding:8px;">${escapeHtml(athleteLabel)}</td>
-            <td style="padding:8px;">${escapeHtml(programLabel)}</td>
-            <td style="padding:8px;">${escapeHtml(coachLabel)}</td>
-            <td style="padding:8px;">${getAssignmentsStatusBadge(assignment.status)}</td>
-            <td style="padding:8px;">${escapeHtml(startDate)}</td>
-            <td style="padding:8px;">${escapeHtml(endDate)}</td>
-            <td style="padding:8px;">${escapeHtml(createdDate)}</td>
-            <td style="padding:8px;">${actionsHtml}</td>
+            <td>${escapeHtml(athleteLabel)}</td>
+            <td>${escapeHtml(programLabel)}</td>
+            <td>${escapeHtml(coachLabel)}</td>
+            <td>${getAssignmentsStatusBadge(assignment.status)}</td>
+            <td>${escapeHtml(startDate)}</td>
+            <td>${escapeHtml(endDate)}</td>
+            <td>${escapeHtml(createdDate)}</td>
+            <td>${actionsHtml}</td>
           </tr>`;
       }).join('');
     }
@@ -6902,7 +6897,7 @@
         endDate: endDate || undefined,
         priceCentsSnapshot: program ? Number(program.priceCents ?? program.price_cents ?? 0) : 0,
         currencySnapshot: program ? (program.currency || 'EUR') : 'EUR',
-        followupTypeSnapshot: program ? (program.followupType || program.followup_type || 'standard') : 'standard',
+        followupTypeSnapshot: 'standard',
         notes: notes || undefined
       });
     }
@@ -6998,11 +6993,6 @@
 
     async function getToken() {
       const { data: { session } } = await supabaseClient.auth.getSession();
-      const expired = await enforceSessionMaxAge(session || null);
-      if (expired) {
-        await handleAuthChange(null, null);
-        throw new Error('Sessao expirada. Faz login novamente.');
-      }
       if (!session || !session.access_token) {
         throw new Error('Nao autenticado. Faz login novamente.');
       }
@@ -7197,14 +7187,12 @@
       els.programStripePriceId.disabled = !canUseApi;
       els.programBillingType.disabled = !canUseApi;
       els.programAccessModel.disabled = !canUseApi;
-      els.programFollowupType.disabled = !canUseApi;
       els.programStatus.disabled = !canUseApi;
       els.programEventName.disabled = !canUseApi;
       els.programEventDate.disabled = !canUseApi;
       els.programEventLocation.disabled = !canUseApi;
       els.programCalendarVisible.disabled = !canUseApi;
       els.programCalendarHighlightRank.disabled = !canUseApi;
-      els.programScheduledTemplate.disabled = !canUseApi;
       if (els.programCreateStripe) els.programCreateStripe.disabled = !canUseApi;
       if (els.programsFilterSearch) els.programsFilterSearch.disabled = !canUseApi;
       if (els.programsFilterStatus) els.programsFilterStatus.disabled = !canUseApi;
@@ -7674,6 +7662,13 @@
             showAiMessage(err.message, true);
           }
         }
+
+        // Re-run active-tab loading on next tick so initial hash/tab resolution
+        // is already applied before deciding which panel should fetch data.
+        setTimeout(() => {
+          if (!state.user || !state.isAdmin) return;
+          setActiveTab(activeTab, { updateHash: false });
+        }, 0);
       } else {
         resetAdminDataToLoggedOutView();
       }
@@ -7683,10 +7678,9 @@
     async function checkAuthOnLoad() {
       if (!supabaseClient) return;
       const { data: { session } } = await supabaseClient.auth.getSession();
-      const expired = await enforceSessionMaxAge(session || null);
-      if (!expired && session?.user) {
+      if (session?.user) {
         await handleAuthChange(session.user, session);
-      } else if (expired) {
+      } else {
         await handleAuthChange(null, null);
       }
     }
@@ -7714,8 +7708,7 @@
       // Monitor de auth state changes
       supabaseClient.auth.onAuthStateChange(async (_event, session) => {
         try {
-          const expired = await enforceSessionMaxAge(session || null);
-          if (!expired && session?.user) {
+          if (session?.user) {
             await handleAuthChange(session.user, session);
           } else {
             await handleAuthChange(null, null);

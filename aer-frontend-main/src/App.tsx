@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 import { lazy, Suspense } from "react";
 import PlanForm from "./pages/plan-form";
 import PlanEntry from "./pages/plan-entry";
+import Home from "./pages/home";
 import AiAssistantFab from "./components/ai-assistant-fab";
 import AiAssistantChat from "./components/ai-assistant-chat";
 import AthleteLayout from "./components/atleta/AthleteLayout";
@@ -27,8 +28,13 @@ function App() {
     <main className="min-h-screen bg-transparent text-[#e4e8ef]">
       <Routes>
         <Route path="/" element={<PlanEntry />} />
-        <Route path="/formulario" element={<PlanForm />} />
-        <Route path="/formlario" element={<PlanForm />} />
+        <Route path="/atleta/onboarding" element={<PlanEntry />} />
+        <Route path="/atleta/onboarding-intake" element={<PlanEntry />} />
+        <Route path="/atleta/onboarding/formulario" element={<PlanForm />} />
+
+        {/* Legacy aliases */}
+        <Route path="/formulario" element={<Navigate to="/atleta/onboarding/formulario" replace />} />
+        <Route path="/formlario" element={<Navigate to="/atleta/onboarding/formulario" replace />} />
 
         {/* Login — standalone, no layout shell */}
         <Route
@@ -40,6 +46,7 @@ function App() {
         <Route path="/atleta" element={<AthleteLayout />}>
           <Route index element={<Suspense fallback={LazyFallback}><AtletaPage /></Suspense>} />
           <Route path="forca" element={<Suspense fallback={LazyFallback}><ForcaPage /></Suspense>} />
+          <Route path="plano" element={<Home />} />
           <Route path="programas" element={<Suspense fallback={LazyFallback}><AtletaProgramasPage /></Suspense>} />
           <Route path="calendario" element={<Suspense fallback={LazyFallback}><CalendarioPage /></Suspense>} />
           <Route path="perfil" element={<Suspense fallback={LazyFallback}><AtletaPerfilPage /></Suspense>} />

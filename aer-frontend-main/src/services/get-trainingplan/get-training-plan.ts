@@ -70,10 +70,12 @@ export default async function getTrainingProgram({
     };
   } catch (error) {
     console.log(error);
-    return {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.error("[getTrainingProgram] Caught exception:", errorMsg);
+      return {
       data: null,
       success: false,
-      message: `Failed to fetch training program`,
+        message: `Failed to fetch training program: ${errorMsg}`,
     };
   }
 }

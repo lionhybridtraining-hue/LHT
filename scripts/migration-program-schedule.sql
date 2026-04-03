@@ -107,6 +107,27 @@ create table if not exists athlete_weekly_plan (
   unique (athlete_id, program_assignment_id, week_number, day_of_week, time_slot)
 );
 
+-- Backfill schema when table already existed from an older migration run.
+do $$
+begin
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'athlete_weekly_plan'
+      and column_name = 'strength_instance_id'
+  ) then
+    if to_regclass('public.strength_plan_instances') is not null then
+      alter table athlete_weekly_plan
+        add column strength_instance_id uuid references strength_plan_instances(id) on delete set null;
+    else
+      alter table athlete_weekly_plan
+        add column strength_instance_id uuid;
+    end if;
+  end if;
+end
+$$;
+
 create index if not exists idx_athlete_weekly_plan_athlete
   on athlete_weekly_plan(athlete_id, week_start_date);
 

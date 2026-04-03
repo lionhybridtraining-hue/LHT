@@ -1,7 +1,7 @@
 const { parseJsonBody, json } = require("./_lib/http");
 const { getConfig } = require("./_lib/config");
 const { getWeeklyCheckinById, updateWeeklyCheckin, verifyCoachOwnsAthlete, getAthleteById } = require("./_lib/supabase");
-const { getAuthenticatedUser } = require("./_lib/auth-supabase");
+const { requireAuthenticatedUser } = require("./_lib/authz");
 const { sendEmail, buildCheckinApprovedEmail } = require("./_lib/email");
 
 exports.handler = async (event) => {
@@ -11,10 +11,14 @@ exports.handler = async (event) => {
 
   try {
     const config = getConfig();
-    const user = await getAuthenticatedUser(event, config);
+    const auth = await requireAuthenticatedUser(event, config);
+    if (auth.error) return auth.error;
 
-    if (!user) {
-      return json(401, { error: "Authentication required" });
+    const roles = Array.isArray(auth.roles) ? auth.roles : [];
+    const isAdmin = roles.includes("admin");
+    const isCoach = roles.includes("coach");
+    if (!isAdmin && !isCoach) {
+      return json(403, { error: "Forbidden" });
     }
 
     const payload = parseJsonBody(event);
@@ -34,7 +38,7 @@ exports.handler = async (event) => {
       return json(404, { error: "Check-in nao encontrado" });
     }
 
-    const owns = await verifyCoachOwnsAthlete(config, user.sub, checkin.athlete_id);
+    const owns = isAdmin || await verifyCoachOwnsAthlete(config, auth.user.sub, checkin.athlete_id);
     if (!owns) {
       return json(403, { error: "Acesso negado ao atleta" });
     }

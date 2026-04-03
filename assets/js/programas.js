@@ -520,7 +520,7 @@
 
       var meta = document.createElement('div');
       meta.className = 'meta';
-      meta.innerHTML = '<span>' + formatPrice(program.priceCents, program.currency) + '</span><span>' + program.durationWeeks + ' semanas</span><span>' + program.followupType + '</span>';
+      meta.innerHTML = '<span>' + formatPrice(program.priceCents, program.currency) + '</span><span>' + program.durationWeeks + ' semanas</span>';
       card.appendChild(meta);
 
       var actions = document.createElement('div');

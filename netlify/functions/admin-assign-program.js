@@ -8,14 +8,11 @@ const {
   getLatestCancellableProgramAssignment,
   updateProgramAssignment,
   listAssignmentHistory,
-  listStrengthPlans,
-  listStrengthPlanInstances,
-  createStrengthPlanInstance,
-  getStrengthPlanFull,
   updateStrengthPlanInstance,
   getTrainingProgramById,
   verifyCoachOwnsAthlete,
-  getCoachByIdentityId
+  getCoachByIdentityId,
+  listStrengthPlanInstances
 } = require("./_lib/supabase");
 
 function normalizeAssignmentPayload(payload) {
@@ -23,7 +20,6 @@ function normalizeAssignmentPayload(payload) {
   const coachId = payload.coachId != null ? (payload.coachId || "").toString().trim() : null;
   const trainingProgramId = (payload.trainingProgramId || "").toString().trim();
   const startDateInput = (payload.startDate || "").toString().trim();
-  const endDateInput = payload.endDate == null ? "" : payload.endDate.toString().trim();
   const durationWeeks = payload.durationWeeks == null || payload.durationWeeks === ""
     ? null
     : Number(payload.durationWeeks);
@@ -32,24 +28,12 @@ function normalizeAssignmentPayload(payload) {
   const followupTypeSnapshot = (payload.followupTypeSnapshot || "standard").toString().trim() || "standard";
   const notes = payload.notes == null ? null : payload.notes.toString();
 
-  // New fields: coach lock and auto-instance control
-  const coachLock = payload.coachLock === true || payload.coachLock === "true";
-  const strengthPlanId = payload.strengthPlanId ? payload.strengthPlanId.toString().trim() : null;
-
   if (!athleteId) throw new Error("athleteId is required");
   if (!trainingProgramId) throw new Error("trainingProgramId is required");
 
   const startDate = startDateInput || new Date().toISOString().slice(0, 10);
   const parsedDate = new Date(startDate);
   if (Number.isNaN(parsedDate.getTime())) throw new Error("startDate must be a valid date");
-
-  let endDate = null;
-  if (endDateInput) {
-    const parsedEndDate = new Date(endDateInput);
-    if (Number.isNaN(parsedEndDate.getTime())) throw new Error("endDate must be a valid date");
-    if (endDateInput < startDate) throw new Error("endDate cannot be before startDate");
-    endDate = endDateInput;
-  }
 
   // Scheduled access is driven by start date regardless of coach assignment.
   const today = new Date().toISOString().slice(0, 10);
@@ -69,14 +53,11 @@ function normalizeAssignmentPayload(payload) {
     training_program_id: trainingProgramId,
     start_date: startDate,
     duration_weeks: durationWeeks,
-    access_end_date: endDate,
     status,
     price_cents_snapshot: priceCentsSnapshot,
     currency_snapshot: currencySnapshot,
     followup_type_snapshot: followupTypeSnapshot,
-    notes,
-    _coachLock: coachLock,
-    _strengthPlanId: strengthPlanId
+    notes
   };
 }
 
@@ -88,7 +69,7 @@ function mapAssignment(row) {
     trainingProgramId: row.training_program_id,
     startDate: row.start_date,
     durationWeeks: row.duration_weeks,
-    accessEndDate: row.access_end_date || null,
+    accessEndDate: row.computed_end_date || null,
     computedEndDate: row.computed_end_date,
     actualEndDate: row.actual_end_date,
     status: row.status,
@@ -101,92 +82,7 @@ function mapAssignment(row) {
   };
 }
 
-function mapStrengthInstance(row) {
-  if (!row) return null;
-  return {
-    id: row.id,
-    planId: row.plan_id,
-    athleteId: row.athlete_id,
-    startDate: row.start_date,
-    loadRound: row.load_round,
-    status: row.status,
-    assignedBy: row.assigned_by,
-    programAssignmentId: row.program_assignment_id || null,
-    coachLockedUntil: row.coach_locked_until || null,
-    accessModel: row.access_model || null,
-    createdAt: row.created_at || null,
-    updatedAt: row.updated_at || null
-  };
-}
 
-async function buildPlanSnapshot(config, planId) {
-  try {
-    const full = await getStrengthPlanFull(config, planId);
-    if (!full) return null;
-    return {
-      exercises: full.exercises,
-      prescriptions: full.prescriptions,
-      phaseNotes: full.phaseNotes || []
-    };
-  } catch (_) {
-    return null;
-  }
-}
-
-async function ensureStrengthInstanceForAssignment(config, assignment, program, { coachLock = false, strengthPlanId = null } = {}) {
-  const activeInstances = await listStrengthPlanInstances(config, {
-    athleteId: assignment.athlete_id,
-    status: "active"
-  });
-  const activeInstance = (activeInstances || []).find((instance) => {
-    const trainingProgramId = instance?.plan?.training_program_id || null;
-    return trainingProgramId && trainingProgramId === assignment.training_program_id;
-  }) || null;
-
-  if (activeInstance) {
-    return { instance: activeInstance, autoCreated: false, reason: "already_active" };
-  }
-
-  let selectedPlan = null;
-  if (strengthPlanId) {
-    // Coach explicitly chose a plan
-    const { getStrengthPlanById } = require("./_lib/supabase");
-    selectedPlan = await getStrengthPlanById(config, strengthPlanId);
-    if (!selectedPlan) {
-      return { instance: null, autoCreated: false, reason: "selected_plan_not_found" };
-    }
-  } else {
-    // Auto-select: pick active plan for this program, or first available
-    const plans = await listStrengthPlans(config, {
-      trainingProgramId: assignment.training_program_id
-    });
-    selectedPlan = Array.isArray(plans)
-      ? (plans.find((plan) => plan.status === "active") || plans[0] || null)
-      : null;
-  }
-
-  if (!selectedPlan) {
-    return { instance: null, autoCreated: false, reason: "no_strength_template_for_program" };
-  }
-
-  const lockDate = coachLock ? (assignment.access_end_date || assignment.computed_end_date || null) : null;
-  const planSnapshot = await buildPlanSnapshot(config, selectedPlan.id);
-
-  const createdInstance = await createStrengthPlanInstance(config, {
-    plan_id: selectedPlan.id,
-    athlete_id: assignment.athlete_id,
-    start_date: assignment.start_date || null,
-    load_round: 2.5,
-    status: "active",
-    assigned_by: assignment.coach_id,
-    program_assignment_id: assignment.id || null,
-    coach_locked_until: lockDate,
-    access_model: program ? program.access_model : null,
-    plan_snapshot: planSnapshot ? JSON.stringify(planSnapshot) : null
-  });
-
-  return { instance: createdInstance, autoCreated: true, reason: "created" };
-}
 
 exports.handler = async (event) => {
   if (!["GET", "POST", "PATCH"].includes(event.httpMethod)) {
@@ -244,12 +140,6 @@ exports.handler = async (event) => {
       const normalized = normalizeAssignmentPayload(payload);
       await ensureCoachScope(normalized.athlete_id);
 
-      // Extract internal flags before DB insert
-      const coachLock = normalized._coachLock;
-      const strengthPlanId = normalized._strengthPlanId;
-      delete normalized._coachLock;
-      delete normalized._strengthPlanId;
-
       // Auto-assign coach_id when coach creates without explicit coachId
       if (isCoach && !normalized.coach_id) {
         const coachRecord = await getCoachByIdentityId(config, auth.user.sub);
@@ -271,16 +161,10 @@ exports.handler = async (event) => {
         throw new Error("Program duration_weeks must be a positive integer");
       }
       const created = await createProgramAssignment(config, normalized);
-      const strength = await ensureStrengthInstanceForAssignment(config, created, program, {
-        coachLock,
-        strengthPlanId
-      });
 
       return json(201, {
         assignment: mapAssignment(created),
-        strengthInstance: mapStrengthInstance(strength.instance),
-        strengthAutoCreated: strength.autoCreated,
-        strengthReason: strength.reason
+        message: "Assignment created. Athlete/coach must select a preset to generate calendar and instances."
       });
     }
 
@@ -337,7 +221,7 @@ exports.handler = async (event) => {
 
       return json(200, {
         assignment: mapAssignment(cancelled),
-        cancelledStrengthInstances: cancelledInstances.map(mapStrengthInstance),
+        cancelledStrengthInstances: cancelledInstances,
         strengthCancelledCount: cancelledInstances.length
       });
     }
@@ -364,18 +248,7 @@ exports.handler = async (event) => {
     }
 
     if (payload.endDate !== undefined) {
-      const endDateStr = payload.endDate == null ? "" : payload.endDate.toString().trim();
-      if (!endDateStr) {
-        patch.access_end_date = null;
-      } else {
-        const parsedEndDate = new Date(endDateStr);
-        if (Number.isNaN(parsedEndDate.getTime())) throw new Error("endDate must be a valid date");
-        const nextStartDate = patch.start_date || existingAssignment.start_date || null;
-        if (nextStartDate && endDateStr < nextStartDate) {
-          throw new Error("endDate cannot be before startDate");
-        }
-        patch.access_end_date = endDateStr;
-      }
+      throw new Error("endDate is no longer supported in preset-driven assignments");
     }
 
     if (payload.notes !== undefined) {
@@ -418,8 +291,7 @@ exports.handler = async (event) => {
       return json(400, { error: "No valid fields to update" });
     }
 
-    // computed_end_date remains as legacy/program-duration snapshot.
-    // Access control now prefers access_end_date when present.
+    // computed_end_date remains program-duration snapshot.
 
     const updated = await updateProgramAssignment(config, assignmentId, patch);
 
@@ -460,11 +332,6 @@ exports.handler = async (event) => {
     });
   } catch (err) {
     console.error("[admin-assign-program] ERROR:", err.message, err.stack);
-    if ((err.message || "").includes("access_end_date")) {
-      return json(409, {
-        error: "Nova janela de acesso indisponivel: executa scripts/migration-assignment-access-window.sql na base de dados."
-      });
-    }
     if ((err.message || "").includes('null value in column "coach_id"')) {
       return json(409, {
         error: "Self-serve indisponivel: a coluna program_assignments.coach_id ainda esta NOT NULL. Executa scripts/migration-assignment-coach-nullable.sql."

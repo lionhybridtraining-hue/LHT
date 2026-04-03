@@ -43,6 +43,9 @@ interface CalendarProgram {
   instanceId: string | null;
   programId: string | null;
   startDate: string | null;
+  presetSelection: "coach" | "athlete";
+  selectedPresetId: string | null;
+  needsPresetSelection: boolean;
 }
 
 export default function CalendarioPage() {
@@ -80,19 +83,48 @@ function CalendarioContent({ session: _session }: { session: AthleteOutletContex
 
         const entries: CalendarProgram[] = [];
 
-        // From purchases with instances or assignments
+        // From purchases/assignments with active instance, or assignment-only entries
         for (const p of data.programs || []) {
+          const sourceType = p.sourceType;
+          const assignmentIdFromInstance =
+            (p.instance as MyProgram["instance"] & { program_assignment_id?: string })?.program_assignment_id || null;
+          const assignmentIdFromSource = sourceType === "assignment" ? p.purchase?.id || null : null;
+          const assignmentId = assignmentIdFromInstance || assignmentIdFromSource;
+          const presetSelection = p.presetSelection || "athlete";
+          const selectedPresetId = p.selectedPresetId || null;
+          const needsPresetSelection = p.needsPresetSelection || false;
+
           if (p.instance && (p.instance.status === "active" || p.instance.status === "paused")) {
             entries.push({
               id: p.instance.id,
               name: p.program?.name || p.instance.planName || "Programa",
-              assignmentId: (p as MyProgram & { assignmentId?: string }).assignmentId ||
-                (p.instance as MyProgram["instance"] & { program_assignment_id?: string })?.program_assignment_id || null,
+              assignmentId,
               instanceId: p.instance.id,
               programId: p.program?.id || null,
               startDate: p.instance.startDate || null,
+              presetSelection,
+              selectedPresetId,
+              needsPresetSelection,
             });
+            continue;
           }
+
+          // Assignment without active strength instance still needs calendar setup.
+          if (!p.instance && sourceType === "assignment" && assignmentId) {
+            entries.push({
+              id: assignmentId,
+              name: p.program?.name || "Programa",
+              assignmentId,
+              instanceId: null,
+              programId: p.program?.id || null,
+              startDate: p.purchase?.paidAt || null,
+              presetSelection,
+              selectedPresetId,
+              needsPresetSelection,
+            });
+            continue;
+          }
+
         }
 
         // Orphaned instances (no purchase)
@@ -105,6 +137,9 @@ function CalendarioContent({ session: _session }: { session: AthleteOutletContex
               instanceId: inst.id,
               programId: inst.plan?.training_program_id || null,
               startDate: inst.start_date || null,
+              presetSelection: "athlete",
+              selectedPresetId: null,
+              needsPresetSelection: false,
             });
           }
         }
@@ -318,7 +353,21 @@ function CalendarioContent({ session: _session }: { session: AthleteOutletContex
         )}
 
         {/* ── Preset selection (no plan yet) ── */}
-        {!planLoading && !hasPlan && presets.length > 0 && (
+        {!planLoading && !hasPlan && selectedProgram?.presetSelection === "coach" && selectedProgram?.needsPresetSelection && (
+          <div className="mt-6 text-center">
+            <svg className="mx-auto h-10 w-10 text-[#484f58]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.4}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p className="mt-3 text-sm text-[#8f99a8]">
+              O teu coach ainda está a configurar o calendário.
+            </p>
+            <p className="mt-1 text-xs text-[#484f58]">
+              Receberás uma notificação quando o calendário estiver pronto.
+            </p>
+          </div>
+        )}
+
+        {!planLoading && !hasPlan && presets.length > 0 && selectedProgram?.presetSelection !== "coach" && (
           <div className="mt-6">
             <h2 className="mb-3 text-lg font-semibold text-[#f7f1e8]">
               Escolhe o teu calendário
@@ -340,7 +389,7 @@ function CalendarioContent({ session: _session }: { session: AthleteOutletContex
           </div>
         )}
 
-        {!planLoading && !hasPlan && presets.length === 0 && (
+        {!planLoading && !hasPlan && presets.length === 0 && !selectedProgram?.needsPresetSelection && (
           <div className="mt-8 text-center text-sm text-[#8f99a8]">
             Nenhum calendário disponível para este programa.
           </div>

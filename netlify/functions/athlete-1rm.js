@@ -13,12 +13,18 @@ function requireCoachOrAdmin(auth) {
   return roles.includes("coach") || roles.includes("admin");
 }
 
+function isAdminAuth(auth) {
+  const roles = Array.isArray(auth.roles) ? auth.roles : [];
+  return roles.includes("admin");
+}
+
 exports.handler = async (event) => {
   const config = getConfig();
   const auth = await requireAuthenticatedUser(event, config);
   if (auth.error) return auth.error;
   if (!requireCoachOrAdmin(auth)) return json(403, { error: "Forbidden" });
 
+  const isAdmin = isAdminAuth(auth);
   const coachId = auth.user.sub;
 
   try {
@@ -26,7 +32,7 @@ exports.handler = async (event) => {
       const qs = event.queryStringParameters || {};
       if (!qs.athleteId) return json(400, { error: "athleteId is required" });
 
-      await verifyCoachOwnsAthlete(config, coachId, qs.athleteId);
+      if (!isAdmin) await verifyCoachOwnsAthlete(config, coachId, qs.athleteId);
 
       // History for a specific exercise
       if (qs.exerciseId) {
@@ -46,7 +52,7 @@ exports.handler = async (event) => {
         return json(400, { error: "athlete_id, exercise_id, value_kg are required" });
       }
 
-      await verifyCoachOwnsAthlete(config, coachId, body.athlete_id);
+      if (!isAdmin) await verifyCoachOwnsAthlete(config, coachId, body.athlete_id);
 
       const record = await insertAthlete1rm(config, {
         athlete_id: body.athlete_id,

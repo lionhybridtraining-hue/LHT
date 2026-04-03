@@ -12,6 +12,9 @@ const {
   deleteStrengthPlanExercises,
   upsertStrengthPrescriptions,
   upsertStrengthPlanPhaseNotes,
+  listStrengthPlanDayLabels,
+  upsertStrengthPlanDayLabels,
+  deleteStrengthPlanDayLabelsByDays,
   getStrengthPlanById,
   listStrengthPlanInstances,
   createStrengthPlanInstance,
@@ -376,24 +379,18 @@ exports.handler = async (event) => {
           return json(404, { error: "Plan not found" });
         }
 
-        if (!planTemplate.training_program_id) {
-          return json(409, { error: "Plan is not linked to a training program" });
-        }
-
         const athlete = await getAthleteById(config, body.athlete_id);
         if (!athlete) {
           return json(404, { error: "Athlete not found" });
         }
 
-        const access = await getProgramAssociationAccess(config, {
-          athleteId: athlete.id,
-          identityId: athlete.identity_id || null,
-          programId: planTemplate.training_program_id
-        });
-        if (!access.hasAccess) {
-          return json(403, {
-            error: "Athlete has no associated access to this training program",
-            code: access.reason
+        // Soft access check — link program/purchase IDs when available, allow direct assignment
+        let access = { hasAccess: false, program: null, purchase: null, assignment: null };
+        if (planTemplate.training_program_id) {
+          access = await getProgramAssociationAccess(config, {
+            athleteId: athlete.id,
+            identityId: athlete.identity_id || null,
+            programId: planTemplate.training_program_id
           });
         }
 
@@ -539,8 +536,59 @@ exports.handler = async (event) => {
       for (const key of allowed) {
         if (body[key] !== undefined) patch[key] = body[key];
       }
-      const updated = await updateStrengthPlan(config, body.plan_id, patch);
-      return json(200, { plan: updated });
+
+      let updated = plan;
+      if (Object.keys(patch).length > 0) {
+        updated = await updateStrengthPlan(config, body.plan_id, patch);
+      }
+
+      if (Array.isArray(body.day_labels)) {
+        const partialDayLabels = (body.day_labels_action || "").toString().trim() === "partial";
+        const existingLabels = partialDayLabels ? [] : await listStrengthPlanDayLabels(config, body.plan_id);
+        const normalized = [];
+        for (let i = 0; i < body.day_labels.length; i++) {
+          const entry = body.day_labels[i];
+          if (!entry || typeof entry !== "object") {
+            return json(400, { error: `day_labels[${i}] must be an object` });
+          }
+          const dayNumber = Number(entry.day_number);
+          if (!Number.isInteger(dayNumber) || dayNumber < 1 || dayNumber > 7) {
+            return json(400, { error: `day_labels[${i}].day_number must be 1-7` });
+          }
+          const label = (entry.day_label || "").toString().trim();
+          if (!label) continue;
+          normalized.push({
+            plan_id: body.plan_id,
+            day_number: dayNumber,
+            day_label: label
+          });
+        }
+
+        const incomingDaySet = new Set(normalized.map((d) => d.day_number));
+        let toDelete = [];
+        if (!partialDayLabels) {
+          toDelete = (existingLabels || [])
+            .map((d) => Number(d.day_number))
+            .filter((day) => Number.isInteger(day) && !incomingDaySet.has(day));
+        }
+
+        if (partialDayLabels && Array.isArray(body.day_labels_delete_days)) {
+          const explicitDeletes = body.day_labels_delete_days
+            .map((d) => Number(d))
+            .filter((d) => Number.isInteger(d) && d >= 1 && d <= 7);
+          toDelete = Array.from(new Set(explicitDeletes));
+        }
+
+        if (toDelete.length > 0) {
+          await deleteStrengthPlanDayLabelsByDays(config, body.plan_id, toDelete);
+        }
+        if (normalized.length > 0) {
+          await upsertStrengthPlanDayLabels(config, normalized);
+        }
+      }
+
+      const full = await getStrengthPlanFull(config, body.plan_id);
+      return json(200, full || { plan: updated });
     }
 
     return json(405, { error: "Method not allowed" });

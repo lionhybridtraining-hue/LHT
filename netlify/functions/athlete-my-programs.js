@@ -164,7 +164,8 @@ exports.handler = async (event) => {
               name: programMeta.name,
               accessModel: programMeta.access_model,
               durationWeeks: programMeta.duration_weeks,
-              billingType: programMeta.billing_type
+              billingType: programMeta.billing_type,
+              presetSelection: programMeta.preset_selection || 'coach'
             }
           : null,
         instance: instance
@@ -181,6 +182,7 @@ exports.handler = async (event) => {
         isCoachLocked,
         isInGrace,
         canCreateInstance,
+        assignment: null,
         sourceType: "purchase",
         availableTemplates: templates
       };
@@ -232,7 +234,7 @@ exports.handler = async (event) => {
         const programMeta = assignment.training_program || null;
 
         // Coach lock: from instance if available, else from assignment itself
-        const assignmentEndDate = assignment.access_end_date || assignment.computed_end_date || null;
+        const assignmentEndDate = assignment.computed_end_date || null;
         const isCoachLocked = !!(
           (instance && instance.coach_locked_until && instance.coach_locked_until >= today) ||
           (assignment.coach_id && assignmentEndDate && assignmentEndDate >= today)
@@ -256,7 +258,7 @@ exports.handler = async (event) => {
             billingType: "assignment",
             status: assignment.status === "paused" ? "paused" : "paid",
             paidAt: assignment.created_at || null,
-            expiresAt: assignment.access_end_date || assignment.computed_end_date || null,
+            expiresAt: assignment.computed_end_date || null,
             gracePeriodEndsAt: null
           },
           program: programMeta
@@ -265,7 +267,8 @@ exports.handler = async (event) => {
                 name: programMeta.name,
                 accessModel: programMeta.access_model,
                 durationWeeks: assignment.duration_weeks || programMeta.duration_weeks,
-                billingType: programMeta.billing_type
+                billingType: programMeta.billing_type,
+                presetSelection: programMeta.preset_selection || 'coach'
               }
             : null,
           instance: instance
@@ -278,6 +281,10 @@ exports.handler = async (event) => {
                 planName: instance.plan ? instance.plan.name : null
               }
             : null,
+          assignment: {
+            id: assignment.id,
+            selectedPresetId: assignment.selected_preset_id || null
+          },
           phase,
           isCoachLocked,
           isInGrace: false,

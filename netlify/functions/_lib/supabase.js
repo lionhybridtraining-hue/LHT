@@ -917,7 +917,7 @@ async function listAssignmentHistory(config, athleteId, limit = 50) {
   return supabaseRequest({
     url: config.supabaseUrl,
     serviceRoleKey: config.supabaseServiceRoleKey,
-    path: `program_assignments?athlete_id=eq.${encodeURIComponent(athleteId)}&select=id,athlete_id,coach_id,training_program_id,start_date,duration_weeks,access_end_date,computed_end_date,actual_end_date,status,price_cents_snapshot,currency_snapshot,followup_type_snapshot,notes,created_at,updated_at&order=created_at.desc&limit=${limit}`
+    path: `program_assignments?athlete_id=eq.${encodeURIComponent(athleteId)}&select=id,athlete_id,coach_id,training_program_id,start_date,duration_weeks,computed_end_date,actual_end_date,status,price_cents_snapshot,currency_snapshot,followup_type_snapshot,notes,created_at,updated_at&order=created_at.desc&limit=${limit}`
   });
 }
 
@@ -933,7 +933,7 @@ async function listActiveAssignmentsWithPrograms(config) {
   return supabaseRequest({
     url: config.supabaseUrl,
     serviceRoleKey: config.supabaseServiceRoleKey,
-    path: "program_assignments?status=in.(active,scheduled,paused)&select=id,athlete_id,coach_id,training_program_id,status,start_date,duration_weeks,access_end_date,notes,created_at&order=created_at.desc&limit=1000"
+    path: "program_assignments?status=in.(active,scheduled,paused)&select=id,athlete_id,coach_id,training_program_id,status,start_date,duration_weeks,computed_end_date,notes,created_at&order=created_at.desc&limit=1000"
   });
 }
 
@@ -947,7 +947,7 @@ async function listEnrichedAssignments(config, { includeHistory = false, coachId
   const statusFilter = includeHistory
     ? ""
     : "status=in.(active,scheduled,paused)&";
-  const select = "id,athlete_id,coach_id,training_program_id,status,start_date,duration_weeks,access_end_date,computed_end_date,notes,created_at,updated_at,athlete:athletes!inner(id,name,email,coach_identity_id),coach:coaches(name),training_program:training_programs(name)";
+  const select = "id,athlete_id,coach_id,training_program_id,status,start_date,duration_weeks,computed_end_date,notes,created_at,updated_at,athlete:athletes!inner(id,name,email,coach_identity_id),coach:coaches(name),training_program:training_programs(name)";
   let path = `program_assignments?${statusFilter}select=${encodeURIComponent(select)}&order=created_at.desc&limit=1000`;
 
   const rows = await supabaseRequest({
@@ -1466,6 +1466,12 @@ async function updateProgramAssignment(config, assignmentId, patch) {
   return Array.isArray(rows) ? rows[0] || null : null;
 }
 
+async function setAssignmentPreset(config, assignmentId, presetId) {
+  return updateProgramAssignment(config, assignmentId, {
+    selected_preset_id: presetId
+  });
+}
+
 async function listSiteMetadata(config) {
   return supabaseRequest({
     url: config.supabaseUrl,
@@ -1874,6 +1880,37 @@ async function getStrengthPlanById(config, planId) {
   return Array.isArray(rows) ? rows[0] || null : null;
 }
 
+async function listStrengthPlanDayLabels(config, planId) {
+  return await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `strength_plan_day_labels?plan_id=eq.${encodeURIComponent(planId)}&select=id,plan_id,day_number,day_label&order=day_number.asc`
+  });
+}
+
+async function upsertStrengthPlanDayLabels(config, entries) {
+  if (!entries.length) return [];
+  return supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: "strength_plan_day_labels?on_conflict=plan_id,day_number",
+    method: "POST",
+    body: entries,
+    prefer: "return=representation,resolution=merge-duplicates"
+  });
+}
+
+async function deleteStrengthPlanDayLabelsByDays(config, planId, dayNumbers) {
+  if (!dayNumbers.length) return 0;
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `strength_plan_day_labels?plan_id=eq.${encodeURIComponent(planId)}&day_number=in.(${dayNumbers.join(",")})`,
+    method: "DELETE"
+  });
+  return Array.isArray(rows) ? rows.length : 0;
+}
+
 async function getStrengthPlanFull(config, planId) {
   const plan = await getStrengthPlanById(config, planId);
   if (!plan) return null;
@@ -1929,7 +1966,9 @@ async function getStrengthPlanFull(config, planId) {
     path: `strength_plan_phase_notes?plan_id=eq.${encodeURIComponent(planId)}&select=*&order=day_number.asc,week_number.asc`
   });
 
-  return { plan, exercises: hydratedExercises, prescriptions: prescriptions || [], phaseNotes: phaseNotes || [] };
+  const dayLabels = await listStrengthPlanDayLabels(config, planId);
+
+  return { plan, exercises: hydratedExercises, prescriptions: prescriptions || [], phaseNotes: phaseNotes || [], dayLabels: dayLabels || [] };
 }
 
 async function createStrengthPlan(config, payload) {
@@ -2045,7 +2084,7 @@ async function upsertStrengthPlanPhaseNotes(config, notes) {
   return supabaseRequest({
     url: config.supabaseUrl,
     serviceRoleKey: config.supabaseServiceRoleKey,
-    path: "strength_plan_phase_notes",
+    path: "strength_plan_phase_notes?on_conflict=plan_id,day_number,section,week_number",
     method: "POST",
     body: notes,
     prefer: "return=representation,resolution=merge-duplicates"
@@ -2233,6 +2272,23 @@ async function getOnboardingIntakeByIdentity(config, identityId) {
   return Array.isArray(rows) && rows.length ? rows[0] : null;
 }
 
+async function getOnboardingFormResponsesByIdentity(config, identityId) {
+  try {
+    const rows = await supabaseRequest({
+      url: config.supabaseUrl,
+      serviceRoleKey: config.supabaseServiceRoleKey,
+      path: `onboarding_form_responses?identity_id=eq.${encodeURIComponent(identityId)}&select=*&order=updated_at.desc&limit=1`
+    });
+    return Array.isArray(rows) && rows.length ? rows[0] : null;
+  } catch (error) {
+    const message = (error && error.message) || "";
+    if (message.includes("onboarding_form_responses") || message.includes("relation")) {
+      return null;
+    }
+    throw error;
+  }
+}
+
 // ── Self-serve athlete: purchases and instances ──
 
 async function getStripePurchasesForIdentity(config, identityId) {
@@ -2258,7 +2314,7 @@ async function getActiveAssignmentsForAthlete(config, athleteId) {
   const rows = await supabaseRequest({
     url: config.supabaseUrl,
     serviceRoleKey: config.supabaseServiceRoleKey,
-    path: `program_assignments?athlete_id=eq.${encodeURIComponent(athleteId)}&status=in.(active,scheduled,paused)&select=id,athlete_id,coach_id,training_program_id,start_date,duration_weeks,access_end_date,computed_end_date,status,created_at,training_program:training_programs(id,name,access_model,duration_weeks,billing_type)&order=created_at.desc`
+    path: `program_assignments?athlete_id=eq.${encodeURIComponent(athleteId)}&status=in.(active,scheduled,paused)&select=id,athlete_id,coach_id,training_program_id,start_date,duration_weeks,computed_end_date,status,selected_preset_id,created_at,training_program:training_programs(id,name,access_model,duration_weeks,billing_type,preset_selection)&order=created_at.desc`
   });
   return Array.isArray(rows) ? rows : [];
 }
@@ -2417,7 +2473,7 @@ async function upsertProgramScheduleSlots(config, slots) {
   return supabaseRequest({
     url: config.supabaseUrl,
     serviceRoleKey: config.supabaseServiceRoleKey,
-    path: 'program_schedule_slots?on_conflict=preset_id,day_of_week,time_slot',
+    path: 'program_schedule_slots?on_conflict=preset_id,week_number,day_of_week,time_slot',
     method: 'POST',
     body: slots,
     prefer: 'return=representation,resolution=merge-duplicates'
@@ -2513,6 +2569,102 @@ async function markWeeklyPlanSlotCompleted(config, { athleteId, strengthInstance
   return Array.isArray(rows) ? rows : [];
 }
 
+
+// -- Central Leads -------------------------------------------------------------
+
+async function upsertCentralLead(config, {
+  athleteId,
+  identityId,
+  metaLeadId,
+  source,
+  sourceRefId,
+  email,
+  phone,
+  fullName,
+  funnelStage,
+  leadStatus,
+  lastActivityAt,
+  lastActivityType,
+  profile,
+  rawPayload
+} = {}) {
+  function normalizeEmail(v) {
+    return typeof v === 'string' && v.trim() ? v.trim().toLowerCase() : null;
+  }
+  function normalizePhone(v) {
+    if (typeof v !== 'string') return null;
+    const t = v.replace(/(?!^)\+/g, '').replace(/[^\d+]/g, '').trim();
+    return t || null;
+  }
+
+  const emailNorm = normalizeEmail(email);
+  const phoneNorm = normalizePhone(phone);
+  const now = lastActivityAt || new Date().toISOString();
+
+  // Try to find existing row
+  let existing = null;
+  if (identityId) {
+    const rows = await supabaseRequest({
+      url: config.supabaseUrl, serviceRoleKey: config.supabaseServiceRoleKey,
+      path: `leads_central?identity_id=eq.${encodeURIComponent(identityId)}&limit=1`
+    });
+    existing = Array.isArray(rows) ? rows[0] || null : null;
+  }
+  if (!existing && emailNorm) {
+    const rows = await supabaseRequest({
+      url: config.supabaseUrl, serviceRoleKey: config.supabaseServiceRoleKey,
+      path: `leads_central?email_normalized=eq.${encodeURIComponent(emailNorm)}&limit=1`
+    });
+    existing = Array.isArray(rows) ? rows[0] || null : null;
+  }
+
+  const funnelRank = { landing: 0, landing_submitted: 1, onboarding_submitted: 2, plan_generated: 3 };
+  const existingRank = funnelRank[existing && existing.funnel_stage] || 0;
+  const incomingRank = funnelRank[funnelStage] || 0;
+  const resolvedFunnelStage = incomingRank >= existingRank
+    ? (funnelStage || (existing && existing.funnel_stage) || null)
+    : (existing && existing.funnel_stage);
+
+  const row = {
+    ...(athleteId ? { athlete_id: athleteId } : {}),
+    ...(identityId ? { identity_id: identityId } : {}),
+    ...(metaLeadId ? { meta_lead_id: metaLeadId } : {}),
+    ...(source ? { source, last_source: source } : {}),
+    ...(sourceRefId ? { source_ref_id: sourceRefId } : {}),
+    ...(email ? { email } : {}),
+    ...(emailNorm ? { email_normalized: emailNorm } : {}),
+    ...(phone ? { phone } : {}),
+    ...(phoneNorm ? { phone_normalized: phoneNorm } : {}),
+    ...(fullName ? { full_name: fullName } : {}),
+    ...(resolvedFunnelStage ? { funnel_stage: resolvedFunnelStage } : {}),
+    ...(leadStatus ? { lead_status: leadStatus } : {}),
+    last_activity_at: now,
+    ...(lastActivityType ? { last_activity_type: lastActivityType } : {}),
+    ...(profile && typeof profile === 'object' ? { profile } : {}),
+    ...(rawPayload && typeof rawPayload === 'object' ? { raw_payload: rawPayload } : {}),
+    updated_at: now
+  };
+
+  if (existing) {
+    const updated = await supabaseRequest({
+      url: config.supabaseUrl, serviceRoleKey: config.supabaseServiceRoleKey,
+      path: `leads_central?id=eq.${encodeURIComponent(existing.id)}`,
+      method: 'PATCH',
+      body: row,
+      prefer: 'return=representation'
+    });
+    return Array.isArray(updated) ? updated[0] || null : null;
+  }
+
+  const inserted = await supabaseRequest({
+    url: config.supabaseUrl, serviceRoleKey: config.supabaseServiceRoleKey,
+    path: 'leads_central',
+    method: 'POST',
+    body: [{ ...row, created_at: now }],
+    prefer: 'return=representation'
+  });
+  return Array.isArray(inserted) ? inserted[0] || null : null;
+}
 module.exports = {
   insertTrainingSessions,
   upsertTrainingSessionsBySource,
@@ -2563,6 +2715,7 @@ module.exports = {
   getActiveLikeProgramAssignment,
   getLatestCancellableProgramAssignment,
   updateProgramAssignment,
+  setAssignmentPreset,
   listAssignmentHistory,
   listAllAthletesForAdmin,
   listActiveAssignmentsWithPrograms,
@@ -2645,6 +2798,9 @@ module.exports = {
   getStrengthPlanInstanceById,
   getStrengthPlanById,
   getStrengthPlanFull,
+  listStrengthPlanDayLabels,
+  upsertStrengthPlanDayLabels,
+  deleteStrengthPlanDayLabelsByDays,
   createStrengthPlan,
   updateStrengthPlan,
   listStrengthWarmupPresets,
@@ -2672,6 +2828,7 @@ module.exports = {
   getStrengthSessionHistory,
   getStrengthLogSetsForSessions,
   getOnboardingIntakeByIdentity,
+  getOnboardingFormResponsesByIdentity,
   getStripePurchasesForIdentity,
   getAllInstancesForAthlete,
   getActiveAssignmentsForAthlete,
@@ -2697,4 +2854,7 @@ module.exports = {
   updateAthleteWeeklyPlanRow,
   deleteAthleteWeeklyPlan,
   markWeeklyPlanSlotCompleted,
+  upsertCentralLead,
 };
+
+

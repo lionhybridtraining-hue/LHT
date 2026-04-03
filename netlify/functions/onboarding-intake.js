@@ -382,18 +382,22 @@ exports.handler = async (event) => {
       return json(400, { error: "Invalid answers payload" });
     }
 
-    // POST: verifica acesso ao programa (pagamento necessário)
+    // POST: verifica acesso ao programa apenas quando program_id/program_external_id e explicitamente fornecido
     const query = event.queryStringParameters || {};
-    const access = await getProgramAccess(config, {
-      identityId: user.id,
-      programId: query.program_id,
-      programExternalId: query.program || query.program_external_id
-    });
-    if (!access.program) {
-      return json(404, { error: "Programa nao encontrado" });
-    }
-    if (!access.hasAccess) {
-      return json(403, { error: "Pagamento necessario para aceder ao onboarding" });
+    const hasProgramParam = !!(query.program_id || query.program || query.program_external_id);
+
+    if (hasProgramParam) {
+      const access = await getProgramAccess(config, {
+        identityId: user.id,
+        programId: query.program_id,
+        programExternalId: query.program || query.program_external_id
+      });
+      if (!access.program) {
+        return json(404, { error: "Programa nao encontrado" });
+      }
+      if (!access.hasAccess) {
+        return json(403, { error: "Pagamento necessario para aceder ao onboarding" });
+      }
     }
 
     const existing = await getExistingByIdentity(config, user.id);

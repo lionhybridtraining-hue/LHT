@@ -1,5 +1,4 @@
-import { useLocation } from "react-router-dom";
-import Home from "./home";
+import { Navigate, useLocation } from "react-router-dom";
 import PlanLanding from "./plan-landing";
 
 const PLAN_QUERY_KEYS = [
@@ -17,5 +16,9 @@ export default function PlanEntry() {
     return value !== null && value.trim() !== "";
   });
 
-  return hasPlanParams ? <Home /> : <PlanLanding />;
+  if (hasPlanParams) {
+    return <Navigate to={`/atleta/plano${search}`} replace />;
+  }
+
+  return <PlanLanding />;
 }

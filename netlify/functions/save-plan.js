@@ -63,62 +63,8 @@ exports.handler = async (event) => {
     });
     const athleteId = athlete.id;
 
-    // Get the active program assignment for this athlete
-    const programAssignment = await supabaseRequest({
-      url: config.supabaseUrl,
-      serviceRoleKey: config.supabaseServiceRoleKey,
-      path: `program_assignments?athlete_id=eq.${encodeURIComponent(athleteId)}&status=in.("scheduled","active","paused")&select=id&order=created_at.desc&limit=1`
-    });
-
-    if (Array.isArray(programAssignment) && programAssignment.length) {
-      const assignmentId = programAssignment[0].id;
-
-      await supabaseRequest({
-        url: config.supabaseUrl,
-        serviceRoleKey: config.supabaseServiceRoleKey,
-        path: `program_assignments?id=eq.${encodeURIComponent(assignmentId)}`,
-        method: "PATCH",
-        body: {
-          plan_data: plan_data,
-          plan_params: plan_params,
-          plan_generated_at: now
-        }
-      });
-
-      await upsertCentralLead(config, {
-        athleteId: athleteId,
-        identityId,
-        source: "planocorrida_generated",
-        email: user.email || "",
-        fullName: toOptionalString(plan_params.athlete_name),
-        funnelStage: "plan_generated",
-        leadStatus: "qualified",
-        lastActivityAt: now,
-        lastActivityType: "plan_generated",
-        profile: {
-          storage: "program_assignments",
-          programDistance: plan_params.program_distance ?? null,
-          trainingFrequency: plan_params.training_frequency ?? null,
-          progressionRate: plan_params.progression_rate ?? null,
-          phaseDuration: plan_params.phase_duration ?? null,
-          initialVolume: plan_params.initial_volume ?? null,
-          hasPlanData: true
-        },
-        rawPayload: {
-          storage: "program_assignments",
-          assignmentId,
-          savedAt: now
-        }
-      });
-
-      return json(200, {
-        success: true,
-        message: "Plan saved successfully",
-        storage: "program_assignments",
-        assignment_id: assignmentId,
-        plan_params: plan_params
-      });
-    }
+    // Running plans are now saved to onboarding_intake only.
+    // program_assignments no longer stores plan_data (preset-driven calendar).
 
     const existingOnboarding = await getExistingOnboarding(config, identityId);
     const mergedAnswers = {

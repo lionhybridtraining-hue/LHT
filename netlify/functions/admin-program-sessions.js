@@ -1,12 +1,14 @@
 const { json, parseJsonBody } = require("./_lib/http");
 const { getConfig } = require("./_lib/config");
-const { requireRole } = require("./_lib/authz");
+const { requireRole, requireAuthenticatedUser } = require("./_lib/authz");
 const { randomUUID } = require("crypto");
 const {
   listProgramWeeklySessions,
   upsertProgramWeeklySessions,
   deleteProgramWeeklySessions,
-  getTrainingProgramById
+  getTrainingProgramById,
+  getAthleteByIdentity,
+  getActiveAssignmentsForAthlete
 } = require("./_lib/supabase");
 
 const VALID_SESSION_TYPES = new Set(["strength", "running", "rest", "mobility", "other"]);
@@ -38,6 +40,8 @@ function validateSession(entry, index) {
     throw Object.assign(new Error(`sessions[${index}].strength_day_number must be 1-7`), { status: 400 });
   }
 
+  const strengthPlanId = entry.strength_plan_id == null ? null : entry.strength_plan_id.toString().trim() || null;
+
   const runningSessionType = entry.running_session_type ? entry.running_session_type.toString().trim() : null;
   if (runningSessionType && !VALID_RUNNING_TYPES.has(runningSessionType)) {
     throw Object.assign(new Error(`sessions[${index}].running_session_type is invalid`), { status: 400 });
@@ -58,6 +62,7 @@ function validateSession(entry, index) {
     session_key: sessionKey,
     session_type: sessionType,
     session_label: sessionLabel,
+    strength_plan_id: strengthPlanId,
     strength_day_number: strengthDayNumber,
     running_session_type: runningSessionType,
     duration_estimate_min: durationEstimateMin,
@@ -69,22 +74,37 @@ function validateSession(entry, index) {
 
 exports.handler = async (event) => {
   const config = getConfig();
-  const auth = await requireRole(event, config, "coach");
-  if (auth.error) return auth.error;
 
   try {
     const qs = event.queryStringParameters || {};
 
     if (event.httpMethod === "GET") {
+      const auth = await requireAuthenticatedUser(event, config);
+      if (auth.error) return auth.error;
+
       const trainingProgramId = qs.trainingProgramId;
       if (!trainingProgramId) {
         return json(400, { error: "trainingProgramId query param is required" });
       }
+
+      // Coach/admin can read any program. Athletes can only read assigned programs.
+      const isCoachOrAdmin = auth.roles.includes("coach") || auth.roles.includes("admin");
+      if (!isCoachOrAdmin) {
+        const athlete = await getAthleteByIdentity(config, auth.user.sub);
+        if (!athlete) return json(403, { error: "Forbidden" });
+        const assignments = await getActiveAssignmentsForAthlete(config, athlete.id);
+        const hasAccess = (assignments || []).some((a) => a.training_program_id === trainingProgramId);
+        if (!hasAccess) return json(403, { error: "Forbidden" });
+      }
+
       const sessions = await listProgramWeeklySessions(config, trainingProgramId);
       return json(200, { sessions: sessions || [] });
     }
 
     if (event.httpMethod === "PUT") {
+      const auth = await requireRole(event, config, "coach");
+      if (auth.error) return auth.error;
+
       const body = parseJsonBody(event);
       const trainingProgramId = (body.training_program_id || "").toString().trim();
       if (!trainingProgramId) {

@@ -3108,6 +3108,139 @@ details[open] .sc-ess-summary::before {
   accent-color: var(--accent-strong);
 }
 
+.assignments-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.assignments-status-filter {
+  min-width: 160px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--ink);
+  font: inherit;
+}
+
+.assignments-status-filter:focus {
+  outline: none;
+  border-color: rgba(200, 154, 60, 0.56);
+  box-shadow: 0 0 0 3px rgba(200, 154, 60, 0.12);
+}
+
+.assignments-history-toggle-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.86rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.assignments-history-toggle-label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent-strong);
+}
+
+.assignments-create-btn {
+  margin-left: auto;
+}
+
+.assignments-create-form {
+  margin-bottom: 16px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.assignments-create-form-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.assignments-create-form-head strong {
+  color: var(--ink);
+  font-family: "Oswald", sans-serif;
+  font-size: 0.94rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.assignments-create-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.assignments-create-actions {
+  margin-top: 12px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.assignments-table {
+  min-width: 860px;
+}
+
+.assignments-table-wrap {
+  margin-top: 4px;
+}
+
+.assignments-empty-cell {
+  padding: 16px;
+  color: var(--muted);
+}
+
+.assignments-row-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.assignment-status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #fff;
+  background: #8b949e;
+}
+
+.assignment-status-badge.is-active {
+  background: #238636;
+}
+
+.assignment-status-badge.is-scheduled {
+  background: #1f6feb;
+}
+
+.assignment-status-badge.is-paused {
+  background: #d29922;
+  color: #17120c;
+}
+
+.assignment-status-badge.is-completed {
+  background: #8b949e;
+}
+
+.assignment-status-badge.is-cancelled {
+  background: #f85149;
+}
+
 /* GLOBAL ACTION BAR */
 .athletes-action-bar {
   display: flex;

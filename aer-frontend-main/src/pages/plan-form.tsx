@@ -70,9 +70,9 @@ const TRAINING_FREQS = [
 ];
 
 const PHASE_DURATIONS = [
-  { label: "4 semanas", value: 4, sublabel: "total 12 sem (3 fases)" },
-  { label: "5 semanas", value: 5, sublabel: "total 15 sem (3 fases)" },
-  { label: "6 semanas", value: 6, sublabel: "total 18 sem (3 fases)" },
+  { label: "12 semanas", value: 4, sublabel: "3 fases de 4 sem" },
+  { label: "15 semanas", value: 5, sublabel: "3 fases de 5 sem" },
+  { label: "18 semanas", value: 6, sublabel: "3 fases de 6 sem" },
 ];
 
 const RACE_DIST_OPTIONS = [
@@ -274,10 +274,18 @@ function PlanForm() {
     };
   }, [estimatedVdot]);
 
-  // Reset progression when the inferred level changes
+  // Preserve progression rate when level changes, unless it becomes invalid
   useEffect(() => {
-    setProgressionRate(null);
-  }, [estimatedLevel]);
+    if (progressionRate !== null && currentProgressionOptions) {
+      // Check if the selected progression rate is still valid for the new level
+      const isStillValid = currentProgressionOptions.some(
+        (opt) => opt.value === progressionRate
+      );
+      if (!isStillValid) {
+        setProgressionRate(null);
+      }
+    }
+  }, [estimatedLevel, currentProgressionOptions]);
 
   // ── Validação ───────────────────────────────────────────────────────────────
   
@@ -479,7 +487,7 @@ function PlanForm() {
     }
     if (name.trim()) params.set("name", name.trim());
 
-    navigate(`/?${params.toString()}`);
+    navigate(`/atleta/plano?${params.toString()}`);
   }
 
   if (!authChecked) {
@@ -519,7 +527,7 @@ function PlanForm() {
           <div className="mt-6 flex flex-wrap gap-3">
             <button
               type="button"
-              onClick={() => signInWithGoogle("/formulario")}
+              onClick={() => signInWithGoogle("/atleta/onboarding/formulario")}
               className="rounded-xl bg-[#d4a54f] px-5 py-3 text-sm font-semibold text-[#111111] hover:bg-[#c29740]"
             >
               Entrar com Google

@@ -1,7 +1,7 @@
 const { json } = require("./_lib/http");
 const { getConfig } = require("./_lib/config");
-const { listAthletesByCoach, getPayingStatusForAthletes } = require("./_lib/supabase");
-const { getAuthenticatedUser } = require("./_lib/auth-supabase");
+const { listAthletesByCoach, listAllAthletesForAdmin, getPayingStatusForAthletes } = require("./_lib/supabase");
+const { requireAuthenticatedUser } = require("./_lib/authz");
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "GET") {
@@ -10,14 +10,19 @@ exports.handler = async (event) => {
 
   try {
     const config = getConfig();
-    const user = await getAuthenticatedUser(event, config);
-    
-    if (!user) {
-      return json(401, { error: "Authentication required" });
+    const auth = await requireAuthenticatedUser(event, config);
+    if (auth.error) return auth.error;
+
+    const roles = Array.isArray(auth.roles) ? auth.roles : [];
+    const isAdmin = roles.includes("admin");
+    const isCoach = roles.includes("coach");
+    if (!isAdmin && !isCoach) {
+      return json(403, { error: "Forbidden" });
     }
 
-    const coachId = user.sub;
-    const athletes = await listAthletesByCoach(config, coachId);
+    const athletes = isAdmin
+      ? await listAllAthletesForAdmin(config)
+      : await listAthletesByCoach(config, auth.user.sub);
     const list = Array.isArray(athletes) ? athletes : [];
 
     const identityIds = list

@@ -10,7 +10,7 @@
 
 const { json, parseJsonBody } = require("./_lib/http");
 const { getConfig } = require("./_lib/config");
-const { requireRole } = require("./_lib/authz");
+const { requireAuthenticatedUser } = require("./_lib/authz");
 const {
   listAthletesByCoach,
   listStrengthPlanInstances,
@@ -28,8 +28,13 @@ exports.handler = async (event) => {
 
   try {
     const config = getConfig();
-    const auth = await requireRole(event, config, "coach");
+    const auth = await requireAuthenticatedUser(event, config);
     if (auth.error) return auth.error;
+
+    const roles = Array.isArray(auth.roles) ? auth.roles : [];
+    const isAdmin = roles.includes("admin");
+    const isCoach = roles.includes("coach");
+    if (!isCoach && !isAdmin) return json(403, { error: "Forbidden" });
 
     const coachIdentityId = auth.user.sub;
     const query = event.queryStringParameters || {};

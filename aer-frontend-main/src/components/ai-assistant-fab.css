@@ -9,6 +9,15 @@
   gap: 0.55rem;
 }
 
+.ai-fab-wrap--athlete {
+  bottom: calc(5.6rem + env(safe-area-inset-bottom, 0px));
+  z-index: 45;
+}
+
+.ai-fab-wrap--athlete .ai-fab-label {
+  display: none;
+}
+
 .ai-fab-label {
   font-size: 0.72rem;
   font-weight: 600;
@@ -124,6 +133,10 @@
   .ai-fab-wrap {
     right: 0.8rem;
     bottom: 0.9rem;
+  }
+
+  .ai-fab-wrap--athlete {
+    bottom: calc(5.35rem + env(safe-area-inset-bottom, 0px));
   }
 
   .ai-fab-label {

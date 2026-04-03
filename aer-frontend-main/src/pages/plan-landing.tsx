@@ -194,11 +194,11 @@ export default function PlanLanding() {
             planocorrida_landing: buildLandingPayload(draft),
           });
         }
-        navigate("/formulario");
+        navigate("/atleta/onboarding/formulario");
         return;
       }
 
-      await signInWithGoogle("/formulario");
+      await signInWithGoogle("/atleta/onboarding/formulario");
     } catch (error) {
       setErrorMessage(
         error instanceof Error

@@ -22,37 +22,25 @@ exports.handler = async (event) => {
       return json(403, { error: "No athlete profile found for this account" });
     }
 
-    const [assignmentRows, onboardingIntake] = await Promise.all([
-      getLatestRunningAssignment(config, athlete.id),
-      getOnboardingIntakeByIdentity(config, identityId),
-    ]);
+    const onboardingIntake = await getOnboardingIntakeByIdentity(config, identityId);
 
     const runningPrograms = [];
 
-    if (Array.isArray(assignmentRows) && assignmentRows.length > 0) {
-      const assignment = assignmentRows[0];
+    const onboardingPlan = readOnboardingPlan(onboardingIntake);
+    if (onboardingPlan) {
       runningPrograms.push({
-        id: `assignment:${assignment.id}`,
-        status: mapAssignmentStatus(assignment.status),
-        storage: "program_assignments",
-        generatedAt: assignment.plan_generated_at || null,
-        updatedAt: assignment.updated_at || null,
-        programDistanceKm: readNumber(assignment.plan_params, "program_distance"),
-        trainingFrequency: readNumber(assignment.plan_params, "training_frequency"),
+        id: `onboarding:${onboardingIntake.id}`,
+        status: "active",
+        storage: "onboarding_intake",
+        generatedAt: onboardingPlan.savedAt || onboardingIntake.plan_generated_at || null,
+        updatedAt: onboardingIntake.submitted_at || null,
+        programDistanceKm: readNumber(onboardingPlan.planParams, "program_distance"),
+        trainingFrequency: readNumber(onboardingPlan.planParams, "training_frequency"),
+        hasPlanData: Boolean(onboardingPlan.planParams),
+        source: "onboarding",
+        openPath: buildPlanOpenPath(onboardingPlan.planParams),
+        regeneratePath: "/atleta/onboarding/formulario",
       });
-    } else {
-      const onboardingPlan = readOnboardingPlan(onboardingIntake);
-      if (onboardingPlan) {
-        runningPrograms.push({
-          id: `onboarding:${onboardingIntake.id}`,
-          status: "active",
-          storage: "onboarding_intake",
-          generatedAt: onboardingPlan.savedAt || onboardingIntake.plan_generated_at || null,
-          updatedAt: onboardingIntake.submitted_at || null,
-          programDistanceKm: readNumber(onboardingPlan.planParams, "program_distance"),
-          trainingFrequency: readNumber(onboardingPlan.planParams, "training_frequency"),
-        });
-      }
     }
 
     return json(200, { runningPrograms });
@@ -61,12 +49,6 @@ exports.handler = async (event) => {
     return json(500, { error: "Internal server error" });
   }
 };
-
-function mapAssignmentStatus(status) {
-  if (status === "active") return "active";
-  if (status === "scheduled" || status === "paused") return "pending";
-  return "none";
-}
 
 function readOnboardingPlan(onboardingIntake) {
   if (!onboardingIntake || !onboardingIntake.answers) return null;
@@ -86,38 +68,38 @@ function readNumber(source, key) {
   return Number.isFinite(value) ? value : null;
 }
 
-async function getLatestRunningAssignment(config, athleteId) {
-  return supabaseRequest({
-    url: config.supabaseUrl,
-    serviceRoleKey: config.supabaseServiceRoleKey,
-    path: `program_assignments?athlete_id=eq.${encodeURIComponent(athleteId)}&plan_generated_at=not.is.null&select=id,status,plan_generated_at,plan_params,updated_at&order=plan_generated_at.desc.nullslast,updated_at.desc&limit=1`,
-  });
-}
-
-async function supabaseRequest({ url, serviceRoleKey, path, method = "GET", body, prefer }) {
-  const response = await fetch(`${url}/rest/v1/${path}`, {
-    method,
-    headers: {
-      apikey: serviceRoleKey,
-      Authorization: `Bearer ${serviceRoleKey}`,
-      "Content-Type": "application/json",
-      Prefer: prefer || "return=representation",
-    },
-    body: body ? JSON.stringify(body) : undefined,
-  });
-
-  const text = await response.text();
-  let payload;
-  try {
-    payload = text ? JSON.parse(text) : null;
-  } catch (_error) {
-    payload = text;
+function buildPlanOpenPath(planParams) {
+  if (!planParams || typeof planParams !== "object") {
+    return "/atleta/onboarding/formulario";
   }
 
-  if (!response.ok) {
-    const message = payload && payload.message ? payload.message : `Supabase error ${response.status}`;
-    throw new Error(message);
+  const requiredKeys = [
+    "progression_rate",
+    "phase_duration",
+    "training_frequency",
+    "program_distance",
+  ];
+
+  const params = new URLSearchParams();
+  for (const key of requiredKeys) {
+    const value = planParams[key];
+    if (value === undefined || value === null || value === "") {
+      return "/atleta/onboarding/formulario";
+    }
+    params.set(key, String(value));
   }
 
-  return payload;
+  const optionalKeys = ["race_dist", "race_time", "initial_volume"];
+  for (const key of optionalKeys) {
+    const value = planParams[key];
+    if (value !== undefined && value !== null && value !== "") {
+      params.set(key, String(value));
+    }
+  }
+
+  if (typeof planParams.athlete_name === "string" && planParams.athlete_name.trim()) {
+    params.set("name", planParams.athlete_name.trim());
+  }
+
+  return `/atleta/plano?${params.toString()}`;
 }
