@@ -3,10 +3,13 @@ import { Link, useNavigate } from "react-router-dom";
 import ButtonGroup from "@/components/button-group";
 import StepIndicator from "@/components/step-indicator";
 import StepNavigation from "@/components/step-navigation";
-import { mergeOnboardingAnswers } from "@/lib/onboarding-intake";
+import { fetchOnboardingIntake, mergeOnboardingAnswers } from "@/lib/onboarding-intake";
 import {
   clearPlanLandingDraft,
   loadPlanLandingDraft,
+  savePlanLandingDraft,
+  normalizePhone,
+  isValidPhone,
   type PlanLandingDraft,
   loadPlanFormDraft,
   savePlanFormDraft,
@@ -37,12 +40,12 @@ const COMMUNITY_URL = "https://chat.whatsapp.com/JVsqO05fm4kLhbSaSiKL8n";
 const FORM_SOCIAL_CARDS = [
   {
     title: "+120 atletas",
-    body: "ja iniciaram o metodo LHT",
+    body: "já iniciaram o método LHT",
     image: "/assets/img/DSC00702.jpg",
   },
   {
-    title: "Metodo aplicado",
-    body: "fisiologia, progressao e consistencia",
+    title: "Método aplicado",
+    body: "fisiologia, progressão e consistência",
     image: "/assets/img/TP_Coach.jpg",
   },
   {
@@ -133,6 +136,7 @@ function PlanForm() {
   // ── Secção 5: Volume + meta ─────────────────────────────────────────────────
   const [initialVolume, setInitialVolume] = useState<number | "">("");
   const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
   const [weeklyCommitment, setWeeklyCommitment] = useState(false);
 
   // ── Multi-step form state ────────────────────────────────────────────────────
@@ -170,6 +174,7 @@ function PlanForm() {
 
     hydrateFormWithDraft(draft, {
       setName,
+      setPhone,
       setProgramDistance,
       setTrainingFrequency,
     });
@@ -192,7 +197,9 @@ function PlanForm() {
     setProgressionRate(formDraft.progressionRate);
     setPhaseDuration(formDraft.phaseDuration);
     setInitialVolume(formDraft.initialVolume);
-    setName(formDraft.name);
+    // Keep fresher values already hydrated from landing/profile instead of overwriting with stale form drafts.
+    setName((current) => (current.trim() ? current : formDraft.name));
+    setPhone((current) => (current.trim() ? current : (formDraft.phone || "")));
     setWeeklyCommitment(formDraft.weeklyCommitment);
     setCurrentStep(formDraft.currentStep);
   }, []);
@@ -212,13 +219,13 @@ function PlanForm() {
         if (!accessToken) return;
 
         await mergeOnboardingAnswers(accessToken, {
-          planocorrida_landing: buildLandingPayload(draft),
+          planocorrida_landing: buildLandingPayload(draft, { formCompleted: false }),
         });
 
         if (!isMounted) return;
         clearPlanLandingDraft();
       } catch (error) {
-        console.warn("Nao foi possivel sincronizar a landing inicial:", error);
+        console.warn("Não foi possível sincronizar a landing inicial:", error);
       } finally {
         if (isMounted) {
           setSyncingLanding(false);
@@ -227,6 +234,40 @@ function PlanForm() {
     };
 
     syncLandingDraft();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [authChecked, isAuthenticated]);
+
+  useEffect(() => {
+    if (!authChecked || !isAuthenticated) return;
+
+    let isMounted = true;
+
+    const hydrateFromIntake = async () => {
+      try {
+        const accessToken = await getAccessToken();
+        if (!accessToken) return;
+
+        const intake = await fetchOnboardingIntake(accessToken);
+        if (!isMounted || !intake) return;
+
+        const prefillPhone = normalizePhone(intake.profile?.phone || "");
+        const prefillName = (intake.profile?.fullName || "").trim();
+
+        if (prefillPhone) {
+          setPhone((current) => (current.trim() ? current : prefillPhone));
+        }
+        if (prefillName) {
+          setName((current) => (current.trim() ? current : prefillName));
+        }
+      } catch (error) {
+        console.warn("Não foi possível pré-preencher dados do perfil:", error);
+      }
+    };
+
+    void hydrateFromIntake();
 
     return () => {
       isMounted = false;
@@ -310,10 +351,10 @@ function PlanForm() {
       }
     }
     if (vdotPath === "level" && selectedTier === null) {
-      return "Seleciona o teu nivel de experiencia.";
+      return "Seleciona o teu nível de experiência.";
     }
     if (estimatedVdot === null) {
-      return "Nao foi possivel estimar o teu nivel. Verifica os dados inseridos.";
+      return "Não foi possível estimar o teu nível. Verifica os dados inseridos.";
     }
     return null;
   }
@@ -321,7 +362,7 @@ function PlanForm() {
   /** Step 3: Progressão — Validate progression rate */
   function validateStep3(): string | null {
     if (progressionRate === null) {
-      return "Seleciona o ritmo de progressao semanal.";
+      return "Seleciona o ritmo de progressão semanal.";
     }
     return null;
   }
@@ -329,13 +370,16 @@ function PlanForm() {
   /** Step 4: Duração — Validate phase duration */
   function validateStep4(): string | null {
     if (!phaseDuration) {
-      return "Seleciona a duracao do plano.";
+      return "Seleciona a duração do plano.";
     }
     return null;
   }
 
   /** Step 5: Detalhes — Validate commitment */
   function validateStep5(): string | null {
+    if (!isValidPhone(normalizePhone(phone))) {
+      return "Indica um telemóvel válido para gerar o plano.";
+    }
     if (!weeklyCommitment) {
       return "Para continuar, confirma o teu compromisso semanal.";
     }
@@ -363,7 +407,7 @@ function PlanForm() {
   /** Determine if we can advance to next step */
   const canAdvance = useMemo(() => {
     return validateCurrentStep() === null;
-  }, [currentStep, programDistance, trainingFrequency, vdotPath, raceDist, raceTimeStr, paceType, paceStr, selectedTier, estimatedVdot, progressionRate, phaseDuration, weeklyCommitment]);
+  }, [currentStep, programDistance, trainingFrequency, vdotPath, raceDist, raceTimeStr, paceType, paceStr, selectedTier, estimatedVdot, progressionRate, phaseDuration, phone, weeklyCommitment]);
 
   /** Handle next step */
   function handleNext() {
@@ -384,7 +428,7 @@ function PlanForm() {
       window.scrollTo({ top: 0, behavior: "smooth" });
     } else {
       // Last step — submit form
-      handleSubmit(new Event("submit") as unknown as FormEvent<HTMLFormElement>);
+      void handleSubmit(new Event("submit") as unknown as FormEvent<HTMLFormElement>);
     }
   }
 
@@ -416,6 +460,7 @@ function PlanForm() {
       phaseDuration,
       initialVolume,
       name,
+      phone,
       weeklyCommitment,
       currentStep: step,
       createdAt: new Date().toISOString(),
@@ -426,7 +471,7 @@ function PlanForm() {
 
   function validateForm(): string | null {
     if (!programDistance || !trainingFrequency || !phaseDuration) {
-      return "Preenche os campos de objetivo e duracao.";
+      return "Preenche os campos de objetivo e duração.";
     }
     if (vdotPath === "race") {
       if (!parseRaceTimeToMinutes(raceTimeStr)) {
@@ -439,13 +484,16 @@ function PlanForm() {
       }
     }
     if (vdotPath === "level" && selectedTier === null) {
-      return "Seleciona o teu nivel de experiencia.";
+      return "Seleciona o teu nível de experiência.";
     }
     if (estimatedVdot === null) {
-      return "Nao foi possivel estimar o teu nivel. Verifica os dados inseridos.";
+      return "Não foi possível estimar o teu nível. Verifica os dados inseridos.";
     }
     if (progressionRate === null) {
-      return "Seleciona o ritmo de progressao semanal.";
+      return "Seleciona o ritmo de progressão semanal.";
+    }
+    if (!isValidPhone(normalizePhone(phone))) {
+      return "Indica um telemóvel válido para gerar o plano.";
     }
     if (!weeklyCommitment) {
       return "Para continuar, confirma o teu compromisso semanal.";
@@ -454,7 +502,7 @@ function PlanForm() {
   }
 
   // ── Submit ──────────────────────────────────────────────────────────────────
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setErrorMessage(null);
 
@@ -462,6 +510,30 @@ function PlanForm() {
     if (error) {
       setErrorMessage(error);
       return;
+    }
+
+    const normalizedPhone = normalizePhone(phone);
+    const baseDraft = loadPlanLandingDraft();
+    const landingDraft: PlanLandingDraft = {
+      name: name.trim() || (baseDraft ? baseDraft.name : ""),
+      phone: normalizedPhone,
+      goalDistance: programDistance,
+      weeklyFrequency: trainingFrequency,
+      experienceLevel: (baseDraft && baseDraft.experienceLevel) || "building",
+      currentConsistency: (baseDraft && baseDraft.currentConsistency) || "medium",
+      createdAt: (baseDraft && baseDraft.createdAt) || new Date().toISOString(),
+    };
+    savePlanLandingDraft(landingDraft);
+
+    try {
+      const accessToken = await getAccessToken();
+      if (accessToken) {
+        await mergeOnboardingAnswers(accessToken, {
+          planocorrida_landing: buildLandingPayload(landingDraft, { formCompleted: true }),
+        });
+      }
+    } catch (syncError) {
+      console.warn("Não foi possível sincronizar telemóvel antes de gerar plano:", syncError);
     }
 
     const params = new URLSearchParams();
@@ -485,8 +557,6 @@ function PlanForm() {
     if (typeof initialVolume === "number") {
       params.set("initial_volume", String(initialVolume));
     }
-    if (name.trim()) params.set("name", name.trim());
-
     navigate(`/atleta/plano?${params.toString()}`);
   }
 
@@ -499,7 +569,7 @@ function PlanForm() {
             className="rounded-[24px] border border-[#d4a54f29] px-5 py-4 shadow-[0_22px_54px_rgba(0,0,0,0.36)]"
             style={planocorridaPanelStyle}
           >
-            A validar a tua sessao...
+            A validar a tua sessão...
           </div>
         </div>
       </div>
@@ -521,8 +591,8 @@ function PlanForm() {
             Falta entrares com Google para guardar o teu plano.
           </h1>
           <p className="mt-3 text-sm leading-relaxed text-[#c9ced9]">
-            O teu progresso e os dados da etapa anterior ficam associados a tua conta,
-            para que o plano seja guardado e possamos continuar o fluxo sem perder informacao.
+            O teu progresso e os dados da etapa anterior ficam associados à tua conta,
+            para que o plano seja guardado e possamos continuar o fluxo sem perder informação.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <button
@@ -536,7 +606,7 @@ function PlanForm() {
               to="/"
               className="rounded-xl border border-[#d4a54f55] px-5 py-3 text-sm font-semibold text-[#f4f6fa] hover:bg-[#232323]"
             >
-              Voltar ao inicio
+              Voltar ao início
             </Link>
           </div>
         </div>
@@ -578,7 +648,7 @@ function PlanForm() {
             to="/"
             className="inline-flex w-fit items-center rounded-full border border-[#d4a54f55] px-4 py-2 text-sm font-semibold text-[#f7f1e8] hover:bg-[rgba(255,255,255,0.05)]"
           >
-            Voltar ao inicio
+            Voltar ao início
           </Link>
         </div>
 
@@ -649,12 +719,12 @@ function PlanForm() {
                 1. Qual é o teu objetivo?
               </h2>
               <p className="text-sm text-[#c9ced9]">
-                A corrida é sobre definir objetivos e alcancá-los.
+                A corrida é sobre definir objetivos e alcançá-los.
               </p>
             </div>
 
             <div className="space-y-2">
-              <p className="text-sm font-medium text-[#d9dde6]">Distancia objetivo</p>
+              <p className="text-sm font-medium text-[#d9dde6]">Distância objetivo</p>
               <ButtonGroup
                 options={PROGRAM_DISTANCES}
                 value={programDistance}
@@ -667,7 +737,7 @@ function PlanForm() {
                 Quantas vezes por semana te comprometes a treinar?
               </p>
               <p className="text-xs text-[#8a94a8]">
-                Uma maior frequencia permite uma evolucao mais rapida e segura.
+                Uma maior frequência permite uma evolução mais rápida e segura.
               </p>
               <ButtonGroup
                 options={TRAINING_FREQS}
@@ -685,7 +755,7 @@ function PlanForm() {
             <section className="space-y-5">
             <div>
               <h2 className="text-lg font-semibold text-[#f4f6fa]">
-                2. Qual é o teu nivel atual?
+                2. Qual é o teu nível atual?
               </h2>
               <p className="text-sm text-[#c9ced9]">
                 Usamos isto para calcular os teus ritmos de treino individualizados (VDOT).
@@ -700,7 +770,7 @@ function PlanForm() {
                     key: "race" as VdotPath,
                     emoji: "✅",
                     label:
-                      "Tenho uma prova recente (tempo e distancia) ou ja sei estimar.",
+                      "Tenho uma prova recente (tempo e distância) ou já sei estimar.",
                   },
                   {
                     key: "pace" as VdotPath,
@@ -710,7 +780,7 @@ function PlanForm() {
                   {
                     key: "level" as VdotPath,
                     emoji: "❌",
-                    label: "Nao tenho dados → escolho um nivel pre-definido.",
+                    label: "Não tenho dados → escolho um nível pré-definido.",
                   },
                 ] as const
               ).map((opt) => (
@@ -740,7 +810,7 @@ function PlanForm() {
             {vdotPath === "race" && (
               <div className="space-y-4 pl-1">
                 <div className="space-y-2">
-                  <p className="text-sm font-medium text-[#d9dde6]">Distancia da prova</p>
+                  <p className="text-sm font-medium text-[#d9dde6]">Distância da prova</p>
                   <ButtonGroup
                     options={RACE_DIST_OPTIONS}
                     value={raceDist}
@@ -752,7 +822,7 @@ function PlanForm() {
                     Tempo da prova (HH:MM:SS)
                   </span>
                   <span className="text-xs text-[#8a94a8]">
-                    Prova mais recente ou com melhor score dos ultimos 2/3 meses.
+                    Prova mais recente ou com melhor score dos últimos 2/3 meses.
                   </span>
                   <input
                     className="border border-[#d4a54f44] bg-[rgba(255,255,255,0.04)] rounded-md px-3 py-2 text-[#f4f6fa] w-40"
@@ -782,7 +852,7 @@ function PlanForm() {
                           checked={paceType === pt}
                           onChange={() => setPaceType(pt)}
                         />
-                        {pt === "easy" ? "Easy (confortavel)" : "Threshold (limiar)"}
+                        {pt === "easy" ? "Easy (confortável)" : "Threshold (limiar)"}
                       </label>
                     ))}
                   </div>
@@ -842,7 +912,7 @@ function PlanForm() {
                 <span className="text-[#8fd45f] text-lg leading-none mt-0.5">✓</span>
                 <div>
                   <p className="text-sm font-semibold text-[#8fd45f]">
-                    Nivel estimado: {LEVEL_LABELS[estimatedLevel]}
+                    Nível estimado: {LEVEL_LABELS[estimatedLevel]}
                   </p>
                   <p className="text-xs text-[#92b870] mt-0.5">
                     VDOT ≈ {estimatedVdot.toFixed(1)} · Threshold ~{estimatedPaces.threshold}/km · Easy ~{estimatedPaces.easy}/km
@@ -864,7 +934,7 @@ function PlanForm() {
                 </h2>
                 <p className="text-sm text-[#c9ced9]">
                   O volume semanal tem de aumentar gradualmente. Iniciantes com boa
-                  aptidao fisica podem progredir mais rapido; atletas experientes devem
+                  aptidão física podem progredir mais rápido; atletas experientes devem
                   ser mais conservadores.
                 </p>
               </div>
@@ -886,7 +956,7 @@ function PlanForm() {
                 4. Em quanto tempo tens para atingir o teu objetivo?
               </h2>
               <p className="text-sm text-[#c9ced9]">
-                Quanto maior a duracao, mais consistentes serao os resultados.
+                Quanto maior a duração, mais consistentes serão os resultados.
               </p>
             </div>
             <ButtonGroup
@@ -903,26 +973,23 @@ function PlanForm() {
           {currentStep === 5 && (
             <section className="space-y-4">
             <h2 className="text-lg font-semibold text-[#f4f6fa]">
-              5. Ultimos detalhes
+              5. Últimos Detalhes
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <label className="flex flex-col gap-1">
                 <span className="text-sm font-medium text-[#d9dde6]">
-                  Nome (opcional)
+                  Telemóvel
                 </span>
                 <input
                   className="border border-[#d4a54f44] bg-[rgba(255,255,255,0.04)] rounded-md px-3 py-2 text-[#f4f6fa]"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Ex.: Joao"
+                  value={phone}
+                  onChange={(e) => setPhone(normalizePhone(e.target.value))}
+                  placeholder="Ex.: +351 912 345 678"
                 />
               </label>
               <label className="flex flex-col gap-1">
                 <span className="text-sm font-medium text-[#d9dde6]">
                   Volume semanal atual km (opcional)
-                </span>
-                <span className="text-xs text-[#8a94a8]">
-                  O volume com que ja dominas e consegues fazer sem acumular fadiga.
                 </span>
                 <input
                   type="number"
@@ -935,6 +1002,9 @@ function PlanForm() {
                   }
                   placeholder="Ex.: 28"
                 />
+                <span className="text-xs text-[#8a94a8]">
+                  O volume com que já dominas e consegues fazer sem acumular fadiga.
+                </span>
               </label>
             </div>
 
@@ -1000,12 +1070,16 @@ function hydrateFormWithDraft(
   draft: PlanLandingDraft,
   actions: {
     setName: (value: string) => void;
+    setPhone: (value: string) => void;
     setProgramDistance: (value: number) => void;
     setTrainingFrequency: (value: number) => void;
   }
 ) {
   if (draft.name) {
     actions.setName(draft.name);
+  }
+  if (draft.phone) {
+    actions.setPhone(draft.phone);
   }
   if (draft.goalDistance) {
     actions.setProgramDistance(draft.goalDistance);
@@ -1015,7 +1089,7 @@ function hydrateFormWithDraft(
   }
 }
 
-function buildLandingPayload(draft: PlanLandingDraft) {
+function buildLandingPayload(draft: PlanLandingDraft, options?: { formCompleted?: boolean }) {
   return {
     name: draft.name,
     phone: draft.phone,
@@ -1023,6 +1097,8 @@ function buildLandingPayload(draft: PlanLandingDraft) {
     weeklyFrequency: draft.weeklyFrequency,
     experienceLevel: draft.experienceLevel,
     currentConsistency: draft.currentConsistency,
+    formCompleted: Boolean(options && options.formCompleted),
+    completedAt: options && options.formCompleted ? new Date().toISOString() : null,
     savedAt: new Date().toISOString(),
   };
 }

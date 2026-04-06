@@ -39,7 +39,24 @@ exports.handler = async (event) => {
       const productId = (body.product_id || "").toString().trim();
       const priceCents = Number(body.price_cents);
       const currency = (body.currency || "EUR").toString().trim();
-      const recurring = Boolean(body.recurring);
+      let recurring = false;
+
+      if (body.recurring && typeof body.recurring === "object") {
+        const interval = String(body.recurring.interval || "month").trim().toLowerCase();
+        const intervalCountRaw = Number(body.recurring.interval_count || body.recurring.intervalCount || 1);
+        const intervalCount = Number.isInteger(intervalCountRaw) && intervalCountRaw > 0 ? intervalCountRaw : 1;
+
+        if (!["day", "week", "month", "year"].includes(interval)) {
+          return json(400, { error: "recurring.interval invalido" });
+        }
+
+        recurring = {
+          interval,
+          intervalCount
+        };
+      } else {
+        recurring = Boolean(body.recurring);
+      }
 
       if (!productId) return json(400, { error: "product_id e obrigatorio" });
       if (!Number.isFinite(priceCents) || priceCents <= 0) return json(400, { error: "price_cents deve ser um numero positivo" });

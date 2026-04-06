@@ -7,10 +7,6 @@ import type { AthleteOutletContext } from '@/components/atleta/AthleteLayout';
 type ProfileForm = {
   fullName: string;
   phone: string;
-  goalDistance: string;
-  weeklyFrequency: string;
-  experienceLevel: string;
-  consistencyLevel: string;
   dateOfBirth: string;
   heightCm: string;
   weightKg: string;
@@ -19,10 +15,6 @@ type ProfileForm = {
 
 const REQUIRED_FIELDS: Array<keyof ProfileForm> = [
   'fullName',
-  'goalDistance',
-  'weeklyFrequency',
-  'experienceLevel',
-  'consistencyLevel',
   'dateOfBirth',
   'heightCm',
   'weightKg',
@@ -48,10 +40,6 @@ function PerfilContent() {
   const [form, setForm] = useState<ProfileForm>({
     fullName: '',
     phone: '',
-    goalDistance: '',
-    weeklyFrequency: '',
-    experienceLevel: '',
-    consistencyLevel: '',
     dateOfBirth: '',
     heightCm: '',
     weightKg: '',
@@ -70,10 +58,6 @@ function PerfilContent() {
         setForm({
           fullName: data.onboarding.fullName || data.athlete.name || '',
           phone: data.onboarding.phone || '',
-          goalDistance: data.onboarding.goalDistance ? String(data.onboarding.goalDistance) : '',
-          weeklyFrequency: data.onboarding.weeklyFrequency ? String(data.onboarding.weeklyFrequency) : '',
-          experienceLevel: data.onboarding.experienceLevel || '',
-          consistencyLevel: data.onboarding.consistencyLevel || '',
           dateOfBirth: data.athlete.dateOfBirth || '',
           heightCm: data.athlete.heightCm ? String(data.athlete.heightCm) : '',
           weightKg: data.athlete.weightKg ? String(data.athlete.weightKg) : '',
@@ -81,7 +65,7 @@ function PerfilContent() {
         });
       } catch (e) {
         if (!mounted) return;
-        setError(e instanceof Error ? e.message : 'Nao foi possivel carregar o perfil.');
+        setError(e instanceof Error ? e.message : 'Não foi possível carregar o perfil.');
       } finally {
         if (mounted) setLoading(false);
       }
@@ -113,7 +97,7 @@ function PerfilContent() {
         setStravaStatus(data);
       } catch (e) {
         if (!mounted) return;
-        setStravaMessage(e instanceof Error ? e.message : 'Nao foi possivel carregar estado do Strava.');
+        setStravaMessage(e instanceof Error ? e.message : 'Não foi possível carregar estado do Strava.');
       } finally {
         if (mounted) setStravaLoading(false);
       }
@@ -139,10 +123,6 @@ function PerfilContent() {
     setError(null);
 
     if (!form.fullName.trim()) return setError('Indica o teu nome completo.');
-    if (!form.goalDistance.trim()) return setError('Indica a tua distancia de objetivo.');
-    if (!form.weeklyFrequency.trim()) return setError('Indica a frequencia semanal.');
-    if (!form.experienceLevel.trim()) return setError('Seleciona o teu nivel de experiencia.');
-    if (!form.consistencyLevel.trim()) return setError('Seleciona o teu nivel de consistencia.');
     if (!form.dateOfBirth.trim()) return setError('Indica a tua data de nascimento.');
     if (!form.heightCm.trim()) return setError('Indica a tua altura em cm.');
     if (!form.weightKg.trim()) return setError('Indica o teu peso em kg.');
@@ -153,10 +133,6 @@ function PerfilContent() {
       const updated = await saveAthleteProfile({
         fullName: form.fullName.trim(),
         phone: form.phone.trim(),
-        goalDistance: Number(form.goalDistance),
-        weeklyFrequency: Number(form.weeklyFrequency),
-        experienceLevel: form.experienceLevel,
-        consistencyLevel: form.consistencyLevel,
         dateOfBirth: form.dateOfBirth,
         heightCm: Number(form.heightCm),
         weightKg: Number(form.weightKg),
@@ -176,7 +152,7 @@ function PerfilContent() {
         }
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Nao foi possivel guardar os dados.');
+      setError(e instanceof Error ? e.message : 'Não foi possível guardar os dados.');
     } finally {
       setSaving(false);
     }
@@ -188,7 +164,7 @@ function PerfilContent() {
       const authorizeUrl = await getStravaConnectUrl();
       window.location.assign(authorizeUrl);
     } catch (e) {
-      setStravaMessage(e instanceof Error ? e.message : 'Nao foi possivel iniciar ligacao Strava.');
+      setStravaMessage(e instanceof Error ? e.message : 'Não foi possível iniciar ligação Strava.');
     }
   };
 
@@ -197,7 +173,7 @@ function PerfilContent() {
     setStravaMessage(null);
     try {
       const data = await syncStrava();
-      setStravaMessage(`Sync concluido: ${data.activitiesFetched} atividades lidas, ${data.sessionsUpserted} sessoes atualizadas.`);
+      setStravaMessage(`Sync concluído: ${data.activitiesFetched} atividades lidas, ${data.sessionsUpserted} sessões atualizadas.`);
       const status = await getStravaStatus();
       setStravaStatus(status);
     } catch (e) {
@@ -251,13 +227,13 @@ function PerfilContent() {
         <div className="mt-6 rounded-xl border border-[#d4a54f33] bg-[#171717] p-4">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#d4a54f]">Integracao Strava</p>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#d4a54f]">Integração Strava</p>
               <p className="mt-1 text-xs text-[#8f99a8]">
                 {stravaLoading
                   ? 'A carregar estado...'
                   : stravaStatus?.connected
-                    ? `Conta ligada${stravaStatus.lastSyncAt ? ` · ultima sync ${new Date(stravaStatus.lastSyncAt).toLocaleString('pt-PT')}` : ''}`
-                    : 'Liga a tua conta para importar historico e alimentar carga/check-ins.'}
+                    ? `Conta ligada${stravaStatus.lastSyncAt ? ` · última sync ${new Date(stravaStatus.lastSyncAt).toLocaleString('pt-PT')}` : ''}`
+                    : 'Liga a tua conta para importar histórico e alimentar carga/check-ins.'}
               </p>
             </div>
             {!stravaStatus?.connected ? (
@@ -295,33 +271,7 @@ function PerfilContent() {
 
         <div className="mt-6 grid gap-4 md:grid-cols-2">
           <Input label="Nome completo" value={form.fullName} onChange={(v) => handleChange('fullName', v)} />
-          <Input label="Telemovel" value={form.phone} onChange={(v) => handleChange('phone', v)} placeholder="Opcional" />
-          <Input label="Distancia objetivo (km)" type="number" value={form.goalDistance} onChange={(v) => handleChange('goalDistance', v)} />
-          <Input label="Sessoes por semana" type="number" value={form.weeklyFrequency} onChange={(v) => handleChange('weeklyFrequency', v)} />
-
-          <Select
-            label="Nivel de experiencia"
-            value={form.experienceLevel}
-            onChange={(v) => handleChange('experienceLevel', v)}
-            options={[
-              { value: '', label: 'Seleciona...' },
-              { value: 'iniciante', label: 'Iniciante' },
-              { value: 'intermedio', label: 'Intermedio' },
-              { value: 'avancado', label: 'Avancado' },
-            ]}
-          />
-
-          <Select
-            label="Nivel de consistencia"
-            value={form.consistencyLevel}
-            onChange={(v) => handleChange('consistencyLevel', v)}
-            options={[
-              { value: '', label: 'Seleciona...' },
-              { value: 'baixo', label: 'Baixo' },
-              { value: 'medio', label: 'Medio' },
-              { value: 'alto', label: 'Alto' },
-            ]}
-          />
+          <Input label="Telemóvel" value={form.phone} onChange={(v) => handleChange('phone', v)} placeholder="Opcional" />
 
           <Input label="Data de nascimento" type="date" value={form.dateOfBirth} onChange={(v) => handleChange('dateOfBirth', v)} />
           <Input label="Altura (cm)" type="number" value={form.heightCm} onChange={(v) => handleChange('heightCm', v)} />

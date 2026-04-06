@@ -22,7 +22,11 @@ const {
   pauseInstancesByStripeSubscription,
   resumeInstancesByStripeSubscription,
   createProgramAssignment,
-  getActiveLikeProgramAssignment
+  getActiveLikeProgramAssignment,
+  getPaymentChargeByStripePI,
+  updatePaymentCharge,
+  getPaymentPlanCharges,
+  updatePaymentPlan
 } = require("./_lib/supabase");
 const { sendCAPIEvent, buildUserData } = require("./_lib/meta-capi");
 
@@ -500,6 +504,47 @@ exports.handler = async (event) => {
 
       const record = await upsertStripePurchaseBySessionId(config, abandoned);
       return json(200, { received: true, type: stripeEvent.type, persisted: true, record });
+    }
+
+    // ── Phased payment charge reconciliation ──
+    // Catches payment_intent events for charges created by the scheduler
+    if (stripeEvent.type === "payment_intent.succeeded" || stripeEvent.type === "payment_intent.payment_failed") {
+      const pi = stripeEvent.data.object;
+      const chargeId = pi.metadata && pi.metadata.charge_id;
+      if (chargeId) {
+        const charge = await getPaymentChargeByStripePI(config, pi.id);
+        if (charge) {
+          if (stripeEvent.type === "payment_intent.succeeded" && charge.status !== "paid") {
+            await updatePaymentCharge(config, charge.id, {
+              status: "paid",
+              stripe_payment_intent_id: pi.id,
+              stripe_charge_id: pi.latest_charge || null,
+              paid_at: new Date().toISOString(),
+              failure_reason: null,
+              grace_period_ends_at: null
+            });
+            // Check plan completion
+            const planCharges = await getPaymentPlanCharges(config, charge.payment_plan_id);
+            const allDone = planCharges.every((c) =>
+              c.status === "paid" || c.status === "skipped" || c.status === "cancelled"
+            );
+            if (allDone) {
+              await updatePaymentPlan(config, charge.payment_plan_id, { status: "completed" });
+            }
+            return json(200, { received: true, type: stripeEvent.type, chargeReconciled: true, chargeId: charge.id, status: "paid" });
+          }
+          if (stripeEvent.type === "payment_intent.payment_failed" && charge.status !== "paid") {
+            await updatePaymentCharge(config, charge.id, {
+              status: "failed",
+              stripe_payment_intent_id: pi.id,
+              failure_reason: (pi.last_payment_error && pi.last_payment_error.message) || "payment_failed",
+              failed_at: new Date().toISOString()
+            });
+            return json(200, { received: true, type: stripeEvent.type, chargeReconciled: true, chargeId: charge.id, status: "failed" });
+          }
+        }
+        // charge_id in metadata but not found in our ledger — proceed to normal handling
+      }
     }
 
     return json(200, { received: true, ignored_type: stripeEvent.type });

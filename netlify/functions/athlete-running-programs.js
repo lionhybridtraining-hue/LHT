@@ -4,6 +4,7 @@ const { json } = require("./_lib/http");
 const {
   getAthleteByIdentity,
   getOnboardingIntakeByIdentity,
+  upsertCentralLead,
 } = require("./_lib/supabase");
 
 exports.handler = async (event) => {
@@ -31,7 +32,7 @@ exports.handler = async (event) => {
       runningPrograms.push({
         id: `onboarding:${onboardingIntake.id}`,
         status: "active",
-        storage: "onboarding_intake",
+        storage: "athletes",
         generatedAt: onboardingPlan.savedAt || onboardingIntake.plan_generated_at || null,
         updatedAt: onboardingIntake.submitted_at || null,
         programDistanceKm: readNumber(onboardingPlan.planParams, "program_distance"),
@@ -41,6 +42,34 @@ exports.handler = async (event) => {
         openPath: buildPlanOpenPath(onboardingPlan.planParams),
         regeneratePath: "/atleta/onboarding/formulario",
       });
+    }
+
+    try {
+      await upsertCentralLead(config, {
+        athleteId: athlete.id,
+        identityId,
+        source: "athlete_app",
+        email: athlete.email || auth.user.email || "",
+        phone: athlete.phone || null,
+        fullName: athlete.name || null,
+        funnelStage: onboardingIntake && onboardingIntake.funnel_stage ? onboardingIntake.funnel_stage : "landing",
+        leadStatus:
+          onboardingIntake && (onboardingIntake.funnel_stage === "onboarding_submitted" || onboardingIntake.funnel_stage === "plan_generated")
+            ? "qualified"
+            : "new",
+        lastActivityAt: new Date().toISOString(),
+        lastActivityType: "plan_accessed",
+        profile: {
+          runningProgramsCount: runningPrograms.length,
+          hasOnboardingPlan: Boolean(onboardingPlan),
+        },
+        rawPayload: {
+          endpoint: "athlete-running-programs",
+        }
+      });
+    } catch (leadError) {
+      // Lead sync is non-critical for rendering athlete programs.
+      console.warn("[athlete-running-programs] upsertCentralLead failed:", leadError && leadError.message ? leadError.message : leadError);
     }
 
     return json(200, { runningPrograms });
@@ -95,10 +124,6 @@ function buildPlanOpenPath(planParams) {
     if (value !== undefined && value !== null && value !== "") {
       params.set(key, String(value));
     }
-  }
-
-  if (typeof planParams.athlete_name === "string" && planParams.athlete_name.trim()) {
-    params.set("name", planParams.athlete_name.trim());
   }
 
   return `/atleta/plano?${params.toString()}`;

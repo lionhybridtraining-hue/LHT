@@ -4,7 +4,6 @@ const { requireAuthenticatedUser } = require('./_lib/authz');
 const {
   getAthleteByIdentity,
   upsertAthleteByIdentity,
-  getOnboardingIntakeByIdentity,
   updateAthlete
 } = require('./_lib/supabase');
 
@@ -58,26 +57,107 @@ function normalizeSex(value) {
   return ['male', 'female', 'other'].includes(normalized) ? normalized : null;
 }
 
+function normalizeCanonicalExperienceLevel(value) {
+  const normalized = toNullableString(value);
+  if (!normalized) return null;
+
+  const key = normalized.toLowerCase();
+  const map = {
+    starter: 'starter',
+    iniciante: 'starter',
+    beginner: 'starter',
+    building: 'building',
+    intermedio: 'building',
+    intermediate: 'building',
+    performance: 'performance',
+    avancado: 'performance',
+    advanced: 'performance',
+    'nunca entrei num ginasio': 'starter',
+    'o ambiente do ginasio e intimidante': 'starter',
+    'preciso de orientacao nos ajustes e tecnica': 'starter',
+    'estou a vontade e so preciso de plano estruturado': 'building',
+    'sou capaz de estruturar e executar o treino': 'building',
+    'tenho experiencia avancada e procuro otimizar todos os pormenores': 'performance'
+  };
+
+  return map[key] || null;
+}
+
+function normalizeCanonicalConsistencyLevel(value) {
+  const normalized = toNullableString(value);
+  if (!normalized) return null;
+
+  const key = normalized.toLowerCase();
+  const map = {
+    low: 'low',
+    baixo: 'low',
+    medium: 'medium',
+    medio: 'medium',
+    high: 'high',
+    alto: 'high',
+    'nunca treinei com consistencia': 'low',
+    'menos de 6 meses': 'low',
+    'entre 6 meses a 1 ano': 'medium',
+    'entre 1 a 3 anos': 'high',
+    'mais de 3 anos': 'high'
+  };
+
+  return map[key] || null;
+}
+
+function toAthleteProfileExperienceLevel(value) {
+  const canonical = normalizeCanonicalExperienceLevel(value);
+  if (!canonical) return null;
+
+  const map = {
+    starter: 'iniciante',
+    building: 'intermedio',
+    performance: 'avancado'
+  };
+
+  return map[canonical] || null;
+}
+
+function toAthleteProfileConsistencyLevel(value) {
+  const canonical = normalizeCanonicalConsistencyLevel(value);
+  if (!canonical) return null;
+
+  const map = {
+    low: 'baixo',
+    medium: 'medio',
+    high: 'alto'
+  };
+
+  return map[canonical] || null;
+}
+
 function sanitizeOnboarding(intake) {
-  const answers = intake && intake.answers && typeof intake.answers === 'object' ? intake.answers : {};
+  const answers = intake && intake.onboarding_answers && typeof intake.onboarding_answers === 'object'
+    ? intake.onboarding_answers
+    : {};
   return {
-    fullName: toNullableString((intake && intake.full_name) || answers.nome_completo || answers.full_name || answers.fullName),
+    fullName: toNullableString((intake && intake.name) || answers.nome_completo || answers.full_name || answers.fullName),
     phone: toNullableString((intake && intake.phone) || answers.telemovel || answers.phone),
     goalDistance: toNullableNumber((intake && intake.goal_distance) || answers.goal_distance || answers.goalDistance),
     weeklyFrequency: toNullableNumber((intake && intake.weekly_frequency) || answers.weekly_frequency || answers.weeklyFrequency),
-    experienceLevel: toNullableString((intake && intake.experience_level) || answers.experience_level || answers.nivel_experiencia),
-    consistencyLevel: toNullableString((intake && intake.consistency_level) || answers.consistency_level || answers.nivel_consistencia)
+    experienceLevel: toAthleteProfileExperienceLevel(
+      (intake && intake.experience_level) ||
+      answers.experience_level ||
+      answers.nivel_experiencia ||
+      answers.experiencia_ginasio
+    ),
+    consistencyLevel: toAthleteProfileConsistencyLevel(
+      (intake && intake.consistency_level) ||
+      answers.consistency_level ||
+      answers.nivel_consistencia ||
+      answers.tempo_consistencia_treino
+    )
   };
 }
 
 function computeMissingFields(athlete, onboarding) {
   const missingOnboarding = [];
   const missingPersonal = [];
-
-  if (!onboarding.goalDistance) missingOnboarding.push('goalDistance');
-  if (!onboarding.weeklyFrequency) missingOnboarding.push('weeklyFrequency');
-  if (!onboarding.experienceLevel) missingOnboarding.push('experienceLevel');
-  if (!onboarding.consistencyLevel) missingOnboarding.push('consistencyLevel');
 
   if (!athlete.date_of_birth) missingPersonal.push('dateOfBirth');
   if (!athlete.height_cm) missingPersonal.push('heightCm');
@@ -107,15 +187,19 @@ async function ensureAthlete(config, user) {
 
 async function upsertOnboardingIntake(config, identityId, athlete, payload) {
   const now = new Date().toISOString();
-  const current = await getOnboardingIntakeByIdentity(config, identityId);
-  const currentAnswers = current && current.answers && typeof current.answers === 'object' ? current.answers : {};
+  const current = await getAthleteByIdentity(config, identityId);
+  const currentAnswers = current && current.onboarding_answers && typeof current.onboarding_answers === 'object'
+    ? current.onboarding_answers
+    : {};
 
-  const fullName = toNullableString(payload.fullName) || toNullableString(current && current.full_name) || toNullableString(athlete.name);
+  const fullName = toNullableString(payload.fullName) || toNullableString(current && current.name) || toNullableString(athlete.name);
   const phone = toNullableString(payload.phone) || toNullableString(current && current.phone);
   const goalDistance = toNullableNumber(payload.goalDistance);
   const weeklyFrequency = toNullableNumber(payload.weeklyFrequency);
   const experienceLevel = toNullableString(payload.experienceLevel);
   const consistencyLevel = toNullableString(payload.consistencyLevel);
+  const canonicalExperienceLevel = normalizeCanonicalExperienceLevel(experienceLevel);
+  const canonicalConsistencyLevel = normalizeCanonicalConsistencyLevel(consistencyLevel);
 
   const mergedAnswers = {
     ...currentAnswers,
@@ -123,37 +207,23 @@ async function upsertOnboardingIntake(config, identityId, athlete, payload) {
     ...(phone ? { telemovel: phone, phone } : {}),
     ...(goalDistance ? { goal_distance: goalDistance, goalDistance } : {}),
     ...(weeklyFrequency ? { weekly_frequency: weeklyFrequency, weeklyFrequency } : {}),
-    ...(experienceLevel ? { experience_level: experienceLevel, nivel_experiencia: experienceLevel } : {}),
-    ...(consistencyLevel ? { consistency_level: consistencyLevel, nivel_consistencia: consistencyLevel } : {})
+    ...(canonicalExperienceLevel ? { experience_level: canonicalExperienceLevel } : {}),
+    ...(canonicalConsistencyLevel ? { consistency_level: canonicalConsistencyLevel } : {}),
+    ...(experienceLevel ? { experienceLevel } : {}),
+    ...(consistencyLevel ? { consistencyLevel } : {})
   };
 
-  const row = {
-    identity_id: identityId,
-    athlete_id: athlete.id,
-    email: athlete.email,
+  await updateAthlete(config, athlete.id, {
+    name: fullName,
     phone,
-    full_name: fullName,
     goal_distance: goalDistance,
     weekly_frequency: weeklyFrequency,
-    experience_level: experienceLevel,
-    consistency_level: consistencyLevel,
+    experience_level: canonicalExperienceLevel,
+    consistency_level: canonicalConsistencyLevel,
     funnel_stage: 'onboarding_submitted',
-    answers: mergedAnswers,
-    submitted_at: current && current.submitted_at ? current.submitted_at : now,
-    updated_at: now
-  };
-
-  if (!current) {
-    row.created_at = now;
-  }
-
-  await supabaseRequest({
-    url: config.supabaseUrl,
-    serviceRoleKey: config.supabaseServiceRoleKey,
-    path: 'onboarding_intake?on_conflict=identity_id',
-    method: 'POST',
-    body: [row],
-    prefer: 'resolution=merge-duplicates,return=minimal'
+    onboarding_answers: mergedAnswers,
+    onboarding_submitted_at: current && current.onboarding_submitted_at ? current.onboarding_submitted_at : now,
+    onboarding_updated_at: now
   });
 }
 
@@ -190,7 +260,7 @@ exports.handler = async (event) => {
     }
 
     const freshAthlete = await getAthleteByIdentity(config, user.sub);
-    const intake = await getOnboardingIntakeByIdentity(config, user.sub);
+    const intake = await getAthleteByIdentity(config, user.sub);
     const onboarding = sanitizeOnboarding(intake);
     const completion = computeMissingFields(freshAthlete || athlete, onboarding);
 

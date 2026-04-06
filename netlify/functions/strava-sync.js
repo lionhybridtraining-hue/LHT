@@ -7,6 +7,7 @@ const {
   getStravaConnectionByAthleteId,
   updateStravaConnection,
   upsertTrainingSessionsBySource,
+  patchSessionTSS,
   listTrainingSessionsForAthlete,
   replaceTrainingLoadDaily,
   replaceTrainingLoadMetrics,
@@ -21,6 +22,7 @@ const {
   aggregateTrainingLoadDaily,
   calculateTrainingLoadMetrics
 } = require("./_lib/training-load");
+const { enrichSessionsAfterSync } = require("./_lib/plan-adherence");
 
 function toUnixSeconds(value) {
   const date = new Date(value);
@@ -128,6 +130,18 @@ exports.handler = async (event) => {
 
     const upserted = await upsertTrainingSessionsBySource(config, sessions);
 
+    // Compute TSS backend + plan adherence for each synced session
+    const { tssPatches, adherenceResults } = await enrichSessionsAfterSync(config, athlete.id, sessions);
+    for (const p of tssPatches) {
+      if (p.tss != null && p.source_session_id) {
+        await patchSessionTSS(config, athlete.id, p.source_session_id, {
+          tss: p.tss,
+          intensityFactor: p.intensity_factor,
+          tssMethod: p.tss_method
+        });
+      }
+    }
+
     const patch = {
       access_token: token.accessToken,
       refresh_token: token.refreshToken,
@@ -156,6 +170,9 @@ exports.handler = async (event) => {
       payload: {
         activitiesFetched: activities.length,
         sessionsUpserted: Array.isArray(upserted) ? upserted.length : 0,
+        tssComputed: tssPatches.filter((p) => p.tss != null).length,
+        tssMethods: tssPatches.reduce((acc, p) => { acc[p.tss_method] = (acc[p.tss_method] || 0) + 1; return acc; }, {}),
+        adherenceMatched: adherenceResults.filter((a) => a.matched).length,
         afterUnixSeconds,
         tokenRefreshed: token.refreshed
       }

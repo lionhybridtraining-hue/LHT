@@ -14,6 +14,11 @@ export default function AthleteLayout() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // ── Detect if user came from legacy /planocorrida/atleta flow or has explicit bypass flag ──
+  const fromLegacy = typeof window !== "undefined" && 
+    (window.location.pathname.startsWith("/planocorrida/atleta") ||
+     new URLSearchParams(window.location.search).get("from_legacy") === "1");
+
   // ── Auth check ──
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session: s } }) => {
@@ -32,9 +37,9 @@ export default function AthleteLayout() {
   // ── Redirect to login if unauthenticated ──
   useEffect(() => {
     if (!loading && !session) {
-      navigate("/atleta/login", { replace: true });
+      navigate("/atleta/login", { replace: true, state: { returnTo: location.pathname + location.search } });
     }
-  }, [loading, session, navigate]);
+  }, [loading, session, navigate, location.pathname, location.search]);
 
   // ── Profile completion check ──
   useEffect(() => {
@@ -54,14 +59,15 @@ export default function AthleteLayout() {
     return () => { mounted = false; };
   }, [session]);
 
-  // ── Redirect to perfil if profile incomplete (unless already on perfil) ──
+  // ── Redirect to perfil if profile incomplete (unless already on perfil or from legacy flow) ──
   useEffect(() => {
     if (profileComplete === null) return; // still checking
     const onPerfilPage = location.pathname.replace(/\/$/, "") === "/atleta/perfil";
-    if (!profileComplete && !onPerfilPage) {
+    // Allow bypass of profile gating only in legacy /planocorrida/atleta context
+    if (!profileComplete && !onPerfilPage && !fromLegacy) {
       navigate("/atleta/perfil", { replace: true });
     }
-  }, [profileComplete, location.pathname, navigate]);
+  }, [profileComplete, location.pathname, navigate, fromLegacy]);
 
   // ── Loading state ──
   if (loading || !session || profileComplete === null) {
@@ -76,7 +82,7 @@ export default function AthleteLayout() {
     <BottomNavProvider>
       <div className="flex min-h-screen flex-col text-[#e4e8ef]" style={{ background: BG }}>
         <div className="flex-1 pb-16">
-          <Outlet context={{ session, profileComplete, setProfileComplete }} />
+          <Outlet context={{ session, profileComplete, setProfileComplete, fromLegacy }} />
         </div>
         <BottomNav />
       </div>
@@ -89,6 +95,7 @@ export interface AthleteOutletContext {
   session: Session;
   profileComplete: boolean;
   setProfileComplete: (v: boolean) => void;
+  fromLegacy: boolean;
 }
 
 // ── Bottom Navigation ──

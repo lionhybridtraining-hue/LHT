@@ -19,13 +19,152 @@
   let checkoutBusy = false;
   let appliedCoupon = null;
   let selectedInterval = '';
+  let lastSelectedProgramId = '';
+
+  function animateDetailHeight(detail, fromHeight, toHeight){
+    if(!detail || !fromHeight || !toHeight || fromHeight === toHeight) return;
+    detail.style.overflow = 'hidden';
+    detail.style.height = fromHeight + 'px';
+    detail.getBoundingClientRect();
+    detail.style.transition = 'height 460ms cubic-bezier(0.22, 1, 0.36, 1)';
+    detail.style.height = toHeight + 'px';
+
+    window.setTimeout(function(){
+      detail.style.transition = '';
+      detail.style.height = '';
+      detail.style.overflow = '';
+    }, 500);
+  }
 
   function getQuery(){
     return new URLSearchParams(window.location.search);
   }
 
+  function normalizeProgramIdFromPath(){
+    var path = String(window.location.pathname || '');
+    var clean = path.replace(/\/+$/, '');
+    var match = clean.match(/\/programas\/([^/?#]+)/i);
+    return match && match[1] ? decodeURIComponent(match[1]) : '';
+  }
+
   function getSelectedProgramId(){
-    return getQuery().get('program_id') || '';
+    return getQuery().get('program_id') || normalizeProgramIdFromPath() || '';
+  }
+
+  function buildProgramDetailUrl(programId){
+    if(!programId) return '/programas';
+    return '/programas?program_id=' + encodeURIComponent(programId);
+  }
+
+  function openProgramInline(programId, options){
+    var detailUrl = buildProgramDetailUrl(programId);
+    var method = options && options.replace ? 'replaceState' : 'pushState';
+    window.history[method]({}, '', detailUrl);
+    render();
+  }
+
+  function closeProgramInline(options){
+    var method = options && options.replace ? 'replaceState' : 'pushState';
+    window.history[method]({}, '', '/programas');
+    render();
+  }
+
+  function normalizePlainText(value, fallback){
+    var raw = String(value == null ? '' : value).trim();
+    if(!raw) return fallback || '';
+
+    var cleaned = raw
+      .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+      .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+      .replace(/<br\s*\/?>/gi, ' ')
+      .replace(/<\/(p|div|li|ul|ol|h[1-6]|blockquote|section|article)>/gi, ' ')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/&nbsp;/gi, ' ')
+      .replace(/&amp;/gi, '&')
+      .replace(/&lt;/gi, '<')
+      .replace(/&gt;/gi, '>')
+      .replace(/&quot;/gi, '"')
+      .replace(/&#39;|&apos;/gi, "'")
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    return cleaned || fallback || '';
+  }
+
+  function truncateSummary(value, maxChars){
+    var text = String(value || '').trim();
+    if(!text || text.length <= maxChars) return text;
+    var shortened = text.slice(0, maxChars).replace(/\s+\S*$/, '').trim();
+    return (shortened || text.slice(0, maxChars)).trim() + '...';
+  }
+
+  function escapeHtml(value){
+    return String(value == null ? '' : value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function sanitizeTechnicalHtml(value, fallback){
+    var raw = String(value == null ? '' : value).trim();
+    if(!raw){
+      return escapeHtml(fallback || 'Detalhes técnicos indisponíveis para este programa no momento.');
+    }
+
+    var hasHtml = /<\/?[a-z][\s\S]*>/i.test(raw);
+    if(!hasHtml){
+      return escapeHtml(raw).replace(/\r?\n/g, '<br>');
+    }
+
+    var allowed = new Set(['p', 'br', 'strong', 'em', 'b', 'i', 'u', 'ul', 'ol', 'li', 'h3', 'h4', 'blockquote', 'div', 'span']);
+    var cleaned = raw
+      .replace(/<script[\s\S]*?<\/script>/gi, '')
+      .replace(/<style[\s\S]*?<\/style>/gi, '')
+      .replace(/<!--([\s\S]*?)-->/g, '')
+      .replace(/\son\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '')
+      .replace(/\s(href|src)\s*=\s*("\s*javascript:[^"]*"|'\s*javascript:[^']*'|\s*javascript:[^\s>]+)/gi, '')
+      .replace(/<\/?([a-z0-9-]+)([^>]*)>/gi, function(match, tag){
+        var normalizedTag = String(tag || '').toLowerCase();
+        if(!allowed.has(normalizedTag)) return '';
+        if(/^<\//.test(match)) return '</' + normalizedTag + '>';
+        if(normalizedTag === 'br') return '<br>';
+        return '<' + normalizedTag + '>';
+      })
+      .trim();
+
+    return cleaned || escapeHtml(fallback || 'Detalhes técnicos indisponíveis para este programa no momento.');
+  }
+
+  function programCommercialDescription(program){
+    var plain = normalizePlainText(
+      program && (program.commercialDescription || program.description),
+      'Programa ativo na plataforma Lion Hybrid Training.'
+    );
+    return truncateSummary(plain, 170);
+  }
+
+  function programTechnicalDescription(program){
+    return sanitizeTechnicalHtml(
+      program && (program.technicalDescription || program.description),
+      'Detalhes técnicos indisponíveis para este programa no momento.'
+    );
+  }
+
+  function formatProgramAvailability(value){
+    var normalized = String(value || '').trim();
+    if(!normalized) return 'Acesso imediato';
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(normalized)) return normalized;
+    try {
+      return new Intl.DateTimeFormat('pt-PT', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+      }).format(new Date(normalized + 'T00:00:00'));
+    } catch(_err){
+      return normalized;
+    }
   }
 
   async function loadPublicConfig(){
@@ -51,6 +190,7 @@
       billingLabel: document.getElementById('checkout-billing-label'),
       name: document.getElementById('checkout-program-name'),
       price: document.getElementById('checkout-price'),
+      summary: document.getElementById('checkout-program-summary'),
       pe: document.getElementById('checkout-payment-element'),
       error: document.getElementById('checkout-error'),
       processing: document.getElementById('checkout-processing'),
@@ -128,9 +268,9 @@
 
     const prices = program.prices || {};
     const intervals = [];
-    if(prices.monthly) intervals.push({ key: 'monthly', label: 'Mensal', cents: prices.monthly });
-    if(prices.quarterly) intervals.push({ key: 'quarterly', label: 'Trimestral', cents: prices.quarterly });
-    if(prices.annual) intervals.push({ key: 'annual', label: 'Anual', cents: prices.annual });
+    if(prices.monthly != null) intervals.push({ key: 'monthly', label: 'Mensal', cents: prices.monthly });
+    if(prices.quarterly != null) intervals.push({ key: 'quarterly', label: 'Trimestral', cents: prices.quarterly });
+    if(prices.annual != null) intervals.push({ key: 'annual', label: 'Anual', cents: prices.annual });
 
     if(intervals.length <= 1){
       nodes.intervalContainer.hidden = true;
@@ -170,7 +310,7 @@
     if(!checkoutProgram) return 0;
     var prices = checkoutProgram.prices || {};
     var base = 0;
-    if(selectedInterval && prices[selectedInterval]){
+    if(selectedInterval && prices[selectedInterval] != null){
       base = prices[selectedInterval];
     } else {
       base = checkoutProgram.priceCents || 0;
@@ -313,6 +453,9 @@
     nodes.billingLabel.textContent = program.billingType === 'recurring' ? 'Subscricao' : 'Pagamento unico';
     nodes.name.textContent = program.name;
     nodes.price.textContent = formatPrice(program.priceCents, program.currency);
+    if(nodes.summary){
+      nodes.summary.textContent = programCommercialDescription(program);
+    }
     setCheckoutError('');
     if(nodes.processing) nodes.processing.hidden = true;
 
@@ -443,8 +586,20 @@
 
   function render(){
     var root = document.getElementById('programs-app');
+    var detail = document.getElementById('program-detail');
+    var hadVisibleDetail = Boolean(detail && !detail.hidden && detail.childElementCount > 0);
+    var previousDetailHeight = hadVisibleDetail ? detail.offsetHeight : 0;
+    var previousSelectedProgramId = lastSelectedProgramId;
     if(!root) return;
     root.innerHTML = '';
+    if(detail){
+      detail.classList.remove('animate-slide-in');
+      detail.style.transition = '';
+      detail.style.height = '';
+      detail.style.overflow = '';
+      detail.innerHTML = '';
+      detail.hidden = true;
+    }
 
     var auth = document.getElementById('programs-auth');
     if(auth){
@@ -486,10 +641,34 @@
     }
 
     var selectedProgramId = getSelectedProgramId();
+    var selectedProgram = null;
     programs.forEach(function(program){
       var card = document.createElement('article');
       card.className = 'program-card' + (selectedProgramId === program.id ? ' selected' : '');
       card.id = 'program-card-' + program.id;
+      card.setAttribute('role', 'link');
+      card.setAttribute('tabindex', '0');
+      card.setAttribute('aria-label', 'Ver detalhes de ' + (program.name || 'programa'));
+      var detailUrl = buildProgramDetailUrl(program.id);
+
+      function isInteractiveTarget(event){
+        var target = event && event.target;
+        return Boolean(target && target.closest && target.closest('a, button, input, select, textarea, label'));
+      }
+
+      card.addEventListener('click', function(event){
+        if(isInteractiveTarget(event)) return;
+        openProgramInline(program.id);
+      });
+
+      card.addEventListener('keydown', function(event){
+        if(event.key !== 'Enter' && event.key !== ' ') return;
+        if(isInteractiveTarget(event)) return;
+        event.preventDefault();
+        openProgramInline(program.id);
+      });
+
+      if(selectedProgramId === program.id) selectedProgram = program;
 
       if(program.imageUrl){
         var visual = document.createElement('div');
@@ -515,16 +694,25 @@
 
       var description = document.createElement('p');
       description.className = 'description';
-      description.textContent = program.description || 'Programa ativo na plataforma Lion Hybrid Training.';
+      description.textContent = programCommercialDescription(program);
       card.appendChild(description);
 
       var meta = document.createElement('div');
       meta.className = 'meta';
-      meta.innerHTML = '<span>' + formatPrice(program.priceCents, program.currency) + '</span><span>' + program.durationWeeks + ' semanas</span>';
+      meta.innerHTML = '<span>' + escapeHtml(formatProgramPriceSummary(program)) + '</span><span>' + program.durationWeeks + ' semanas</span><span>' + escapeHtml(formatProgramAvailability(program.startDate)) + '</span>';
       card.appendChild(meta);
 
       var actions = document.createElement('div');
       actions.className = 'actions';
+      var details = document.createElement('a');
+      details.className = 'btn secondary program-card-link';
+      details.textContent = 'Ver detalhes';
+      details.href = detailUrl;
+      details.addEventListener('click', function(event){
+        event.preventDefault();
+        openProgramInline(program.id);
+      });
+      actions.appendChild(details);
       var buy = document.createElement('button');
       buy.className = 'btn';
       buy.textContent = currentUser ? 'Comprar acesso' : 'Entrar e continuar';
@@ -534,10 +722,70 @@
       root.appendChild(card);
     });
 
+    if(detail && selectedProgram){
+      var kicker = document.createElement('p');
+      kicker.className = 'program-detail-kicker';
+      kicker.textContent = 'Detalhe técnico do programa';
+      detail.appendChild(kicker);
+
+      var detailTitle = document.createElement('h3');
+      detailTitle.className = 'program-detail-title';
+      detailTitle.textContent = selectedProgram.name || 'Programa LHT';
+      detail.appendChild(detailTitle);
+
+      var detailMeta = document.createElement('div');
+      detailMeta.className = 'meta';
+      detailMeta.innerHTML = '<span>' + escapeHtml(formatProgramPriceSummary(selectedProgram)) + '</span><span>' + selectedProgram.durationWeeks + ' semanas</span><span>' + escapeHtml(formatProgramAvailability(selectedProgram.startDate)) + '</span>';
+      detail.appendChild(detailMeta);
+
+      var detailCopy = document.createElement('div');
+      detailCopy.className = 'program-detail-copy';
+      detailCopy.innerHTML = programTechnicalDescription(selectedProgram);
+      detail.appendChild(detailCopy);
+
+      var detailActions = document.createElement('div');
+      detailActions.className = 'program-detail-actions';
+
+      var backToCatalog = document.createElement('a');
+      backToCatalog.className = 'btn secondary';
+      backToCatalog.href = '/programas';
+      backToCatalog.textContent = 'Voltar ao catálogo';
+      backToCatalog.addEventListener('click', function(event){
+        event.preventDefault();
+        closeProgramInline();
+      });
+      detailActions.appendChild(backToCatalog);
+
+      var openCheckout = document.createElement('button');
+      openCheckout.className = 'btn';
+      openCheckout.textContent = currentUser ? 'Comprar acesso' : 'Entrar e continuar';
+      openCheckout.addEventListener('click', function(){ startCheckout(selectedProgram); });
+      detailActions.appendChild(openCheckout);
+
+      detail.appendChild(detailActions);
+      detail.hidden = false;
+
+      var isFirstLoad = !previousSelectedProgramId;
+      var switchedProgram = previousSelectedProgramId && previousSelectedProgramId !== selectedProgramId;
+
+      if(isFirstLoad){
+        detail.classList.add('animate-slide-in');
+      } else if(hadVisibleDetail && switchedProgram){
+        animateDetailHeight(detail, previousDetailHeight, detail.scrollHeight);
+      }
+
+      lastSelectedProgramId = selectedProgramId;
+    } else {
+      lastSelectedProgramId = '';
+    }
+
     if(selectedProgramId){
       var selectedNode = document.getElementById('program-card-' + selectedProgramId);
       if(selectedNode){
         selectedNode.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      if(detail && !detail.hidden){
+        detail.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     }
   }
@@ -547,6 +795,19 @@
       style: 'currency',
       currency: currency || 'EUR'
     }).format((Number(priceCents) || 0) / 100);
+  }
+
+  function formatProgramPriceSummary(program){
+    if(!program) return formatPrice(0, 'EUR');
+    if(program.billingType !== 'recurring') return formatPrice(program.priceCents, program.currency);
+
+    var prices = program.prices || {};
+    var parts = [];
+    if(prices.monthly != null) parts.push(formatPrice(prices.monthly, program.currency) + '/mês');
+    if(prices.quarterly != null) parts.push(formatPrice(prices.quarterly, program.currency) + '/trim');
+    if(prices.annual != null) parts.push(formatPrice(prices.annual, program.currency) + '/ano');
+    if(!parts.length) return formatPrice(program.priceCents, program.currency);
+    return parts.join(' · ');
   }
 
   async function initializeAuth(){
@@ -602,7 +863,7 @@
 
   async function signInGoogle(programId){
     if(!supabaseClient) return;
-    var redirect = window.location.origin + '/programas.html' + (programId ? ('?program_id=' + encodeURIComponent(programId)) : '');
+    var redirect = window.location.origin + (programId ? buildProgramDetailUrl(programId) : '/programas');
     var result = await supabaseClient.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo: redirect }
@@ -678,4 +939,8 @@
   } else {
     render(); bindCheckoutEvents(); initializeAuth(); loadPrograms();
   }
+
+  window.addEventListener('popstate', function(){
+    render();
+  });
 })();

@@ -1,0 +1,1 @@
+import{g as e}from"./index-Dr1rSUrr.js";const n="/.netlify/functions";async function a(){return{Authorization:`Bearer ${await e()}`,"Content-Type":"application/json"}}async function c(){const o=await a(),t=await fetch(`${n}/athlete-my-programs`,{method:"GET",headers:o}),r=await t.json();if(!t.ok)throw new Error(r.error||`API error ${t.status}`);return r}export{c as f};

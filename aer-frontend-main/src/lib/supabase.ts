@@ -45,8 +45,10 @@ export async function enforceSessionMaxAge(session: Session | null) {
 
 export function buildAppRedirectUrl(path: string) {
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
-  // When serving from /atleta/* (clean URLs), don't apply the configured basename prefix
-  if (typeof window !== "undefined" && window.location.pathname.startsWith("/atleta")) {
+  // When serving from /atleta/* or /planocorrida/atleta/* (clean URLs), don't apply the configured basename prefix
+  if (typeof window !== "undefined" && 
+      (window.location.pathname.startsWith("/atleta") || 
+       window.location.pathname.startsWith("/planocorrida/atleta"))) {
     return `${window.location.origin}${normalizedPath}`;
   }
   const basename = import.meta.env.VITE_ROUTER_BASENAME || "/";
@@ -55,7 +57,13 @@ export function buildAppRedirectUrl(path: string) {
 }
 
 export async function signInWithGoogle(path = "/atleta/onboarding/formulario") {
-  const redirectTo = buildAppRedirectUrl(path);
+  const isFromLegacy = typeof window !== "undefined" && 
+                       window.location.pathname.startsWith("/planocorrida/atleta");
+  
+  // Preserve legacy context by adding URL param if coming from /planocorrida/atleta
+  const redirectPath = isFromLegacy ? `${path}?from_legacy=1` : path;
+  const redirectTo = buildAppRedirectUrl(redirectPath);
+  
   const result = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: { redirectTo },

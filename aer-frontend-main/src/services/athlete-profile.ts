@@ -55,10 +55,10 @@ export function fetchAthleteProfile(): Promise<AthleteProfileData> {
 export function saveAthleteProfile(payload: {
   fullName: string;
   phone: string;
-  goalDistance: number;
-  weeklyFrequency: number;
-  experienceLevel: string;
-  consistencyLevel: string;
+  goalDistance?: number;
+  weeklyFrequency?: number;
+  experienceLevel?: string;
+  consistencyLevel?: string;
   dateOfBirth: string;
   heightCm: number;
   weightKg: number;

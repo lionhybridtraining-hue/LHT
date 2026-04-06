@@ -44,7 +44,7 @@ function ProgramasContent({ session }: { session: AthleteOutletContext["session"
         setOrphanedInstances(programsPayload.orphanedInstances || []);
       } catch (error) {
         if (!isMounted) return;
-        setErrorMessage(error instanceof Error ? error.message : "Nao foi possivel carregar os programas.");
+        setErrorMessage(error instanceof Error ? error.message : "Não foi possível carregar os programas.");
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -89,12 +89,12 @@ function ProgramasContent({ session }: { session: AthleteOutletContext["session"
     <div className="flex flex-col items-center px-5 pb-8 pt-6 text-[#e4e8ef]">
       <div className="w-full max-w-md">
         <div className="text-center">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.35em] text-[#d4a54f]">Area do Atleta</p>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.35em] text-[#d4a54f]">\u00c1rea do Atleta</p>
           <h1 className="mt-1 font-['Oswald'] text-4xl font-bold uppercase tracking-wide text-[#f7f1e8]">
             Meus Programas
           </h1>
           <p className="mt-2 text-xs text-[#8f99a8]">
-            Sessao ativa: {session.user.user_metadata?.full_name || session.user.email}
+            Sessão ativa: {session.user.user_metadata?.full_name || session.user.email}
           </p>
         </div>
 
@@ -103,10 +103,10 @@ function ProgramasContent({ session }: { session: AthleteOutletContext["session"
             Biblioteca do atleta
           </p>
           <h2 className="mt-2 font-['Oswald'] text-3xl font-semibold uppercase tracking-[0.04em] text-[#f7f1e8]">
-            Continua o teu plano e descobre o proximo passo
+            Continua o teu plano e descobre o próximo passo
           </h2>
           <p className="mt-2 text-sm leading-relaxed text-[#8f99a8]">
-            Acede rapidamente ao teu plano de corrida guardado e explora outras opcoes para complementar o teu progresso.
+            Acede rapidamente ao teu plano de corrida guardado e explora outras opções para complementar o teu progresso.
           </p>
         </div>
 
@@ -120,7 +120,7 @@ function ProgramasContent({ session }: { session: AthleteOutletContext["session"
         {hasStrengthPrograms ? (
           <div className="mt-8 space-y-4">
             <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-[#8f99a8]">
-              Treino de Forca
+              Treino de Força
             </p>
             {myPrograms.map((p) => (
               <StrengthProgramCard
@@ -163,32 +163,32 @@ function ProgramasContent({ session }: { session: AthleteOutletContext["session"
           {/* Fallback strength card when no purchases/instances exist */}
           {!hasStrengthPrograms ? (
             <StaticCard
-              title="Treino de Forca"
-              subtitle="Acede ao teu plano de forca com sessoes, cargas e historico."
-              badge="Disponivel"
+              title="Treino de Força"
+              subtitle="Acede ao teu plano de força com sessões, cargas e histórico."
+              badge="Disponível"
               onOpen={() => navigate("/atleta/forca")}
-              ctaLabel="Abrir Forca"
+              ctaLabel="Abrir Força"
             />
           ) : null}
         </div>
 
         <div className="mt-8 space-y-4">
           <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-[#8f99a8]">
-            Descobre outras opcoes
+            Descobre outras opções
           </p>
           <DiscoveryCard
-            title="Catalogo LHT"
-            subtitle="Explora todos os programas e encontra a proxima opcao para complementar o teu plano atual."
+            title="Catálogo LHT"
+              subtitle="Explora todos os programas e encontra a próxima opção para complementar o teu plano atual."
             badge="Explorar"
-            ctaLabel="Ver catalogo completo"
+              ctaLabel="Ver catálogo completo"
             onOpen={() => window.location.assign("/programas")}
           />
           {!hasStrengthPrograms ? (
             <DiscoveryCard
-              title="Complementa com Forca"
-              subtitle="Acrescenta um programa de forca para suportar consistencia, resiliencia e performance na corrida."
+              title="Complementa com Força"
+              subtitle="Acrescenta um programa de força para suportar consistência, resiliência e performance na corrida."
               badge="Upsell"
-              ctaLabel="Descobrir opcoes de forca"
+              ctaLabel="Descobrir opções de força"
               onOpen={() => window.location.assign("/programas")}
             />
           ) : null}
@@ -233,7 +233,7 @@ function StrengthProgramCard({
   const { purchase, program: meta, instance, phase, isCoachLocked, canCreateInstance, sourceType, availableTemplates } = program;
   const navigate = useNavigate();
   // Program name is the top-level product (AER), plan name is the specific strength block underneath
-  const programName = meta?.name || instance?.planName || "Programa de Forca";
+  const programName = meta?.name || instance?.planName || "Programa de Força";
   const planName = instance?.planName && instance.planName !== meta?.name ? instance.planName : null;
   const colors = PHASE_COLORS[phase] || PHASE_COLORS.active;
   const isCreating = creatingInstance === purchase.programId;
@@ -261,17 +261,17 @@ function StrengthProgramCard({
       {/* Subtitle */}
       {instance ? (
         <p className="mt-2 text-sm leading-relaxed text-[#8f99a8]">
-          {instance.startDate ? `Inicio: ${toLocaleDate(instance.startDate)}` : ""}
+          {instance.startDate ? `Início: ${toLocaleDate(instance.startDate)}` : ""}
           {instance.status === "paused" ? " · Pausado" : ""}
         </p>
       ) : isAssignment ? (
         <p className="mt-2 text-sm leading-relaxed text-[#8f99a8]">
-          {purchase.paidAt ? `Atribuido em ${toLocaleDate(purchase.paidAt)}` : "Programa atribuido pelo coach"}
-          {purchase.expiresAt ? ` · Acompanhamento ate ${toLocaleDate(purchase.expiresAt)}` : ""}
+          {purchase.paidAt ? `Atribuído em ${toLocaleDate(purchase.paidAt)}` : "Programa atribuído pelo coach"}
+          {purchase.expiresAt ? ` · Acompanhamento até ${toLocaleDate(purchase.expiresAt)}` : ""}
         </p>
       ) : (
         <p className="mt-2 text-sm leading-relaxed text-[#8f99a8]">
-          {meta ? `${meta.durationWeeks} semanas · ${meta.billingType === "recurring" ? "Subscrição" : "Pagamento único"}` : "Programa disponivel."}
+          {meta ? `${meta.durationWeeks} semanas · ${meta.billingType === "recurring" ? "Subscrição" : "Pagamento único"}` : "Programa disponível."}
         </p>
       )}
 
@@ -281,7 +281,7 @@ function StrengthProgramCard({
             <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
             <path d="M7 11V7a5 5 0 0 1 10 0v4" />
           </svg>
-          <span>Gerido pelo coach ate {toLocaleDate(instance?.coachLockedUntil || purchase.expiresAt || "")}</span>
+          <span>Gerido pelo coach até {toLocaleDate(instance?.coachLockedUntil || purchase.expiresAt || "")}</span>
         </div>
       ) : null}
 
@@ -311,7 +311,7 @@ function StrengthProgramCard({
               {t.description ? (
                 <span className="mt-0.5 block text-xs text-[#8f99a8]">{t.description}</span>
               ) : null}
-              <span className="mt-1 block text-[10px] text-[#d4a54f]">{t.totalWeeks} semanas · {isCreating ? "A iniciar..." : "Comecar"}</span>
+              <span className="mt-1 block text-[10px] text-[#d4a54f]">{t.totalWeeks} semanas · {isCreating ? "A iniciar..." : "Começar"}</span>
             </button>
           ))}
         </div>
@@ -321,7 +321,7 @@ function StrengthProgramCard({
           disabled={isCreating}
           className="mt-4 w-full rounded-xl bg-[linear-gradient(180deg,#e3b861,#d4a54f_55%,#bf8e3e)] py-3 font-['Oswald'] text-base font-semibold uppercase tracking-[0.08em] text-[#111111] shadow-[0_8px_22px_rgba(212,165,79,0.28)] active:scale-[0.98] disabled:opacity-50"
         >
-          {isCreating ? "A iniciar..." : "Comecar Programa"}
+          {isCreating ? "A iniciar..." : "Começar Programa"}
         </button>
       ) : hasActiveInstance ? (
         <button
@@ -332,10 +332,10 @@ function StrengthProgramCard({
         </button>
       ) : isAssignment && isCoachLocked && !instance ? (
         <p className="mt-4 rounded-xl border border-[#d4a54f33] bg-[#1a1612] px-4 py-3 text-center text-xs text-[#8f99a8]">
-          O teu coach esta a configurar o plano de treino
+          O teu coach está a configurar o plano de treino
         </p>
       ) : (phase === "expired" || phase === "cancelled") ? (
-        <p className="mt-4 text-center text-xs text-[#555d69]">Programa indisponivel</p>
+        <p className="mt-4 text-center text-xs text-[#555d69]">Programa indisponível</p>
       ) : null}
     </article>
   );
@@ -350,7 +350,7 @@ function OrphanedInstanceCard({
   instance: OrphanedInstance;
   onOpen: () => void;
 }) {
-  const name = instance.plan?.name || "Plano de Forca";
+  const name = instance.plan?.name || "Plano de Força";
   const isActive = instance.status === "active" || instance.status === "paused";
   const isLocked = !!(instance.coach_locked_until && instance.coach_locked_until >= new Date().toISOString().slice(0, 10));
 
@@ -371,7 +371,7 @@ function OrphanedInstanceCard({
       </div>
 
       <p className="mt-2 text-sm leading-relaxed text-[#8f99a8]">
-        {instance.start_date ? `Inicio: ${toLocaleDate(instance.start_date)}` : "Sem data de inicio"}
+        {instance.start_date ? `Início: ${toLocaleDate(instance.start_date)}` : "Sem data de início"}
         {instance.status === "paused" ? " · Pausado" : ""}
       </p>
 
@@ -381,7 +381,7 @@ function OrphanedInstanceCard({
             <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
             <path d="M7 11V7a5 5 0 0 1 10 0v4" />
           </svg>
-          <span>Gerido pelo coach ate {toLocaleDate(instance.coach_locked_until)}</span>
+          <span>Gerido pelo coach até {toLocaleDate(instance.coach_locked_until)}</span>
         </div>
       ) : null}
 
@@ -394,7 +394,7 @@ function OrphanedInstanceCard({
         </button>
       ) : (
         <p className="mt-4 text-center text-xs text-[#555d69]">
-          {instance.status === "completed" ? "Programa concluido" : "Programa cancelado"}
+          {instance.status === "completed" ? "Programa concluído" : "Programa cancelado"}
         </p>
       )}
     </article>
@@ -489,7 +489,7 @@ function DiscoveryCard(props: {
 
 function resolveRunningSubtitle(runningPlan: RunningPlanEntry | null): string {
   if (!runningPlan) {
-    return "Ainda nao tens um plano de corrida guardado. Gera o teu plano para comecar.";
+    return "Ainda não tens um plano de corrida guardado. Gera o teu plano para começar.";
   }
 
   const pieces: string[] = [];

@@ -11,6 +11,9 @@
 [functions]
   directory = "netlify/functions"
 
+[functions."scheduled-charge-processor"]
+  schedule = "@daily"
+
 
 # Friendly URLs
 [[redirects]]
@@ -41,6 +44,16 @@
 [[redirects]]
   from = "/programas/"
   to = "/programas.html"
+  status = 301
+
+[[redirects]]
+  from = "/programas/:id"
+  to = "/programas?program_id=:id"
+  status = 301
+
+[[redirects]]
+  from = "/programas/:id/"
+  to = "/programas?program_id=:id"
   status = 301
 
 [[redirects]]

@@ -132,6 +132,116 @@ body.auth-locked {
   background: rgba(255, 255, 255, 0.03);
 }
 
+.blog-category-manager {
+  margin: 18px 0 22px;
+  padding: 18px;
+  border-radius: 16px;
+  border: 1px solid rgba(241, 200, 111, 0.12);
+  background: rgba(8, 8, 8, 0.28);
+}
+
+.blog-category-manager-head {
+  display: grid;
+  gap: 6px;
+}
+
+.blog-category-manager-head h3 {
+  margin: 0;
+  font-size: 1rem;
+  color: #f7f1e3;
+}
+
+.blog-category-manager-head p:last-child {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.blog-category-create-grid {
+  align-items: end;
+}
+
+.blog-category-create-actions {
+  margin-top: 0;
+}
+
+.blog-category-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.blog-category-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.blog-category-row-main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 12px;
+  flex: 1 1 auto;
+}
+
+.blog-category-row-field {
+  display: grid;
+  gap: 6px;
+  min-width: min(260px, 100%);
+  flex: 1 1 260px;
+}
+
+.blog-category-row-field span {
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.blog-category-row-field input {
+  width: 100%;
+}
+
+.blog-category-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.blog-category-usage,
+.blog-category-locked-note {
+  display: inline-flex;
+  align-items: center;
+  min-height: 42px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--ink-soft);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.blog-category-locked-note {
+  border-color: rgba(241, 200, 111, 0.22);
+  color: var(--accent-strong);
+}
+
+.blog-category-empty {
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px dashed rgba(255, 255, 255, 0.14);
+  color: var(--muted);
+  text-align: center;
+}
+
 #programs-panel .admin-inline-form {
   gap: 16px;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.02));
@@ -168,6 +278,23 @@ body.auth-locked {
   display: grid;
   gap: 12px;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.recurring-pricing-fields {
+  border: 1px solid rgba(241, 200, 111, 0.16);
+  border-radius: 12px;
+  padding: 12px;
+  background: rgba(10, 10, 10, 0.36);
+}
+
+.recurring-grid {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.programs-form-grid-expanded {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 1fr;
 }
 
 .field-checkbox-card {
@@ -947,15 +1074,16 @@ details[open] .programs-create-summary {
 .sidebar-actions button,
 .form-actions button {
   border: 1px solid var(--line-strong);
-  border-radius: 14px;
-  padding: 12px 16px;
+  border-radius: 10px;
+  padding: 8px 12px;
   font: inherit;
-  font-weight: 700;
+  font-size: 0.85rem;
+  font-weight: 600;
   cursor: pointer;
   background: linear-gradient(180deg, #f2d184 0%, #c89a3c 100%);
   color: #17120c;
   transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
-  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
 }
 
 .auth-controls button:hover,
@@ -1825,9 +1953,9 @@ details[open] .programs-create-summary {
 }
 
 .form-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
 }
 
 #publish-now-btn {

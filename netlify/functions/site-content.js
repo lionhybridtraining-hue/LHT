@@ -30,13 +30,12 @@ function formatPriceLabel(priceCents, currency) {
 
 function deriveFeatureItems(featured) {
   const items = [];
-  const description = normalizeText(featured && featured.description);
-  const eventName = normalizeText(featured && featured.event_name);
+  const relatedEvent = featured && featured.event && typeof featured.event === "object" ? featured.event : null;
+  const eventName = normalizeText(relatedEvent && relatedEvent.name);
   const durationWeeks = featured && Number.isFinite(Number(featured.duration_weeks))
     ? Number(featured.duration_weeks)
     : null;
 
-  if (description) items.push(description);
   if (eventName) items.push(`Evento associado: ${eventName}.`);
   if (durationWeeks && durationWeeks > 0) items.push(`Plano com ${durationWeeks} semanas.`);
 
@@ -48,12 +47,12 @@ function deriveFeaturedProgram(programs) {
 
   const highlighted = programs
     .filter((program) => {
-      const rank = program && program.calendar_highlight_rank;
+      const rank = program && program.event && program.event.calendar_highlight_rank;
       return rank !== null && rank !== undefined && Number.isFinite(Number(rank));
     })
     .sort((a, b) => {
-      const rankA = Number(a.calendar_highlight_rank);
-      const rankB = Number(b.calendar_highlight_rank);
+      const rankA = Number(a && a.event ? a.event.calendar_highlight_rank : null);
+      const rankB = Number(b && b.event ? b.event.calendar_highlight_rank : null);
       if (rankA !== rankB) return rankA - rankB;
 
       const priceA = Number(a && a.price_cents != null ? a.price_cents : Number.MAX_SAFE_INTEGER);
@@ -66,9 +65,25 @@ function deriveFeaturedProgram(programs) {
     });
 
   const featured = highlighted[0] || programs[0];
+  const relatedEvent = featured && featured.event && typeof featured.event === "object" ? featured.event : null;
   const billingType = featured && featured.billing_type ? String(featured.billing_type) : "one_time";
+  const accessModel = featured && featured.access_model ? String(featured.access_model) : "coached_one_time";
+  const paymentModel = featured && featured.payment_model ? String(featured.payment_model) : (billingType === "recurring" ? "recurring" : "single");
   const priceCents = featured && featured.price_cents != null ? Number(featured.price_cents) : null;
   const currency = featured && featured.currency ? String(featured.currency) : "EUR";
+  const startDate = featured && featured.start_date ? String(featured.start_date) : null;
+  const hasScheduledStart = Boolean(startDate);
+
+  // Labels desacopladas: cada uma derivada de um eixo isolado
+  const followupLabel = accessModel === "coached_recurring"
+    ? "Acompanhamento continuo"
+    : accessModel === "coached_one_time"
+      ? "Acompanhamento por programa"
+      : "Self-service";
+  const paymentLabel = paymentModel === "phased"
+    ? "Pagamento faseado"
+    : billingType === "recurring" ? "Subscricao" : "Pagamento unico";
+  const availabilityLabel = hasScheduledStart ? "Acesso calendarizado" : "Acesso imediato";
 
   return {
     id: featured && featured.id ? String(featured.id) : null,
@@ -80,18 +95,23 @@ function deriveFeaturedProgram(programs) {
     currency,
     priceLabel: formatPriceLabel(priceCents, currency),
     billingType,
-    tagline: billingType === "recurring" ? "Subscricao" : "Pagamento unico",
+    tagline: paymentLabel,
     subtitle: normalizeText(featured && featured.description) || null,
-    followupLabel: billingType === "recurring" ? "Acompanhamento continuo" : "Acesso imediato",
-    eventDate: featured && featured.event_date ? String(featured.event_date) : null,
-    eventName: featured && featured.event_name ? String(featured.event_name) : null,
-    eventLocation: featured && featured.event_location ? String(featured.event_location) : null,
-    eventDescription: featured && featured.event_description ? String(featured.event_description) : null,
+    followupLabel,
+    paymentLabel,
+    availabilityLabel,
+    accessModel,
+    paymentModel,
+    startDate,
+    immediateAccess: !hasScheduledStart,
+    eventDate: relatedEvent && relatedEvent.event_date ? String(relatedEvent.event_date) : null,
+    eventName: relatedEvent && relatedEvent.name ? String(relatedEvent.name) : null,
+    eventLocation: relatedEvent && relatedEvent.event_location ? String(relatedEvent.event_location) : null,
+    eventDescription: relatedEvent && relatedEvent.event_description ? String(relatedEvent.event_description) : null,
     features: deriveFeatureItems(featured),
-    calendarHighlightRank:
-      featured && featured.calendar_highlight_rank != null
-        ? Number(featured.calendar_highlight_rank)
-        : null,
+    calendarHighlightRank: relatedEvent && relatedEvent.calendar_highlight_rank != null
+      ? Number(relatedEvent.calendar_highlight_rank)
+      : null,
     ctaUrl: featured && featured.id ? "/programas?program_id=" + encodeURIComponent(String(featured.id)) : null
   };
 }

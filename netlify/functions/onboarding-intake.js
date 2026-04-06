@@ -36,127 +36,149 @@ async function getExistingByIdentity(config, identityId) {
   const rows = await supabaseRequest({
     url: config.supabaseUrl,
     serviceRoleKey: config.supabaseServiceRoleKey,
-    path: `onboarding_intake?identity_id=eq.${encodeURIComponent(identityId)}&select=id,identity_id,athlete_id,email,phone,full_name,goal_distance,weekly_frequency,experience_level,consistency_level,funnel_stage,plan_generated_at,plan_storage,answers,submitted_at,updated_at&limit=1`
+    path: `athletes?identity_id=eq.${encodeURIComponent(identityId)}&select=id,identity_id,email,name,phone,goal_distance,weekly_frequency,experience_level,consistency_level,funnel_stage,plan_generated_at,plan_storage,onboarding_answers,onboarding_submitted_at,onboarding_updated_at&limit=1`
   });
   return Array.isArray(rows) ? rows[0] || null : null;
 }
 
-const LEGACY_ONBOARDING_FIELD_TYPES = {
-  nome_completo: "string",
-  sexo: "string",
-  telemovel: "string",
-  data_nascimento: "date",
-  peso_kg: "number",
-  peso_ideal_kg: "number",
-  altura_m: "number",
-  massa_gorda_percent: "number",
-  perimetro_abdominal_cm: "number",
-  profissao: "string",
-  nivel_atividade_diaria: "string",
-  media_passos_diarios: "string",
-  habitos_ajudam: "string",
-  habitos_atrapalham: "string",
-  horas_sono_media: "number",
-  qualidade_sono: "number",
-  sono_reparador: "string",
-  qualidade_alimentacao: "number",
-  padrao_alimentar: "string_array",
-  apetites_dia: "string",
-  melhoria_alimentacao: "string",
-  litros_agua_dia: "number",
-  dificuldade_hidratacao: "string",
-  suplementos: "string_array",
-  opiniao_suplementacao: "string",
-  condicao_saude_diagnosticada: "string",
-  checkup_recente: "string",
-  medicacao_diaria: "string",
-  acompanhamento_profissional: "string",
-  lesao_atual: "string",
-  dores_regulares: "string",
-  intervencao_cirurgica: "string",
-  sintomas_treino: "string_array",
-  condicao_mental_emocional: "string",
-  treina_ginasio_atualmente: "string",
-  tempo_consistencia_treino: "string",
-  experiencia_ginasio: "string",
-  desporto_regular: "string",
-  acompanhamento_pt: "string",
-  partilha_experiencia_treino: "string",
-  porque_agora: "string",
-  mudanca_desejada: "string",
-  tentativas_anteriores: "string",
-  auto_sabotagem: "string_array",
-  falo_comigo_dificil: "string_array",
-  gatilho_dias_dificeis: "string",
-  frase_motivacao: "string",
-  maior_objetivo: "string",
-  notas_finais: "string"
-};
-
-async function syncLegacyOnboarding(config, { identityId, email, answers, submittedAt }) {
-  const root = asObject(answers);
-  const legacyRow = {
-    identity_id: identityId,
-    email,
-    submitted_at: submittedAt,
-    updated_at: new Date().toISOString()
-  };
-
-  for (const [key, type] of Object.entries(LEGACY_ONBOARDING_FIELD_TYPES)) {
-    const value = normalizeLegacyFieldValue(root[key], type);
-    if (value !== undefined) {
-      legacyRow[key] = value;
-    }
-  }
-
-  const hasLegacyPayload = Object.keys(legacyRow).some(
-    (key) => !["identity_id", "email", "submitted_at", "updated_at"].includes(key)
-  );
-  if (!hasLegacyPayload) {
-    return { attempted: false, synced: false, reason: "no_legacy_fields_in_payload" };
-  }
-
-  try {
-    await supabaseRequest({
-      url: config.supabaseUrl,
-      serviceRoleKey: config.supabaseServiceRoleKey,
-      path: "onboarding_form_responses?on_conflict=identity_id",
-      method: "POST",
-      body: [legacyRow],
-      prefer: "resolution=merge-duplicates,return=minimal"
-    });
-
-    return { attempted: true, synced: true, reason: null };
-  } catch (err) {
-    const message = String((err && err.message) || "");
-    if (message.includes("onboarding_form_responses") || message.includes("relation")) {
-      return {
-        attempted: true,
-        synced: false,
-        reason: "legacy_table_unavailable"
-      };
-    }
-
-    return {
-      attempted: true,
-      synced: false,
-      reason: "legacy_sync_failed",
-      error: message || "unknown_error"
-    };
-  }
+function asObject(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return value;
 }
 
-function asObject(value) {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return {};
+function toOptionalString(value) {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed || null;
+}
+
+function toFiniteNumber(value) {
+  if (value === undefined || value === null || value === "") return null;
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : null;
+}
+
+function normalizePhone(value) {
+  if (typeof value !== "string") return null;
+  const trimmed = value.replace(/(?!^)\+/g, "").replace(/[^\d+\s-]/g, "").trim();
+  return trimmed || null;
+}
+
+function pickFirstDefined(...values) {
+  for (const value of values) {
+    if (value !== undefined && value !== null) return value;
   }
-  return value;
+  return null;
+}
+
+function pickFirstNonNull(...values) {
+  for (const value of values) {
+    if (value !== null && value !== undefined) return value;
+  }
+  return null;
+}
+
+function hasTruthyValue(value) {
+  if (value === true) return true;
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    return normalized === "true" || normalized === "1" || normalized === "yes";
+  }
+  if (typeof value === "number") return value === 1;
+  return false;
+}
+
+function normalizeCanonicalExperienceLevel(value) {
+  const normalized = toOptionalString(value);
+  if (!normalized) return null;
+
+  const key = normalized.toLowerCase();
+  const map = {
+    starter: "starter",
+    iniciante: "starter",
+    beginner: "starter",
+    building: "building",
+    intermedio: "building",
+    intermediate: "building",
+    performance: "performance",
+    avancado: "performance",
+    advanced: "performance"
+  };
+
+  return map[key] || null;
+}
+
+function normalizeCanonicalConsistencyLevel(value) {
+  const normalized = toOptionalString(value);
+  if (!normalized) return null;
+
+  const key = normalized.toLowerCase();
+  const map = {
+    low: "low",
+    baixo: "low",
+    medium: "medium",
+    medio: "medium",
+    high: "high",
+    alto: "high"
+  };
+
+  return map[key] || null;
+}
+
+function mergeFunnelStage(existingStage, incomingStage) {
+  const rank = {
+    landing: 0,
+    landing_submitted: 1,
+    onboarding_submitted: 2,
+    plan_generated: 3
+  };
+
+  const normalizedExisting = typeof existingStage === "string" ? existingStage : "landing";
+  const normalizedIncoming = typeof incomingStage === "string" ? incomingStage : "landing";
+
+  return (rank[normalizedIncoming] || 0) >= (rank[normalizedExisting] || 0)
+    ? normalizedIncoming
+    : normalizedExisting;
+}
+
+function stripDeprecatedAnswerKeys(answers) {
+  const clean = { ...answers };
+  delete clean.experiencia_ginasio;
+  delete clean.tempo_consistencia_treino;
+  return clean;
+}
+
+function hasMeaningfulLandingAnswers(landing, root) {
+  const fields = [
+    landing.name,
+    landing.phone,
+    landing.goalDistance,
+    landing.weeklyFrequency,
+    landing.experienceLevel,
+    landing.currentConsistency,
+    root.goal_distance,
+    root.goalDistance,
+    root.weekly_frequency,
+    root.weeklyFrequency,
+    root.experience_level,
+    root.experienceLevel,
+    root.consistency_level,
+    root.consistencyLevel,
+    root.nome_completo,
+    root.full_name,
+    root.fullName,
+    root.telemovel,
+    root.phone
+  ];
+
+  return fields.some((value) => value !== undefined && value !== null && value !== "");
 }
 
 function extractStructuredFromAnswers(answers) {
   const root = asObject(answers);
   const landing = asObject(root.planocorrida_landing);
   const planGeneration = asObject(root.plan_generation);
+  const pwa = asObject(root.pwa);
 
   const goalDistance = toFiniteNumber(
     pickFirstDefined(
@@ -176,7 +198,7 @@ function extractStructuredFromAnswers(answers) {
     )
   );
 
-  const hasLegacyOnboardingAnswers = [
+  const hasOnboardingAnswers = [
     root.nome_completo,
     root.telemovel,
     root.data_nascimento,
@@ -185,158 +207,123 @@ function extractStructuredFromAnswers(answers) {
     root.maior_objetivo
   ].some((value) => value !== undefined && value !== null && value !== "");
 
-  const hasLandingAnswers =
-    Object.keys(landing).length > 0 ||
-    [root.goal_distance, root.goalDistance, root.weekly_frequency, root.weeklyFrequency].some(
-      (value) => value !== undefined && value !== null && value !== ""
-    );
+  const landingCompleted =
+    hasTruthyValue(landing.formCompleted) ||
+    hasTruthyValue(root.planocorrida_form_completed) ||
+    hasTruthyValue(root.onboarding_form_completed);
+
+  const hasLandingAnswers = hasMeaningfulLandingAnswers(landing, root);
+  const canPromoteToPlanGenerated = Boolean(planGeneration.plan_data) && landingCompleted;
+
+  let activityType = "onboarding_submitted";
+  if (pwa.installedAt) activityType = "app_installed";
+  else if (pwa.installPromptedAt) activityType = "app_install_prompted";
+  else if (landing.entryAt && !hasLandingAnswers && !landingCompleted) activityType = "landing_viewed";
+  else if (hasLandingAnswers && !landingCompleted) activityType = "landing_submitted";
+  else if (canPromoteToPlanGenerated) activityType = "plan_generated";
 
   return {
     phone: normalizePhone(pickFirstDefined(landing.phone, root.telemovel, root.phone)),
-    full_name: toOptionalString(
+    fullName: toOptionalString(
       pickFirstDefined(landing.name, root.nome_completo, root.full_name, root.fullName)
     ),
-    goal_distance: Number.isFinite(goalDistance) ? goalDistance : null,
-    weekly_frequency: Number.isFinite(weeklyFrequency) ? weeklyFrequency : null,
-    experience_level: toOptionalString(
-      pickFirstDefined(landing.experienceLevel, root.experience_level, root.nivel_experiencia)
+    goalDistance: Number.isFinite(goalDistance) ? goalDistance : null,
+    weeklyFrequency: Number.isFinite(weeklyFrequency) ? weeklyFrequency : null,
+    experienceLevel: normalizeCanonicalExperienceLevel(
+      pickFirstDefined(landing.experienceLevel, root.experience_level, root.experienceLevel)
     ),
-    consistency_level: toOptionalString(
-      pickFirstDefined(landing.currentConsistency, root.consistency_level, root.nivel_consistencia)
+    consistencyLevel: normalizeCanonicalConsistencyLevel(
+      pickFirstDefined(landing.currentConsistency, root.consistency_level, root.consistencyLevel)
     ),
-    funnel_stage: planGeneration.plan_data
+    funnelStage: canPromoteToPlanGenerated
       ? "plan_generated"
-      : hasLegacyOnboardingAnswers
+      : hasOnboardingAnswers
+        ? "onboarding_submitted"
+        : landingCompleted
         ? "onboarding_submitted"
         : hasLandingAnswers
           ? "landing_submitted"
           : "landing",
-    plan_generated_at: planGeneration.plan_data ? new Date().toISOString() : null,
-    plan_storage:
+    planGeneratedAt: canPromoteToPlanGenerated ? new Date().toISOString() : null,
+    planStorage:
       planGeneration && planGeneration.storage && typeof planGeneration.storage === "string"
         ? planGeneration.storage
         : null,
+    hasFormCompletion: landingCompleted,
+    activityType
   };
-}
-
-function pickFirstDefined(...values) {
-  for (const value of values) {
-    if (value !== undefined && value !== null) {
-      return value;
-    }
-  }
-  return null;
-}
-
-function toFiniteNumber(value) {
-  if (value === undefined || value === null || value === "") {
-    return null;
-  }
-  const numeric = Number(value);
-  return Number.isFinite(numeric) ? numeric : null;
-}
-
-function pickFirstNonNull(...values) {
-  for (const value of values) {
-    if (value !== null && value !== undefined) {
-      return value;
-    }
-  }
-  return null;
-}
-
-function mergeFunnelStage(existingStage, incomingStage) {
-  const rank = {
-    landing: 0,
-    landing_submitted: 1,
-    onboarding_submitted: 2,
-    plan_generated: 3
-  };
-
-  const normalizedExisting = typeof existingStage === "string" ? existingStage : "landing";
-  const normalizedIncoming = typeof incomingStage === "string" ? incomingStage : "landing";
-
-  return (rank[normalizedIncoming] || 0) >= (rank[normalizedExisting] || 0)
-    ? normalizedIncoming
-    : normalizedExisting;
-}
-
-function toOptionalString(value) {
-  if (typeof value !== "string") {
-    return null;
-  }
-  const trimmed = value.trim();
-  return trimmed || null;
-}
-
-function normalizePhone(value) {
-  if (typeof value !== "string") {
-    return null;
-  }
-  const trimmed = value.replace(/(?!^)\+/g, "").replace(/[^\d+\s-]/g, "").trim();
-  return trimmed || null;
-}
-
-function normalizeLegacyFieldValue(value, type) {
-  if (value === undefined || value === null) {
-    return undefined;
-  }
-
-  if (type === "string") {
-    const parsed = toOptionalString(String(value));
-    return parsed === null ? undefined : parsed;
-  }
-
-  if (type === "number") {
-    const parsed = toFiniteNumber(value);
-    return parsed === null ? undefined : parsed;
-  }
-
-  if (type === "date") {
-    if (typeof value !== "string") {
-      return undefined;
-    }
-    const trimmed = value.trim();
-    if (!trimmed) {
-      return undefined;
-    }
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
-      return undefined;
-    }
-    return trimmed;
-  }
-
-  if (type === "string_array") {
-    if (Array.isArray(value)) {
-      return value
-        .map((item) => toOptionalString(String(item)))
-        .filter((item) => typeof item === "string" && item.length > 0);
-    }
-
-    if (typeof value === "string") {
-      const single = toOptionalString(value);
-      return single ? [single] : [];
-    }
-
-    return [];
-  }
-
-  return undefined;
 }
 
 function inferLeadSource(answers) {
   const root = asObject(answers);
-  if (root.plan_generation || root.planocorrida_landing) {
-    return "planocorrida_landing";
-  }
+  if (root.plan_generation || root.planocorrida_landing) return "planocorrida_landing";
   return "onboarding";
 }
 
 function inferLeadStatus(funnelStage) {
-  if (funnelStage === "plan_generated" || funnelStage === "onboarding_submitted") {
-    return "qualified";
-  }
+  if (funnelStage === "plan_generated" || funnelStage === "onboarding_submitted") return "qualified";
   return "new";
+}
+
+async function syncLegacyOnboardingForm(config, payload) {
+  const body = {
+    identity_id: payload.identityId,
+    email: payload.email,
+    ...(payload.fullName ? { nome_completo: payload.fullName } : {}),
+    ...(payload.phone ? { telemovel: payload.phone } : {}),
+    ...(payload.submittedAt ? { submitted_at: payload.submittedAt } : {})
+  };
+
+  try {
+    await supabaseRequest({
+      url: config.supabaseUrl,
+      serviceRoleKey: config.supabaseServiceRoleKey,
+      path: "onboarding_form_responses?on_conflict=identity_id",
+      method: "POST",
+      body,
+      prefer: "resolution=merge-duplicates,return=representation"
+    });
+
+    return {
+      attempted: true,
+      synced: true,
+      reason: null
+    };
+  } catch (error) {
+    const message = String((error && error.message) || "");
+    if (message.includes("onboarding_form_responses") || message.includes("relation")) {
+      return {
+        attempted: true,
+        synced: false,
+        reason: "legacy_table_missing"
+      };
+    }
+
+    return {
+      attempted: true,
+      synced: false,
+      reason: "legacy_sync_failed"
+    };
+  }
+}
+
+function toApiSnapshot(row) {
+  if (!row) return null;
+  return {
+    athleteId: row.id || null,
+    phone: row.phone || null,
+    fullName: row.name || null,
+    goalDistance: row.goal_distance ?? null,
+    weeklyFrequency: row.weekly_frequency ?? null,
+    experienceLevel: normalizeCanonicalExperienceLevel(row.experience_level),
+    consistencyLevel: normalizeCanonicalConsistencyLevel(row.consistency_level),
+    funnelStage: row.funnel_stage || null,
+    planGeneratedAt: row.plan_generated_at || null,
+    planStorage: row.plan_storage || null,
+    answers: asObject(row.onboarding_answers),
+    submittedAt: row.onboarding_submitted_at || null,
+    updatedAt: row.onboarding_updated_at || null
+  };
 }
 
 exports.handler = async (event) => {
@@ -351,28 +338,28 @@ exports.handler = async (event) => {
       return json(401, { error: "Authentication required" });
     }
 
-    // GET: apenas autenticação necessária (prefill de landing, pré-pagamento)
     if (event.httpMethod === "GET") {
       const existing = await getExistingByIdentity(config, user.id);
+      const snapshot = toApiSnapshot(existing);
       return json(200, {
         ok: true,
-        profile: existing
+        profile: snapshot
           ? {
-              athleteId: existing.athlete_id || null,
-              phone: existing.phone || null,
-              fullName: existing.full_name || null,
-              goalDistance: existing.goal_distance,
-              weeklyFrequency: existing.weekly_frequency,
-              experienceLevel: existing.experience_level || null,
-              consistencyLevel: existing.consistency_level || null,
-              funnelStage: existing.funnel_stage || null,
-              planGeneratedAt: existing.plan_generated_at || null,
-              planStorage: existing.plan_storage || null,
+              athleteId: snapshot.athleteId,
+              phone: snapshot.phone,
+              fullName: snapshot.fullName,
+              goalDistance: snapshot.goalDistance,
+              weeklyFrequency: snapshot.weeklyFrequency,
+              experienceLevel: snapshot.experienceLevel,
+              consistencyLevel: snapshot.consistencyLevel,
+              funnelStage: snapshot.funnelStage,
+              planGeneratedAt: snapshot.planGeneratedAt,
+              planStorage: snapshot.planStorage
             }
           : null,
-        answers: existing && existing.answers ? existing.answers : {},
-        submittedAt: existing ? existing.submitted_at : null,
-        updatedAt: existing ? existing.updated_at : null
+        answers: snapshot ? snapshot.answers : {},
+        submittedAt: snapshot ? snapshot.submittedAt : null,
+        updatedAt: snapshot ? snapshot.updatedAt : null
       });
     }
 
@@ -382,7 +369,6 @@ exports.handler = async (event) => {
       return json(400, { error: "Invalid answers payload" });
     }
 
-    // POST: verifica acesso ao programa apenas quando program_id/program_external_id e explicitamente fornecido
     const query = event.queryStringParameters || {};
     const hasProgramParam = !!(query.program_id || query.program || query.program_external_id);
 
@@ -392,69 +378,67 @@ exports.handler = async (event) => {
         programId: query.program_id,
         programExternalId: query.program || query.program_external_id
       });
-      if (!access.program) {
-        return json(404, { error: "Programa nao encontrado" });
-      }
-      if (!access.hasAccess) {
-        return json(403, { error: "Pagamento necessario para aceder ao onboarding" });
-      }
+      if (!access.program) return json(404, { error: "Programa nao encontrado" });
+      if (!access.hasAccess) return json(403, { error: "Pagamento necessario para aceder ao onboarding" });
     }
 
     const existing = await getExistingByIdentity(config, user.id);
     const structured = extractStructuredFromAnswers(answers);
     const now = new Date().toISOString();
-    const mergedAnswers = {
-      ...(existing && existing.answers ? existing.answers : {}),
-      ...answers
-    };
+
+    const existingAnswers = existing ? asObject(existing.onboarding_answers) : {};
+    const mergedAnswers = stripDeprecatedAnswerKeys({
+      ...existingAnswers,
+      ...asObject(answers)
+    });
+
     const athlete = await upsertAthleteByIdentity(config, {
       identityId: user.id,
       email: user.email,
-      name: pickFirstNonNull(structured.full_name, existing ? existing.full_name : null, user.email)
+      name: pickFirstNonNull(structured.fullName, existing ? existing.name : null, user.email)
     });
 
-    const row = {
-      identity_id: user.id,
-      athlete_id: athlete.id,
-      email: user.email,
+    const funnelStage = mergeFunnelStage(existing ? existing.funnel_stage : null, structured.funnelStage);
+
+    const onboardingSubmittedAt =
+      existing && existing.onboarding_submitted_at
+        ? existing.onboarding_submitted_at
+        : structured.hasFormCompletion
+          ? now
+          : null;
+
+    const patch = {
+      name: pickFirstNonNull(structured.fullName, existing ? existing.name : null, athlete.name || user.email),
       phone: pickFirstNonNull(structured.phone, existing ? existing.phone : null),
-      full_name: pickFirstNonNull(structured.full_name, existing ? existing.full_name : null),
-      goal_distance: pickFirstNonNull(structured.goal_distance, existing ? existing.goal_distance : null),
-      weekly_frequency: pickFirstNonNull(structured.weekly_frequency, existing ? existing.weekly_frequency : null),
-      experience_level: pickFirstNonNull(
-        structured.experience_level,
-        existing ? existing.experience_level : null
-      ),
-      consistency_level: pickFirstNonNull(
-        structured.consistency_level,
-        existing ? existing.consistency_level : null
-      ),
-      funnel_stage: mergeFunnelStage(existing ? existing.funnel_stage : null, structured.funnel_stage),
-      plan_generated_at: pickFirstNonNull(
-        structured.plan_generated_at,
-        existing ? existing.plan_generated_at : null
-      ),
-      plan_storage: pickFirstNonNull(structured.plan_storage, existing ? existing.plan_storage : null),
-      answers: mergedAnswers,
-      submitted_at: existing && existing.submitted_at ? existing.submitted_at : now,
-      updated_at: now
+      goal_distance: pickFirstNonNull(structured.goalDistance, existing ? existing.goal_distance : null),
+      weekly_frequency: pickFirstNonNull(structured.weeklyFrequency, existing ? existing.weekly_frequency : null),
+      experience_level: pickFirstNonNull(structured.experienceLevel, existing ? existing.experience_level : null),
+      consistency_level: pickFirstNonNull(structured.consistencyLevel, existing ? existing.consistency_level : null),
+      funnel_stage: funnelStage,
+      plan_generated_at: pickFirstNonNull(structured.planGeneratedAt, existing ? existing.plan_generated_at : null),
+      plan_storage: pickFirstNonNull(structured.planStorage, existing ? existing.plan_storage : null),
+      onboarding_answers: mergedAnswers,
+      onboarding_submitted_at: onboardingSubmittedAt,
+      onboarding_updated_at: now
     };
 
-    const upserted = await supabaseRequest({
+    const updatedRows = await supabaseRequest({
       url: config.supabaseUrl,
       serviceRoleKey: config.supabaseServiceRoleKey,
-      path: "onboarding_intake?on_conflict=identity_id",
-      method: "POST",
-      body: [row],
-      prefer: "resolution=merge-duplicates,return=representation"
+      path: `athletes?id=eq.${encodeURIComponent(athlete.id)}`,
+      method: "PATCH",
+      body: patch,
+      prefer: "return=representation"
     });
 
-    const record = Array.isArray(upserted) ? upserted[0] || null : null;
-    const legacySync = await syncLegacyOnboarding(config, {
+    const updated = Array.isArray(updatedRows) ? updatedRows[0] || null : null;
+
+    const legacySync = await syncLegacyOnboardingForm(config, {
       identityId: user.id,
       email: user.email,
-      answers: mergedAnswers,
-      submittedAt: record ? record.submitted_at : row.submitted_at
+      fullName: patch.name || null,
+      phone: patch.phone || null,
+      submittedAt: (updated ? updated.onboarding_submitted_at : patch.onboarding_submitted_at) || null
     });
 
     await upsertCentralLead(config, {
@@ -462,30 +446,32 @@ exports.handler = async (event) => {
       identityId: user.id,
       source: inferLeadSource(mergedAnswers),
       email: user.email,
-      phone: row.phone,
-      fullName: row.full_name,
-      funnelStage: row.funnel_stage,
-      leadStatus: inferLeadStatus(row.funnel_stage),
+      phone: patch.phone || null,
+      fullName: patch.name || null,
+      funnelStage,
+      leadStatus: inferLeadStatus(funnelStage),
       lastActivityAt: now,
-      lastActivityType: "onboarding_intake_submitted",
+      lastActivityType: structured.activityType,
       profile: {
-        goalDistance: row.goal_distance,
-        weeklyFrequency: row.weekly_frequency,
-        experienceLevel: row.experience_level,
-        consistencyLevel: row.consistency_level,
+        goalDistance: patch.goal_distance,
+        weeklyFrequency: patch.weekly_frequency,
+        experienceLevel: patch.experience_level,
+        consistencyLevel: patch.consistency_level,
+        hasFormCompletion: structured.hasFormCompletion,
         answersKeys: Object.keys(mergedAnswers).sort()
       },
       rawPayload: {
-        onboardingIntakeId: record ? record.id || null : null,
-        funnelStage: row.funnel_stage,
-        submittedAt: record ? record.submitted_at : row.submitted_at
+        athleteId: athlete.id,
+        funnelStage,
+        activityType: structured.activityType,
+        submittedAt: patch.onboarding_submitted_at
       }
     });
 
     return json(200, {
       ok: true,
       athleteId: athlete.id,
-      submittedAt: record ? record.submitted_at : row.submitted_at,
+      submittedAt: updated ? updated.onboarding_submitted_at : patch.onboarding_submitted_at,
       legacySync
     });
   } catch (err) {

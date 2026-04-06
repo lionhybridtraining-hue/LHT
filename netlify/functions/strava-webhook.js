@@ -4,6 +4,7 @@ const {
   getStravaConnectionByStravaAthleteId,
   updateStravaConnection,
   upsertTrainingSessionsBySource,
+  patchSessionTSS,
   listTrainingSessionsForAthlete,
   replaceTrainingLoadDaily,
   replaceTrainingLoadMetrics,
@@ -15,6 +16,7 @@ const {
   aggregateTrainingLoadDaily,
   calculateTrainingLoadMetrics,
 } = require('./_lib/training-load');
+const { enrichSessionsAfterSync } = require('./_lib/plan-adherence');
 
 async function ensureValidAccessToken(config, connection) {
   const expiresAt = new Date(connection.token_expires_at).getTime();
@@ -109,6 +111,8 @@ exports.handler = async (event) => {
 
     let upsertedCount = 0;
     let deletedCount = 0;
+    let tssMethod = 'none';
+    let adherenceMatched = false;
 
     if (objectType === 'activity' && (aspectType === 'create' || aspectType === 'update')) {
       const activity = await stravaRequest(`/activities/${encodeURIComponent(objectId)}`, token.accessToken);
@@ -116,6 +120,20 @@ exports.handler = async (event) => {
       if (session) {
         const upserted = await upsertTrainingSessionsBySource(config, [session]);
         upsertedCount = Array.isArray(upserted) ? upserted.length : 0;
+
+        // Compute TSS + plan adherence
+        const { tssPatches, adherenceResults } = await enrichSessionsAfterSync(config, athleteId, [session]);
+        for (const p of tssPatches) {
+          tssMethod = p.tss_method || 'none';
+          if (p.tss != null && p.source_session_id) {
+            await patchSessionTSS(config, athleteId, p.source_session_id, {
+              tss: p.tss,
+              intensityFactor: p.intensity_factor,
+              tssMethod: p.tss_method
+            });
+          }
+        }
+        adherenceMatched = adherenceResults.some((a) => a.matched);
       }
       await recalculateTrainingLoad(config, athleteId);
     }
@@ -150,6 +168,8 @@ exports.handler = async (event) => {
         ownerId,
         upsertedCount,
         deletedCount,
+        tssMethod,
+        adherenceMatched,
         tokenRefreshed: token.refreshed,
       },
     });

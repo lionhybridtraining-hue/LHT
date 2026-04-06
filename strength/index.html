@@ -125,7 +125,7 @@
       if (publicConfig) return publicConfig;
       const response = await fetch('/.netlify/functions/public-config');
       const payload = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error((payload && payload.error) ? payload.error : 'Nao foi possivel carregar configuracao publica.');
+      if (!response.ok) throw new Error((payload && payload.error) ? payload.error : 'Não foi possível carregar configuração pública.');
       publicConfig = {
         supabaseUrl: payload.supabaseUrl,
         supabaseAnonKey: payload.supabaseAnonKey,

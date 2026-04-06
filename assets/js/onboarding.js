@@ -12,8 +12,6 @@
       fields: [
         { key: 'nome_completo', label: 'Nome (primeiro e ultimo nome)', type: 'text', required: true },
         { key: 'sexo', label: 'Sexo', type: 'radio', required: true, options: ['Masculino', 'Feminino'] },
-        { key: 'email', label: 'Email', type: 'email', required: true },
-        { key: 'telemovel', label: 'Telemovel', type: 'text', required: true },
         { key: 'data_nascimento', label: 'Data de Nascimento', type: 'date', required: true }
       ]
     },
@@ -82,8 +80,8 @@
       title: 'Historico de Treino e Experiencia',
       fields: [
         { key: 'treina_ginasio_atualmente', label: 'Estas a treinar num ginasio atualmente?', type: 'radio', required: true, options: ['Nao/raramente', 'Em media 1/2 vezes por semana', 'Em media 2/3 vezes por semana', 'Em media 3/4 vezes por semana', 'Mais de 4 vezes por semana'] },
-        { key: 'tempo_consistencia_treino', label: 'Ha quanto tempo treinas de forma consistente?', type: 'radio', required: true, options: ['Nunca treinei com consistencia', 'Menos de 6 meses', 'Entre 6 meses a 1 ano', 'Entre 1 a 3 anos', 'Mais de 3 anos'] },
-        { key: 'experiencia_ginasio', label: 'Escolhe a opcao que melhor se adequa a tua experiencia em ginasio', type: 'radio', required: true, options: ['Nunca entrei num ginasio', 'O ambiente do ginasio e intimidante', 'Preciso de orientacao nos ajustes e tecnica', 'Estou a vontade e so preciso de plano estruturado', 'Sou capaz de estruturar e executar o treino', 'Tenho experiencia avancada e procuro otimizar todos os pormenores'] },
+        { key: 'consistency_level', label: 'Nivel de consistencia atual', type: 'radio', required: true, options: ['low', 'medium', 'high'] },
+        { key: 'experience_level', label: 'Nivel de experiencia atual', type: 'radio', required: true, options: ['starter', 'building', 'performance'] },
         { key: 'desporto_regular', label: 'Praticas ou ja praticaste algum desporto de forma regular?', type: 'textarea', required: true },
         { key: 'acompanhamento_pt', label: 'Ja fizeste acompanhamento com um PT?', type: 'textarea', required: true },
         { key: 'partilha_experiencia_treino', label: 'Ha algo relativo a tua experiencia de treino que queiras partilhar?', type: 'textarea', required: true }
@@ -157,7 +155,7 @@
     if(selection.programId) params.set('program_id', selection.programId);
     if(selection.programExternalId) params.set('program', selection.programExternalId);
     const query = params.toString();
-    return '/programas.html' + (query ? '?' + query : '');
+    return '/programas' + (query ? '?' + query : '');
   }
 
   function track(name, meta){
@@ -342,6 +340,13 @@
       if(response.ok){
         const payload = await response.json();
         intakeDraft = payload && payload.answers ? payload.answers : {};
+        // Seed structured name from profile so the intake form pre-fills even if
+        // the user came via planocorrida.
+        if(payload && payload.profile) {
+          if(payload.profile.fullName && !intakeDraft.nome_completo) {
+            intakeDraft.nome_completo = payload.profile.fullName;
+          }
+        }
         if(payload && payload.submittedAt){
           state.intake.submitted = true;
           state.done.condicao = true;

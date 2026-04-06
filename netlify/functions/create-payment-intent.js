@@ -42,9 +42,30 @@ async function resolvePromotionCode(stripe, code) {
 }
 
 function resolvePriceId(program, billingInterval) {
-  if (!billingInterval) return program.stripe_price_id;
-  const key = "stripe_price_id_" + billingInterval;
-  return program[key] || program.stripe_price_id;
+  const interval = String(billingInterval || "").trim().toLowerCase();
+  if (program.billing_type !== "recurring") {
+    return program.stripe_price_id || null;
+  }
+
+  const recurringPriceMap = {
+    monthly: program.stripe_price_id_monthly || program.stripe_price_id || null,
+    quarterly: program.stripe_price_id_quarterly || null,
+    annual: program.stripe_price_id_annual || null
+  };
+
+  if (!interval) return recurringPriceMap.monthly;
+  if (!Object.prototype.hasOwnProperty.call(recurringPriceMap, interval)) return null;
+  return recurringPriceMap[interval] || null;
+}
+
+function getAvailableRecurringIntervals(program) {
+  if (program.billing_type !== "recurring") return [];
+  const map = {
+    monthly: program.stripe_price_id_monthly || program.stripe_price_id || null,
+    quarterly: program.stripe_price_id_quarterly || null,
+    annual: program.stripe_price_id_annual || null
+  };
+  return Object.keys(map).filter((interval) => !!map[interval]);
 }
 
 exports.handler = async (event) => {
@@ -67,10 +88,21 @@ exports.handler = async (event) => {
       return json(404, { error: "Programa indisponivel" });
     }
 
-    const billingInterval = (body.billing_interval || "").toString().trim() || "";
-    const priceId = resolvePriceId(program, billingInterval);
+    const requestedBillingInterval = (body.billing_interval || "").toString().trim().toLowerCase();
+    const resolvedBillingInterval = program.billing_type === "recurring"
+      ? (requestedBillingInterval || "monthly")
+      : "";
+    const priceId = resolvePriceId(program, requestedBillingInterval);
 
     if (!priceId) {
+      if (program.billing_type === "recurring") {
+        const availableIntervals = getAvailableRecurringIntervals(program);
+        return json(400, {
+          error: "Programa sem Stripe Price configurado para o intervalo selecionado",
+          requestedInterval: resolvedBillingInterval,
+          availableIntervals
+        });
+      }
       return json(400, { error: "Programa sem Stripe Price configurado" });
     }
 
@@ -99,7 +131,7 @@ exports.handler = async (event) => {
       program_external_id: program.external_id || "",
       identity_id: auth.user.sub,
       billing_type: program.billing_type || "one_time",
-      billing_interval: billingInterval || "",
+      billing_interval: resolvedBillingInterval,
       email: auth.user.email || "",
       event_source_url: body.event_source_url || "",
       fbp,

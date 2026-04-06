@@ -182,6 +182,32 @@ function toRoundedNumber(value, digits) {
   return Math.round(number * factor) / factor;
 }
 
+/**
+ * Compute average pace as mm:ss /km from distance (meters) and moving time (seconds).
+ * Returns null when either input is missing or distance is zero.
+ */
+function computeAvgPace(distanceMeters, movingSeconds) {
+  if (!Number.isFinite(distanceMeters) || distanceMeters <= 0) return null;
+  if (!Number.isFinite(movingSeconds) || movingSeconds <= 0) return null;
+  const paceSecondsPerKm = movingSeconds / (distanceMeters / 1000);
+  const minutes = Math.floor(paceSecondsPerKm / 60);
+  const seconds = Math.round(paceSecondsPerKm % 60);
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
+
+/**
+ * Classify the Strava sport_type into our internal modality bucket.
+ * Used downstream for TSS method selection and plan-adherence matching.
+ */
+function classifyModality(sportType) {
+  const s = String(sportType || "").toLowerCase();
+  if (/run|trail/.test(s)) return "run";
+  if (/ride|cycling|bike|virtualride/.test(s)) return "bike";
+  if (/swim/.test(s)) return "swim";
+  if (/row/.test(s)) return "row";
+  return "other";
+}
+
 function mapStravaActivityToSession(activity, athleteId) {
   const sessionDate = toIsoDate(activity.start_date_local || activity.start_date);
   if (!sessionDate) return null;
@@ -202,7 +228,15 @@ function mapStravaActivityToSession(activity, athleteId) {
 
   const title = String(activity.name || "Strava Session").trim() || "Strava Session";
   const sportType = String(activity.sport_type || activity.type || "").trim();
+  const modality = classifyModality(sportType);
 
+  // Pace only meaningful for run / walk activities
+  const avgPace = (modality === "run")
+    ? computeAvgPace(distanceMeters, movingSeconds)
+    : null;
+
+  // TSS is never taken from external sources — always calculated in backend
+  // suffer_score is preserved in source_payload for reference only
   return {
     athlete_id: athleteId,
     source: "strava",
@@ -216,7 +250,7 @@ function mapStravaActivityToSession(activity, athleteId) {
     actual_distance_meters: Number.isFinite(distanceMeters) ? distanceMeters : null,
     planned_duration_minutes: null,
     planned_distance_meters: null,
-    tss: Number.isFinite(Number(activity.suffer_score)) ? Number(activity.suffer_score) : null,
+    tss: null,
     intensity_factor: null,
     ctl: null,
     atl: null,
@@ -225,7 +259,7 @@ function mapStravaActivityToSession(activity, athleteId) {
     avg_power: Number.isFinite(Number(activity.average_watts)) ? Number(activity.average_watts) : null,
     work_kj: Number.isFinite(Number(activity.kilojoules)) ? Number(activity.kilojoules) : null,
     distance_km: distanceKm,
-    avg_pace: null,
+    avg_pace: avgPace,
     execution_status: "done_not_planned",
     execution_ratio: null,
     context_class: "unknown",
@@ -241,5 +275,7 @@ module.exports = {
   exchangeCodeForToken,
   refreshAccessToken,
   stravaRequest,
-  mapStravaActivityToSession
+  mapStravaActivityToSession,
+  classifyModality,
+  computeAvgPace
 };

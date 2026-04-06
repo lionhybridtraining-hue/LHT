@@ -31,13 +31,14 @@ function normalizeAssignmentPayload(payload) {
   if (!athleteId) throw new Error("athleteId is required");
   if (!trainingProgramId) throw new Error("trainingProgramId is required");
 
-  const startDate = startDateInput || new Date().toISOString().slice(0, 10);
-  const parsedDate = new Date(startDate);
-  if (Number.isNaN(parsedDate.getTime())) throw new Error("startDate must be a valid date");
+  const startDate = startDateInput || null;
+  if (startDate) {
+    const parsedDate = new Date(startDate);
+    if (Number.isNaN(parsedDate.getTime())) throw new Error("startDate must be a valid date");
+  }
 
-  // Scheduled access is driven by start date regardless of coach assignment.
   const today = new Date().toISOString().slice(0, 10);
-  const status = startDate > today ? "scheduled" : "active";
+  const status = startDate && startDate > today ? "scheduled" : "active";
 
   if (durationWeeks != null && (!Number.isInteger(durationWeeks) || durationWeeks <= 0)) {
     throw new Error("durationWeeks must be a positive integer");
@@ -154,6 +155,10 @@ exports.handler = async (event) => {
       if (!program) {
         return json(404, { error: "Training program not found" });
       }
+      if (!normalized.start_date) {
+        normalized.start_date = program.start_date || new Date().toISOString().slice(0, 10);
+      }
+      normalized.status = normalized.start_date > new Date().toISOString().slice(0, 10) ? "scheduled" : "active";
       if (normalized.duration_weeks == null) {
         normalized.duration_weeks = Number(program.duration_weeks);
       }

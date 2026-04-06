@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/admin/admin.css" />
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.101.1" defer></script>
 </head>
 <body>
   <section id="admin-auth-gate" class="auth-gate">
@@ -76,7 +76,43 @@
             <h2>Editor de artigos</h2>
             <p>CRUD autenticado para gerir artigos em Supabase com sessao editorial via Netlify Identity.</p>
           </div>
+          <button id="blog-category-manage-btn" type="button">Gerir categorias</button>
         </div>
+
+        <dialog id="blog-category-dialog" class="admin-action-dialog admin-action-dialog-wide">
+          <div class="modal-header">
+            <h3 id="blog-category-title">Categorias do blog</h3>
+            <button id="close-blog-category-dialog-btn" type="button" class="modal-close-btn" aria-label="Fechar">✕</button>
+          </div>
+          <div class="modal-content">
+            <section class="blog-category-manager" aria-labelledby="blog-category-title">
+              <div class="blog-category-manager-head">
+                <div>
+                  <p class="section-eyebrow">Taxonomia</p>
+                  <p>Cria categorias novas e gere renomeações ou eliminações sem editar o HTML manualmente.</p>
+                </div>
+              </div>
+
+              <p id="blog-category-message" class="message" role="status"></p>
+
+              <div class="admin-inline-form blog-category-create-grid">
+                <div class="field">
+                  <label for="blog-category-name">Nova categoria</label>
+                  <input id="blog-category-name" type="text" placeholder="Ex.: Nutrição" />
+                </div>
+                <div class="form-actions blog-category-create-actions">
+                  <button id="blog-category-create-btn" type="button">Criar categoria</button>
+                </div>
+              </div>
+
+              <div id="blog-category-list" class="blog-category-list" aria-live="polite"></div>
+            </section>
+
+            <div class="modal-footer">
+              <button id="close-blog-category-dialog-footer-btn" type="button" class="modal-btn">Fechar</button>
+            </div>
+          </div>
+        </dialog>
 
         <p id="message" class="message" role="status"></p>
         <form id="article-form">
@@ -95,7 +131,15 @@
 
             <div class="field">
               <label for="category">Categoria</label>
-              <input id="category" name="category" value="Artigo" />
+              <select id="category" name="category">
+                <option value="Artigo">Artigo</option>
+                <option value="Educação">Educação</option>
+                <option value="Fisiologia">Fisiologia</option>
+                <option value="Mindset">Mindset</option>
+                <option value="Tecnologia">Tecnologia</option>
+                <option value="Treino Híbrido">Treino Híbrido</option>
+                <option value="Treino Híbrido &amp; Parentalidade">Treino Híbrido &amp; Parentalidade</option>
+              </select>
             </div>
 
             <div class="field field-wide">
@@ -1006,9 +1050,9 @@
                 <input id="program-external-id" type="text" placeholder="Ex.: AER" />
               </div>
               <div class="field field-wide">
-                <label for="program-description">Descricao</label>
-                <div class="richtext-editor-group" data-richtext-source="program-description" data-richtext-editor="program-description-editor">
-                  <div class="richtext-toolbar" role="toolbar" aria-label="Formatar descrição do programa">
+                <label for="program-commercial-description">Descricao comercial (cards/catalogo)</label>
+                <div class="richtext-editor-group" data-richtext-source="program-commercial-description" data-richtext-editor="program-commercial-description-editor">
+                  <div class="richtext-toolbar" role="toolbar" aria-label="Formatar descrição comercial do programa">
                     <button type="button" class="richtext-btn" data-richtext-command="bold" title="Negrito"><strong>B</strong></button>
                     <button type="button" class="richtext-btn" data-richtext-command="italic" title="Itálico"><em>I</em></button>
                     <button type="button" class="richtext-btn" data-richtext-command="underline" title="Sublinhado"><u>U</u></button>
@@ -1016,8 +1060,23 @@
                     <button type="button" class="richtext-btn" data-richtext-command="insertOrderedList" title="Lista numerada">1. Lista</button>
                     <button type="button" class="richtext-btn" data-richtext-command="removeFormat" title="Limpar formatação">Limpar</button>
                   </div>
-                  <div id="program-description-editor" class="richtext-editor" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Editor de descrição do programa"></div>
-                  <textarea id="program-description" class="richtext-source" rows="2" placeholder="Resumo comercial e operacional do programa"></textarea>
+                  <div id="program-commercial-description-editor" class="richtext-editor" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Editor de descrição comercial do programa"></div>
+                  <textarea id="program-commercial-description" class="richtext-source" rows="2" placeholder="Resumo curto para cards e catálogo"></textarea>
+                </div>
+              </div>
+              <div class="field field-wide">
+                <label for="program-technical-description">Descricao tecnica (detalhe)</label>
+                <div class="richtext-editor-group" data-richtext-source="program-technical-description" data-richtext-editor="program-technical-description-editor">
+                  <div class="richtext-toolbar" role="toolbar" aria-label="Formatar descrição técnica do programa">
+                    <button type="button" class="richtext-btn" data-richtext-command="bold" title="Negrito"><strong>B</strong></button>
+                    <button type="button" class="richtext-btn" data-richtext-command="italic" title="Itálico"><em>I</em></button>
+                    <button type="button" class="richtext-btn" data-richtext-command="underline" title="Sublinhado"><u>U</u></button>
+                    <button type="button" class="richtext-btn" data-richtext-command="insertUnorderedList" title="Lista com bullets">• Lista</button>
+                    <button type="button" class="richtext-btn" data-richtext-command="insertOrderedList" title="Lista numerada">1. Lista</button>
+                    <button type="button" class="richtext-btn" data-richtext-command="removeFormat" title="Limpar formatação">Limpar</button>
+                  </div>
+                  <div id="program-technical-description-editor" class="richtext-editor" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Editor de descrição técnica do programa"></div>
+                  <textarea id="program-technical-description" class="richtext-source" rows="3" placeholder="Detalhe técnico para a página de detalhe do programa"></textarea>
                 </div>
               </div>
               <div class="field field-wide">
@@ -1061,6 +1120,36 @@
                   <option value="recurring">recurring</option>
                 </select>
               </div>
+              <div id="program-recurring-pricing-fields" class="field field-wide recurring-pricing-fields" hidden>
+                <label>Precos recorrentes (euros)</label>
+                <p class="field-hint">Os Stripe Price IDs sao geridos automaticamente. Altera apenas os valores em euros.</p>
+                <div class="programs-form-grid recurring-grid">
+                  <div class="field">
+                    <label for="program-recurring-price-monthly">Mensal</label>
+                    <input id="program-recurring-price-monthly" type="number" min="0" step="0.01" placeholder="0.00" />
+                  </div>
+                  <div class="field">
+                    <label for="program-recurring-price-quarterly">Trimestral</label>
+                    <input id="program-recurring-price-quarterly" type="number" min="0" step="0.01" placeholder="Opcional" />
+                  </div>
+                  <div class="field">
+                    <label for="program-recurring-price-annual">Anual</label>
+                    <input id="program-recurring-price-annual" type="number" min="0" step="0.01" placeholder="Opcional" />
+                  </div>
+                  <div class="field" style="display:none;" aria-hidden="true">
+                    <label for="program-stripe-price-id-monthly">Stripe Price ID Mensal</label>
+                    <input id="program-stripe-price-id-monthly" type="text" placeholder="price_..." />
+                  </div>
+                  <div class="field" style="display:none;" aria-hidden="true">
+                    <label for="program-stripe-price-id-quarterly">Stripe Price ID Trimestral</label>
+                    <input id="program-stripe-price-id-quarterly" type="text" placeholder="price_..." />
+                  </div>
+                  <div class="field" style="display:none;" aria-hidden="true">
+                    <label for="program-stripe-price-id-annual">Stripe Price ID Anual</label>
+                    <input id="program-stripe-price-id-annual" type="text" placeholder="price_..." />
+                  </div>
+                </div>
+              </div>
               <div class="field field-wide field-checkbox-card">
                 <label class="checkbox-line" for="program-create-stripe">
                   <input type="checkbox" id="program-create-stripe" />
@@ -1071,7 +1160,7 @@
                 <label for="program-stripe-product-id">Stripe Product ID</label>
                 <input id="program-stripe-product-id" type="text" placeholder="prod_..." />
               </div>
-              <div class="field">
+              <div class="field" style="display:none;" aria-hidden="true">
                 <label for="program-stripe-price-id">Stripe Price ID</label>
                 <input id="program-stripe-price-id" type="text" placeholder="price_..." />
                 <small class="field-hint">ID do preco no Stripe. Se ativares a criacao automatica, deixa este campo vazio.</small>
@@ -1097,49 +1186,23 @@
             </div>
           </div>
 
-          <div class="programs-form-section field-wide">
+          <div class="programs-form-section">
             <div class="programs-form-section-head">
-              <h3>Calendario e provas</h3>
-              <p>Usa estes campos quando o programa deve aparecer em Calendario associado a uma prova.</p>
+              <h3>Prova & Disponibilidade</h3>
+              <p>Seleciona uma prova para associar este programa. A configuração de calendario (visibilidade, ordem) é gerida na aba <strong>Calendário</strong>.</p>
             </div>
-            <div class="programs-form-grid">
+            <div class="programs-form-grid-expanded">
               <div class="field field-wide">
-                <label for="program-event-name">Nome da prova</label>
-                <input id="program-event-name" type="text" placeholder="Ex.: Meia Maratona de Lisboa" />
-              </div>
-              <div class="field">
-                <label for="program-event-date">Data da prova</label>
-                <input id="program-event-date" type="date" />
-              </div>
-              <div class="field">
-                <label for="program-event-location">Local da prova</label>
-                <input id="program-event-location" type="text" placeholder="Ex.: Lisboa" />
+                <label for="program-event-id">Prova</label>
+                <select id="program-event-id">
+                  <option value="">Sem prova associada</option>
+                </select>
+                <small class="field-hint">Escolhe uma prova existente. Para criar novas provas, usa a aba <strong>Calendário</strong>.</small>
               </div>
               <div class="field field-wide">
-                <label for="program-event-description">Descrição da prova</label>
-                <div class="richtext-editor-group" data-richtext-source="program-event-description" data-richtext-editor="program-event-description-editor">
-                  <div class="richtext-toolbar" role="toolbar" aria-label="Formatar descrição da prova">
-                    <button type="button" class="richtext-btn" data-richtext-command="bold" title="Negrito"><strong>B</strong></button>
-                    <button type="button" class="richtext-btn" data-richtext-command="italic" title="Itálico"><em>I</em></button>
-                    <button type="button" class="richtext-btn" data-richtext-command="underline" title="Sublinhado"><u>U</u></button>
-                    <button type="button" class="richtext-btn" data-richtext-command="insertUnorderedList" title="Lista com bullets">• Lista</button>
-                    <button type="button" class="richtext-btn" data-richtext-command="insertOrderedList" title="Lista numerada">1. Lista</button>
-                    <button type="button" class="richtext-btn" data-richtext-command="removeFormat" title="Limpar formatação">Limpar</button>
-                  </div>
-                  <div id="program-event-description-editor" class="richtext-editor" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Editor de descrição da prova"></div>
-                  <textarea id="program-event-description" class="richtext-source" rows="3" placeholder="Texto de marketing para o cartão de desafio no calendário"></textarea>
-                </div>
-              </div>
-              <div class="field">
-                <label for="program-calendar-highlight-rank">Ordem de destaque</label>
-                <input id="program-calendar-highlight-rank" type="number" min="0" step="1" placeholder="Opcional" />
-                <small class="field-hint">Menor valor aparece primeiro. Vazio usa a ordem automatica por data.</small>
-              </div>
-              <div class="field field-checkbox-card">
-                <label class="checkbox-line" for="program-calendar-visible">
-                  <input id="program-calendar-visible" type="checkbox" checked />
-                  <span>Visivel no calendario</span>
-                </label>
+                <label for="program-start-date">Data de início</label>
+                <input id="program-start-date" type="date" />
+                <small class="field-hint">Auto-calculada se prova selecionada. Deixar vazio = acesso imediato.</small>
               </div>
             </div>
           </div>
@@ -1168,8 +1231,6 @@
               </select>
               <select id="programs-filter-calendar" class="programs-filter-select">
                 <option value="">Calendario: Todos</option>
-                <option value="event_visible">Com prova visivel</option>
-                <option value="event_hidden">Com prova oculta</option>
                 <option value="event_any">Com prova associada</option>
                 <option value="no_event">Sem prova associada</option>
               </select>
@@ -1240,9 +1301,9 @@
                     <input id="edit-program-external-id" type="text" />
                   </div>
                   <div class="field field-wide">
-                    <label for="edit-program-description">Descricao</label>
-                    <div class="richtext-editor-group" data-richtext-source="edit-program-description" data-richtext-editor="edit-program-description-editor">
-                      <div class="richtext-toolbar" role="toolbar" aria-label="Formatar descrição do programa">
+                    <label for="edit-program-commercial-description">Descricao comercial (cards/catalogo)</label>
+                    <div class="richtext-editor-group" data-richtext-source="edit-program-commercial-description" data-richtext-editor="edit-program-commercial-description-editor">
+                      <div class="richtext-toolbar" role="toolbar" aria-label="Formatar descrição comercial do programa">
                         <button type="button" class="richtext-btn" data-richtext-command="bold" title="Negrito"><strong>B</strong></button>
                         <button type="button" class="richtext-btn" data-richtext-command="italic" title="Itálico"><em>I</em></button>
                         <button type="button" class="richtext-btn" data-richtext-command="underline" title="Sublinhado"><u>U</u></button>
@@ -1250,8 +1311,23 @@
                         <button type="button" class="richtext-btn" data-richtext-command="insertOrderedList" title="Lista numerada">1. Lista</button>
                         <button type="button" class="richtext-btn" data-richtext-command="removeFormat" title="Limpar formatação">Limpar</button>
                       </div>
-                      <div id="edit-program-description-editor" class="richtext-editor" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Editor de descrição do programa"></div>
-                      <textarea id="edit-program-description" class="richtext-source" rows="2"></textarea>
+                      <div id="edit-program-commercial-description-editor" class="richtext-editor" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Editor de descrição comercial do programa"></div>
+                      <textarea id="edit-program-commercial-description" class="richtext-source" rows="2"></textarea>
+                    </div>
+                  </div>
+                  <div class="field field-wide">
+                    <label for="edit-program-technical-description">Descricao tecnica (detalhe)</label>
+                    <div class="richtext-editor-group" data-richtext-source="edit-program-technical-description" data-richtext-editor="edit-program-technical-description-editor">
+                      <div class="richtext-toolbar" role="toolbar" aria-label="Formatar descrição técnica do programa">
+                        <button type="button" class="richtext-btn" data-richtext-command="bold" title="Negrito"><strong>B</strong></button>
+                        <button type="button" class="richtext-btn" data-richtext-command="italic" title="Itálico"><em>I</em></button>
+                        <button type="button" class="richtext-btn" data-richtext-command="underline" title="Sublinhado"><u>U</u></button>
+                        <button type="button" class="richtext-btn" data-richtext-command="insertUnorderedList" title="Lista com bullets">• Lista</button>
+                        <button type="button" class="richtext-btn" data-richtext-command="insertOrderedList" title="Lista numerada">1. Lista</button>
+                        <button type="button" class="richtext-btn" data-richtext-command="removeFormat" title="Limpar formatação">Limpar</button>
+                      </div>
+                      <div id="edit-program-technical-description-editor" class="richtext-editor" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Editor de descrição técnica do programa"></div>
+                      <textarea id="edit-program-technical-description" class="richtext-source" rows="3"></textarea>
                     </div>
                   </div>
                   <div class="field field-wide">
@@ -1262,7 +1338,7 @@
                     <label for="edit-program-duration-weeks">Duracao (semanas)</label>
                     <input id="edit-program-duration-weeks" type="number" min="1" />
                   </div>
-                  <div class="field">
+                  <div id="edit-program-price-one-time-field" class="field" hidden>
                     <label for="edit-program-price-cents">Preco (euros)</label>
                     <input id="edit-program-price-cents" type="number" min="0" step="0.01" />
                   </div>
@@ -1277,11 +1353,41 @@
                       <option value="recurring">recurring</option>
                     </select>
                   </div>
+                  <div id="edit-program-recurring-pricing-fields" class="field field-wide recurring-pricing-fields" hidden>
+                    <label>Precos recorrentes (euros)</label>
+                    <p class="field-hint">Os Stripe Price IDs sao geridos automaticamente. Altera apenas os valores em euros.</p>
+                    <div class="programs-form-grid recurring-grid">
+                      <div id="edit-program-recurring-price-monthly-field" class="field">
+                        <label for="edit-program-recurring-price-monthly">Mensal</label>
+                        <input id="edit-program-recurring-price-monthly" type="number" min="0" step="0.01" placeholder="0.00" />
+                      </div>
+                      <div id="edit-program-recurring-price-quarterly-field" class="field">
+                        <label for="edit-program-recurring-price-quarterly">Trimestral</label>
+                        <input id="edit-program-recurring-price-quarterly" type="number" min="0" step="0.01" placeholder="Opcional" />
+                      </div>
+                      <div id="edit-program-recurring-price-annual-field" class="field">
+                        <label for="edit-program-recurring-price-annual">Anual</label>
+                        <input id="edit-program-recurring-price-annual" type="number" min="0" step="0.01" placeholder="Opcional" />
+                      </div>
+                      <div class="field" style="display:none;" aria-hidden="true">
+                        <label for="edit-program-stripe-price-id-monthly">Stripe Price ID Mensal</label>
+                        <input id="edit-program-stripe-price-id-monthly" type="text" placeholder="price_..." />
+                      </div>
+                      <div class="field" style="display:none;" aria-hidden="true">
+                        <label for="edit-program-stripe-price-id-quarterly">Stripe Price ID Trimestral</label>
+                        <input id="edit-program-stripe-price-id-quarterly" type="text" placeholder="price_..." />
+                      </div>
+                      <div class="field" style="display:none;" aria-hidden="true">
+                        <label for="edit-program-stripe-price-id-annual">Stripe Price ID Anual</label>
+                        <input id="edit-program-stripe-price-id-annual" type="text" placeholder="price_..." />
+                      </div>
+                    </div>
+                  </div>
                   <div class="field">
                     <label for="edit-program-stripe-product-id">Stripe Product ID</label>
                     <input id="edit-program-stripe-product-id" type="text" />
                   </div>
-                  <div class="field">
+                  <div class="field" style="display:none;" aria-hidden="true">
                     <label for="edit-program-stripe-price-id">Stripe Price ID</label>
                     <input id="edit-program-stripe-price-id" type="text" />
                   </div>
@@ -1315,51 +1421,26 @@
 
               <div class="programs-form-section field-wide">
                 <div class="programs-form-section-head">
-                  <h3>Calendario e prova</h3>
-                  <p>Usa estes campos para gerir a prova associada ao programa e a sua visibilidade no calendario.</p>
+                  <h3>Prova & Disponibilidade</h3>
+                  <p>Seleciona uma prova para associar este programa. A configuração de calendario (visibilidade, ordem) é gerida na aba <strong>Calendário</strong>.</p>
                 </div>
-                <div class="programs-form-grid">
+                <div class="programs-form-grid-expanded">
                   <div class="field field-wide">
-                    <label for="edit-program-event-name">Nome da prova</label>
-                    <input id="edit-program-event-name" type="text" />
-                  </div>
-                  <div class="field">
-                    <label for="edit-program-event-date">Data da prova</label>
-                    <input id="edit-program-event-date" type="date" />
-                  </div>
-                  <div class="field">
-                    <label for="edit-program-event-location">Local da prova</label>
-                    <input id="edit-program-event-location" type="text" />
+                    <label for="edit-program-event-id">Prova</label>
+                    <select id="edit-program-event-id">
+                      <option value="">Sem prova associada</option>
+                    </select>
+                    <small class="field-hint">Escolhe uma prova existente. Para criar novas provas, usa a aba <strong>Calendário</strong>.</small>
                   </div>
                   <div class="field field-wide">
-                    <label for="edit-program-event-description">Descrição da prova</label>
-                    <div class="richtext-editor-group" data-richtext-source="edit-program-event-description" data-richtext-editor="edit-program-event-description-editor">
-                      <div class="richtext-toolbar" role="toolbar" aria-label="Formatar descrição da prova">
-                        <button type="button" class="richtext-btn" data-richtext-command="bold" title="Negrito"><strong>B</strong></button>
-                        <button type="button" class="richtext-btn" data-richtext-command="italic" title="Itálico"><em>I</em></button>
-                        <button type="button" class="richtext-btn" data-richtext-command="underline" title="Sublinhado"><u>U</u></button>
-                        <button type="button" class="richtext-btn" data-richtext-command="insertUnorderedList" title="Lista com bullets">• Lista</button>
-                        <button type="button" class="richtext-btn" data-richtext-command="insertOrderedList" title="Lista numerada">1. Lista</button>
-                        <button type="button" class="richtext-btn" data-richtext-command="removeFormat" title="Limpar formatação">Limpar</button>
-                      </div>
-                      <div id="edit-program-event-description-editor" class="richtext-editor" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Editor de descrição da prova"></div>
-                      <textarea id="edit-program-event-description" class="richtext-source" rows="3" placeholder="Texto de marketing para o cartão de desafio no calendário"></textarea>
-                    </div>
-                  </div>
-                  <div class="field">
-                    <label for="edit-program-calendar-highlight-rank">Ordem de destaque</label>
-                    <input id="edit-program-calendar-highlight-rank" type="number" min="0" step="1" />
-                  </div>
-                  <div class="field field-checkbox-card">
-                    <label class="checkbox-line" for="edit-program-calendar-visible">
-                      <input id="edit-program-calendar-visible" type="checkbox" />
-                      <span>Visivel no calendario</span>
-                    </label>
+                    <label for="edit-program-start-date">Data de início</label>
+                    <input id="edit-program-start-date" type="date" />
+                    <small class="field-hint">Auto-calculada se prova selecionada. Deixar vazio = acesso imediato.</small>
                   </div>
                 </div>
               </div>
 
-              <div class="form-actions">
+              <div class="form-actions field-wide">
                 <button id="save-program-edit-btn" type="button">Guardar alteracoes</button>
                 <button id="cancel-program-edit-btn" type="button">Cancelar</button>
               </div>
@@ -1381,30 +1462,52 @@
 
         <p id="calendario-message" class="message" role="status"></p>
 
-        <div class="sc-ess-section" style="margin-bottom:1.5rem;">
+
+        <!-- Events CRUD Section -->
+        <div class="sc-ess-section" style="margin-bottom:2rem;">
           <div class="sc-ess-section-header">
-            <h3>Como funciona</h3>
-            <p>Cada programa pode ter uma prova associada (nome, data, local, descrição). O programa com menor <strong>Ordem de destaque</strong> aparece como "Desafio em Destaque" na página de calendário. Programas com <strong>Visível no calendário</strong> = sim e data futura aparecem na lista pública.</p>
+            <h3>Provas disponíveis</h3>
+            <p>Cria, edita e delete de eventos. A ordem define a sequência no calendário público.</p>
+            <button id="cal-create-event-btn" type="button" style="margin-top:0.5rem;">+ Nova prova</button>
+          </div>
+          <div style="overflow-x:auto;">
+            <table class="admin-table" style="width:100%; margin-top:1rem;">
+              <thead>
+                <tr>
+                  <th style="width:5%;">Ordem</th>
+                  <th style="width:30%;">Prova</th>
+                  <th style="width:15%;">Data</th>
+                  <th style="width:20%;">Local</th>
+                  <th style="width:10%;">Visível</th>
+                  <th style="width:20%;">Ações</th>
+                </tr>
+              </thead>
+              <tbody id="events-table-body">
+                <tr><td colspan="6" style="padding:16px; color:#8b949e; text-align:center;">Carregando...</td></tr>
+              </tbody>
+            </table>
           </div>
         </div>
 
-        <div style="overflow-x:auto;">
-          <table class="admin-table" style="width:100%;">
-            <thead>
-              <tr>
-                <th>Programa</th>
-                <th>Prova</th>
-                <th>Data</th>
-                <th>Local</th>
-                <th>Rank</th>
-                <th>Visível</th>
-                <th>Ações</th>
-              </tr>
-            </thead>
-            <tbody id="calendario-table-body">
-              <tr><td colspan="7" style="padding:16px; color:#8b949e;">Carregando...</td></tr>
-            </tbody>
-          </table>
+        <!-- Events-Programs Association Section -->
+        <div class="sc-ess-section" style="margin-bottom:2rem;">
+          <div class="sc-ess-section-header">
+            <h3>Programas por prova</h3>
+            <p>Listagem de programas associados a cada prova. Cada prova pode ter múltiplos programas.</p>
+          </div>
+          <div style="overflow-x:auto;">
+            <table class="admin-table" style="width:100%; margin-top:1rem;">
+              <thead>
+                <tr>
+                  <th>Prova</th>
+                  <th>Programas associados</th>
+                </tr>
+              </thead>
+              <tbody id="event-programs-table-body">
+                <tr><td colspan="2" style="padding:16px; color:#8b949e; text-align:center;">Carregando...</td></tr>
+              </tbody>
+            </table>
+          </div>
         </div>
 
         <div class="sc-ess-section" style="margin-top:2rem;">
@@ -1437,7 +1540,7 @@
               <h3 id="cal-edit-dialog-title">Editar prova</h3>
               <button id="cal-edit-dialog-close" type="button" class="dialog-close" aria-label="Fechar">&times;</button>
             </div>
-            <input type="hidden" id="cal-edit-program-id" />
+            <input type="hidden" id="cal-edit-event-id" />
             <div class="programs-form-grid">
               <div class="field field-wide">
                 <label for="cal-edit-event-name">Nome da prova</label>
@@ -1535,6 +1638,7 @@
           <button id="vendas-subtab-prices" class="vendas-subtab" type="button">Precos</button>
           <button id="vendas-subtab-sync" class="vendas-subtab" type="button">Sync Stripe</button>
           <button id="vendas-subtab-links" class="vendas-subtab" type="button">Links (fallback)</button>
+          <button id="vendas-subtab-charges" class="vendas-subtab" type="button">Linhas</button>
         </div>
 
         <!-- SUBTAB: Compras -->
@@ -1783,6 +1887,92 @@
               <input id="link-result-url" type="text" readonly />
               <button id="link-copy-btn" type="button">Copiar</button>
             </div>
+          </div>
+        </div>
+
+        <!-- SUBTAB: Linhas de pagamento (charges) -->
+        <div id="vendas-charges-view" class="vendas-view" hidden>
+          <div class="admin-inline-form vendas-filters">
+            <div class="field">
+              <label for="charges-filter-status">Estado</label>
+              <select id="charges-filter-status">
+                <option value="">Todos</option>
+                <option value="pending">pending</option>
+                <option value="processing">processing</option>
+                <option value="paid">paid</option>
+                <option value="failed">failed</option>
+                <option value="overdue">overdue</option>
+                <option value="cancelled">cancelled</option>
+                <option value="skipped">skipped</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="charges-filter-program">Programa</label>
+              <select id="charges-filter-program">
+                <option value="">Todos</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="charges-filter-from">Data cobranca desde</label>
+              <input id="charges-filter-from" type="date" />
+            </div>
+            <div class="field">
+              <label for="charges-filter-to">Data cobranca ate</label>
+              <input id="charges-filter-to" type="date" />
+            </div>
+            <div class="form-actions">
+              <button id="charges-refresh-btn" type="button">Atualizar linhas</button>
+            </div>
+          </div>
+
+          <div class="vendas-kpis" id="charges-kpis">
+            <div class="kpi-card">
+              <span class="kpi-label">A cobrar hoje</span>
+              <span class="kpi-value" id="charges-kpi-due-today">-</span>
+            </div>
+            <div class="kpi-card">
+              <span class="kpi-label">Em atraso</span>
+              <span class="kpi-value" id="charges-kpi-overdue">-</span>
+            </div>
+            <div class="kpi-card">
+              <span class="kpi-label">Falhadas 24h</span>
+              <span class="kpi-value" id="charges-kpi-failed24h">-</span>
+            </div>
+            <div class="kpi-card">
+              <span class="kpi-label">Cobrado hoje</span>
+              <span class="kpi-value" id="charges-kpi-collected-today">-</span>
+            </div>
+            <div class="kpi-card">
+              <span class="kpi-label">Agendado 7d</span>
+              <span class="kpi-value" id="charges-kpi-scheduled7d">-</span>
+            </div>
+            <div class="kpi-card">
+              <span class="kpi-label">Pagas</span>
+              <span class="kpi-value" id="charges-kpi-paid">-</span>
+            </div>
+            <div class="kpi-card">
+              <span class="kpi-label">Pendentes</span>
+              <span class="kpi-value" id="charges-kpi-pending">-</span>
+            </div>
+          </div>
+
+          <div class="athletes-list-wrap">
+            <table class="athletes-table vendas-table">
+              <thead>
+                <tr>
+                  <th>Cobranca</th>
+                  <th>Programa</th>
+                  <th>Valor</th>
+                  <th>Data</th>
+                  <th>Estado</th>
+                  <th>Pago a</th>
+                  <th>Falhou a</th>
+                  <th>Tentativas</th>
+                  <th>Acoes</th>
+                </tr>
+              </thead>
+              <tbody id="charges-body"></tbody>
+            </table>
           </div>
         </div>
       </section>
@@ -2085,11 +2275,21 @@
 
   <script>
     const DEFAULT_AUTH_MAX_SESSION_SECONDS = 24 * 60 * 60;
+    const BLOG_EDITOR_DRAFT_STORAGE_KEY = 'lhtAdminBlogEditorDraftV1';
     
     let supabaseClient = null;
     let publicConfig = null;
     const BLOG_ARTICLES_TABLE = 'blog_articles';
     const BLOG_ARTICLE_SELECT = 'id, slug, title, excerpt, category, content, status, published_at, created_at, updated_at, deleted_at';
+    const BLOG_CATEGORY_FALLBACKS = [
+      'Artigo',
+      'Educação',
+      'Fisiologia',
+      'Mindset',
+      'Tecnologia',
+      'Treino Híbrido',
+      'Treino Híbrido & Parentalidade'
+    ];
     const siteContentApiBase = '/.netlify/functions/admin-site-content';
     const coachesApiBase = '/.netlify/functions/admin-coaches';
     const adminCreateAthleteApiBase = '/.netlify/functions/admin-create-athlete';
@@ -2097,9 +2297,11 @@
     const aiPromptsApiBase = '/.netlify/functions/admin-ai-prompts';
     const aiLogsApiBase = '/.netlify/functions/admin-ai-logs';
     const blogProductionApiBase = '/.netlify/functions/admin-blog-production';
+    const blogCategoriesApiBase = '/.netlify/functions/admin-blog-categories';
     const dataAuditApiBase = '/.netlify/functions/admin-athlete-data-audit';
     const adminAthletesListApiBase = '/.netlify/functions/admin-athletes-list';
     const adminProgramsApiBase = '/.netlify/functions/admin-programs';
+    const adminEventsApiBase = '/.netlify/functions/admin-events';
     const adminAssignProgramApiBase = '/.netlify/functions/admin-assign-program';
     const listAssignmentsApiBase = '/.netlify/functions/list-assignments';
     const adminStrengthInstancesApiBase = '/.netlify/functions/admin-strength-instances';
@@ -2119,6 +2321,7 @@
       roles: [],
       isAdmin: false,
       articles: [],
+      blogCategories: [],
       selectedId: null,
       siteContent: null,
       coaches: [],
@@ -2136,7 +2339,11 @@
       dataAudit: null,
       athletesCatalog: [],
       programs: [],
+      events: [],
+      programsRecurringSchemaReady: true,
       programsExternalIdsNormalized: false,
+      editProgramOriginal: null,
+      editProgramOneTimeDraft: null,
       programsFiltered: [],
       programsFilterInputs: {
         search: '',
@@ -2150,6 +2357,8 @@
       coupons: [],
       stripePrices: [],
       syncResults: [],
+      chargesData: [],
+      chargesKpis: {},
       currentAssignment: null,
       currentAssignmentInstances: [],
       activeVendasSubtab: 'purchases',
@@ -2159,6 +2368,345 @@
       assignments: [],
       assignmentsFiltered: []
     };
+
+    let blogDraftAutosaveTimer = null;
+
+    function hasBlogEditorDraftContent(payload) {
+      if (!payload) return false;
+      return Boolean(
+        String(payload.title || '').trim() ||
+        String(payload.excerpt || '').trim() ||
+        String(payload.content || '').trim() ||
+        String(payload.slug || '').trim()
+      );
+    }
+
+    function readBlogEditorDraft() {
+      try {
+        const raw = window.localStorage.getItem(BLOG_EDITOR_DRAFT_STORAGE_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        return parsed && typeof parsed === 'object' ? parsed : null;
+      } catch (_) {
+        return null;
+      }
+    }
+
+    function ensureBlogCategoryOption(value) {
+      const normalizedValue = String(value || '').trim();
+      if (!normalizedValue || !els.category) return;
+      const alreadyExists = Array.from(els.category.options || []).some((option) => option.value === normalizedValue);
+      if (alreadyExists) return;
+
+      const option = document.createElement('option');
+      option.value = normalizedValue;
+      option.textContent = normalizedValue;
+      els.category.appendChild(option);
+    }
+
+    function showBlogCategoryMessage(text, isError) {
+      if (!els.blogCategoryMessage) return;
+      els.blogCategoryMessage.textContent = text || '';
+      els.blogCategoryMessage.classList.toggle('error', Boolean(isError));
+      els.blogCategoryMessage.classList.toggle('success', !isError && Boolean(text));
+    }
+
+    function buildBlogArticleCategoryCounts() {
+      const counts = new Map();
+      (state.articles || []).forEach((article) => {
+        const name = String((article && article.category) || 'Artigo').trim() || 'Artigo';
+        counts.set(name, (counts.get(name) || 0) + 1);
+      });
+      return counts;
+    }
+
+    function buildFallbackBlogCategories() {
+      const counts = buildBlogArticleCategoryCounts();
+      const names = new Set(BLOG_CATEGORY_FALLBACKS);
+      counts.forEach((_, name) => names.add(name));
+      const orderedNames = Array.from(names).sort((a, b) => {
+        if (a === 'Artigo') return -1;
+        if (b === 'Artigo') return 1;
+        return a.localeCompare(b, 'pt-PT', { sensitivity: 'base' });
+      });
+      return orderedNames.map((name) => ({
+        id: `fallback:${name}`,
+        name,
+        isLocked: name === 'Artigo',
+        articleCount: counts.get(name) || 0,
+        isFallback: true
+      }));
+    }
+
+    function getRenderableBlogCategories() {
+      if (Array.isArray(state.blogCategories) && state.blogCategories.length) {
+        return state.blogCategories;
+      }
+      return buildFallbackBlogCategories();
+    }
+
+    function renderBlogCategoryOptions(selectedValue) {
+      if (!els.category) return;
+      const nextValue = String(selectedValue != null ? selectedValue : (els.category.value || 'Artigo')).trim() || 'Artigo';
+      const categories = getRenderableBlogCategories();
+      const names = Array.from(new Set(categories.map((category) => String(category.name || '').trim()).filter(Boolean)));
+
+      els.category.innerHTML = '';
+      names.forEach((name) => {
+        const option = document.createElement('option');
+        option.value = name;
+        option.textContent = name;
+        els.category.appendChild(option);
+      });
+
+      ensureBlogCategoryOption(nextValue);
+      els.category.value = nextValue;
+    }
+
+    function renderBlogCategoriesList() {
+      if (!els.blogCategoryList) return;
+      els.blogCategoryList.innerHTML = '';
+
+      const categories = getRenderableBlogCategories();
+      const crudAvailable = Array.isArray(state.blogCategories) && state.blogCategories.length > 0;
+      if (!categories.length) {
+        const empty = document.createElement('div');
+        empty.className = 'blog-category-empty';
+        empty.textContent = 'Nenhuma categoria disponível.';
+        els.blogCategoryList.appendChild(empty);
+        return;
+      }
+
+      const fragment = document.createDocumentFragment();
+      categories.forEach((category) => {
+        const row = document.createElement('div');
+        row.className = 'blog-category-row';
+        row.dataset.categoryId = category.id;
+
+        const main = document.createElement('div');
+        main.className = 'blog-category-row-main';
+
+        const field = document.createElement('label');
+        field.className = 'blog-category-row-field';
+        const label = document.createElement('span');
+        label.textContent = 'Nome';
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.value = category.name || '';
+        input.dataset.categoryInput = '1';
+        input.disabled = category.isLocked === true;
+        field.appendChild(label);
+        field.appendChild(input);
+        main.appendChild(field);
+
+        const usage = document.createElement('span');
+        usage.className = 'blog-category-usage';
+        usage.textContent = `${category.articleCount || 0} artigo${category.articleCount === 1 ? '' : 's'}`;
+        main.appendChild(usage);
+
+        if (category.isLocked) {
+          const locked = document.createElement('span');
+          locked.className = 'blog-category-locked-note';
+          locked.textContent = 'base';
+          main.appendChild(locked);
+        }
+
+        const actions = document.createElement('div');
+        actions.className = 'blog-category-row-actions';
+
+        const renameBtn = document.createElement('button');
+        renameBtn.type = 'button';
+        renameBtn.textContent = 'Renomear';
+        renameBtn.dataset.action = 'rename';
+        renameBtn.dataset.categoryId = category.id;
+        renameBtn.disabled = category.isLocked === true || !crudAvailable || category.isFallback === true;
+        actions.appendChild(renameBtn);
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.type = 'button';
+        deleteBtn.textContent = 'Eliminar';
+        deleteBtn.dataset.action = 'delete';
+        deleteBtn.dataset.categoryId = category.id;
+        deleteBtn.disabled = category.isLocked === true || !crudAvailable || category.isFallback === true;
+        actions.appendChild(deleteBtn);
+
+        row.appendChild(main);
+        row.appendChild(actions);
+        fragment.appendChild(row);
+      });
+
+      els.blogCategoryList.appendChild(fragment);
+    }
+
+    async function refreshBlogCategoriesData(options = {}) {
+      const selectedValue = String(options.selectedValue != null ? options.selectedValue : (els.category && els.category.value ? els.category.value : 'Artigo')).trim() || 'Artigo';
+
+      if (!state.user || !state.isAdmin) {
+        state.blogCategories = [];
+        renderBlogCategoryOptions(selectedValue);
+        renderBlogCategoriesList();
+        showBlogCategoryMessage('', false);
+        return [];
+      }
+
+      try {
+        const data = await apiRequest('GET', blogCategoriesApiBase);
+        state.blogCategories = Array.isArray(data.categories) ? data.categories : [];
+        renderBlogCategoryOptions(selectedValue);
+        renderBlogCategoriesList();
+        if (!options.keepMessage) {
+          showBlogCategoryMessage('', false);
+        }
+        return state.blogCategories;
+      } catch (err) {
+        console.warn('[blog-categories] Falling back to local category list:', err.message);
+        state.blogCategories = [];
+        renderBlogCategoryOptions(selectedValue);
+        renderBlogCategoriesList();
+        showBlogCategoryMessage('CRUD de categorias indisponível até a migration da tabela blog_categories estar aplicada.', true);
+        return [];
+      }
+    }
+
+    async function createBlogCategoryFromAdmin() {
+      const name = String(els.blogCategoryName && els.blogCategoryName.value ? els.blogCategoryName.value : '').trim();
+      if (!name) {
+        throw new Error('Indica o nome da categoria a criar.');
+      }
+
+      showBlogCategoryMessage('A criar categoria...', false);
+      await apiRequest('POST', blogCategoriesApiBase, { name });
+      if (els.blogCategoryName) els.blogCategoryName.value = '';
+      await refreshList({ selectedCategoryValue: name, keepCategoryMessage: true });
+      showBlogCategoryMessage('Categoria criada com sucesso.', false);
+    }
+
+    async function renameBlogCategoryFromAdmin(categoryId, nextName) {
+      const category = (state.blogCategories || []).find((entry) => entry.id === categoryId);
+      if (!category) {
+        throw new Error('Categoria não encontrada.');
+      }
+      const name = String(nextName || '').trim();
+      if (!name) {
+        throw new Error('Indica o novo nome da categoria.');
+      }
+
+      showBlogCategoryMessage('A renomear categoria...', false);
+      await apiRequest('PATCH', blogCategoriesApiBase, {
+        id: categoryId,
+        name
+      });
+
+      const selectedCategoryValue = (els.category && els.category.value === category.name) ? name : (els.category && els.category.value ? els.category.value : 'Artigo');
+      await refreshList({ selectedCategoryValue, keepCategoryMessage: true });
+      showBlogCategoryMessage('Categoria renomeada com sucesso.', false);
+    }
+
+    async function deleteBlogCategoryFromAdmin(categoryId) {
+      const category = (state.blogCategories || []).find((entry) => entry.id === categoryId);
+      if (!category) {
+        throw new Error('Categoria não encontrada.');
+      }
+
+      let replacementCategory = 'Artigo';
+      if ((category.articleCount || 0) > 0) {
+        const input = window.prompt(`A categoria "${category.name}" está em ${category.articleCount} artigo(s). Para que categoria queres mover esses artigos?`, 'Artigo');
+        if (input === null) return;
+        replacementCategory = String(input || '').trim() || 'Artigo';
+      }
+
+      const confirmed = window.confirm(`Eliminar a categoria "${category.name}"${category.articleCount ? ` e mover os artigos para "${replacementCategory}"` : ''}?`);
+      if (!confirmed) return;
+
+      showBlogCategoryMessage('A eliminar categoria...', false);
+      await apiRequest('DELETE', blogCategoriesApiBase, {
+        id: categoryId,
+        replacementCategory
+      });
+
+      const selectedCategoryValue = (els.category && els.category.value === category.name)
+        ? replacementCategory
+        : (els.category && els.category.value ? els.category.value : 'Artigo');
+      await refreshList({ selectedCategoryValue, keepCategoryMessage: true });
+      showBlogCategoryMessage('Categoria eliminada com sucesso.', false);
+    }
+
+    function collectBlogEditorDraftPayload() {
+      syncAllRichTextEditorsToSource();
+      return {
+        id: String(els.id && els.id.value ? els.id.value : '').trim(),
+        title: String(els.title && els.title.value ? els.title.value : ''),
+        slug: String(els.slug && els.slug.value ? els.slug.value : ''),
+        category: String(els.category && els.category.value ? els.category.value : 'Artigo') || 'Artigo',
+        excerpt: String(els.excerpt && els.excerpt.value ? els.excerpt.value : ''),
+        status: String(els.status && els.status.value ? els.status.value : 'draft') || 'draft',
+        content: String(els.content && els.content.value ? els.content.value : ''),
+        savedAt: new Date().toISOString()
+      };
+    }
+
+    function persistBlogEditorDraft() {
+      try {
+        const payload = collectBlogEditorDraftPayload();
+        if (!hasBlogEditorDraftContent(payload)) {
+          window.localStorage.removeItem(BLOG_EDITOR_DRAFT_STORAGE_KEY);
+          return;
+        }
+        window.localStorage.setItem(BLOG_EDITOR_DRAFT_STORAGE_KEY, JSON.stringify(payload));
+      } catch (_) {
+        // Ignore storage issues silently to avoid blocking editor usage.
+      }
+    }
+
+    function clearBlogEditorDraft() {
+      try {
+        window.localStorage.removeItem(BLOG_EDITOR_DRAFT_STORAGE_KEY);
+      } catch (_) {
+        // Ignore storage issues silently.
+      }
+    }
+
+    function scheduleBlogEditorDraftAutosave() {
+      if (blogDraftAutosaveTimer) {
+        window.clearTimeout(blogDraftAutosaveTimer);
+      }
+      blogDraftAutosaveTimer = window.setTimeout(() => {
+        persistBlogEditorDraft();
+      }, 250);
+    }
+
+    function restoreBlogEditorDraftIfAvailable() {
+      const draft = readBlogEditorDraft();
+      if (!draft || !hasBlogEditorDraftContent(draft)) return false;
+      if (state.selectedId) return false;
+
+      const currentHasContent = hasBlogEditorDraftContent({
+        title: els.title && els.title.value,
+        excerpt: els.excerpt && els.excerpt.value,
+        content: els.content && els.content.value,
+        slug: els.slug && els.slug.value
+      });
+      if (currentHasContent) return false;
+
+      els.id.value = String(draft.id || '');
+      els.title.value = String(draft.title || '');
+      els.slug.value = String(draft.slug || '');
+      ensureBlogCategoryOption(draft.category || 'Artigo');
+      els.category.value = String(draft.category || 'Artigo') || 'Artigo';
+      els.excerpt.value = String(draft.excerpt || '');
+      els.status.value = String(draft.status || 'draft') || 'draft';
+      els.content.value = String(draft.content || '');
+
+      const contentEditor = richTextEditors.get('content');
+      if (contentEditor && typeof contentEditor.syncFromSource === 'function') {
+        contentEditor.syncFromSource();
+      }
+
+      updateAbcArticleTabState();
+      renderBlogWorkflowSummary();
+      showMessage('Rascunho local recuperado.', false);
+      return true;
+    }
 
     async function loadPublicConfig() {
       if (publicConfig) return publicConfig;
@@ -2341,6 +2889,14 @@
       newBtn: document.getElementById('new-btn'),
       articleList: document.getElementById('article-list'),
       message: document.getElementById('message'),
+      blogCategoryManageBtn: document.getElementById('blog-category-manage-btn'),
+      blogCategoryDialog: document.getElementById('blog-category-dialog'),
+      closeBlogCategoryDialogBtn: document.getElementById('close-blog-category-dialog-btn'),
+      closeBlogCategoryDialogFooterBtn: document.getElementById('close-blog-category-dialog-footer-btn'),
+      blogCategoryMessage: document.getElementById('blog-category-message'),
+      blogCategoryName: document.getElementById('blog-category-name'),
+      blogCategoryCreateBtn: document.getElementById('blog-category-create-btn'),
+      blogCategoryList: document.getElementById('blog-category-list'),
       form: document.getElementById('article-form'),
       id: document.getElementById('article-id'),
       title: document.getElementById('title'),
@@ -2418,7 +2974,9 @@
       programsPanel: document.getElementById('programs-panel'),
       calendarioPanel: document.getElementById('calendario-panel'),
       calendarioMessage: document.getElementById('calendario-message'),
-      calendarioTableBody: document.getElementById('calendario-table-body'),
+      calCreateEventBtn: document.getElementById('cal-create-event-btn'),
+      eventsTableBody: document.getElementById('events-table-body'),
+      eventProgramsTableBody: document.getElementById('event-programs-table-body'),
       calEmbedUrl: document.getElementById('cal-embed-url'),
       calGoogleUrl: document.getElementById('cal-google-url'),
       calIcalUrl: document.getElementById('cal-ical-url'),
@@ -2426,7 +2984,7 @@
       calEditDialog: document.getElementById('cal-edit-dialog'),
       calEditDialogTitle: document.getElementById('cal-edit-dialog-title'),
       calEditDialogClose: document.getElementById('cal-edit-dialog-close'),
-      calEditProgramId: document.getElementById('cal-edit-program-id'),
+      calEditEventId: document.getElementById('cal-edit-event-id'),
       calEditEventName: document.getElementById('cal-edit-event-name'),
       calEditEventDate: document.getElementById('cal-edit-event-date'),
       calEditEventLocation: document.getElementById('cal-edit-event-location'),
@@ -2518,16 +3076,26 @@
       programName: document.getElementById('program-name'),
       programExternalSource: document.getElementById('program-external-source'),
       programExternalId: document.getElementById('program-external-id'),
-      programDescription: document.getElementById('program-description'),
+      programCommercialDescription: document.getElementById('program-commercial-description'),
+      programTechnicalDescription: document.getElementById('program-technical-description'),
       programImageUrl: document.getElementById('program-image-url'),
       programDurationWeeks: document.getElementById('program-duration-weeks'),
       programPriceCents: document.getElementById('program-price-cents'),
       programCurrency: document.getElementById('program-currency'),
       programStripeProductId: document.getElementById('program-stripe-product-id'),
       programStripePriceId: document.getElementById('program-stripe-price-id'),
+      programRecurringPricingFields: document.getElementById('program-recurring-pricing-fields'),
+      programRecurringPriceMonthly: document.getElementById('program-recurring-price-monthly'),
+      programRecurringPriceQuarterly: document.getElementById('program-recurring-price-quarterly'),
+      programRecurringPriceAnnual: document.getElementById('program-recurring-price-annual'),
+      programStripePriceIdMonthly: document.getElementById('program-stripe-price-id-monthly'),
+      programStripePriceIdQuarterly: document.getElementById('program-stripe-price-id-quarterly'),
+      programStripePriceIdAnnual: document.getElementById('program-stripe-price-id-annual'),
       programBillingType: document.getElementById('program-billing-type'),
       programAccessModel: document.getElementById('program-access-model'),
       programStatus: document.getElementById('program-status'),
+      programEventId: document.getElementById('program-event-id'),
+      programStartDate: document.getElementById('program-start-date'),
       programEventName: document.getElementById('program-event-name'),
       programEventDate: document.getElementById('program-event-date'),
       programEventLocation: document.getElementById('program-event-location'),
@@ -2543,16 +3111,30 @@
       editProgramName: document.getElementById('edit-program-name'),
       editProgramExternalSource: document.getElementById('edit-program-external-source'),
       editProgramExternalId: document.getElementById('edit-program-external-id'),
-      editProgramDescription: document.getElementById('edit-program-description'),
+      editProgramCommercialDescription: document.getElementById('edit-program-commercial-description'),
+      editProgramTechnicalDescription: document.getElementById('edit-program-technical-description'),
       editProgramImageUrl: document.getElementById('edit-program-image-url'),
       editProgramDurationWeeks: document.getElementById('edit-program-duration-weeks'),
       editProgramPriceCents: document.getElementById('edit-program-price-cents'),
+      editProgramPriceOneTimeField: document.getElementById('edit-program-price-one-time-field'),
       editProgramCurrency: document.getElementById('edit-program-currency'),
       editProgramStripeProductId: document.getElementById('edit-program-stripe-product-id'),
       editProgramStripePriceId: document.getElementById('edit-program-stripe-price-id'),
+      editProgramRecurringPricingFields: document.getElementById('edit-program-recurring-pricing-fields'),
+      editProgramRecurringPriceMonthly: document.getElementById('edit-program-recurring-price-monthly'),
+      editProgramRecurringPriceQuarterly: document.getElementById('edit-program-recurring-price-quarterly'),
+      editProgramRecurringPriceAnnual: document.getElementById('edit-program-recurring-price-annual'),
+      editProgramRecurringPriceMonthlyField: document.getElementById('edit-program-recurring-price-monthly-field'),
+      editProgramRecurringPriceQuarterlyField: document.getElementById('edit-program-recurring-price-quarterly-field'),
+      editProgramRecurringPriceAnnualField: document.getElementById('edit-program-recurring-price-annual-field'),
+      editProgramStripePriceIdMonthly: document.getElementById('edit-program-stripe-price-id-monthly'),
+      editProgramStripePriceIdQuarterly: document.getElementById('edit-program-stripe-price-id-quarterly'),
+      editProgramStripePriceIdAnnual: document.getElementById('edit-program-stripe-price-id-annual'),
       editProgramBillingType: document.getElementById('edit-program-billing-type'),
       editProgramAccessModel: document.getElementById('edit-program-access-model'),
       editProgramStatus: document.getElementById('edit-program-status'),
+      editProgramEventId: document.getElementById('edit-program-event-id'),
+      editProgramStartDate: document.getElementById('edit-program-start-date'),
       editProgramEventName: document.getElementById('edit-program-event-name'),
       editProgramEventDate: document.getElementById('edit-program-event-date'),
       editProgramEventLocation: document.getElementById('edit-program-event-location'),
@@ -2616,11 +3198,13 @@
       vendasSubtabPrices: document.getElementById('vendas-subtab-prices'),
       vendasSubtabSync: document.getElementById('vendas-subtab-sync'),
       vendasSubtabLinks: document.getElementById('vendas-subtab-links'),
+      vendasSubtabCharges: document.getElementById('vendas-subtab-charges'),
       vendasPurchasesView: document.getElementById('vendas-purchases-view'),
       vendasCouponsView: document.getElementById('vendas-coupons-view'),
       vendasPricesView: document.getElementById('vendas-prices-view'),
       vendasSyncView: document.getElementById('vendas-sync-view'),
       vendasLinksView: document.getElementById('vendas-links-view'),
+      vendasChargesView: document.getElementById('vendas-charges-view'),
       vendasFilterStatus: document.getElementById('vendas-filter-status'),
       vendasFilterProgram: document.getElementById('vendas-filter-program'),
       vendasFilterEmail: document.getElementById('vendas-filter-email'),
@@ -2656,6 +3240,19 @@
       linkResult: document.getElementById('link-result'),
       linkResultUrl: document.getElementById('link-result-url'),
       linkCopyBtn: document.getElementById('link-copy-btn'),
+      chargesFilterStatus: document.getElementById('charges-filter-status'),
+      chargesFilterProgram: document.getElementById('charges-filter-program'),
+      chargesFilterFrom: document.getElementById('charges-filter-from'),
+      chargesFilterTo: document.getElementById('charges-filter-to'),
+      chargesRefreshBtn: document.getElementById('charges-refresh-btn'),
+      chargesBody: document.getElementById('charges-body'),
+      chargesKpiDueToday: document.getElementById('charges-kpi-due-today'),
+      chargesKpiOverdue: document.getElementById('charges-kpi-overdue'),
+      chargesKpiFailed24h: document.getElementById('charges-kpi-failed24h'),
+      chargesKpiCollectedToday: document.getElementById('charges-kpi-collected-today'),
+      chargesKpiScheduled7d: document.getElementById('charges-kpi-scheduled7d'),
+      chargesKpiPaid: document.getElementById('charges-kpi-paid'),
+      chargesKpiPending: document.getElementById('charges-kpi-pending'),
       tabAi: document.getElementById('tab-ai'),
       aiPanel: document.getElementById('ai-panel'),
       aiMessage: document.getElementById('ai-message'),
@@ -4281,6 +4878,19 @@
       closeDialog(els.createAthleteDialog);
     }
 
+    function closeBlogCategoryDialog() {
+      closeDialog(els.blogCategoryDialog);
+    }
+
+    function openBlogCategoryDialog() {
+      openDialog(els.blogCategoryDialog);
+      window.requestAnimationFrame(() => {
+        if (els.blogCategoryName) {
+          els.blogCategoryName.focus();
+        }
+      });
+    }
+
     function closeAssignmentDialog() {
       closeDialog(els.assignmentDialog);
     }
@@ -4294,6 +4904,8 @@
 
     function closeEditProgramDialog() {
       showEditProgramMessage('', false);
+      state.editProgramOriginal = null;
+      state.editProgramOneTimeDraft = null;
       closeDialog(els.editProgramDialog);
     }
 
@@ -4700,8 +5312,29 @@
       renderBlogWorkflowSummary();
     }
 
+    let blogDraftGenerationInFlight = false;
+    function setBlogDraftGenerationState(isLoading) {
+      blogDraftGenerationInFlight = Boolean(isLoading);
+      if (els.blogAiT2GenerateBtn) {
+        els.blogAiT2GenerateBtn.disabled = blogDraftGenerationInFlight;
+        els.blogAiT2GenerateBtn.textContent = blogDraftGenerationInFlight ? 'A gerar draft...' : 'Gerar Draft';
+      }
+      if (els.blogAiFlowGenerateDraftBtn) {
+        els.blogAiFlowGenerateDraftBtn.disabled = blogDraftGenerationInFlight;
+        els.blogAiFlowGenerateDraftBtn.textContent = blogDraftGenerationInFlight ? 'A gerar draft...' : 'Gerar draft';
+      }
+      if (els.blogAiT2Status) {
+        if (blogDraftGenerationInFlight) {
+          els.blogAiT2Status.textContent = 'A gerar draft com IA...';
+        } else if (!state.blogDraft || !state.blogDraft.generatedBlog || !state.blogDraft.generatedBlog.title) {
+          els.blogAiT2Status.textContent = 'Sem draft ainda.';
+        }
+      }
+    }
+
     async function generateDraftFromIdea() {
       if (!state.user) throw new Error('Faz login para gerar conteudo com IA.');
+      if (blogDraftGenerationInFlight) return;
       const topic = (els.blogAiT2Topic.value || '').trim();
       if (!topic) throw new Error('Preenche o tema.');
 
@@ -4715,10 +5348,15 @@
         extraInstructions: (els.blogAiT2Instructions.value || '').trim()
       };
 
-      showBlogAiMessage('A gerar draft do artigo...', false);
-      const data = await apiRequest('POST', blogProductionApiBase, payload);
-      renderT2Production(data.production || null);
-      showBlogAiMessage('Draft gerado. Revisa e aplica no editor.', false);
+      setBlogDraftGenerationState(true);
+      try {
+        showBlogAiMessage('A gerar draft do artigo...', false);
+        const data = await apiRequest('POST', blogProductionApiBase, payload);
+        renderT2Production(data.production || null);
+        showBlogAiMessage('Draft gerado. Revisa e aplica no editor.', false);
+      } finally {
+        setBlogDraftGenerationState(false);
+      }
     }
 
     function applyDraftToEditor() {
@@ -4726,7 +5364,10 @@
       if (!blog) throw new Error('Gera um draft primeiro.');
       if (blog.title) els.title.value = blog.title;
       if (blog.excerpt) els.excerpt.value = blog.excerpt;
-      if (blog.category) els.category.value = blog.category;
+      if (blog.category) {
+        ensureBlogCategoryOption(blog.category);
+        els.category.value = blog.category;
+      }
       if (blog.content) els.content.value = blog.content;
       state.blogDraftApplied = true;
       updateAbcArticleTabState();
@@ -6065,7 +6706,92 @@
       renderCurrentAssignmentSummary();
     }
 
-    function getProgramAccessLabel(accessModel) {
+    function renderProgramEventOptions() {
+      const eventSelects = [els.programEventId, els.editProgramEventId].filter(Boolean);
+      if (!eventSelects.length) return;
+
+      const events = Array.isArray(state.events) ? state.events.slice() : [];
+      events.sort((a, b) => {
+        const aDate = (a && a.eventDate) || '';
+        const bDate = (b && b.eventDate) || '';
+        if (aDate !== bDate) return aDate.localeCompare(bDate);
+        return String((a && a.name) || '').localeCompare(String((b && b.name) || ''));
+      });
+
+      eventSelects.forEach((selectEl) => {
+        const selectedValue = (selectEl.value || '').trim();
+        selectEl.innerHTML = '';
+
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = 'Sem prova associada';
+        selectEl.appendChild(placeholder);
+
+        events.forEach((eventRow) => {
+          const option = document.createElement('option');
+          option.value = eventRow.id;
+          const when = eventRow.eventDate ? ` - ${formatProgramDate(eventRow.eventDate)}` : '';
+          option.textContent = `${eventRow.name || 'Prova sem nome'}${when}`;
+          if (selectedValue && selectedValue === eventRow.id) option.selected = true;
+          selectEl.appendChild(option);
+        });
+
+        if (selectedValue && !events.some((eventRow) => eventRow && eventRow.id === selectedValue)) {
+          const staleOption = document.createElement('option');
+          staleOption.value = selectedValue;
+          staleOption.textContent = 'Prova associada (fora da lista atual)';
+          staleOption.selected = true;
+          selectEl.appendChild(staleOption);
+        }
+
+          selectEl.addEventListener('change', () => { onProgramEventIdChanged(selectEl); });
+      });
+    }
+
+      function calculateStartDateFromEvent(eventDate, durationWeeks) {
+        if (!eventDate || !durationWeeks) return null;
+        try {
+          const date = new Date(`${eventDate}T00:00:00Z`);
+          if (isNaN(date.getTime())) return null;
+          date.setUTCDate(date.getUTCDate() - (durationWeeks * 7));
+          return date.toISOString().slice(0, 10);
+        } catch (err) {
+          console.warn('🚨 FALLBACK [calculateStartDateFromEvent]:', err);
+          return null;
+        }
+      }
+
+      function onProgramEventIdChanged(eventSelectEl) {
+        if (!eventSelectEl) return;
+        const isEditForm = eventSelectEl.id === 'edit-program-event-id';
+        const startDateField = isEditForm ? els.editProgramStartDate : els.programStartDate;
+        const durationField = isEditForm ? els.editProgramDurationWeeks : els.programDurationWeeks;
+      
+        if (!startDateField || !durationField) return;
+      
+        const selectedEventId = (eventSelectEl.value || '').trim();
+        if (!selectedEventId) {
+          return;
+        }
+      
+        const selectedEvent = (Array.isArray(state.events) ? state.events : []).find(e => e && e.id === selectedEventId);
+        if (!selectedEvent || !selectedEvent.eventDate) {
+          return;
+        }
+      
+        const duration = Number(durationField.value);
+        if (!Number.isInteger(duration) || duration <= 0) {
+          console.warn('🚨 FALLBACK [onProgramEventIdChanged]: durationWeeks invalid');
+          return;
+        }
+      
+        const calculated = calculateStartDateFromEvent(selectedEvent.eventDate, duration);
+        if (calculated) {
+          startDateField.value = calculated;
+        }
+      }
+
+      function getProgramAccessLabel(accessModel) {
       if (accessModel === 'self_serve') return 'Self-serve';
       if (accessModel === 'coached_recurring') return 'Coach recorrente';
       if (accessModel === 'coached_one_time') return 'Coach pontual';
@@ -6073,11 +6799,11 @@
     }
 
     function getProgramCalendarMeta(program) {
-      const hasEvent = Boolean(program && (program.eventName || program.eventDate || program.eventLocation));
-      if (!hasEvent) {
+      const linkedEvent = getProgramEvent(program);
+      if (!linkedEvent) {
         return { label: 'sem prova', className: 'admin-tag muted' };
       }
-      if (program.calendarVisible === false) {
+      if (linkedEvent.calendarVisible === false) {
         return { label: 'oculto', className: 'admin-tag muted' };
       }
       return { label: 'visivel', className: 'admin-tag success' };
@@ -6095,7 +6821,12 @@
     }
 
     function programHasEvent(program) {
-      return Boolean(program && (program.eventName || program.eventDate || program.eventLocation));
+      return Boolean(program && program.eventId);
+    }
+
+    function getProgramEvent(program) {
+      if (!program || !program.eventId) return null;
+      return (state.events || []).find((eventRow) => eventRow && eventRow.id === program.eventId) || null;
     }
 
     function applyProgramsFilters() {
@@ -6114,12 +6845,6 @@
         }
 
         const hasEvent = programHasEvent(program);
-        if (filters.calendar === 'event_visible' && (!hasEvent || program.calendarVisible === false)) {
-          return false;
-        }
-        if (filters.calendar === 'event_hidden' && (!hasEvent || program.calendarVisible !== false)) {
-          return false;
-        }
         if (filters.calendar === 'event_any' && !hasEvent) {
           return false;
         }
@@ -6131,10 +6856,11 @@
           return true;
         }
 
+        const linkedEvent = getProgramEvent(program);
         const haystack = [
           program.name,
-          program.eventName,
-          program.eventLocation,
+          linkedEvent && linkedEvent.name,
+          linkedEvent && linkedEvent.eventLocation,
           program.externalId,
           program.externalSource,
           program.stripePriceId,
@@ -6176,8 +6902,9 @@
       const fragment = document.createDocumentFragment();
       list.forEach((program) => {
         const row = document.createElement('tr');
-        const eventName = program.eventName || '-';
-        const eventDate = formatProgramDate(program.eventDate);
+        const linkedEvent = getProgramEvent(program);
+        const eventName = linkedEvent && linkedEvent.name ? linkedEvent.name : '-';
+        const eventDate = formatProgramDate(linkedEvent && linkedEvent.eventDate);
         const calendarMeta = getProgramCalendarMeta(program);
         const statusBadgeClass = program.status === 'active'
           ? 'admin-tag success'
@@ -6335,22 +7062,32 @@
         name: els.programName,
         externalSource: els.programExternalSource,
         externalId: els.programExternalId,
-        description: els.programDescription,
+        commercialDescription: els.programCommercialDescription,
+        technicalDescription: els.programTechnicalDescription,
         imageUrl: els.programImageUrl,
         durationWeeks: els.programDurationWeeks,
         priceCents: els.programPriceCents,
+        recurringPriceMonthly: els.programRecurringPriceMonthly,
+        recurringPriceQuarterly: els.programRecurringPriceQuarterly,
+        recurringPriceAnnual: els.programRecurringPriceAnnual,
         currency: els.programCurrency,
         stripeProductId: els.programStripeProductId,
         stripePriceId: els.programStripePriceId,
+        stripePriceIdMonthly: els.programStripePriceIdMonthly,
+        stripePriceIdQuarterly: els.programStripePriceIdQuarterly,
+        stripePriceIdAnnual: els.programStripePriceIdAnnual,
         billingType: els.programBillingType,
         accessModel: els.programAccessModel,
         status: els.programStatus,
-        eventName: els.programEventName,
+        eventId: els.programEventId,
+          startDate: els.programStartDate,
+          eventName: els.programEventName,
         eventDate: els.programEventDate,
         eventLocation: els.programEventLocation,
         eventDescription: els.programEventDescription,
         calendarVisible: els.programCalendarVisible,
         calendarHighlightRank: els.programCalendarHighlightRank,
+        recurringPricingFields: els.programRecurringPricingFields,
         createStripe: els.programCreateStripe
       };
     }
@@ -6360,48 +7097,351 @@
         name: els.editProgramName,
         externalSource: els.editProgramExternalSource,
         externalId: els.editProgramExternalId,
-        description: els.editProgramDescription,
+        commercialDescription: els.editProgramCommercialDescription,
+        technicalDescription: els.editProgramTechnicalDescription,
         imageUrl: els.editProgramImageUrl,
         durationWeeks: els.editProgramDurationWeeks,
         priceCents: els.editProgramPriceCents,
+        recurringPriceMonthly: els.editProgramRecurringPriceMonthly,
+        recurringPriceQuarterly: els.editProgramRecurringPriceQuarterly,
+        recurringPriceAnnual: els.editProgramRecurringPriceAnnual,
         currency: els.editProgramCurrency,
         stripeProductId: els.editProgramStripeProductId,
         stripePriceId: els.editProgramStripePriceId,
+        stripePriceIdMonthly: els.editProgramStripePriceIdMonthly,
+        stripePriceIdQuarterly: els.editProgramStripePriceIdQuarterly,
+        stripePriceIdAnnual: els.editProgramStripePriceIdAnnual,
         billingType: els.editProgramBillingType,
         accessModel: els.editProgramAccessModel,
         status: els.editProgramStatus,
-        eventName: els.editProgramEventName,
+        eventId: els.editProgramEventId,
+          startDate: els.editProgramStartDate,
+          eventName: els.editProgramEventName,
         eventDate: els.editProgramEventDate,
         eventLocation: els.editProgramEventLocation,
         eventDescription: els.editProgramEventDescription,
         calendarVisible: els.editProgramCalendarVisible,
-        calendarHighlightRank: els.editProgramCalendarHighlightRank
+        calendarHighlightRank: els.editProgramCalendarHighlightRank,
+        recurringPricingFields: els.editProgramRecurringPricingFields
       };
+    }
+
+    function syncRecurringPricingVisibility(fields) {
+      if (!fields || !fields.billingType || !fields.recurringPricingFields) return;
+      const isRecurring = String(fields.billingType.value || '').trim() === 'recurring';
+      const oneTimeRaw = fields.priceCents ? String(fields.priceCents.value || '').trim() : '';
+      fields.recurringPricingFields.hidden = !isRecurring;
+      fields.recurringPricingFields.style.display = isRecurring ? '' : 'none';
+
+      if (fields.name === els.editProgramName) {
+        syncEditProgramPriceFieldVisibility();
+      }
+
+      if (!isRecurring && fields.priceCents && !oneTimeRaw && state.editProgramOneTimeDraft) {
+        fields.priceCents.value = state.editProgramOneTimeDraft;
+      }
+
+      if (!isRecurring) return;
+      if (!fields.recurringPriceMonthly || !fields.priceCents) return;
+
+      if (oneTimeRaw) {
+        state.editProgramOneTimeDraft = oneTimeRaw;
+      }
+
+      const monthlyRaw = String(fields.recurringPriceMonthly.value || '').trim();
+      if (!monthlyRaw && String(fields.priceCents.value || '').trim()) {
+        fields.recurringPriceMonthly.value = String(fields.priceCents.value || '').trim();
+      } else if (monthlyRaw) {
+        fields.priceCents.value = monthlyRaw;
+      }
+    }
+
+    function parsePriceFieldToCents(field, label) {
+      const normalized = String(field && field.value ? field.value : '').replace(',', '.').trim();
+      if (!normalized) {
+        throw new Error(`${label} e obrigatorio para atualizar no Stripe.`);
+      }
+      const cents = Math.round(Number(normalized) * 100);
+      if (!Number.isInteger(cents) || cents <= 0) {
+        throw new Error(`${label} deve ser um numero positivo.`);
+      }
+      return cents;
+    }
+
+    function parseOptionalPriceFieldToCents(field, label) {
+      const normalized = String(field && field.value ? field.value : '').replace(',', '.').trim();
+      if (!normalized) return null;
+      const cents = Math.round(Number(normalized) * 100);
+      if (!Number.isInteger(cents) || cents <= 0) {
+        throw new Error(`${label} deve ser um numero positivo.`);
+      }
+      return cents;
+    }
+
+    function getEditProgramPriceUpdatePlan() {
+      const original = state.editProgramOriginal || {};
+      const billingType = String(els.editProgramBillingType && els.editProgramBillingType.value || '').trim();
+      const isRecurring = billingType === 'recurring';
+      const plan = {
+        isRecurring,
+        changes: [],
+        oneTime: {
+          changed: false,
+          fromCents: Number.isFinite(Number(original.priceCents)) ? Number(original.priceCents) : null,
+          toCents: null
+        },
+        monthly: {
+          changed: false,
+          fromCents: Number.isFinite(Number(original.recurringPriceMonthlyCents)) ? Number(original.recurringPriceMonthlyCents) : null,
+          toCents: null
+        },
+        quarterly: {
+          changed: false,
+          fromCents: Number.isFinite(Number(original.recurringPriceQuarterlyCents)) ? Number(original.recurringPriceQuarterlyCents) : null,
+          toCents: parseOptionalPriceFieldToCents(els.editProgramRecurringPriceQuarterly, 'Preco trimestral')
+        },
+        annual: {
+          changed: false,
+          fromCents: Number.isFinite(Number(original.recurringPriceAnnualCents)) ? Number(original.recurringPriceAnnualCents) : null,
+          toCents: parseOptionalPriceFieldToCents(els.editProgramRecurringPriceAnnual, 'Preco anual')
+        }
+      };
+
+      if (isRecurring) {
+        plan.monthly.toCents = parsePriceFieldToCents(els.editProgramRecurringPriceMonthly, 'Preco mensal');
+        plan.monthly.changed = plan.monthly.fromCents !== plan.monthly.toCents;
+        plan.quarterly.changed = plan.quarterly.fromCents !== plan.quarterly.toCents;
+        plan.annual.changed = plan.annual.fromCents !== plan.annual.toCents;
+      } else {
+        plan.oneTime.toCents = parsePriceFieldToCents(els.editProgramPriceCents, 'Preco one_time');
+        plan.oneTime.changed = plan.oneTime.fromCents !== plan.oneTime.toCents;
+      }
+
+      if (plan.oneTime.changed) {
+        plan.changes.push({ label: 'Preco one_time', fromCents: plan.oneTime.fromCents, toCents: plan.oneTime.toCents });
+      }
+      if (plan.monthly.changed) {
+        plan.changes.push({ label: 'Preco mensal', fromCents: plan.monthly.fromCents, toCents: plan.monthly.toCents });
+      }
+      if (plan.quarterly.changed) {
+        plan.changes.push({ label: 'Preco trimestral', fromCents: plan.quarterly.fromCents, toCents: plan.quarterly.toCents });
+      }
+      if (plan.annual.changed) {
+        plan.changes.push({ label: 'Preco anual', fromCents: plan.annual.fromCents, toCents: plan.annual.toCents });
+      }
+
+      return plan;
+    }
+
+    function confirmEditProgramPriceChanges(plan) {
+      if (!plan || !Array.isArray(plan.changes) || !plan.changes.length) return true;
+      const currency = String(els.editProgramCurrency && els.editProgramCurrency.value || 'EUR').trim().toUpperCase() || 'EUR';
+      const lines = plan.changes.map((change) => {
+        const fromLabel = change.fromCents == null ? 'Sem preco' : formatCurrencyCents(change.fromCents, currency);
+        const toLabel = change.toCents == null ? 'Sem preco' : formatCurrencyCents(change.toCents, currency);
+        return `- ${change.label}: ${fromLabel} -> ${toLabel}`;
+      });
+      const message = [
+        'Confirmar alteracao de precos no Stripe?',
+        'Esta acao cria novos Price IDs para valores alterados e arquiva os anteriores quando aplicavel.',
+        '',
+        ...lines
+      ].join('\n');
+      return window.confirm(message);
+    }
+
+    function syncEditProgramPriceFieldVisibility() {
+      const isRecurring = String((els.editProgramBillingType && els.editProgramBillingType.value) || '').trim() === 'recurring';
+
+      if (els.editProgramPriceOneTimeField) {
+        els.editProgramPriceOneTimeField.hidden = isRecurring;
+        els.editProgramPriceOneTimeField.style.display = isRecurring ? 'none' : '';
+      }
+      if (els.editProgramRecurringPriceMonthlyField) {
+        els.editProgramRecurringPriceMonthlyField.hidden = !isRecurring;
+        els.editProgramRecurringPriceMonthlyField.style.display = isRecurring ? '' : 'none';
+      }
+      if (els.editProgramRecurringPriceQuarterlyField) {
+        els.editProgramRecurringPriceQuarterlyField.hidden = !isRecurring;
+        els.editProgramRecurringPriceQuarterlyField.style.display = isRecurring ? '' : 'none';
+      }
+      if (els.editProgramRecurringPriceAnnualField) {
+        els.editProgramRecurringPriceAnnualField.hidden = !isRecurring;
+        els.editProgramRecurringPriceAnnualField.style.display = isRecurring ? '' : 'none';
+      }
+    }
+
+    async function createStripePriceFromEdit({ productId, currency, priceCents, recurring }) {
+      const body = {
+        product_id: productId,
+        price_cents: priceCents,
+        currency
+      };
+      if (recurring) {
+        body.recurring = recurring;
+      } else {
+        body.recurring = false;
+      }
+      const data = await apiRequest('POST', adminStripePricesApiBase, body);
+      if (!data || !data.price || !data.price.id) {
+        throw new Error('Falha ao criar preco no Stripe.');
+      }
+      return data.price.id;
+    }
+
+    async function archiveStripePriceIfNeeded(priceId, keepId) {
+      const current = String(priceId || '').trim();
+      const next = String(keepId || '').trim();
+      if (!current || current === next) return;
+      await apiRequest('PATCH', adminStripePricesApiBase, { price_id: current });
+    }
+
+    async function applyStripePriceUpdatesFromEdit(plan) {
+      const pricePlan = plan || getEditProgramPriceUpdatePlan();
+      if (!pricePlan || !Array.isArray(pricePlan.changes) || !pricePlan.changes.length) return false;
+
+      const productId = String(els.editProgramStripeProductId && els.editProgramStripeProductId.value || '').trim();
+      if (!productId) {
+        throw new Error('Stripe Product ID e obrigatorio para alterar precos no Stripe.');
+      }
+
+      const currency = String(els.editProgramCurrency && els.editProgramCurrency.value || 'EUR').trim().toUpperCase() || 'EUR';
+
+      showEditProgramMessage('A atualizar precos no Stripe...', false);
+
+      if (pricePlan.oneTime.changed) {
+        const newPriceId = await createStripePriceFromEdit({
+          productId,
+          currency,
+          priceCents: pricePlan.oneTime.toCents,
+          recurring: false
+        });
+        await archiveStripePriceIfNeeded(els.editProgramStripePriceId && els.editProgramStripePriceId.value, newPriceId);
+        if (els.editProgramStripePriceId) els.editProgramStripePriceId.value = newPriceId;
+      }
+
+      if (pricePlan.monthly.changed) {
+        const newPriceId = await createStripePriceFromEdit({
+          productId,
+          currency,
+          priceCents: pricePlan.monthly.toCents,
+          recurring: { interval: 'month', interval_count: 1 }
+        });
+        await archiveStripePriceIfNeeded(els.editProgramStripePriceIdMonthly && els.editProgramStripePriceIdMonthly.value, newPriceId);
+        if (els.editProgramStripePriceIdMonthly) els.editProgramStripePriceIdMonthly.value = newPriceId;
+        if (els.editProgramStripePriceId) els.editProgramStripePriceId.value = newPriceId;
+      }
+
+      if (pricePlan.quarterly.changed) {
+        if (pricePlan.quarterly.toCents == null) {
+          await archiveStripePriceIfNeeded(els.editProgramStripePriceIdQuarterly && els.editProgramStripePriceIdQuarterly.value, null);
+          if (els.editProgramStripePriceIdQuarterly) els.editProgramStripePriceIdQuarterly.value = '';
+        } else {
+          const newPriceId = await createStripePriceFromEdit({
+            productId,
+            currency,
+            priceCents: pricePlan.quarterly.toCents,
+            recurring: { interval: 'month', interval_count: 3 }
+          });
+          await archiveStripePriceIfNeeded(els.editProgramStripePriceIdQuarterly && els.editProgramStripePriceIdQuarterly.value, newPriceId);
+          if (els.editProgramStripePriceIdQuarterly) els.editProgramStripePriceIdQuarterly.value = newPriceId;
+        }
+      }
+
+      if (pricePlan.annual.changed) {
+        if (pricePlan.annual.toCents == null) {
+          await archiveStripePriceIfNeeded(els.editProgramStripePriceIdAnnual && els.editProgramStripePriceIdAnnual.value, null);
+          if (els.editProgramStripePriceIdAnnual) els.editProgramStripePriceIdAnnual.value = '';
+        } else {
+          const newPriceId = await createStripePriceFromEdit({
+            productId,
+            currency,
+            priceCents: pricePlan.annual.toCents,
+            recurring: { interval: 'year', interval_count: 1 }
+          });
+          await archiveStripePriceIfNeeded(els.editProgramStripePriceIdAnnual && els.editProgramStripePriceIdAnnual.value, newPriceId);
+          if (els.editProgramStripePriceIdAnnual) els.editProgramStripePriceIdAnnual.value = newPriceId;
+        }
+      }
+
+      return true;
+    }
+
+    function enforceRecurringSchemaAvailability(fields) {
+      if (!fields || !fields.billingType) return;
+      if (state.programsRecurringSchemaReady !== false) return;
+
+      if (String(fields.billingType.value || '').trim() === 'recurring') {
+        fields.billingType.value = 'one_time';
+      }
+      if (fields.accessModel && String(fields.accessModel.value || '').trim() === 'coached_recurring') {
+        fields.accessModel.value = 'coached_one_time';
+      }
+      syncRecurringPricingVisibility(fields);
     }
 
     function collectProgramPayloadFromFields(fields, options = {}) {
       syncAllRichTextEditorsToSource();
 
+      const getFieldValue = (field) => {
+        if (!field) return '';
+        return field.value || '';
+      };
+
+      const parseEurosToCents = (value, label) => {
+        const normalized = String(value || '').replace(',', '.').trim();
+        if (!normalized) return null;
+        const cents = Math.round(Number(normalized) * 100);
+        if (!Number.isInteger(cents) || cents < 0) {
+          throw new Error(label + ' deve ser um número válido em euros (>= 0).');
+        }
+        return cents;
+      };
+
       const name = (fields.name.value || '').trim();
       const externalSource = (fields.externalSource.value || '').trim() || 'lht';
       const externalId = (fields.externalId.value || '').trim() || null;
-      const description = (fields.description.value || '').trim() || null;
+      const commercialDescription = (fields.commercialDescription.value || '').trim() || null;
+      const technicalDescription = (fields.technicalDescription.value || '').trim() || null;
+      const description = technicalDescription || commercialDescription || null;
       const imageUrl = fields.imageUrl ? ((fields.imageUrl.value || '').trim() || null) : null;
       const durationWeeks = Number(fields.durationWeeks.value);
-      const priceInput = String(fields.priceCents.value || '').replace(',', '.');
-      const priceCents = Math.round(Number(priceInput) * 100);
+      const priceCents = parseEurosToCents(fields.priceCents.value, 'Preço') ?? 0;
+      let recurringPriceMonthlyCents = parseEurosToCents(
+        fields.recurringPriceMonthly ? fields.recurringPriceMonthly.value : '',
+        'Preço mensal'
+      );
+      const recurringPriceQuarterlyCents = parseEurosToCents(
+        fields.recurringPriceQuarterly ? fields.recurringPriceQuarterly.value : '',
+        'Preço trimestral'
+      );
+      const recurringPriceAnnualCents = parseEurosToCents(
+        fields.recurringPriceAnnual ? fields.recurringPriceAnnual.value : '',
+        'Preço anual'
+      );
       const currency = (fields.currency.value || 'EUR').trim().toUpperCase() || 'EUR';
       const stripeProductId = (fields.stripeProductId.value || '').trim() || null;
       const stripePriceId = (fields.stripePriceId.value || '').trim() || null;
+      const stripePriceIdMonthly = fields.stripePriceIdMonthly
+        ? (fields.stripePriceIdMonthly.value || '').trim() || null
+        : null;
+      const stripePriceIdQuarterly = fields.stripePriceIdQuarterly
+        ? (fields.stripePriceIdQuarterly.value || '').trim() || null
+        : null;
+      const stripePriceIdAnnual = fields.stripePriceIdAnnual
+        ? (fields.stripePriceIdAnnual.value || '').trim() || null
+        : null;
       const billingType = (fields.billingType.value || 'one_time').trim();
       const accessModel = (fields.accessModel.value || 'coached_one_time').trim();
       const status = (fields.status.value || 'draft').trim();
-      const eventName = (fields.eventName.value || '').trim() || null;
-      const eventDate = (fields.eventDate.value || '').trim() || null;
-      const eventLocation = (fields.eventLocation.value || '').trim() || null;
+      const eventId = fields.eventId ? ((fields.eventId.value || '').trim() || null) : null;
+      const eventName = getFieldValue(fields.eventName).trim() || null;
+      const eventDate = getFieldValue(fields.eventDate).trim() || null;
+      const startDate = fields.startDate ? ((fields.startDate.value || '').trim() || null) : null;
+      const eventLocation = getFieldValue(fields.eventLocation).trim() || null;
       const eventDescription = fields.eventDescription ? ((fields.eventDescription.value || '').trim() || null) : undefined;
-      const calendarVisible = Boolean(fields.calendarVisible.checked);
-      const rawCalendarHighlightRank = (fields.calendarHighlightRank.value || '').trim();
+      const calendarVisible = fields.calendarVisible ? Boolean(fields.calendarVisible.checked) : true;
+      const rawCalendarHighlightRank = getFieldValue(fields.calendarHighlightRank).trim();
       const calendarHighlightRank = rawCalendarHighlightRank === '' ? null : Number(rawCalendarHighlightRank);
 
       if (!name) throw new Error('Nome do programa e obrigatorio.');
@@ -6411,9 +7451,21 @@
       if (!Number.isInteger(priceCents) || priceCents < 0) {
         throw new Error('Preço deve ser um número válido em euros (>= 0).');
       }
+      if (state.programsRecurringSchemaReady === false && billingType === 'recurring') {
+        throw new Error('Recorrencia indisponivel nesta base de dados. Aplica a migration-program-recurring-pricing.sql primeiro.');
+      }
+      if (billingType === 'recurring' && recurringPriceMonthlyCents == null) {
+        recurringPriceMonthlyCents = priceCents;
+      }
+      if (billingType === 'recurring' && (recurringPriceMonthlyCents == null || recurringPriceMonthlyCents < 0)) {
+        throw new Error('Preço mensal é obrigatório para billing recurring.');
+      }
       if (eventDate && !/^\d{4}-\d{2}-\d{2}$/.test(eventDate)) {
         throw new Error('Data da prova deve estar no formato YYYY-MM-DD.');
       }
+        if (startDate && !/^\d{4}-\d{2}-\d{2}$/.test(startDate)) {
+          throw new Error('Data de início deve estar no formato YYYY-MM-DD.');
+        }
       if (calendarHighlightRank != null && (!Number.isInteger(calendarHighlightRank) || calendarHighlightRank < 0)) {
         throw new Error('Ordem de destaque deve ser inteiro >= 0.');
       }
@@ -6425,18 +7477,28 @@
         name,
         externalSource,
         externalId,
+        commercialDescription,
+        technicalDescription,
         description,
         imageUrl,
         durationWeeks,
         priceCents,
+        recurringPriceMonthlyCents: billingType === 'recurring' ? recurringPriceMonthlyCents : null,
+        recurringPriceQuarterlyCents: billingType === 'recurring' ? recurringPriceQuarterlyCents : null,
+        recurringPriceAnnualCents: billingType === 'recurring' ? recurringPriceAnnualCents : null,
         currency,
         stripeProductId,
         stripePriceId,
+        stripePriceIdMonthly: billingType === 'recurring' ? stripePriceIdMonthly : null,
+        stripePriceIdQuarterly: billingType === 'recurring' ? stripePriceIdQuarterly : null,
+        stripePriceIdAnnual: billingType === 'recurring' ? stripePriceIdAnnual : null,
         billingType,
         accessModel,
         status,
+        eventId,
         eventName,
         eventDate,
+          startDate,
         eventLocation,
         eventDescription,
         calendarVisible,
@@ -6456,28 +7518,64 @@
 
     function populateProgramEditForm(program) {
       const fields = getProgramEditFieldRefs();
+      state.editProgramOriginal = {
+        id: program.id || null,
+        priceCents: Number.isFinite(Number(program.priceCents)) ? Number(program.priceCents) : null,
+        recurringPriceMonthlyCents: Number.isFinite(Number(program.recurringPriceMonthlyCents)) ? Number(program.recurringPriceMonthlyCents) : null,
+        recurringPriceQuarterlyCents: Number.isFinite(Number(program.recurringPriceQuarterlyCents)) ? Number(program.recurringPriceQuarterlyCents) : null,
+        recurringPriceAnnualCents: Number.isFinite(Number(program.recurringPriceAnnualCents)) ? Number(program.recurringPriceAnnualCents) : null,
+        stripePriceId: program.stripePriceId || null,
+        stripePriceIdMonthly: program.stripePriceIdMonthly || null,
+        stripePriceIdQuarterly: program.stripePriceIdQuarterly || null,
+        stripePriceIdAnnual: program.stripePriceIdAnnual || null
+      };
       els.editProgramId.value = program.id || '';
       fields.name.value = program.name || '';
       fields.externalSource.value = program.externalSource || 'lht';
       fields.externalId.value = program.externalId || '';
-      fields.description.value = program.description || '';
+      fields.commercialDescription.value = program.commercialDescription || program.description || '';
+      fields.technicalDescription.value = program.technicalDescription || program.description || '';
       if (fields.imageUrl) fields.imageUrl.value = program.imageUrl || '';
       fields.durationWeeks.value = String(program.durationWeeks || '');
       fields.priceCents.value = Number.isFinite(Number(program.priceCents)) ? (Number(program.priceCents) / 100).toFixed(2) : '0.00';
+      if (fields.recurringPriceMonthly) {
+        fields.recurringPriceMonthly.value = Number.isFinite(Number(program.recurringPriceMonthlyCents))
+          ? (Number(program.recurringPriceMonthlyCents) / 100).toFixed(2)
+          : '';
+      }
+      if (fields.recurringPriceQuarterly) {
+        fields.recurringPriceQuarterly.value = Number.isFinite(Number(program.recurringPriceQuarterlyCents))
+          ? (Number(program.recurringPriceQuarterlyCents) / 100).toFixed(2)
+          : '';
+      }
+      if (fields.recurringPriceAnnual) {
+        fields.recurringPriceAnnual.value = Number.isFinite(Number(program.recurringPriceAnnualCents))
+          ? (Number(program.recurringPriceAnnualCents) / 100).toFixed(2)
+          : '';
+      }
+      state.editProgramOneTimeDraft = fields.priceCents.value || '';
       fields.currency.value = (program.currency || 'EUR').toUpperCase();
       fields.stripeProductId.value = program.stripeProductId || '';
       fields.stripePriceId.value = program.stripePriceId || '';
+      if (fields.stripePriceIdMonthly) fields.stripePriceIdMonthly.value = program.stripePriceIdMonthly || '';
+      if (fields.stripePriceIdQuarterly) fields.stripePriceIdQuarterly.value = program.stripePriceIdQuarterly || '';
+      if (fields.stripePriceIdAnnual) fields.stripePriceIdAnnual.value = program.stripePriceIdAnnual || '';
       fields.billingType.value = program.billingType || 'one_time';
       fields.accessModel.value = program.accessModel || 'coached_one_time';
       fields.status.value = program.status || 'draft';
-      fields.eventName.value = program.eventName || '';
-      fields.eventDate.value = program.eventDate || '';
-      fields.eventLocation.value = program.eventLocation || '';
+      if (fields.eventId) fields.eventId.value = program.eventId || '';
+        if (fields.startDate) fields.startDate.value = program.startDate || '';
+      if (fields.eventName) fields.eventName.value = program.eventName || '';
+      if (fields.eventDate) fields.eventDate.value = program.eventDate || '';
+      if (fields.eventLocation) fields.eventLocation.value = program.eventLocation || '';
       if (fields.eventDescription) fields.eventDescription.value = program.eventDescription || '';
-      fields.calendarVisible.checked = program.calendarVisible !== false;
-      fields.calendarHighlightRank.value = program.calendarHighlightRank == null ? '' : String(program.calendarHighlightRank);
+      if (fields.calendarVisible) fields.calendarVisible.checked = program.calendarVisible !== false;
+      if (fields.calendarHighlightRank) fields.calendarHighlightRank.value = program.calendarHighlightRank == null ? '' : String(program.calendarHighlightRank);
+      syncRecurringPricingVisibility(fields);
+      syncEditProgramPriceFieldVisibility();
 
-      syncRichTextEditorBySourceId('edit-program-description');
+      syncRichTextEditorBySourceId('edit-program-commercial-description');
+      syncRichTextEditorBySourceId('edit-program-technical-description');
       syncRichTextEditorBySourceId('edit-program-event-description');
     }
 
@@ -6498,6 +7596,12 @@
       if (!programId) {
         throw new Error('Programa invalido para edicao.');
       }
+      const pricePlan = getEditProgramPriceUpdatePlan();
+      if (!confirmEditProgramPriceChanges(pricePlan)) {
+        showEditProgramMessage('Alteracao de precos cancelada.', false);
+        return;
+      }
+      await applyStripePriceUpdatesFromEdit(pricePlan);
       const payload = collectProgramPayloadFromFields(getProgramEditFieldRefs());
       showEditProgramMessage('A guardar alteracoes...', false);
       await apiRequest('PATCH', `${adminProgramsApiBase}/${programId}`, payload);
@@ -6536,12 +7640,53 @@
 
       const data = await apiRequest('GET', adminProgramsApiBase);
       state.programs = Array.isArray(data.programs) ? data.programs : [];
+      state.programsRecurringSchemaReady = data.recurringPricingSchemaReady !== false;
+      try {
+        const eventsData = await apiRequest('GET', adminEventsApiBase);
+        state.events = Array.isArray(eventsData.events)
+          ? eventsData.events.map((eventRow) => ({
+              id: eventRow.id,
+              name: eventRow.name || null,
+              eventDate: eventRow.event_date || null,
+              eventLocation: eventRow.event_location || null,
+              eventDescription: eventRow.event_description || null,
+              calendarVisible: eventRow.calendar_visible !== false,
+              calendarHighlightRank: Number.isInteger(eventRow.calendar_highlight_rank)
+                ? eventRow.calendar_highlight_rank
+                : null,
+              createdAt: eventRow.created_at || null,
+              updatedAt: eventRow.updated_at || null
+            }))
+          : [];
+      } catch (eventsErr) {
+        console.warn('[programs] events fetch failed:', eventsErr);
+        state.events = [];
+      }
+      enforceRecurringSchemaAvailability(getProgramCreateFieldRefs());
+      enforceRecurringSchemaAvailability(getProgramEditFieldRefs());
+      setAuthUI();
       applyProgramsFilters();
+      renderProgramEventOptions();
       renderProgramOptions();
       // Update athletes filter dropdown with new programs
+        function calculateStartDateFromEvent(eventDate, durationWeeks) {
+          if (!eventDate || !durationWeeks) return null;
+          try {
+            const date = new Date(`${eventDate}T00:00:00Z`);
+            if (isNaN(date.getTime())) return null;
+            date.setUTCDate(date.getUTCDate() - (durationWeeks * 7));
+            return date.toISOString().slice(0, 10);
+          } catch (err) {
+            console.warn('🚨 FALLBACK [calculateStartDateFromEvent]:', err);
+            return null;
+          }
+        }
       populateFilterDropdowns();
       const filteredCount = Array.isArray(state.programsFiltered) ? state.programsFiltered.length : state.programs.length;
-      showProgramsMessage(`Programas carregados: ${state.programs.length}. A mostrar ${filteredCount}.`, false);
+      const schemaNotice = state.programsRecurringSchemaReady
+        ? ''
+        : ' Recorrencia desativada: aplica a migration-program-recurring-pricing.sql na base de dados.';
+      showProgramsMessage(`Programas carregados: ${state.programs.length}. A mostrar ${filteredCount}.${schemaNotice}`, false);
     }
 
     async function createProgramFromAdmin() {
@@ -6569,7 +7714,7 @@
       const selectedProgram = state.programs.find((program) => program.id === trainingProgramId);
       if (!selectedProgram) {
         throw new Error('Programa selecionado nao encontrado no catalogo.');
-      }
+        }
 
       const durationWeeks = Number(selectedProgram.durationWeeks || 0);
       const priceCentsSnapshot = Number(selectedProgram.priceCents || 0);
@@ -7052,7 +8197,9 @@
     }
 
     function resetAdminDataToLoggedOutView() {
+      persistBlogEditorDraft();
       state.articles = [];
+      state.blogCategories = [];
       state.siteContent = null;
       state.coaches = [];
       state.leads = [];
@@ -7068,6 +8215,7 @@
       state.dataAudit = null;
       state.athletesCatalog = [];
       state.programs = [];
+      state.events = [];
       state.programsFiltered = [];
       state.programsFilterInputs = {
         search: '',
@@ -7086,6 +8234,7 @@
       renderCoachOptions();
       renderLeads();
       renderProgramsTable();
+      renderProgramEventOptions();
       renderProgramOptions();
       closeEditProgramDialog();
       renderAiPrompts();
@@ -7095,8 +8244,11 @@
       resetAiPromptEditor();
       setAiSubtab('prompts');
       setSiteContentEditors(null);
+      renderBlogCategoryOptions('Artigo');
+      renderBlogCategoriesList();
+      showBlogCategoryMessage('', false);
       showSiteContentMessage('Faz login para gerir o conteudo do site.', false);
-      resetForm();
+      resetForm({ clearLocalDraft: false });
       showLeadsMessage('Faz login para ver as leads Meta.', false);
       showProgramsMessage('Faz login para gerir programas.', false);
       showAiMessage('Faz login para gerir prompts e logs de IA.', false);
@@ -7108,6 +8260,9 @@
     function setAuthUI() {
       const viewingAllowed = Boolean(state.user && state.isAdmin);
       const canUseApi = viewingAllowed;
+      const setDisabledIfPresent = (element, disabled) => {
+        if (element) element.disabled = disabled;
+      };
 
       els.authGate.hidden = viewingAllowed;
       els.protectedContent.hidden = !viewingAllowed;
@@ -7128,6 +8283,7 @@
       els.saveBtn.disabled = !canUseApi;
       els.publishNowBtn.disabled = !canUseApi;
       els.deleteBtn.disabled = !canUseApi;
+      if (els.blogCategoryManageBtn) els.blogCategoryManageBtn.disabled = !canUseApi;
       // Tab 1
       els.blogAiT1Cta.disabled = !canUseApi;
       els.blogAiT1Instructions.disabled = !canUseApi;
@@ -7179,7 +8335,8 @@
       els.programName.disabled = !canUseApi;
       els.programExternalSource.disabled = !canUseApi;
       els.programExternalId.disabled = !canUseApi;
-      els.programDescription.disabled = !canUseApi;
+      els.programCommercialDescription.disabled = !canUseApi;
+      els.programTechnicalDescription.disabled = !canUseApi;
       els.programDurationWeeks.disabled = !canUseApi;
       els.programPriceCents.disabled = !canUseApi;
       els.programCurrency.disabled = !canUseApi;
@@ -7187,12 +8344,19 @@
       els.programStripePriceId.disabled = !canUseApi;
       els.programBillingType.disabled = !canUseApi;
       els.programAccessModel.disabled = !canUseApi;
+      setDisabledIfPresent(els.programRecurringPriceMonthly, !canUseApi || state.programsRecurringSchemaReady === false);
+      setDisabledIfPresent(els.programRecurringPriceQuarterly, !canUseApi || state.programsRecurringSchemaReady === false);
+      setDisabledIfPresent(els.programRecurringPriceAnnual, !canUseApi || state.programsRecurringSchemaReady === false);
+      setDisabledIfPresent(els.programStripePriceIdMonthly, !canUseApi || state.programsRecurringSchemaReady === false);
+      setDisabledIfPresent(els.programStripePriceIdQuarterly, !canUseApi || state.programsRecurringSchemaReady === false);
+      setDisabledIfPresent(els.programStripePriceIdAnnual, !canUseApi || state.programsRecurringSchemaReady === false);
       els.programStatus.disabled = !canUseApi;
-      els.programEventName.disabled = !canUseApi;
-      els.programEventDate.disabled = !canUseApi;
-      els.programEventLocation.disabled = !canUseApi;
-      els.programCalendarVisible.disabled = !canUseApi;
-      els.programCalendarHighlightRank.disabled = !canUseApi;
+      if (els.programEventId) els.programEventId.disabled = !canUseApi;
+      setDisabledIfPresent(els.programEventName, !canUseApi);
+      setDisabledIfPresent(els.programEventDate, !canUseApi);
+      setDisabledIfPresent(els.programEventLocation, !canUseApi);
+      setDisabledIfPresent(els.programCalendarVisible, !canUseApi);
+      setDisabledIfPresent(els.programCalendarHighlightRank, !canUseApi);
       if (els.programCreateStripe) els.programCreateStripe.disabled = !canUseApi;
       if (els.programsFilterSearch) els.programsFilterSearch.disabled = !canUseApi;
       if (els.programsFilterStatus) els.programsFilterStatus.disabled = !canUseApi;
@@ -7206,7 +8370,8 @@
       if (els.editProgramName) els.editProgramName.disabled = !canUseApi;
       if (els.editProgramExternalSource) els.editProgramExternalSource.disabled = !canUseApi;
       if (els.editProgramExternalId) els.editProgramExternalId.disabled = !canUseApi;
-      if (els.editProgramDescription) els.editProgramDescription.disabled = !canUseApi;
+      if (els.editProgramCommercialDescription) els.editProgramCommercialDescription.disabled = !canUseApi;
+      if (els.editProgramTechnicalDescription) els.editProgramTechnicalDescription.disabled = !canUseApi;
       if (els.editProgramDurationWeeks) els.editProgramDurationWeeks.disabled = !canUseApi;
       if (els.editProgramPriceCents) els.editProgramPriceCents.disabled = !canUseApi;
       if (els.editProgramCurrency) els.editProgramCurrency.disabled = !canUseApi;
@@ -7214,49 +8379,63 @@
       if (els.editProgramStripePriceId) els.editProgramStripePriceId.disabled = !canUseApi;
       if (els.editProgramBillingType) els.editProgramBillingType.disabled = !canUseApi;
       if (els.editProgramAccessModel) els.editProgramAccessModel.disabled = !canUseApi;
+      setDisabledIfPresent(els.editProgramRecurringPriceMonthly, !canUseApi || state.programsRecurringSchemaReady === false);
+      setDisabledIfPresent(els.editProgramRecurringPriceQuarterly, !canUseApi || state.programsRecurringSchemaReady === false);
+      setDisabledIfPresent(els.editProgramRecurringPriceAnnual, !canUseApi || state.programsRecurringSchemaReady === false);
+      setDisabledIfPresent(els.editProgramStripePriceIdMonthly, !canUseApi || state.programsRecurringSchemaReady === false);
+      setDisabledIfPresent(els.editProgramStripePriceIdQuarterly, !canUseApi || state.programsRecurringSchemaReady === false);
+      setDisabledIfPresent(els.editProgramStripePriceIdAnnual, !canUseApi || state.programsRecurringSchemaReady === false);
       if (els.editProgramStatus) els.editProgramStatus.disabled = !canUseApi;
+      if (els.editProgramEventId) els.editProgramEventId.disabled = !canUseApi;
       if (els.editProgramEventName) els.editProgramEventName.disabled = !canUseApi;
       if (els.editProgramEventDate) els.editProgramEventDate.disabled = !canUseApi;
       if (els.editProgramEventLocation) els.editProgramEventLocation.disabled = !canUseApi;
       if (els.editProgramCalendarVisible) els.editProgramCalendarVisible.disabled = !canUseApi;
       if (els.editProgramCalendarHighlightRank) els.editProgramCalendarHighlightRank.disabled = !canUseApi;
-      els.aiSubtabPrompts.disabled = !canUseApi;
-      els.aiSubtabLogs.disabled = !canUseApi;
-      els.aiPromptsFilterFeature.disabled = !canUseApi;
-      els.aiRefreshPromptsBtn.disabled = !canUseApi;
-      els.aiPromptName.disabled = !canUseApi;
-      els.aiPromptFeature.disabled = !canUseApi;
-      els.aiPromptType.disabled = !canUseApi;
-      els.aiPromptActive.disabled = !canUseApi;
-      els.aiPromptContent.disabled = !canUseApi;
-      els.aiPromptNotes.disabled = !canUseApi;
-      els.aiNewPromptBtn.disabled = !canUseApi;
-      els.aiCreatePromptBtn.disabled = !canUseApi;
-      els.aiSavePromptBtn.disabled = !canUseApi;
-      els.aiPromptVersions.disabled = !canUseApi;
-      els.aiRestoreVersionBtn.disabled = !canUseApi;
-      els.aiLogsFeature.disabled = !canUseApi;
-      els.aiLogsSuccess.disabled = !canUseApi;
-      els.aiLogsAthlete.disabled = !canUseApi;
-      els.aiLogsFrom.disabled = !canUseApi;
-      els.aiLogsTo.disabled = !canUseApi;
-      els.aiRefreshLogsBtn.disabled = !canUseApi;
-      els.aiLogDetail.disabled = !canUseApi;
-      els.auditIdentityId.disabled = !canUseApi;
-      els.auditAthleteSelect.disabled = !canUseApi;
-      els.auditAthleteId.disabled = !canUseApi;
-      els.auditEmail.disabled = !canUseApi;
-      els.refreshAuditAthletesBtn.disabled = !canUseApi;
-      els.runDataAuditBtn.disabled = !canUseApi;
-      els.clearDataAuditBtn.disabled = !canUseApi;
+      [
+        els.aiSubtabPrompts,
+        els.aiSubtabLogs,
+        els.aiPromptsFilterFeature,
+        els.aiRefreshPromptsBtn,
+        els.aiPromptName,
+        els.aiPromptFeature,
+        els.aiPromptType,
+        els.aiPromptActive,
+        els.aiPromptContent,
+        els.aiPromptNotes,
+        els.aiNewPromptBtn,
+        els.aiCreatePromptBtn,
+        els.aiSavePromptBtn,
+        els.aiPromptVersions,
+        els.aiRestoreVersionBtn,
+        els.aiLogsFeature,
+        els.aiLogsSuccess,
+        els.aiLogsAthlete,
+        els.aiLogsFrom,
+        els.aiLogsTo,
+        els.aiRefreshLogsBtn,
+        els.aiLogDetail,
+        els.auditIdentityId,
+        els.auditAthleteSelect,
+        els.auditAthleteId,
+        els.auditEmail,
+        els.refreshAuditAthletesBtn,
+        els.runDataAuditBtn,
+        els.clearDataAuditBtn
+      ].forEach((element) => setDisabledIfPresent(element, !canUseApi));
 
       // Desabilitar todos os inputs/textareas dentro do form do blog
       const formInputs = els.form.querySelectorAll('input, select, textarea');
       formInputs.forEach(input => input.disabled = !canUseApi);
+      if (!canUseApi) {
+        closeBlogCategoryDialog();
+      }
       renderBlogWorkflowSummary();
     }
 
-    function resetForm() {
+    function resetForm(options) {
+      const opts = options || {};
+      const clearLocalDraft = opts.clearLocalDraft !== false;
       state.selectedId = null;
       els.id.value = '';
       els.title.value = '';
@@ -7269,6 +8448,9 @@
       updateAbcArticleTabState();
       showMessage('Novo artigo pronto para edicao.', false);
       renderList();
+      if (clearLocalDraft) {
+        clearBlogEditorDraft();
+      }
     }
 
     function fillForm(article) {
@@ -7277,6 +8459,7 @@
       els.id.value = article.id || '';
       els.title.value = article.title || '';
       els.slug.value = article.slug || '';
+      ensureBlogCategoryOption(article.category || 'Artigo');
       els.category.value = article.category || 'Artigo';
       els.excerpt.value = article.excerpt || '';
       els.status.value = article.status || 'draft';
@@ -7286,6 +8469,7 @@
       switchBlogAiMode('abc_from_article');
       refreshBlogProductionForCurrentArticle().catch((err) => showBlogAiMessage(err.message, true));
       renderList();
+      clearBlogEditorDraft();
     }
 
     function renderList() {
@@ -7325,7 +8509,7 @@
       els.articleList.appendChild(frag);
     }
 
-    async function refreshList() {
+    async function refreshList(options = {}) {
       if (!state.user) return;
       showMessage('A atualizar lista...', false);
       ensureBlogStorageReady();
@@ -7342,6 +8526,16 @@
       }
 
       state.articles = Array.isArray(data) ? data.map(mapBlogArticleRow) : [];
+      const selectedArticle = state.selectedId
+        ? state.articles.find((article) => article && article.id === state.selectedId)
+        : null;
+      const selectedCategoryValue = options.selectedCategoryValue || (selectedArticle
+        ? (selectedArticle.category || 'Artigo')
+        : (els.category && els.category.value ? els.category.value : 'Artigo'));
+      await refreshBlogCategoriesData({
+        selectedValue: selectedCategoryValue,
+        keepMessage: options.keepCategoryMessage === true
+      });
       renderList();
       showMessage(`Lista atualizada (${state.articles.length} artigos).`, false);
     }
@@ -7469,6 +8663,7 @@
       if (linkedProduction) {
         renderT1Production(linkedProduction);
       }
+      clearBlogEditorDraft();
       renderBlogWorkflowSummary();
       return article;
     }
@@ -7511,6 +8706,7 @@
       if (linkedProduction) {
         renderT1Production(linkedProduction);
       }
+      clearBlogEditorDraft();
       showBlogAiMessage('Artigo publicado. Gera o ABC quando estiveres pronto para distribuir.', false);
       renderBlogWorkflowSummary();
     }
@@ -7543,27 +8739,46 @@
       showMessage('Artigo eliminado.', false);
       await refreshList();
       resetForm();
+      clearBlogEditorDraft();
     }
 
+    // --- Auth change guard: drops duplicate concurrent events safely ---
     let _authChangeRunning = false;
-    async function handleAuthChange(supabaseUser, session) {
-      // Prevent concurrent executions (onAuthStateChange + checkAuthOnLoad race)
+    async function handleAuthChange(supabaseUser, session, eventType) {
+      // Drop duplicate concurrent calls (e.g. onAuthStateChange + checkAuthOnLoad arriving simultaneously).
+      // TOKEN_REFRESHED is handled inside _handleAuthChangeInner as a fast-path, so it is safe to drop
+      // if another event is already being processed.
       if (_authChangeRunning) return;
       _authChangeRunning = true;
       try {
-        await _handleAuthChangeInner(supabaseUser, session);
+        await _handleAuthChangeInner(supabaseUser, session, eventType);
       } finally {
         _authChangeRunning = false;
       }
     }
 
-    async function _handleAuthChangeInner(supabaseUser, session) {
+    async function _handleAuthChangeInner(supabaseUser, session, eventType) {
       if (supabaseUser) {
+        const wasAdmin = state.isAdmin;
+        const previousUserId = state.user && state.user.id ? state.user.id : null;
+        const sameUserAsBefore = previousUserId && previousUserId === supabaseUser.id;
         state.user = {
           id: supabaseUser.id,
           email: supabaseUser.email
         };
         state.token = session && session.access_token ? session.access_token : null;
+
+        // Keep admin session stable for the same user after it's already validated.
+        // Avoid re-checking roles on every token/session event to prevent accidental lockouts.
+        if (sameUserAsBefore && wasAdmin) {
+          console.log('[admin-auth] Token refreshed – keeping admin session');
+          state.roles = Array.isArray(state.roles) && state.roles.length ? state.roles : ['admin'];
+          state.isAdmin = true;
+          showAuthGateMessage('', false);
+          return;
+        }
+
+        // Full role validation (initial load, sign-in, or recovery)
         state.roles = [];
         state.isAdmin = false;
 
@@ -7573,8 +8788,15 @@
           state.roles = roles;
           state.isAdmin = roles.includes('admin');
         } catch (err) {
-          state.isAdmin = false;
-          showAuthGateMessage(err.message || 'Nao foi possivel validar as permissoes desta conta.', true);
+          // If the user was already admin and roles just failed transiently, keep them in
+          if (wasAdmin) {
+            console.warn('[admin-auth] Role re-validation failed, keeping previous admin state:', err.message);
+            state.isAdmin = true;
+            state.roles = ['admin'];
+          } else {
+            state.isAdmin = false;
+            showAuthGateMessage(err.message || 'Nao foi possivel validar as permissoes desta conta.', true);
+          }
         }
 
         if (!state.isAdmin) {
@@ -7583,6 +8805,14 @@
           showAuthGateMessage('', false);
         }
       } else {
+        // Ignore transient null-session events while UI already has an authenticated user.
+        // Only force logout on explicit SIGNED_OUT or true no-session at initial load.
+        const isExplicitLogout = eventType === 'SIGNED_OUT';
+        const isInitialNoSession = eventType === 'INITIAL_SESSION' && !state.user;
+        if (!isExplicitLogout && !isInitialNoSession) {
+          console.warn('[admin-auth] Ignoring transient null-session event:', eventType || 'unknown');
+          return;
+        }
         state.user = null;
         state.token = null;
         state.roles = [];
@@ -7592,6 +8822,7 @@
       
       setAuthUI();
       if (state.user && state.isAdmin) {
+        restoreBlogEditorDraftIfAvailable();
         // Refresh the active tab data; blog refreshList runs in background
         // to avoid blocking other tabs if Supabase RLS is slow.
         if (activeTab === 'blog') {
@@ -7674,14 +8905,17 @@
       }
     }
 
-    // Inicializar auth state
+    // Inicializar auth state — fallback caso onAuthStateChange não dispare INITIAL_SESSION
+    // (não deve acontecer com Supabase v2, mas garante cobertura em edge cases)
     async function checkAuthOnLoad() {
       if (!supabaseClient) return;
+      // If onAuthStateChange already processed a session, skip to avoid double role-fetch
+      if (state.user !== null) return;
       const { data: { session } } = await supabaseClient.auth.getSession();
       if (session?.user) {
-        await handleAuthChange(session.user, session);
+        await handleAuthChange(session.user, session, 'INITIAL_SESSION');
       } else {
-        await handleAuthChange(null, null);
+        await handleAuthChange(null, null, 'INITIAL_SESSION');
       }
     }
 
@@ -7709,9 +8943,14 @@
       supabaseClient.auth.onAuthStateChange(async (_event, session) => {
         try {
           if (session?.user) {
-            await handleAuthChange(session.user, session);
+            await handleAuthChange(session.user, session, _event);
           } else {
-            await handleAuthChange(null, null);
+            const shouldApplyLoggedOutState = _event === 'SIGNED_OUT' || (_event === 'INITIAL_SESSION' && !state.user);
+            if (shouldApplyLoggedOutState) {
+              await handleAuthChange(null, null, _event);
+            } else {
+              console.warn('[admin-auth] Ignoring auth event without session:', _event || 'unknown');
+            }
           }
         } catch (err) {
           showMessage(err.message || 'Erro ao validar sessão', true);
@@ -7720,6 +8959,33 @@
 
       // Check auth on page load
       checkAuthOnLoad().catch((err) => showMessage(err.message, true));
+
+      // Recover session when tab regains visibility (best effort, never force logout)
+      document.addEventListener('visibilitychange', async () => {
+        if (document.visibilityState !== 'visible' || !supabaseClient) return;
+        try {
+          const { data: { session }, error } = await supabaseClient.auth.getSession();
+          if (error) {
+            console.warn('[admin-auth] Visibility recovery getSession error:', error.message);
+          }
+          if (!session && state.user) {
+            // Try a silent refresh, but do not force logout on transient failures.
+            const { data: refreshData, error: refreshError } = await supabaseClient.auth.refreshSession();
+            if (refreshError || !refreshData?.session) {
+              console.warn('[admin-auth] Session refresh failed after tab switch (keeping current UI state)');
+            } else {
+              console.log('[admin-auth] Session recovered via refresh after tab switch');
+              await handleAuthChange(refreshData.session.user, refreshData.session, 'TOKEN_REFRESHED');
+            }
+          } else if (session?.user && !state.user) {
+            // Session exists but UI shows logged out (missed event)
+            console.log('[admin-auth] Session found but UI was logged out, recovering');
+            await handleAuthChange(session.user, session, 'INITIAL_SESSION');
+          }
+        } catch (err) {
+          console.error('[admin-auth] Visibility recovery failed:', err);
+        }
+      });
 
       // Setup event listeners APÓS Supabase estar pronto
       els.loginBtn.addEventListener('click', async () => {
@@ -7754,7 +9020,7 @@
         } catch (err) {
           showMessage('Erro ao terminar sessao. A limpar sessao local...', true);
         } finally {
-          await handleAuthChange(null, null);
+          await handleAuthChange(null, null, 'SIGNED_OUT');
           window.location.replace('/admin');
         }
       });
@@ -7848,6 +9114,13 @@
     bindAdminCoachAthleteButtons();
     initializeAuth();
 
+    if (!els.form.dataset.blogDraftAutosaveBound) {
+      els.form.dataset.blogDraftAutosaveBound = '1';
+      els.form.addEventListener('input', scheduleBlogEditorDraftAutosave);
+      els.form.addEventListener('change', scheduleBlogEditorDraftAutosave);
+      window.addEventListener('beforeunload', persistBlogEditorDraft);
+    }
+
     els.refreshBtn.addEventListener('click', async () => {
       try {
         await refreshList();
@@ -7857,6 +9130,72 @@
     });
 
     els.newBtn.addEventListener('click', () => resetForm());
+
+    if (els.blogCategoryManageBtn) {
+      els.blogCategoryManageBtn.addEventListener('click', () => {
+        if (!state.user || !state.isAdmin) {
+          showBlogCategoryMessage('Faz login com conta admin para gerir categorias.', true);
+          return;
+        }
+        openBlogCategoryDialog();
+      });
+    }
+
+    if (els.closeBlogCategoryDialogBtn) {
+      els.closeBlogCategoryDialogBtn.addEventListener('click', () => {
+        closeBlogCategoryDialog();
+      });
+    }
+
+    if (els.closeBlogCategoryDialogFooterBtn) {
+      els.closeBlogCategoryDialogFooterBtn.addEventListener('click', () => {
+        closeBlogCategoryDialog();
+      });
+    }
+
+    if (els.blogCategoryCreateBtn) {
+      els.blogCategoryCreateBtn.addEventListener('click', async () => {
+        try {
+          await createBlogCategoryFromAdmin();
+        } catch (err) {
+          showBlogCategoryMessage(err.message, true);
+        }
+      });
+    }
+
+    if (els.blogCategoryName) {
+      els.blogCategoryName.addEventListener('keydown', async (event) => {
+        if (event.key !== 'Enter') return;
+        event.preventDefault();
+        try {
+          await createBlogCategoryFromAdmin();
+        } catch (err) {
+          showBlogCategoryMessage(err.message, true);
+        }
+      });
+    }
+
+    if (els.blogCategoryList) {
+      els.blogCategoryList.addEventListener('click', async (event) => {
+        const actionBtn = event.target.closest('button[data-action]');
+        if (!actionBtn) return;
+
+        const row = actionBtn.closest('.blog-category-row');
+        const categoryId = actionBtn.dataset.categoryId || (row && row.dataset.categoryId) || '';
+        const input = row ? row.querySelector('input[data-category-input="1"]') : null;
+
+        try {
+          if (actionBtn.dataset.action === 'rename') {
+            await renameBlogCategoryFromAdmin(categoryId, input ? input.value : '');
+          }
+          if (actionBtn.dataset.action === 'delete') {
+            await deleteBlogCategoryFromAdmin(categoryId);
+          }
+        } catch (err) {
+          showBlogCategoryMessage(err.message, true);
+        }
+      });
+    }
 
     els.title.addEventListener('blur', () => {
       if (!els.slug.value.trim() && els.title.value.trim()) {
@@ -8061,6 +9400,35 @@
       });
     }
 
+    const createProgramFields = getProgramCreateFieldRefs();
+    const editProgramFields = getProgramEditFieldRefs();
+
+    if (els.programBillingType) {
+      els.programBillingType.addEventListener('change', () => {
+        syncRecurringPricingVisibility(createProgramFields);
+      });
+    }
+    if (els.editProgramBillingType) {
+      els.editProgramBillingType.addEventListener('change', () => {
+        syncRecurringPricingVisibility(editProgramFields);
+      });
+    }
+    if (els.programRecurringPriceMonthly) {
+      els.programRecurringPriceMonthly.addEventListener('input', () => {
+        syncRecurringPricingVisibility(createProgramFields);
+      });
+    }
+    if (els.editProgramRecurringPriceMonthly) {
+      els.editProgramRecurringPriceMonthly.addEventListener('input', () => {
+        syncRecurringPricingVisibility(editProgramFields);
+      });
+    }
+
+    syncRecurringPricingVisibility(createProgramFields);
+    syncRecurringPricingVisibility(editProgramFields);
+    enforceRecurringSchemaAvailability(createProgramFields);
+    enforceRecurringSchemaAvailability(editProgramFields);
+
     if (els.closeEditProgramDialogBtn) {
       els.closeEditProgramDialogBtn.addEventListener('click', closeEditProgramDialog);
     }
@@ -8151,9 +9519,11 @@
 
     // ======================= CALENDARIO FUNCTIONS =======================
 
-    let calendarioPrograms = [];
+    let calendarioEvents = [];
+    let programsByEvent = new Map();
+    let selectedEventForEdit = null;
 
-    function showCalendarioMessage(text, isError) {
+    async function showCalendarioMessage(text, isError) {
       els.calendarioMessage.textContent = text || '';
       els.calendarioMessage.classList.toggle('error', Boolean(isError));
       els.calendarioMessage.classList.toggle('success', !isError && Boolean(text));
@@ -8172,64 +9542,218 @@
       return d.toLocaleDateString('pt-PT', { day: '2-digit', month: 'short', year: 'numeric' });
     }
 
-    function renderCalendarioTable() {
-      const body = els.calendarioTableBody;
+    function escapeCalHtml(value) {
+      return String(value == null ? '' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function mapApiError(status, payload, fallback) {
+      const base = payload && payload.error ? String(payload.error) : (fallback || 'Erro inesperado.');
+      if (status === 400) return 'Dados invalidos: ' + base;
+      if (status === 404) return 'Prova nao encontrada.';
+      if (status >= 500) return 'Erro interno do servidor. Tenta novamente.';
+      return base;
+    }
+
+    async function requestAdminEvents(method, queryString, body) {
+      const token = await getToken();
+      const url = queryString ? (adminEventsApiBase + '?' + queryString) : adminEventsApiBase;
+      const resp = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token
+        },
+        body: body ? JSON.stringify(body) : undefined
+      });
+
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) {
+        throw new Error(mapApiError(resp.status, data, 'Erro ao processar pedido de provas.'));
+      }
+      return data;
+    }
+
+    async function loadCalendarioEvents() {
+      try {
+        const data = await requestAdminEvents('GET');
+        calendarioEvents = Array.isArray(data.events) ? data.events : [];
+        programsByEvent = new Map(calendarioEvents.map((ev) => [ev.id, []]));
+
+        await Promise.all(calendarioEvents.map(async (ev) => {
+          if (!ev || !ev.id) return;
+          const detail = await requestAdminEvents('GET', 'eventId=' + encodeURIComponent(ev.id));
+          const programs = Array.isArray(detail.programs) ? detail.programs : [];
+          programsByEvent.set(ev.id, programs);
+        }));
+      } catch (err) {
+        calendarioEvents = [];
+        programsByEvent = new Map();
+        throw err;
+      }
+    }
+
+    function renderEventsTable() {
+      const body = els.eventsTableBody;
       if (!body) return;
       body.innerHTML = '';
-      if (!calendarioPrograms.length) {
-        body.innerHTML = '<tr><td colspan="7" style="padding:16px; color:#8b949e;">Nenhum programa encontrado.</td></tr>';
+
+      if (!calendarioEvents.length) {
+        body.innerHTML = '<tr><td colspan="6" style="padding:16px; color:#8b949e; text-align:center;">Nenhuma prova encontrada.</td></tr>';
         return;
       }
+
       const fragment = document.createDocumentFragment();
-      calendarioPrograms.forEach((prog) => {
+      calendarioEvents.forEach((eventItem, index) => {
+        const programs = programsByEvent.get(eventItem.id) || [];
+        const programNames = programs
+          .map((p) => p && p.name ? escapeCalHtml(p.name) : null)
+          .filter(Boolean);
+
         const tr = document.createElement('tr');
         tr.innerHTML =
-          '<td style="padding:8px;">' + (prog.name || '—').replace(/</g, '&lt;') + '</td>' +
-          '<td style="padding:8px;">' + (prog.eventName || '<em style=\"color:#8b949e;\">não definida</em>') + '</td>' +
-          '<td style="padding:8px;">' + formatCalDate(prog.eventDate) + '</td>' +
-          '<td style="padding:8px;">' + (prog.eventLocation || '—').replace(/</g, '&lt;') + '</td>' +
-          '<td style="padding:8px;">' + (prog.calendarHighlightRank != null ? String(prog.calendarHighlightRank) : '—') + '</td>' +
-          '<td style="padding:8px;">' + (prog.calendarVisible ? '✓' : '✗') + '</td>' +
+          '<td style="padding:8px; white-space:nowrap;">' +
+            '<button type="button" class="cal-move-up-btn" data-event-id="' + escapeCalHtml(eventItem.id || '') + '"' + (index === 0 ? ' disabled' : '') + ' title="Mover para cima">↑</button> ' +
+            '<button type="button" class="cal-move-down-btn" data-event-id="' + escapeCalHtml(eventItem.id || '') + '"' + (index === calendarioEvents.length - 1 ? ' disabled' : '') + ' title="Mover para baixo">↓</button> ' +
+            '<span style="margin-left:6px; color:#8b949e;">' + (Number.isInteger(eventItem.calendar_highlight_rank) ? String(eventItem.calendar_highlight_rank) : 'auto') + '</span>' +
+          '</td>' +
+          '<td style="padding:8px;">' +
+            '<strong>' + escapeCalHtml(eventItem.name || '—') + '</strong>' +
+            (programNames.length
+              ? '<div style="margin-top:6px; color:#8b949e; font-size:0.85rem;">Programas: ' + programNames.join(', ') + '</div>'
+              : '<div style="margin-top:6px; color:#8b949e; font-size:0.85rem;">Sem programas associados</div>') +
+          '</td>' +
+          '<td style="padding:8px;">' + escapeCalHtml(formatCalDate(eventItem.event_date)) + '</td>' +
+          '<td style="padding:8px;">' + escapeCalHtml(eventItem.event_location || '—') + '</td>' +
+          '<td style="padding:8px;">' + (eventItem.calendar_visible !== false ? '✓' : '✗') + '</td>' +
           '<td style="padding:8px;"></td>';
+
+        const actionsTd = tr.lastChild;
         const editBtn = document.createElement('button');
         editBtn.type = 'button';
         editBtn.textContent = 'Editar';
-        editBtn.style.cssText = 'font-size:0.85rem; cursor:pointer;';
-        editBtn.addEventListener('click', () => openCalEditDialog(prog));
-        tr.lastChild.appendChild(editBtn);
+        editBtn.style.marginRight = '6px';
+        editBtn.addEventListener('click', () => openEditEventDialog(eventItem));
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.type = 'button';
+        deleteBtn.textContent = 'Delete';
+        deleteBtn.addEventListener('click', () => deleteEvent(eventItem.id));
+
+        actionsTd.appendChild(editBtn);
+        actionsTd.appendChild(deleteBtn);
         fragment.appendChild(tr);
       });
+
+      body.appendChild(fragment);
+
+      body.querySelectorAll('.cal-move-up-btn').forEach((btn) => {
+        btn.addEventListener('click', () => moveEventUp(btn.getAttribute('data-event-id') || ''));
+      });
+      body.querySelectorAll('.cal-move-down-btn').forEach((btn) => {
+        btn.addEventListener('click', () => moveEventDown(btn.getAttribute('data-event-id') || ''));
+      });
+    }
+
+    function renderEventProgramsTable() {
+      const body = els.eventProgramsTableBody;
+      if (!body) return;
+      body.innerHTML = '';
+
+      if (!calendarioEvents.length) {
+        body.innerHTML = '<tr><td colspan="2" style="padding:16px; color:#8b949e; text-align:center;">Sem provas para mostrar.</td></tr>';
+        return;
+      }
+
+      const fragment = document.createDocumentFragment();
+      calendarioEvents.forEach((eventItem) => {
+        const programs = programsByEvent.get(eventItem.id) || [];
+        const tr = document.createElement('tr');
+
+        const left = document.createElement('td');
+        left.style.padding = '8px';
+        left.innerHTML =
+          '<strong>' + escapeCalHtml(eventItem.name || '—') + '</strong>' +
+          '<div style="margin-top:4px; color:#8b949e; font-size:0.85rem;">' + escapeCalHtml(formatCalDate(eventItem.event_date)) + '</div>';
+
+        const right = document.createElement('td');
+        right.style.padding = '8px';
+        if (!programs.length) {
+          right.innerHTML = '<span style="color:#8b949e;">Sem programas associados</span>';
+        } else {
+          const list = document.createElement('ul');
+          list.style.margin = '0';
+          list.style.paddingLeft = '18px';
+          programs.forEach((program) => {
+            const li = document.createElement('li');
+            const status = program && program.status ? ' (' + program.status + ')' : '';
+            li.textContent = (program && program.name ? program.name : 'Programa sem nome') + status;
+            list.appendChild(li);
+          });
+          right.appendChild(list);
+        }
+
+        tr.appendChild(left);
+        tr.appendChild(right);
+        fragment.appendChild(tr);
+      });
+
       body.appendChild(fragment);
     }
 
-    function openCalEditDialog(prog) {
-      els.calEditProgramId.value = prog.id || '';
-      els.calEditDialogTitle.textContent = 'Editar prova — ' + (prog.name || 'Programa');
-      els.calEditEventName.value = prog.eventName || '';
-      els.calEditEventDate.value = prog.eventDate || '';
-      els.calEditEventLocation.value = prog.eventLocation || '';
-      els.calEditHighlightRank.value = prog.calendarHighlightRank == null ? '' : String(prog.calendarHighlightRank);
-      els.calEditEventDescription.value = prog.eventDescription || '';
-      els.calEditCalendarVisible.checked = prog.calendarVisible !== false;
+    async function openCreateEventDialog() {
+      selectedEventForEdit = null;
+      els.calEditDialogTitle.textContent = 'Nova prova';
+      els.calEditEventId.value = '';
+      els.calEditEventName.value = '';
+      els.calEditEventDate.value = '';
+      els.calEditEventLocation.value = '';
+      els.calEditEventDescription.value = '';
+      els.calEditHighlightRank.value = '';
+      els.calEditCalendarVisible.checked = true;
+      showCalEditMessage('', false);
+      openDialog(els.calEditDialog);
+    }
+
+    async function openEditEventDialog(eventItem) {
+      selectedEventForEdit = eventItem || null;
+      els.calEditDialogTitle.textContent = 'Editar prova';
+      els.calEditEventId.value = eventItem && eventItem.id ? eventItem.id : '';
+      els.calEditEventName.value = eventItem && eventItem.name ? eventItem.name : '';
+      els.calEditEventDate.value = eventItem && eventItem.event_date ? eventItem.event_date : '';
+      els.calEditEventLocation.value = eventItem && eventItem.event_location ? eventItem.event_location : '';
+      els.calEditEventDescription.value = eventItem && eventItem.event_description ? eventItem.event_description : '';
+      els.calEditHighlightRank.value = eventItem && Number.isInteger(eventItem.calendar_highlight_rank)
+        ? String(eventItem.calendar_highlight_rank)
+        : '';
+      els.calEditCalendarVisible.checked = !eventItem || eventItem.calendar_visible !== false;
       showCalEditMessage('', false);
       openDialog(els.calEditDialog);
     }
 
     function closeCalEditDialog() {
       closeDialog(els.calEditDialog);
+      showCalEditMessage('', false);
     }
 
-    async function saveCalEdit() {
-      const programId = (els.calEditProgramId.value || '').trim();
-      if (!programId) return;
-      const eventName = (els.calEditEventName.value || '').trim() || null;
+    async function saveEvent() {
+      const eventId = (els.calEditEventId.value || '').trim();
+      const name = (els.calEditEventName.value || '').trim();
       const eventDate = (els.calEditEventDate.value || '').trim() || null;
       const eventLocation = (els.calEditEventLocation.value || '').trim() || null;
       const eventDescription = (els.calEditEventDescription.value || '').trim() || null;
       const calendarVisible = Boolean(els.calEditCalendarVisible.checked);
-      const rawRank = (els.calEditHighlightRank.value || '').trim();
-      const calendarHighlightRank = rawRank === '' ? null : Number(rawRank);
+      const rankRaw = (els.calEditHighlightRank.value || '').trim();
+      const calendarHighlightRank = rankRaw === '' ? null : Number(rankRaw);
 
+      if (!name) {
+        showCalEditMessage('Nome da prova e obrigatorio.', true);
+        return;
+      }
       if (eventDate && !/^\d{4}-\d{2}-\d{2}$/.test(eventDate)) {
         showCalEditMessage('Data da prova deve estar no formato YYYY-MM-DD.', true);
         return;
@@ -8239,31 +9763,89 @@
         return;
       }
 
+      const payload = {
+        name,
+        event_date: eventDate,
+        event_location: eventLocation,
+        event_description: eventDescription,
+        calendar_visible: calendarVisible,
+        calendar_highlight_rank: calendarHighlightRank
+      };
+
       showCalEditMessage('A guardar...', false);
       try {
-        const token = await getToken();
-        const resp = await fetch(adminProgramsApiBase + '/' + encodeURIComponent(programId), {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + token
-          },
-          body: JSON.stringify({ eventName, eventDate, eventLocation, eventDescription, calendarVisible, calendarHighlightRank })
-        });
-        if (!resp.ok) {
-          const errData = await resp.json().catch(() => ({}));
-          throw new Error(errData.error || 'Erro ao guardar prova');
+        if (eventId) {
+          await requestAdminEvents('PATCH', 'eventId=' + encodeURIComponent(eventId), payload);
+        } else {
+          await requestAdminEvents('POST', '', payload);
         }
-        showCalEditMessage('Guardado!', false);
+
         closeCalEditDialog();
+        await showCalendarioMessage('Prova guardada com sucesso.', false);
         await refreshCalendarioTab();
       } catch (err) {
-        showCalEditMessage(err.message || 'Erro ao guardar', true);
+        showCalEditMessage(err.message || 'Erro ao guardar prova.', true);
+      }
+    }
+
+    async function deleteEvent(eventId) {
+      if (!eventId) return;
+      if (!window.confirm('Tens a certeza que queres remover esta prova?')) return;
+
+      await showCalendarioMessage('A eliminar prova...', false);
+      try {
+        await requestAdminEvents('DELETE', 'eventId=' + encodeURIComponent(eventId));
+        await showCalendarioMessage('Prova removida com sucesso.', false);
+        await refreshCalendarioTab();
+      } catch (err) {
+        await showCalendarioMessage(err.message || 'Erro ao eliminar prova.', true);
+      }
+    }
+
+    async function applyReorder(fromIndex, toIndex) {
+      if (fromIndex < 0 || toIndex < 0) return;
+      if (fromIndex >= calendarioEvents.length || toIndex >= calendarioEvents.length) return;
+      if (fromIndex === toIndex) return;
+
+      const reordered = calendarioEvents.slice();
+      const temp = reordered[fromIndex];
+      reordered[fromIndex] = reordered[toIndex];
+      reordered[toIndex] = temp;
+
+      const payload = reordered.map((eventItem, index) => ({
+        eventId: eventItem.id,
+        calendar_highlight_rank: index
+      }));
+
+      await requestAdminEvents('PATCH', 'action=reorder', payload);
+    }
+
+    async function moveEventUp(eventId) {
+      try {
+        const index = calendarioEvents.findIndex((eventItem) => eventItem.id === eventId);
+        if (index <= 0) return;
+        await showCalendarioMessage('A atualizar ordem...', false);
+        await applyReorder(index, index - 1);
+        await refreshCalendarioTab();
+      } catch (err) {
+        await showCalendarioMessage(err.message || 'Erro ao alterar ordem.', true);
+      }
+    }
+
+    async function moveEventDown(eventId) {
+      try {
+        const index = calendarioEvents.findIndex((eventItem) => eventItem.id === eventId);
+        if (index < 0 || index >= calendarioEvents.length - 1) return;
+        await showCalendarioMessage('A atualizar ordem...', false);
+        await applyReorder(index, index + 1);
+        await refreshCalendarioTab();
+      } catch (err) {
+        await showCalendarioMessage(err.message || 'Erro ao alterar ordem.', true);
       }
     }
 
     async function refreshCalendarioTab() {
-      showCalendarioMessage('A carregar programas...', false);
+      await showCalendarioMessage('A carregar provas...', false);
       try {
         if (!state.user) {
           throw new Error('Sessao expirada. Faz login novamente.');
@@ -8271,26 +9853,16 @@
         if (!state.isAdmin) {
           throw new Error('Acesso negado. Esta conta nao tem permissao de admin.');
         }
-        const token = await getToken();
-        const resp = await fetch(adminProgramsApiBase, {
-          headers: {
-            'Authorization': 'Bearer ' + token
-          }
-        });
-        if (!resp.ok) {
-          const errData = await resp.json().catch(() => ({}));
-          throw new Error(errData.error || 'Erro HTTP ' + resp.status);
-        }
-        const data = await resp.json();
-        const programs = Array.isArray(data.programs) ? data.programs : [];
-        calendarioPrograms = programs.filter((p) => p.status !== 'archived');
-        renderCalendarioTable();
-        showCalendarioMessage('', false);
+
+        await loadCalendarioEvents();
+        renderEventsTable();
+        renderEventProgramsTable();
+        await showCalendarioMessage('', false);
 
         // Populate calendar link fields from site content
         await populateCalendarLinks();
       } catch (err) {
-        showCalendarioMessage(err.message || 'Erro ao carregar', true);
+        await showCalendarioMessage(err.message || 'Erro ao carregar provas.', true);
       }
     }
 
@@ -8369,7 +9941,10 @@
     }
 
     function wireCalendarioEvents() {
-      els.calEditSaveBtn.addEventListener('click', () => saveCalEdit());
+      if (els.calCreateEventBtn) {
+        els.calCreateEventBtn.addEventListener('click', () => openCreateEventDialog());
+      }
+      els.calEditSaveBtn.addEventListener('click', () => saveEvent());
       els.calEditCancelBtn.addEventListener('click', () => closeCalEditDialog());
       els.calEditDialogClose.addEventListener('click', () => closeCalEditDialog());
       els.calSaveLinksBtn.addEventListener('click', () => saveCalendarLinks());
@@ -8390,7 +9965,8 @@
         coupons: { btn: els.vendasSubtabCoupons, view: els.vendasCouponsView },
         prices: { btn: els.vendasSubtabPrices, view: els.vendasPricesView },
         sync: { btn: els.vendasSubtabSync, view: els.vendasSyncView },
-        links: { btn: els.vendasSubtabLinks, view: els.vendasLinksView }
+        links: { btn: els.vendasSubtabLinks, view: els.vendasLinksView },
+        charges: { btn: els.vendasSubtabCharges, view: els.vendasChargesView }
       };
       Object.keys(subtabConfig).forEach((key) => {
         const cfg = subtabConfig[key];
@@ -8398,6 +9974,110 @@
         cfg.btn.classList.toggle('is-active', active);
         cfg.view.hidden = !active;
       });
+    }
+
+    // --- Charges (Linhas de pagamento) ---
+    const adminChargesApiBase = '/.netlify/functions/admin-payment-charges';
+    const adminPaymentPlansApiBase = '/.netlify/functions/admin-payment-plans';
+
+    async function refreshChargesData() {
+      showVendasMessage('A carregar linhas de pagamento...', false);
+      const qs = new URLSearchParams();
+      const status = els.chargesFilterStatus.value;
+      const program = els.chargesFilterProgram.value;
+      const from = els.chargesFilterFrom.value;
+      const to = els.chargesFilterTo.value;
+      if (status) qs.set('status', status);
+      if (program) qs.set('program_id', program);
+      if (from) qs.set('dueDateFrom', from);
+      if (to) qs.set('dueDateTo', to);
+      const url = adminChargesApiBase + (qs.toString() ? '?' + qs.toString() : '');
+      const data = await apiRequest('GET', url);
+      state.chargesData = data.charges || [];
+      state.chargesKpis = data.kpis || {};
+      renderChargesKpis();
+      renderChargesTable();
+      showVendasMessage('Linhas carregadas: ' + state.chargesData.length, false);
+    }
+
+    function renderChargesKpis() {
+      const k = state.chargesKpis;
+      if (!k) return;
+      els.chargesKpiDueToday.textContent = k.dueToday || 0;
+      els.chargesKpiOverdue.textContent = k.overdueCount || 0;
+      els.chargesKpiFailed24h.textContent = k.failedLast24h || 0;
+      els.chargesKpiCollectedToday.textContent = formatCurrencyCents(k.collectedTodayCents || 0, 'EUR');
+      els.chargesKpiScheduled7d.textContent = formatCurrencyCents(k.scheduledNext7dCents || 0, 'EUR');
+      els.chargesKpiPaid.textContent = k.paidCount || 0;
+      els.chargesKpiPending.textContent = k.pendingCount || 0;
+    }
+
+    function chargeStatusBadge(status) {
+      const map = {
+        paid: 'badge-ok', pending: 'badge-warn', processing: 'badge-warn',
+        failed: 'badge-danger', overdue: 'badge-danger', cancelled: 'badge-danger',
+        skipped: 'badge-warn'
+      };
+      return '<span class="status-badge ' + (map[status] || '') + '">' + escapeHtml(status || '-') + '</span>';
+    }
+
+    function renderChargesTable() {
+      els.chargesBody.innerHTML = '';
+      const rows = state.chargesData || [];
+      if (!rows.length) {
+        els.chargesBody.innerHTML = '<tr><td colspan="9">Sem linhas de pagamento.</td></tr>';
+        return;
+      }
+      const frag = document.createDocumentFragment();
+      rows.forEach((c) => {
+        const tr = document.createElement('tr');
+        const label = c.chargeLabel || ('#' + (c.chargeNumber || '-'));
+        const actions = [];
+        if (c.status === 'failed' || c.status === 'overdue') {
+          actions.push('<button class="charge-retry-btn btn-xs" data-charge-id="' + escapeHtml(c.id) + '" data-plan-id="' + escapeHtml(c.paymentPlanId) + '">Retry</button>');
+        }
+        if (c.status === 'pending' || c.status === 'failed' || c.status === 'overdue') {
+          actions.push('<button class="charge-skip-btn btn-xs" data-charge-id="' + escapeHtml(c.id) + '" data-plan-id="' + escapeHtml(c.paymentPlanId) + '">Skip</button>');
+        }
+        if (c.status !== 'paid' && c.status !== 'cancelled' && c.status !== 'skipped') {
+          actions.push('<button class="charge-cancel-btn btn-xs btn-danger" data-charge-id="' + escapeHtml(c.id) + '" data-plan-id="' + escapeHtml(c.paymentPlanId) + '">Cancelar</button>');
+        }
+        tr.innerHTML =
+          '<td>' + escapeHtml(label) + '</td>' +
+          '<td>' + escapeHtml(c.programName || '-') + '</td>' +
+          '<td>' + formatCurrencyCents(c.amountCents || 0, c.currency || 'EUR') + '</td>' +
+          '<td>' + formatDate(c.dueDate) + '</td>' +
+          '<td>' + chargeStatusBadge(c.status) + '</td>' +
+          '<td>' + formatDate(c.paidAt) + '</td>' +
+          '<td>' + formatDate(c.failedAt) + '</td>' +
+          '<td>' + (c.retryCount || 0) + '</td>' +
+          '<td>' + (actions.length ? actions.join(' ') : '-') + '</td>';
+        frag.appendChild(tr);
+      });
+      els.chargesBody.appendChild(frag);
+    }
+
+    async function chargeAction(action, planId, chargeId) {
+      showVendasMessage('A processar...', false);
+      const params = new URLSearchParams({ planId, action });
+      if (chargeId) params.set('chargeId', chargeId);
+      await apiRequest('PATCH', adminPaymentPlansApiBase + '?' + params.toString(), {});
+      showVendasMessage('Acao "' + action + '" concluida.', false);
+      await refreshChargesData();
+    }
+
+    function populateChargesProgramFilter() {
+      const select = els.chargesFilterProgram;
+      const current = select.value;
+      const options = select.querySelectorAll('option:not(:first-child)');
+      options.forEach((o) => o.remove());
+      (state.programs || []).forEach((p) => {
+        const opt = document.createElement('option');
+        opt.value = p.id;
+        opt.textContent = p.name || p.external_id || p.id;
+        select.appendChild(opt);
+      });
+      if (current) select.value = current;
     }
 
     function renderVendasKpis() {
@@ -8738,6 +10418,33 @@
     els.vendasSubtabLinks.addEventListener('click', () => {
       setVendasSubtab('links');
       renderPriceProgramSelect();
+    });
+
+    els.vendasSubtabCharges.addEventListener('click', async () => {
+      setVendasSubtab('charges');
+      populateChargesProgramFilter();
+      try { await refreshChargesData(); } catch (err) { showVendasMessage(err.message, true); }
+    });
+
+    els.chargesRefreshBtn.addEventListener('click', async () => {
+      try { await refreshChargesData(); } catch (err) { showVendasMessage(err.message, true); }
+    });
+
+    els.chargesBody.addEventListener('click', async (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLButtonElement)) return;
+      try {
+        const planId = target.dataset.planId;
+        const chargeId = target.dataset.chargeId;
+        if (target.classList.contains('charge-retry-btn')) {
+          await chargeAction('retry', planId, chargeId);
+        } else if (target.classList.contains('charge-skip-btn')) {
+          await chargeAction('skip', planId, chargeId);
+        } else if (target.classList.contains('charge-cancel-btn')) {
+          if (!confirm('Cancelar esta linha de pagamento?')) return;
+          await chargeAction('cancel', planId, chargeId);
+        }
+      } catch (err) { showVendasMessage(err.message, true); }
     });
 
     els.vendasBody.addEventListener('click', async (event) => {

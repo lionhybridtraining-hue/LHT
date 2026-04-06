@@ -233,6 +233,24 @@ async function deleteTrainingSessionBySourceId(config, athleteId, source, source
   return Array.isArray(rows) ? rows.length : 0;
 }
 
+/**
+ * Patch TSS + intensity_factor on a training_session identified by athlete + source + source_session_id.
+ */
+async function patchSessionTSS(config, athleteId, sourceSessionId, { tss, intensityFactor, tssMethod }) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `training_sessions?athlete_id=eq.${encodeURIComponent(athleteId)}&source=eq.strava&source_session_id=eq.${encodeURIComponent(sourceSessionId)}`,
+    method: "PATCH",
+    body: {
+      tss: tss ?? null,
+      intensity_factor: intensityFactor ?? null
+    },
+    prefer: "return=representation"
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
 async function upsertAthleteByIdentity(config, { identityId, email, name }) {
   const normalizedIdentityId = typeof identityId === "string" ? identityId.trim() : "";
   const normalizedEmail = typeof email === "string" ? email.trim().toLowerCase() : "";
@@ -618,6 +636,68 @@ async function archiveDeletedBlogArticleSlug(config, id) {
   return Array.isArray(updated) ? updated[0] || null : null;
 }
 
+async function listBlogCategories(config) {
+  return supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: "blog_categories?deleted_at=is.null&select=id,name,is_locked,created_at,updated_at&order=is_locked.desc,name.asc"
+  });
+}
+
+async function getBlogCategoryById(config, id) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `blog_categories?id=eq.${encodeURIComponent(id)}&deleted_at=is.null&select=id,name,is_locked,created_at,updated_at&limit=1`
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function getBlogCategoryByName(config, name) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `blog_categories?name=eq.${encodeURIComponent(name)}&deleted_at=is.null&select=id,name,is_locked,created_at,updated_at&limit=1`
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function createBlogCategory(config, payload) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: "blog_categories",
+    method: "POST",
+    body: [payload],
+    prefer: "return=representation"
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function updateBlogCategory(config, id, patch) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `blog_categories?id=eq.${encodeURIComponent(id)}&deleted_at=is.null`,
+    method: "PATCH",
+    body: patch,
+    prefer: "return=representation"
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function reassignBlogArticlesCategory(config, fromCategory, toCategory) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `blog_articles?category=eq.${encodeURIComponent(fromCategory)}&deleted_at=is.null`,
+    method: "PATCH",
+    body: { category: toCategory },
+    prefer: "return=representation"
+  });
+  return Array.isArray(rows) ? rows : [];
+}
+
 async function getBlogContentProductionByArticle(config, articleId) {
   const rows = await supabaseRequest({
     url: config.supabaseUrl,
@@ -813,6 +893,82 @@ async function verifyCoachOwnsAthlete(config, coachIdentityId, athleteId) {
     path: `athletes?id=eq.${encodeURIComponent(athleteId)}&coach_identity_id=eq.${encodeURIComponent(coachIdentityId)}&select=id`
   });
   return Array.isArray(athlete) && athlete.length > 0;
+}
+
+async function listAthleteTrainingZoneProfiles(config, athleteId) {
+  const profiles = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `athlete_training_zone_profiles?athlete_id=eq.${encodeURIComponent(athleteId)}&select=*&order=modality.asc`
+  });
+
+  const profileList = Array.isArray(profiles) ? profiles : [];
+  if (!profileList.length) return [];
+
+  const profileIds = profileList
+    .map((p) => p && p.id)
+    .filter((id) => typeof id === "string" && id.length > 0);
+
+  if (!profileIds.length) return profileList;
+
+  const inList = profileIds.map((id) => encodeURIComponent(id)).join(",");
+  const zones = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `athlete_training_zones?profile_id=in.(${inList})&select=*&order=zone_number.asc`
+  });
+
+  const zoneByProfile = new Map();
+  (Array.isArray(zones) ? zones : []).forEach((row) => {
+    const key = row.profile_id;
+    if (!zoneByProfile.has(key)) zoneByProfile.set(key, []);
+    zoneByProfile.get(key).push(row);
+  });
+
+  return profileList.map((profile) => ({
+    ...profile,
+    zones: zoneByProfile.get(profile.id) || []
+  }));
+}
+
+async function upsertAthleteTrainingZoneProfile(config, payload) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: "athlete_training_zone_profiles?on_conflict=athlete_id,modality,metric_type",
+    method: "POST",
+    body: [payload],
+    prefer: "resolution=merge-duplicates,return=representation"
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function replaceAthleteTrainingZones(config, profileId, zones) {
+  await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `athlete_training_zones?profile_id=eq.${encodeURIComponent(profileId)}`,
+    method: "DELETE"
+  });
+
+  if (!Array.isArray(zones) || zones.length === 0) return [];
+
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: "athlete_training_zones",
+    method: "POST",
+    body: zones.map((z) => ({
+      profile_id: profileId,
+      zone_number: z.zone_number,
+      min_value: z.min_value,
+      max_value: z.max_value,
+      label: z.label || null
+    })),
+    prefer: "return=representation"
+  });
+
+  return Array.isArray(rows) ? rows : [];
 }
 
 async function listUnassignedAthletes(config) {
@@ -1146,19 +1302,107 @@ async function getAuthUserByEmail(config, email) {
   return null;
 }
 
+function isMissingTrainingProgramsColumnError(err) {
+  const message = String((err && err.message) || "").toLowerCase();
+  return message.includes("column training_programs.") && message.includes("does not exist");
+}
+
+function markLegacyRecurringSchema(value) {
+  if (!value || (typeof value !== "object" && !Array.isArray(value))) {
+    return value;
+  }
+  try {
+    Object.defineProperty(value, "__legacyRecurringSchema", {
+      value: true,
+      enumerable: false,
+      configurable: true
+    });
+  } catch (_) {
+    value.__legacyRecurringSchema = true;
+  }
+  return value;
+}
+
+function stripRecurringPricingProgramPayload(payload) {
+  if (!payload || typeof payload !== "object") return payload;
+  const sanitized = { ...payload };
+  delete sanitized.recurring_price_monthly_cents;
+  delete sanitized.recurring_price_quarterly_cents;
+  delete sanitized.recurring_price_annual_cents;
+  delete sanitized.stripe_price_id_monthly;
+  delete sanitized.stripe_price_id_quarterly;
+  delete sanitized.stripe_price_id_annual;
+  return sanitized;
+}
+
+function payloadHasRecurringPricingFields(payload) {
+  if (!payload || typeof payload !== "object") return false;
+  const billingType = String(payload.billing_type || "").trim().toLowerCase();
+  return (
+    billingType === "recurring"
+    || payload.recurring_price_monthly_cents != null
+    || payload.recurring_price_quarterly_cents != null
+    || payload.recurring_price_annual_cents != null
+    || payload.stripe_price_id_monthly != null
+    || payload.stripe_price_id_quarterly != null
+    || payload.stripe_price_id_annual != null
+  );
+}
+
+function buildRecurringSchemaMissingError() {
+  const err = new Error("A base de dados ainda nao tem as colunas de recorrencia em training_programs. Aplica a migracao de recorrencia antes de usar billing recurring.");
+  err.status = 409;
+  err.code = "PROGRAM_RECURRING_SCHEMA_MISSING";
+  return err;
+}
+
 async function listTrainingPrograms(config) {
+  const eventSelect = "id,name,event_date,event_location,event_description,calendar_visible,calendar_highlight_rank,created_at,updated_at";
+  const programSelect = `id,external_source,external_id,name,commercial_description,technical_description,description,image_url,duration_weeks,price_cents,recurring_price_monthly_cents,recurring_price_quarterly_cents,recurring_price_annual_cents,currency,stripe_product_id,stripe_price_id,stripe_price_id_monthly,stripe_price_id_quarterly,stripe_price_id_annual,billing_type,status,access_model,preset_selection,event_id,start_date,event:training_events(${eventSelect}),created_at,updated_at`;
+  try {
+    return await supabaseRequest({
+      url: config.supabaseUrl,
+      serviceRoleKey: config.supabaseServiceRoleKey,
+      path: `training_programs?deleted_at=is.null&select=${encodeURIComponent(programSelect)}&order=created_at.desc`
+    });
+  } catch (err) {
+    if (!isMissingTrainingProgramsColumnError(err)) {
+      throw err;
+    }
+
+    const legacyProgramSelect = `id,external_source,external_id,name,commercial_description,technical_description,description,image_url,duration_weeks,price_cents,currency,stripe_product_id,stripe_price_id,status,event_id,start_date,event:training_events(${eventSelect}),created_at,updated_at`;
+    const rows = await supabaseRequest({
+      url: config.supabaseUrl,
+      serviceRoleKey: config.supabaseServiceRoleKey,
+      path: `training_programs?deleted_at=is.null&select=${encodeURIComponent(legacyProgramSelect)}&order=created_at.desc`
+    });
+    return markLegacyRecurringSchema(rows);
+  }
+}
+
+async function listTrainingEvents(config) {
   return supabaseRequest({
     url: config.supabaseUrl,
     serviceRoleKey: config.supabaseServiceRoleKey,
-    path: "training_programs?deleted_at=is.null&select=id,external_source,external_id,name,description,image_url,duration_weeks,price_cents,currency,stripe_product_id,stripe_price_id,billing_type,status,access_model,event_date,event_name,event_location,event_description,calendar_visible,calendar_highlight_rank,created_at,updated_at&order=created_at.desc"
+    path: "training_events?deleted_at=is.null&select=id,name,event_date,event_location,event_description,calendar_visible,calendar_highlight_rank,created_at,updated_at&order=event_date.asc.nullslast,name.asc"
   });
 }
 
-async function createTrainingProgram(config, payload) {
+async function getTrainingEventById(config, id) {
+  if (!id) return null;
   const rows = await supabaseRequest({
     url: config.supabaseUrl,
     serviceRoleKey: config.supabaseServiceRoleKey,
-    path: "training_programs",
+    path: `training_events?id=eq.${encodeURIComponent(id)}&deleted_at=is.null&select=id,name,event_date,event_location,event_description,calendar_visible,calendar_highlight_rank,created_at,updated_at&limit=1`
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function createTrainingEvent(config, payload) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: "training_events",
     method: "POST",
     body: [payload],
     prefer: "return=representation"
@@ -1166,11 +1410,11 @@ async function createTrainingProgram(config, payload) {
   return Array.isArray(rows) ? rows[0] || null : null;
 }
 
-async function updateTrainingProgram(config, id, patch) {
+async function updateTrainingEvent(config, id, patch) {
   const rows = await supabaseRequest({
     url: config.supabaseUrl,
     serviceRoleKey: config.supabaseServiceRoleKey,
-    path: `training_programs?id=eq.${encodeURIComponent(id)}`,
+    path: `training_events?id=eq.${encodeURIComponent(id)}`,
     method: "PATCH",
     body: patch,
     prefer: "return=representation"
@@ -1178,30 +1422,129 @@ async function updateTrainingProgram(config, id, patch) {
   return Array.isArray(rows) ? rows[0] || null : null;
 }
 
+async function createTrainingProgram(config, payload) {
+  try {
+    const rows = await supabaseRequest({
+      url: config.supabaseUrl,
+      serviceRoleKey: config.supabaseServiceRoleKey,
+      path: "training_programs",
+      method: "POST",
+      body: [payload],
+      prefer: "return=representation"
+    });
+    return Array.isArray(rows) ? rows[0] || null : null;
+  } catch (err) {
+    if (!isMissingTrainingProgramsColumnError(err)) {
+      throw err;
+    }
+    if (payloadHasRecurringPricingFields(payload)) {
+      throw buildRecurringSchemaMissingError();
+    }
+
+    const fallbackPayload = stripRecurringPricingProgramPayload(payload);
+    const rows = await supabaseRequest({
+      url: config.supabaseUrl,
+      serviceRoleKey: config.supabaseServiceRoleKey,
+      path: "training_programs",
+      method: "POST",
+      body: [fallbackPayload],
+      prefer: "return=representation"
+    });
+    return Array.isArray(rows) ? rows[0] || null : null;
+  }
+}
+
+async function updateTrainingProgram(config, id, patch) {
+  try {
+    const rows = await supabaseRequest({
+      url: config.supabaseUrl,
+      serviceRoleKey: config.supabaseServiceRoleKey,
+      path: `training_programs?id=eq.${encodeURIComponent(id)}`,
+      method: "PATCH",
+      body: patch,
+      prefer: "return=representation"
+    });
+    return Array.isArray(rows) ? rows[0] || null : null;
+  } catch (err) {
+    if (!isMissingTrainingProgramsColumnError(err)) {
+      throw err;
+    }
+    if (payloadHasRecurringPricingFields(patch)) {
+      throw buildRecurringSchemaMissingError();
+    }
+
+    const fallbackPatch = stripRecurringPricingProgramPayload(patch);
+    const rows = await supabaseRequest({
+      url: config.supabaseUrl,
+      serviceRoleKey: config.supabaseServiceRoleKey,
+      path: `training_programs?id=eq.${encodeURIComponent(id)}`,
+      method: "PATCH",
+      body: fallbackPatch,
+      prefer: "return=representation"
+    });
+    return Array.isArray(rows) ? rows[0] || null : null;
+  }
+}
+
 async function getTrainingProgramById(config, id) {
-  const rows = await supabaseRequest({
-    url: config.supabaseUrl,
-    serviceRoleKey: config.supabaseServiceRoleKey,
-    path: `training_programs?id=eq.${encodeURIComponent(id)}&deleted_at=is.null&select=id,external_source,external_id,name,description,image_url,duration_weeks,price_cents,currency,status,stripe_product_id,stripe_price_id,billing_type,created_at,updated_at&limit=1`
-  });
-  return Array.isArray(rows) ? rows[0] || null : null;
+  const eventSelect = "id,name,event_date,event_location,event_description,calendar_visible,calendar_highlight_rank,created_at,updated_at";
+  const programSelect = `id,external_source,external_id,name,commercial_description,technical_description,description,image_url,duration_weeks,price_cents,recurring_price_monthly_cents,recurring_price_quarterly_cents,recurring_price_annual_cents,currency,status,access_model,preset_selection,stripe_product_id,stripe_price_id,stripe_price_id_monthly,stripe_price_id_quarterly,stripe_price_id_annual,billing_type,event_id,start_date,event:training_events(${eventSelect}),created_at,updated_at`;
+  try {
+    const rows = await supabaseRequest({
+      url: config.supabaseUrl,
+      serviceRoleKey: config.supabaseServiceRoleKey,
+      path: `training_programs?id=eq.${encodeURIComponent(id)}&deleted_at=is.null&select=${encodeURIComponent(programSelect)}&limit=1`
+    });
+    return Array.isArray(rows) ? rows[0] || null : null;
+  } catch (err) {
+    if (!isMissingTrainingProgramsColumnError(err)) {
+      throw err;
+    }
+
+    const legacyProgramSelect = `id,external_source,external_id,name,commercial_description,technical_description,description,image_url,duration_weeks,price_cents,currency,status,stripe_product_id,stripe_price_id,event_id,start_date,event:training_events(${eventSelect}),created_at,updated_at`;
+    const rows = await supabaseRequest({
+      url: config.supabaseUrl,
+      serviceRoleKey: config.supabaseServiceRoleKey,
+      path: `training_programs?id=eq.${encodeURIComponent(id)}&deleted_at=is.null&select=${encodeURIComponent(legacyProgramSelect)}&limit=1`
+    });
+    const row = Array.isArray(rows) ? rows[0] || null : null;
+    return row ? markLegacyRecurringSchema(row) : null;
+  }
 }
 
 async function getTrainingProgramByExternalId(config, externalId) {
+  const eventSelect = "id,name,event_date,event_location,event_description,calendar_visible,calendar_highlight_rank,created_at,updated_at";
+  const programSelect = `id,external_source,external_id,name,commercial_description,technical_description,description,image_url,duration_weeks,price_cents,recurring_price_monthly_cents,recurring_price_quarterly_cents,recurring_price_annual_cents,currency,status,access_model,preset_selection,stripe_product_id,stripe_price_id,stripe_price_id_monthly,stripe_price_id_quarterly,stripe_price_id_annual,billing_type,event_id,start_date,event:training_events(${eventSelect}),created_at,updated_at`;
   const rows = await supabaseRequest({
     url: config.supabaseUrl,
     serviceRoleKey: config.supabaseServiceRoleKey,
-    path: `training_programs?external_id=eq.${encodeURIComponent(externalId)}&deleted_at=is.null&select=id,external_source,external_id,name,description,image_url,duration_weeks,price_cents,currency,status,stripe_product_id,stripe_price_id,billing_type,created_at,updated_at&limit=1`
+    path: `training_programs?external_id=eq.${encodeURIComponent(externalId)}&deleted_at=is.null&select=${encodeURIComponent(programSelect)}&limit=1`
   });
   return Array.isArray(rows) ? rows[0] || null : null;
 }
 
 async function listPublicTrainingPrograms(config) {
-  return supabaseRequest({
-    url: config.supabaseUrl,
-    serviceRoleKey: config.supabaseServiceRoleKey,
-    path: "training_programs?deleted_at=is.null&status=eq.active&select=id,external_id,name,description,image_url,duration_weeks,price_cents,currency,billing_type,event_date,event_name,event_location,event_description,calendar_visible,calendar_highlight_rank,created_at,updated_at&order=price_cents.asc,created_at.asc"
-  });
+  const eventSelect = "id,name,event_date,event_location,event_description,calendar_visible,calendar_highlight_rank,created_at,updated_at";
+  const programSelect = `id,external_id,name,commercial_description,technical_description,description,image_url,duration_weeks,price_cents,recurring_price_monthly_cents,recurring_price_quarterly_cents,recurring_price_annual_cents,currency,billing_type,access_model,payment_model,event_id,start_date,event:training_events(${eventSelect}),created_at,updated_at`;
+  try {
+    return await supabaseRequest({
+      url: config.supabaseUrl,
+      serviceRoleKey: config.supabaseServiceRoleKey,
+      path: `training_programs?deleted_at=is.null&status=eq.active&select=${encodeURIComponent(programSelect)}&order=price_cents.asc,created_at.asc`
+    });
+  } catch (err) {
+    if (!isMissingTrainingProgramsColumnError(err)) {
+      throw err;
+    }
+
+    const legacyProgramSelect = `id,external_id,name,commercial_description,technical_description,description,image_url,duration_weeks,price_cents,currency,event_id,start_date,event:training_events(${eventSelect}),created_at,updated_at`;
+    const rows = await supabaseRequest({
+      url: config.supabaseUrl,
+      serviceRoleKey: config.supabaseServiceRoleKey,
+      path: `training_programs?deleted_at=is.null&status=eq.active&select=${encodeURIComponent(legacyProgramSelect)}&order=price_cents.asc,created_at.asc`
+    });
+    return markLegacyRecurringSchema(rows);
+  }
 }
 
 async function createStripePurchase(config, payload) {
@@ -2267,9 +2610,32 @@ async function getOnboardingIntakeByIdentity(config, identityId) {
   const rows = await supabaseRequest({
     url: config.supabaseUrl,
     serviceRoleKey: config.supabaseServiceRoleKey,
-    path: `onboarding_intake?identity_id=eq.${encodeURIComponent(identityId)}&select=id,identity_id,athlete_id,email,full_name,goal_distance,weekly_frequency,experience_level,consistency_level,funnel_stage,plan_generated_at,answers,submitted_at&limit=1`
+    path: `athletes?identity_id=eq.${encodeURIComponent(identityId)}&select=id,identity_id,email,name,phone,goal_distance,weekly_frequency,experience_level,consistency_level,funnel_stage,plan_generated_at,plan_storage,onboarding_answers,onboarding_submitted_at,onboarding_updated_at&limit=1`
   });
-  return Array.isArray(rows) && rows.length ? rows[0] : null;
+  if (!Array.isArray(rows) || !rows.length) return null;
+
+  const athlete = rows[0];
+  return {
+    id: athlete.id,
+    identity_id: athlete.identity_id,
+    athlete_id: athlete.id,
+    email: athlete.email || null,
+    phone: athlete.phone || null,
+    full_name: athlete.name || null,
+    goal_distance: athlete.goal_distance ?? null,
+    weekly_frequency: athlete.weekly_frequency ?? null,
+    experience_level: athlete.experience_level || null,
+    consistency_level: athlete.consistency_level || null,
+    funnel_stage: athlete.funnel_stage || null,
+    plan_generated_at: athlete.plan_generated_at || null,
+    plan_storage: athlete.plan_storage || null,
+    answers:
+      athlete.onboarding_answers && typeof athlete.onboarding_answers === "object"
+        ? athlete.onboarding_answers
+        : {},
+    submitted_at: athlete.onboarding_submitted_at || null,
+    updated_at: athlete.onboarding_updated_at || null
+  };
 }
 
 async function getOnboardingFormResponsesByIdentity(config, identityId) {
@@ -2569,6 +2935,52 @@ async function markWeeklyPlanSlotCompleted(config, { athleteId, strengthInstance
   return Array.isArray(rows) ? rows : [];
 }
 
+/**
+ * Find planned running slots in athlete_weekly_plan for a specific date.
+ * Returns rows with session_type='running' and status='planned' that fall on the given ISO date.
+ */
+async function findPlannedRunningSlotsForDate(config, athleteId, isoDate) {
+  // Derive week_start_date (Monday) and day_of_week (0=Mon..6=Sun) from the date
+  const date = new Date(`${isoDate}T00:00:00.000Z`);
+  if (Number.isNaN(date.getTime())) return [];
+  const jsDay = date.getUTCDay(); // 0=Sun
+  const isoDayOfWeek = (jsDay + 6) % 7; // 0=Mon..6=Sun
+  const monday = new Date(date);
+  monday.setUTCDate(monday.getUTCDate() - isoDayOfWeek);
+  const weekStartDate = monday.toISOString().slice(0, 10);
+
+  const path = `athlete_weekly_plan?athlete_id=eq.${encodeURIComponent(athleteId)}`
+    + `&session_type=eq.running`
+    + `&status=eq.planned`
+    + `&week_start_date=eq.${weekStartDate}`
+    + `&day_of_week=eq.${isoDayOfWeek}`
+    + `&order=time_slot.asc`;
+
+  return supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path
+  });
+}
+
+/**
+ * Mark a running weekly plan slot as completed and store match metadata.
+ */
+async function markRunningPlanSlotCompleted(config, slotId, matchData) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `athlete_weekly_plan?id=eq.${encodeURIComponent(slotId)}`,
+    method: 'PATCH',
+    body: {
+      status: 'completed',
+      running_session_data: matchData || null
+    },
+    prefer: 'return=representation'
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
 
 // -- Central Leads -------------------------------------------------------------
 
@@ -2665,6 +3077,160 @@ async function upsertCentralLead(config, {
   });
   return Array.isArray(inserted) ? inserted[0] || null : null;
 }
+
+// ── Payment Plans & Charges (phased payments) ─────────────────────────────
+
+async function createPaymentPlan(config, payload) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: "payment_plans",
+    method: "POST",
+    body: [payload],
+    prefer: "return=representation"
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function getPaymentPlanById(config, planId) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `payment_plans?id=eq.${encodeURIComponent(planId)}&select=*&limit=1`
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function updatePaymentPlan(config, planId, patch) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `payment_plans?id=eq.${encodeURIComponent(planId)}`,
+    method: "PATCH",
+    body: { ...patch, updated_at: new Date().toISOString() },
+    prefer: "return=representation"
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function listPaymentPlans(config, { identityId, programId, status, limit, offset } = {}) {
+  const filters = ["select=*,training_programs(name)"];
+  if (identityId) filters.push(`identity_id=eq.${encodeURIComponent(identityId)}`);
+  if (programId) filters.push(`program_id=eq.${encodeURIComponent(programId)}`);
+  if (status) filters.push(`status=eq.${encodeURIComponent(status)}`);
+  filters.push("order=created_at.desc");
+  if (Number.isFinite(limit) && limit > 0) filters.push(`limit=${limit}`);
+  if (Number.isFinite(offset) && offset > 0) filters.push(`offset=${offset}`);
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `payment_plans?${filters.join("&")}`
+  });
+  return Array.isArray(rows) ? rows : [];
+}
+
+async function createPaymentCharges(config, charges) {
+  if (!Array.isArray(charges) || !charges.length) return [];
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: "payment_charges",
+    method: "POST",
+    body: charges,
+    prefer: "return=representation"
+  });
+  return Array.isArray(rows) ? rows : [];
+}
+
+async function getPaymentChargeById(config, chargeId) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `payment_charges?id=eq.${encodeURIComponent(chargeId)}&select=*,payment_plans(identity_id,program_id,status)&limit=1`
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function updatePaymentCharge(config, chargeId, patch) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `payment_charges?id=eq.${encodeURIComponent(chargeId)}`,
+    method: "PATCH",
+    body: { ...patch, updated_at: new Date().toISOString() },
+    prefer: "return=representation"
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function listPaymentCharges(config, { paymentPlanId, status, dueDateFrom, dueDateTo, limit, offset } = {}) {
+  const filters = ["select=*,payment_plans(identity_id,program_id,currency,status,training_programs(name))"];
+  if (paymentPlanId) filters.push(`payment_plan_id=eq.${encodeURIComponent(paymentPlanId)}`);
+  if (status) filters.push(`status=eq.${encodeURIComponent(status)}`);
+  if (dueDateFrom) filters.push(`due_date=gte.${encodeURIComponent(dueDateFrom)}`);
+  if (dueDateTo) filters.push(`due_date=lte.${encodeURIComponent(dueDateTo)}`);
+  filters.push("order=due_date.asc,charge_number.asc");
+  if (Number.isFinite(limit) && limit > 0) filters.push(`limit=${limit}`);
+  if (Number.isFinite(offset) && offset > 0) filters.push(`offset=${offset}`);
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `payment_charges?${filters.join("&")}`
+  });
+  return Array.isArray(rows) ? rows : [];
+}
+
+async function listDuePaymentCharges(config, { beforeDate, statuses } = {}) {
+  const statusList = Array.isArray(statuses) && statuses.length
+    ? statuses.map((s) => `"${s}"`).join(",")
+    : '"pending","failed","overdue"';
+  const dueFilter = beforeDate
+    ? `due_date=lte.${encodeURIComponent(beforeDate)}`
+    : `due_date=lte.${new Date().toISOString().slice(0, 10)}`;
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `payment_charges?status=in.(${statusList})&${dueFilter}&select=*,payment_plans(identity_id,program_id,currency,grace_period_days,max_retry_attempts,status,stripe_purchase_id)&order=due_date.asc&limit=200`
+  });
+  return Array.isArray(rows) ? rows : [];
+}
+
+async function getPaymentChargeByStripePI(config, paymentIntentId) {
+  if (!paymentIntentId) return null;
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `payment_charges?stripe_payment_intent_id=eq.${encodeURIComponent(paymentIntentId)}&select=*,payment_plans(identity_id,program_id,status)&limit=1`
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function getPaymentPlanCharges(config, planId) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `payment_charges?payment_plan_id=eq.${encodeURIComponent(planId)}&select=*&order=charge_number.asc`
+  });
+  return Array.isArray(rows) ? rows : [];
+}
+
+async function listAllPaymentChargesAdmin(config, { status, dueDateFrom, dueDateTo, email, programId, limit, offset } = {}) {
+  const filters = ["select=*,payment_plans!inner(identity_id,program_id,currency,status,training_programs(name))"];
+  if (status) filters.push(`status=eq.${encodeURIComponent(status)}`);
+  if (dueDateFrom) filters.push(`due_date=gte.${encodeURIComponent(dueDateFrom)}`);
+  if (dueDateTo) filters.push(`due_date=lte.${encodeURIComponent(dueDateTo)}`);
+  if (programId) filters.push(`payment_plans.program_id=eq.${encodeURIComponent(programId)}`);
+  filters.push("order=due_date.desc,charge_number.asc");
+  if (Number.isFinite(limit) && limit > 0) filters.push(`limit=${limit}`);
+  if (Number.isFinite(offset) && offset > 0) filters.push(`offset=${offset}`);
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `payment_charges?${filters.join("&")}`
+  });
+  return Array.isArray(rows) ? rows : [];
+}
+
 module.exports = {
   insertTrainingSessions,
   upsertTrainingSessionsBySource,
@@ -2682,12 +3248,16 @@ module.exports = {
   updateStravaConnection,
   createStravaSyncEvent,
   deleteTrainingSessionBySourceId,
+  patchSessionTSS,
   listAthletes,
   createAthlete,
   upsertAthleteByIdentity,
   listAthletesByCoach,
   createAthleteForCoach,
   verifyCoachOwnsAthlete,
+  listAthleteTrainingZoneProfiles,
+  upsertAthleteTrainingZoneProfile,
+  replaceAthleteTrainingZones,
   listUnassignedAthletes,
   assignUnassignedAthleteToCoach,
   setAthleteCoachIdentity,
@@ -2704,6 +3274,10 @@ module.exports = {
   getAuthUserByEmail,
   assignRoleToIdentity,
   listTrainingPrograms,
+  listTrainingEvents,
+  getTrainingEventById,
+  createTrainingEvent,
+  updateTrainingEvent,
   createTrainingProgram,
   updateTrainingProgram,
   getTrainingProgramById,
@@ -2731,6 +3305,18 @@ module.exports = {
   updateStripePurchasesByPaymentIntentId,
   upsertStripePurchaseByPaymentIntentId,
   listStripePurchases,
+  createPaymentPlan,
+  getPaymentPlanById,
+  updatePaymentPlan,
+  listPaymentPlans,
+  createPaymentCharges,
+  getPaymentChargeById,
+  updatePaymentCharge,
+  listPaymentCharges,
+  listDuePaymentCharges,
+  getPaymentChargeByStripePI,
+  getPaymentPlanCharges,
+  listAllPaymentChargesAdmin,
   listSiteMetadata,
   listSiteMetrics,
   listSiteReviews,
@@ -2761,10 +3347,16 @@ module.exports = {
   getBlogArticleById,
   getBlogArticleBySlugAny,
   listBlogArticlesAdmin,
+  listBlogCategories,
+  getBlogCategoryById,
+  getBlogCategoryByName,
   createBlogArticle,
+  createBlogCategory,
   updateBlogArticle,
+  updateBlogCategory,
   softDeleteBlogArticle,
   archiveDeletedBlogArticleSlug,
+  reassignBlogArticlesCategory,
   getBlogContentProductionByArticle,
   upsertBlogContentProduction,
   updateBlogContentProductionByArticle,
@@ -2854,6 +3446,8 @@ module.exports = {
   updateAthleteWeeklyPlanRow,
   deleteAthleteWeeklyPlan,
   markWeeklyPlanSlotCompleted,
+  findPlannedRunningSlotsForDate,
+  markRunningPlanSlotCompleted,
   upsertCentralLead,
 };
 

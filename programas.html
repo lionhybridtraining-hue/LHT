@@ -15,7 +15,7 @@
     <div class="container programs-shell">
       <div class="programs-topbar">
         <a class="back-link" href="index.html">Voltar ao site</a>
-        <div id="programs-auth" class="auth-chip">A preparar autenticacao...</div>
+        <div id="programs-auth" class="auth-chip">A preparar autenticação...</div>
       </div>
 
       <div class="programs-copy">
@@ -32,6 +32,7 @@
             <p id="checkout-billing-label" class="checkout-kicker"></p>
             <h3 id="checkout-program-name"></h3>
             <p id="checkout-price" class="checkout-price"></p>
+            <p id="checkout-program-summary" class="checkout-program-summary"></p>
           </div>
           <div id="checkout-interval-container" class="checkout-interval-container" hidden>
             <fieldset class="checkout-interval-fieldset">
@@ -40,7 +41,7 @@
             </fieldset>
           </div>
           <div class="checkout-coupon-row" id="checkout-coupon-row" hidden>
-            <input type="text" id="checkout-coupon-input" class="checkout-coupon-input" placeholder="Codigo de desconto" autocomplete="off" />
+            <input type="text" id="checkout-coupon-input" class="checkout-coupon-input" placeholder="Código de desconto" autocomplete="off" />
             <button type="button" id="checkout-coupon-apply" class="btn checkout-coupon-apply">Aplicar</button>
           </div>
           <div id="checkout-coupon-feedback" class="checkout-coupon-feedback" hidden></div>
@@ -66,6 +67,8 @@
           </div>
           <p class="programs-stage-note">A compra fica associada à tua conta e o onboarding abre já com o programa selecionado.</p>
         </div>
+
+        <section id="program-detail" class="program-detail" hidden aria-live="polite"></section>
 
         <div id="programs-app" class="programs-grid" aria-live="polite"></div>
       </div>

@@ -61,6 +61,7 @@ export type PlanFormDraft = {
   // Step 5: Detalhes
   initialVolume: number | "";
   name: string;
+  phone: string;
   weeklyCommitment: boolean;
   
   // Metadata
@@ -112,6 +113,7 @@ export function createInitialPlanFormDraft(): PlanFormDraft {
     // Step 5
     initialVolume: "",
     name: "",
+    phone: "",
     weeklyCommitment: false,
     
     // Metadata

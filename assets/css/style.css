@@ -732,7 +732,7 @@ section .intro{color:var(--muted); max-width:860px; margin:0 auto 18px; text-ali
 .programs-quick-rail{
   display:grid;
   grid-auto-flow:column;
-  font-size:clamp(24px, 2.5vw, 32px);
+  font-size:16px;
   gap:16px;
   overflow-x:auto;
   overflow-y:hidden;
@@ -804,6 +804,7 @@ section .intro{color:var(--muted); max-width:860px; margin:0 auto 18px; text-ali
 .program-quick-card p{
   margin:0;
   color:var(--text-soft);
+  font-size:15px;
   line-height:1.62;
 }
 
@@ -813,17 +814,37 @@ section .intro{color:var(--muted); max-width:860px; margin:0 auto 18px; text-ali
   -webkit-line-clamp:2;
   -webkit-box-orient:vertical;
   overflow:hidden;
-  line-height:1.6;
-  min-height:3.2em;
+  line-height:1.5;
+  min-height:3em;
 }
 
 .program-quick-cta{
   margin-top:auto;
   display:inline-flex;
   align-items:center;
+  justify-content:center;
   gap:8px;
+  width:fit-content;
+  min-height:46px;
+  padding:0 18px;
+  border-radius:14px;
+  border:1px solid rgba(212,165,79,.45);
+  background:linear-gradient(180deg, rgba(212,165,79,.22), rgba(212,165,79,.1));
   color:var(--gold);
+  font-family:'Oswald',sans-serif;
+  font-size:16px;
+  letter-spacing:.04em;
+  text-transform:uppercase;
   font-weight:600;
+  text-decoration:none;
+  transition:transform .2s ease, border-color .2s ease, background .2s ease;
+}
+
+.program-quick-cta:hover,
+.program-quick-cta:focus-visible{
+  border-color:rgba(212,165,79,.72);
+  background:linear-gradient(180deg, rgba(212,165,79,.3), rgba(212,165,79,.14));
+  transform:translateY(-1px);
 }
 
 .program-quick-cta::after{

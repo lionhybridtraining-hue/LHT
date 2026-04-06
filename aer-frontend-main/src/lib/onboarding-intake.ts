@@ -30,7 +30,7 @@ export async function fetchOnboardingIntake(accessToken: string) {
   });
 
   if (!response.ok) {
-    throw new Error("Nao foi possivel carregar os dados do onboarding.");
+    throw new Error("Não foi possível carregar os dados do onboarding.");
   }
 
   return (await response.json()) as OnboardingIntakePayload;
@@ -56,7 +56,7 @@ export async function upsertOnboardingAnswers(
 
   if (!response.ok) {
     const payload = await response.json().catch(() => null);
-    throw new Error(payload?.error || "Nao foi possivel guardar os dados.");
+    throw new Error(payload?.error || "Não foi possível guardar os dados.");
   }
 
   return response.json();

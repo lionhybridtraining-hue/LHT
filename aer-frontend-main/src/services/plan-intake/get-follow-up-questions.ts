@@ -28,8 +28,8 @@ function buildLocalQuestions(answers: IntakeAnswers): FollowUpQuestion[] {
   if (answers.injuriesLastMonths) {
     questions.push({
       id: "injury_context",
-      label: "Quais foram as lesoes/dor recentes e em que fase estao?",
-      placeholder: "Ex.: dor no Aquiles direito ha 6 semanas, em melhoria.",
+      label: "Quais foram as lesões/dor recentes e em que fase estão?",
+      placeholder: "Ex.: dor no Aquiles direito há 6 semanas, em melhoria.",
       required: true,
     });
   }
@@ -42,7 +42,7 @@ function buildLocalQuestions(answers: IntakeAnswers): FollowUpQuestion[] {
   ) {
     questions.push({
       id: "long_run_history",
-      label: "Qual foi o teu treino longo mais recente (distancia e como te sentiste)?",
+      label: "Qual foi o teu treino longo mais recente (distância e como te sentiste)?",
       placeholder: "Ex.: 14km, ritmo controlado, terminou com fadiga moderada.",
       required: true,
     });
@@ -51,8 +51,8 @@ function buildLocalQuestions(answers: IntakeAnswers): FollowUpQuestion[] {
   if (answers.trainingFrequency <= 2) {
     questions.push({
       id: "schedule_constraints",
-      label: "Que dias/horarios tens mais restricoes para treinar?",
-      placeholder: "Ex.: 3a e 5a so consigo 40 minutos ao final do dia.",
+      label: "Que dias/horários tens mais restrições para treinar?",
+      placeholder: "Ex.: 3ª e 5ª só consigo 40 minutos ao final do dia.",
       required: true,
     });
   }
@@ -60,8 +60,8 @@ function buildLocalQuestions(answers: IntakeAnswers): FollowUpQuestion[] {
   if (answers.experienceLevel === "beginner") {
     questions.push({
       id: "consistency_goal",
-      label: "Qual o principal obstaculo para manter consistencia semanal?",
-      placeholder: "Ex.: falta de rotina, dificuldade em gerir cansaco.",
+      label: "Qual o principal obstáculo para manter consistência semanal?",
+      placeholder: "Ex.: falta de rotina, dificuldade em gerir cansaço.",
       required: true,
     });
   }

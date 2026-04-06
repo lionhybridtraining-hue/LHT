@@ -17,13 +17,17 @@ import {
 
 const DAY_LABELS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
 
-const SESSION_COLORS: Record<string, string> = {
-  strength: "bg-blue-900/60 border-blue-700",
-  running: "bg-green-900/60 border-green-700",
-  rest: "bg-zinc-800/60 border-zinc-600",
-  mobility: "bg-purple-900/60 border-purple-700",
-  other: "bg-zinc-700/60 border-zinc-600",
+const SESSION_THEME: Record<string, { badge: string; chip: string }> = {
+  strength: { badge: "bg-blue-900/60 border-blue-700", chip: "bg-blue-600/20 text-blue-200" },
+  running: { badge: "bg-emerald-900/60 border-emerald-700", chip: "bg-emerald-600/20 text-emerald-200" },
+  cycling: { badge: "bg-amber-900/60 border-amber-700", chip: "bg-amber-600/20 text-amber-200" },
+  rest: { badge: "bg-zinc-800/60 border-zinc-600", chip: "bg-zinc-600/20 text-zinc-200" },
+  mobility: { badge: "bg-cyan-900/60 border-cyan-700", chip: "bg-cyan-600/20 text-cyan-200" },
+  recovery: { badge: "bg-cyan-900/60 border-cyan-700", chip: "bg-cyan-600/20 text-cyan-200" },
+  other: { badge: "bg-zinc-700/60 border-zinc-600", chip: "bg-zinc-600/20 text-zinc-200" },
 };
+
+type CalendarViewMode = "multi-week" | "week" | "day";
 
 /** Derives the current week number based on instance start_date. */
 function getCurrentWeek(startDate: string | null | undefined): number {
@@ -48,6 +52,91 @@ interface CalendarProgram {
   needsPresetSelection: boolean;
 }
 
+interface WeekSummary {
+  plannedMinutes: number;
+  doneMinutes: number;
+  plannedStrength: number;
+  doneStrength: number;
+}
+
+interface WeekBundle {
+  weekNumber: number;
+  weekStartDate: string;
+  rows: WeeklyPlanRow[];
+  days: WeeklyPlanRow[][];
+  summary: WeekSummary;
+}
+
+function startOfDayFromIso(dateIso: string): Date {
+  return new Date(`${dateIso}T00:00:00`);
+}
+
+function formatDatePt(dateIso: string): string {
+  return startOfDayFromIso(dateIso).toLocaleDateString("pt-PT", {
+    day: "2-digit",
+    month: "short",
+  });
+}
+
+function getDateForDay(weekStartDate: string, dayOfWeek: number): string {
+  const date = startOfDayFromIso(weekStartDate);
+  date.setDate(date.getDate() + dayOfWeek);
+  return date.toISOString().slice(0, 10);
+}
+
+function summarizeWeek(rows: WeeklyPlanRow[]): WeekSummary {
+  return rows.reduce(
+    (acc, row) => {
+      const duration = row.duration_estimate_min || 0;
+      acc.plannedMinutes += duration;
+      if (row.status === "completed") {
+        acc.doneMinutes += duration;
+      }
+      if (row.session_type === "strength") {
+        acc.plannedStrength += 1;
+        if (row.status === "completed") acc.doneStrength += 1;
+      }
+      return acc;
+    },
+    {
+      plannedMinutes: 0,
+      doneMinutes: 0,
+      plannedStrength: 0,
+      doneStrength: 0,
+    }
+  );
+}
+
+function buildWeekBundle(weekNumber: number, rows: WeeklyPlanRow[]): WeekBundle {
+  const sorted = [...rows].sort((a, b) => {
+    if (a.day_of_week !== b.day_of_week) return a.day_of_week - b.day_of_week;
+    return a.time_slot - b.time_slot;
+  });
+
+  const days: WeeklyPlanRow[][] = Array.from({ length: 7 }, () => []);
+  sorted.forEach((row) => {
+    if (row.day_of_week >= 0 && row.day_of_week <= 6) {
+      days[row.day_of_week].push(row);
+    }
+  });
+
+  return {
+    weekNumber,
+    weekStartDate: sorted[0]?.week_start_date || new Date().toISOString().slice(0, 10),
+    rows: sorted,
+    days,
+    summary: summarizeWeek(sorted),
+  };
+}
+
+function pickDaySport(rows: WeeklyPlanRow[]): string {
+  if (!rows.length) return "rest";
+  if (rows.some((r) => r.session_type === "strength")) return "strength";
+  if (rows.some((r) => r.session_type === "running")) return "running";
+  if (rows.some((r) => r.session_type === "mobility")) return "mobility";
+  return rows[0].session_type || "other";
+}
+
 export default function CalendarioPage() {
   const { session } = useOutletContext<AthleteOutletContext>();
   return <CalendarioContent session={session} />;
@@ -65,6 +154,8 @@ function CalendarioContent({ session: _session }: { session: AthleteOutletContex
   const [presets, setPresets] = useState<SchedulePreset[]>([]);
   const [sessions, setSessions] = useState<WeeklySession[]>([]);
   const [selectedWeek, setSelectedWeek] = useState(1);
+  const [selectedDay, setSelectedDay] = useState(0);
+  const [viewMode, setViewMode] = useState<CalendarViewMode>("week");
   const [generating, setGenerating] = useState(false);
   const [planLoading, setPlanLoading] = useState(false);
 
@@ -191,6 +282,8 @@ function CalendarioContent({ session: _session }: { session: AthleteOutletContex
           const weeks = [...new Set(rows.map((r) => r.week_number))].sort((a, b) => a - b);
           const closest = weeks.find((w) => w >= current) || weeks[weeks.length - 1] || 1;
           setSelectedWeek(closest);
+          setSelectedDay(0);
+          setViewMode("week");
         } else if (selectedProgram.programId) {
           // No plan: load presets for setup
           const [presetsData, sessionsData] = await Promise.all([
@@ -218,22 +311,26 @@ function CalendarioContent({ session: _session }: { session: AthleteOutletContex
     return [...new Set(plan.map((r) => r.week_number))].sort((a, b) => a - b);
   }, [plan]);
 
-  const weekRows = useMemo(() => {
-    return plan.filter((r) => r.week_number === selectedWeek);
+  const weekBundles = useMemo(() => {
+    const byWeek = new Map<number, WeeklyPlanRow[]>();
+    plan.forEach((row) => {
+      const list = byWeek.get(row.week_number) || [];
+      list.push(row);
+      byWeek.set(row.week_number, list);
+    });
+
+    return [...byWeek.entries()]
+      .sort((a, b) => a[0] - b[0])
+      .map(([weekNumber, rows]) => buildWeekBundle(weekNumber, rows));
   }, [plan, selectedWeek]);
 
-  const dayGrid = useMemo(() => {
-    const grid: WeeklyPlanRow[][] = Array.from({ length: 7 }, () => []);
-    weekRows.forEach((r) => {
-      if (r.day_of_week >= 0 && r.day_of_week <= 6) {
-        grid[r.day_of_week].push(r);
-      }
-    });
-    grid.forEach((day) => day.sort((a, b) => a.time_slot - b.time_slot));
-    return grid;
-  }, [weekRows]);
+  const selectedBundle = useMemo(() => {
+    return weekBundles.find((b) => b.weekNumber === selectedWeek) || null;
+  }, [weekBundles, selectedWeek]);
 
-  // Progress stats
+  const selectedDayRows = selectedBundle?.days[selectedDay] || [];
+
+  // Program progress stats
   const totalRows = plan.length;
   const completedRows = plan.filter((r) => r.status === "completed").length;
 
@@ -256,7 +353,12 @@ function CalendarioContent({ session: _session }: { session: AthleteOutletContex
         setPlan(rows);
         setPresets([]);
         setSessions([]);
-        if (rows.length > 0) setSelectedWeek(1);
+        if (rows.length > 0) {
+          const firstWeek = [...new Set(rows.map((r) => r.week_number))].sort((a, b) => a - b)[0] || 1;
+          setSelectedWeek(firstWeek);
+          setSelectedDay(0);
+          setViewMode("week");
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Erro ao gerar calendário.");
       } finally {
@@ -398,62 +500,86 @@ function CalendarioContent({ session: _session }: { session: AthleteOutletContex
         {/* ── Calendar view (plan exists) ── */}
         {!planLoading && hasPlan && (
           <div className="mt-5">
-            {/* Week selector */}
-            <div className="mb-4 flex items-center gap-2">
+            <div className="mb-4 flex items-center justify-between rounded-xl border border-[#30363d] bg-[#161b22] p-2">
               <button
-                onClick={() => setSelectedWeek((w) => Math.max(1, w - 1))}
-                disabled={selectedWeek <= 1}
-                className="rounded-lg border border-[#30363d] bg-[#161b22] px-3 py-1.5 text-sm text-[#c9d1d9] disabled:opacity-40"
+                onClick={() => setViewMode("multi-week")}
+                className="rounded-lg border border-[#30363d] bg-[#0d1117] px-3 py-1.5 text-xs font-semibold text-[#c9d1d9]"
+                title="Ver multi-semanal"
               >
-                ←
+                ◰ Multi
               </button>
-              <span className="flex-1 text-center text-sm font-semibold text-[#c9d1d9]">
-                Semana {selectedWeek}
-                {weekRows.length > 0 && (
-                  <span className="ml-2 text-xs text-[#8f99a8]">
-                    ({weekRows[0].week_start_date})
-                  </span>
-                )}
-              </span>
               <button
-                onClick={() => setSelectedWeek((w) => Math.min(weekNumbers[weekNumbers.length - 1] || 1, w + 1))}
-                disabled={selectedWeek >= (weekNumbers[weekNumbers.length - 1] || 1)}
-                className="rounded-lg border border-[#30363d] bg-[#161b22] px-3 py-1.5 text-sm text-[#c9d1d9] disabled:opacity-40"
+                onClick={() => setViewMode("week")}
+                className={`rounded-lg border px-3 py-1.5 text-xs font-semibold ${
+                  viewMode === "week"
+                    ? "border-[#d4a54f] bg-[#d4a54f]/15 text-[#d4a54f]"
+                    : "border-[#30363d] bg-[#0d1117] text-[#c9d1d9]"
+                }`}
               >
-                →
+                Semana
+              </button>
+              <button
+                onClick={() => setViewMode("day")}
+                disabled={!selectedBundle}
+                className={`rounded-lg border px-3 py-1.5 text-xs font-semibold ${
+                  viewMode === "day"
+                    ? "border-[#d4a54f] bg-[#d4a54f]/15 text-[#d4a54f]"
+                    : "border-[#30363d] bg-[#0d1117] text-[#c9d1d9]"
+                } disabled:opacity-40`}
+              >
+                Dia
               </button>
             </div>
 
-            {/* 7-day grid */}
-            <div className="grid grid-cols-7 gap-1">
-              {dayGrid.map((daySessions, dayIndex) => (
-                <div key={dayIndex} className="min-w-0">
-                  <div className="mb-1 text-center text-[10px] font-bold uppercase tracking-wider text-[#8f99a8]">
-                    {DAY_LABELS[dayIndex]}
-                  </div>
-                  {daySessions.length > 0 ? (
-                    daySessions.map((row) => (
-                      <SessionCell
-                        key={row.id}
-                        row={row}
-                        onTap={() => handleSessionTap(row, navigate)}
-                      />
-                    ))
-                  ) : (
-                    <div className="rounded-lg bg-[#0d1117] p-2 text-center text-[10px] text-[#30363d]">
-                      —
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
+            {viewMode === "multi-week" && (
+              <MultiWeekView
+                weekBundles={weekBundles}
+                selectedWeek={selectedWeek}
+                onSelectWeek={(week) => {
+                  setSelectedWeek(week);
+                  setViewMode("week");
+                }}
+              />
+            )}
 
-            {/* Week stats */}
-            <div className="mt-3 flex justify-center gap-4 text-[10px] text-[#8f99a8]">
-              <span>{weekRows.filter((r) => r.session_type === "strength").length} força</span>
-              <span>{weekRows.filter((r) => r.session_type === "running").length} corrida</span>
-              <span>{weekRows.filter((r) => r.status === "completed").length} feitos</span>
-            </div>
+            {viewMode === "week" && selectedBundle && (
+              <WeeklyView
+                bundle={selectedBundle}
+                weekNumbers={weekNumbers}
+                onPrevWeek={() => {
+                  const idx = weekNumbers.indexOf(selectedWeek);
+                  if (idx > 0) setSelectedWeek(weekNumbers[idx - 1]);
+                }}
+                onNextWeek={() => {
+                  const idx = weekNumbers.indexOf(selectedWeek);
+                  if (idx >= 0 && idx < weekNumbers.length - 1) setSelectedWeek(weekNumbers[idx + 1]);
+                }}
+                hasPrev={weekNumbers.indexOf(selectedWeek) > 0}
+                hasNext={weekNumbers.indexOf(selectedWeek) >= 0 && weekNumbers.indexOf(selectedWeek) < weekNumbers.length - 1}
+                selectedDay={selectedDay}
+                onSelectDay={(day) => {
+                  setSelectedDay(day);
+                  setViewMode("day");
+                }}
+              />
+            )}
+
+            {viewMode === "day" && selectedBundle && (
+              <DayView
+                bundle={selectedBundle}
+                selectedDay={selectedDay}
+                rows={selectedDayRows}
+                onBackToWeek={() => setViewMode("week")}
+                onOpenStrength={(row) => handleSessionTap(row, navigate)}
+              />
+            )}
+
+            {!selectedBundle && (
+              <div className="rounded-xl border border-[#30363d] bg-[#161b22] p-4 text-center text-sm text-[#8f99a8]">
+                Semana não encontrada.
+              </div>
+            )}
+
           </div>
         )}
       </div>
@@ -530,7 +656,7 @@ function PresetCard({
             <div className="text-[8px] text-[#484f58]">{DAY_LABELS[i]}</div>
             {daySessions.length > 0 ? (
               daySessions.map((sess, j) => {
-                const color = sess ? SESSION_COLORS[sess.session_type] || SESSION_COLORS.other : "bg-zinc-800";
+                const color = sess ? SESSION_THEME[sess.session_type]?.badge || SESSION_THEME.other.badge : "bg-zinc-800";
                 return (
                   <div
                     key={j}
@@ -551,43 +677,321 @@ function PresetCard({
   );
 }
 
-function SessionCell({ row, onTap }: { row: WeeklyPlanRow; onTap: () => void }) {
-  const colorClass = SESSION_COLORS[row.session_type] || SESSION_COLORS.other;
-  const isClickable = row.session_type === "strength" && !!row.strength_instance_id;
-  const statusIcon =
-    row.status === "completed"
-      ? "✓"
-      : row.status === "skipped"
-      ? "✗"
-      : "";
+function MultiWeekView({
+  weekBundles,
+  selectedWeek,
+  onSelectWeek,
+}: {
+  weekBundles: WeekBundle[];
+  selectedWeek: number;
+  onSelectWeek: (weekNumber: number) => void;
+}) {
+  return (
+    <div className="space-y-3">
+      {weekBundles.map((bundle) => (
+        <button
+          key={bundle.weekNumber}
+          onClick={() => onSelectWeek(bundle.weekNumber)}
+          className={`w-full rounded-xl border p-3 text-left transition ${
+            selectedWeek === bundle.weekNumber
+              ? "border-[#d4a54f] bg-[#1a1f27]"
+              : "border-[#30363d] bg-[#161b22] hover:border-[#d4a54f]/40"
+          }`}
+        >
+          <div className="mb-2 flex items-center justify-between">
+            <div>
+              <p className="text-sm font-semibold text-[#f7f1e8]">Semana {bundle.weekNumber}</p>
+              <p className="text-[11px] text-[#8f99a8]">Início {formatDatePt(bundle.weekStartDate)}</p>
+            </div>
+            <div className="text-right text-[11px] text-[#8f99a8]">
+              <p>{bundle.summary.doneMinutes}/{bundle.summary.plannedMinutes} min</p>
+              <p>Força {bundle.summary.doneStrength}/{bundle.summary.plannedStrength}</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-7 gap-1">
+            {bundle.days.map((rows, dayIdx) => (
+              <MultiWeekDayCell key={`${bundle.weekNumber}-${dayIdx}`} dayIndex={dayIdx} rows={rows} />
+            ))}
+          </div>
+
+          <div className="mt-2 flex items-center justify-between text-[10px] text-[#8f99a8]">
+            <span>TSS: em breve</span>
+            <span>Planeado vs done</span>
+          </div>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function MultiWeekDayCell({ dayIndex, rows }: { dayIndex: number; rows: WeeklyPlanRow[] }) {
+  const sport = pickDaySport(rows);
+  const names = rows.slice(0, 2).map((row) => row.session_label);
+  const extraCount = Math.max(0, rows.length - names.length);
 
   return (
-    <button
-      onClick={isClickable ? onTap : undefined}
-      className={`mb-1 w-full rounded-lg border p-1.5 text-left ${colorClass} ${
-        isClickable ? "cursor-pointer active:opacity-80" : "cursor-default"
-      }`}
-    >
-      <div className="flex items-start justify-between">
-        <span className="text-[9px] font-medium leading-tight text-[#c9d1d9]">
-          {row.session_label.length > 12
-            ? row.session_label.slice(0, 12) + "…"
-            : row.session_label}
+    <div className="relative min-h-16 overflow-hidden rounded-lg border border-[#2b3138] bg-[#0d1117] p-1.5">
+      <div className="pointer-events-none absolute inset-0 opacity-25">
+        <SportBackgroundSvg sport={sport} />
+      </div>
+      <p className="relative text-[9px] font-semibold uppercase tracking-wide text-[#8f99a8]">{DAY_LABELS[dayIndex]}</p>
+      <div className="relative mt-1 space-y-0.5">
+        {names.length > 0 ? (
+          names.map((name) => (
+            <p key={name} className="truncate text-[9px] leading-tight text-[#d0d7de]">{name}</p>
+          ))
+        ) : (
+          <p className="text-[9px] text-[#5b6573]">Sem treino</p>
+        )}
+        {extraCount > 0 && <p className="text-[8px] text-[#8f99a8]">+{extraCount}</p>}
+      </div>
+    </div>
+  );
+}
+
+function WeeklyView({
+  bundle,
+  weekNumbers,
+  onPrevWeek,
+  onNextWeek,
+  hasPrev,
+  hasNext,
+  selectedDay,
+  onSelectDay,
+}: {
+  bundle: WeekBundle;
+  weekNumbers: number[];
+  onPrevWeek: () => void;
+  onNextWeek: () => void;
+  hasPrev: boolean;
+  hasNext: boolean;
+  selectedDay: number;
+  onSelectDay: (day: number) => void;
+}) {
+  return (
+    <div>
+      <div className="mb-3 flex items-center gap-2">
+        <button
+          onClick={onPrevWeek}
+          disabled={!hasPrev}
+          className="rounded-lg border border-[#30363d] bg-[#161b22] px-3 py-1.5 text-sm text-[#c9d1d9] disabled:opacity-40"
+        >
+          ←
+        </button>
+        <span className="flex-1 text-center text-sm font-semibold text-[#c9d1d9]">
+          Semana {bundle.weekNumber}
+          <span className="ml-2 text-xs text-[#8f99a8]">({formatDatePt(bundle.weekStartDate)})</span>
         </span>
-        {statusIcon && (
-          <span
-            className={`text-[10px] ${
-              row.status === "completed" ? "text-green-400" : "text-red-400"
-            }`}
-          >
-            {statusIcon}
-          </span>
+        <button
+          onClick={onNextWeek}
+          disabled={!hasNext}
+          className="rounded-lg border border-[#30363d] bg-[#161b22] px-3 py-1.5 text-sm text-[#c9d1d9] disabled:opacity-40"
+        >
+          →
+        </button>
+      </div>
+
+      <div className="mb-3 grid grid-cols-2 gap-2">
+        <SummaryMetricCard label="Minutos" value={`${bundle.summary.doneMinutes}/${bundle.summary.plannedMinutes}`} helper="done/planeado" />
+        <SummaryMetricCard label="Força" value={`${bundle.summary.doneStrength}/${bundle.summary.plannedStrength}`} helper="sessões concluídas" />
+      </div>
+
+      <div className="grid grid-cols-7 gap-1">
+        {bundle.days.map((rows, dayIndex) => {
+          const sport = pickDaySport(rows);
+          const dayDate = formatDatePt(getDateForDay(bundle.weekStartDate, dayIndex));
+          const isSelected = selectedDay === dayIndex;
+          return (
+            <button
+              key={`${bundle.weekNumber}-${dayIndex}`}
+              onClick={() => onSelectDay(dayIndex)}
+              className={`relative min-h-28 overflow-hidden rounded-lg border p-1 text-left ${
+                isSelected
+                  ? "border-[#d4a54f] bg-[#20262f]"
+                  : "border-[#30363d] bg-[#121820]"
+              }`}
+            >
+              <div className="pointer-events-none absolute inset-0 opacity-20">
+                <SportBackgroundSvg sport={sport} />
+              </div>
+              <div className="relative mb-1 flex items-center justify-between">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-[#c9d1d9]">{DAY_LABELS[dayIndex]}</p>
+                <p className="text-[8px] text-[#8f99a8]">{dayDate}</p>
+              </div>
+
+              <div className="relative space-y-1">
+                {rows.length > 0 ? (
+                  rows.slice(0, 3).map((row) => (
+                    <WeeklySessionBadge key={row.id} row={row} />
+                  ))
+                ) : (
+                  <div className="rounded-md bg-[#0d1117] px-1 py-1 text-[9px] text-[#5b6573]">Sem treino</div>
+                )}
+                {rows.length > 3 && <p className="text-[8px] text-[#8f99a8]">+{rows.length - 3} sessões</p>}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="mt-3 text-center text-[10px] text-[#8f99a8]">
+        Semana principal ativa entre {weekNumbers[0]} e {weekNumbers[weekNumbers.length - 1]}
+      </div>
+    </div>
+  );
+}
+
+function DayView({
+  bundle,
+  selectedDay,
+  rows,
+  onBackToWeek,
+  onOpenStrength,
+}: {
+  bundle: WeekBundle;
+  selectedDay: number;
+  rows: WeeklyPlanRow[];
+  onBackToWeek: () => void;
+  onOpenStrength: (row: WeeklyPlanRow) => void;
+}) {
+  const dayDate = formatDatePt(getDateForDay(bundle.weekStartDate, selectedDay));
+
+  return (
+    <div>
+      <div className="mb-3 flex items-center justify-between rounded-xl border border-[#30363d] bg-[#161b22] p-3">
+        <div>
+          <p className="text-xs uppercase tracking-[0.2em] text-[#8f99a8]">Detalhe diário</p>
+          <h3 className="text-lg font-semibold text-[#f7f1e8]">
+            {DAY_LABELS[selectedDay]} {dayDate}
+          </h3>
+        </div>
+        <button
+          onClick={onBackToWeek}
+          className="rounded-lg border border-[#30363d] bg-[#0d1117] px-3 py-1.5 text-xs font-semibold text-[#c9d1d9]"
+        >
+          Voltar semana
+        </button>
+      </div>
+
+      <div className="max-h-[58vh] space-y-2 overflow-y-auto pr-1">
+        {rows.length > 0 ? (
+          rows.map((row) => (
+            <DaySessionCard key={row.id} row={row} onOpenStrength={onOpenStrength} />
+          ))
+        ) : (
+          <div className="rounded-xl border border-[#30363d] bg-[#161b22] p-4 text-sm text-[#8f99a8]">
+            Não existem treinos para este dia.
+          </div>
         )}
       </div>
-      {row.duration_estimate_min && (
-        <div className="text-[8px] text-[#8f99a8]">{row.duration_estimate_min}min</div>
+    </div>
+  );
+}
+
+function SummaryMetricCard({ label, value, helper }: { label: string; value: string; helper: string }) {
+  return (
+    <div className="rounded-lg border border-[#30363d] bg-[#161b22] p-2.5">
+      <p className="text-[10px] uppercase tracking-wide text-[#8f99a8]">{label}</p>
+      <p className="mt-1 text-base font-semibold text-[#f7f1e8]">{value}</p>
+      <p className="text-[10px] text-[#8f99a8]">{helper}</p>
+    </div>
+  );
+}
+
+function WeeklySessionBadge({ row }: { row: WeeklyPlanRow }) {
+  const theme = SESSION_THEME[row.session_type] || SESSION_THEME.other;
+  const statusIcon = row.status === "completed" ? "✓" : row.status === "skipped" ? "✕" : "•";
+
+  return (
+    <div className={`rounded-md border px-1 py-1 text-[9px] leading-tight ${theme.badge}`}>
+      <div className="flex items-center justify-between gap-1">
+        <span className="truncate text-[#e6edf3]">{row.session_label}</span>
+        <span className="text-[#8f99a8]">{statusIcon}</span>
+      </div>
+    </div>
+  );
+}
+
+function DaySessionCard({ row, onOpenStrength }: { row: WeeklyPlanRow; onOpenStrength: (row: WeeklyPlanRow) => void }) {
+  const theme = SESSION_THEME[row.session_type] || SESSION_THEME.other;
+  const canStartStrength = row.session_type === "strength" && !!row.strength_instance_id;
+
+  return (
+    <article className="rounded-xl border border-[#30363d] bg-[#161b22] p-3">
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <h4 className="text-sm font-semibold text-[#f7f1e8]">{row.session_label}</h4>
+        <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${theme.chip}`}>
+          {row.session_type}
+        </span>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2 text-[11px] text-[#8f99a8]">
+        <p>Slot: {row.time_slot}</p>
+        <p>Estado: {row.status}</p>
+        <p>Duração: {row.duration_estimate_min || 0} min</p>
+        <p>Intensidade: {row.intensity || "-"}</p>
+      </div>
+
+      {row.coach_notes && (
+        <p className="mt-2 rounded-md bg-[#0d1117] p-2 text-xs text-[#c9d1d9]">{row.coach_notes}</p>
       )}
-    </button>
+
+      {canStartStrength && (
+        <button
+          onClick={() => onOpenStrength(row)}
+          className="mt-3 w-full rounded-lg border border-blue-600 bg-blue-600/15 px-3 py-2 text-xs font-semibold text-blue-100 transition hover:bg-blue-600/25"
+        >
+          Iniciar treino de força
+        </button>
+      )}
+    </article>
+  );
+}
+
+function SportBackgroundSvg({ sport }: { sport: string }) {
+  if (sport === "strength") {
+    return (
+      <svg viewBox="0 0 120 80" className="h-full w-full">
+        <rect x="6" y="34" width="16" height="12" fill="#60a5fa" />
+        <rect x="98" y="34" width="16" height="12" fill="#60a5fa" />
+        <rect x="24" y="38" width="72" height="4" fill="#93c5fd" />
+      </svg>
+    );
+  }
+
+  if (sport === "running") {
+    return (
+      <svg viewBox="0 0 120 80" className="h-full w-full">
+        <path d="M6 58 C26 48, 46 60, 66 50 C82 42, 100 54, 114 44" stroke="#34d399" strokeWidth="4" fill="none" />
+        <circle cx="30" cy="28" r="6" fill="#6ee7b7" />
+      </svg>
+    );
+  }
+
+  if (sport === "cycling") {
+    return (
+      <svg viewBox="0 0 120 80" className="h-full w-full">
+        <circle cx="34" cy="50" r="14" stroke="#f59e0b" strokeWidth="3" fill="none" />
+        <circle cx="86" cy="50" r="14" stroke="#f59e0b" strokeWidth="3" fill="none" />
+        <path d="M34 50 L54 36 L66 50 L86 50" stroke="#fbbf24" strokeWidth="3" fill="none" />
+      </svg>
+    );
+  }
+
+  if (sport === "mobility" || sport === "recovery") {
+    return (
+      <svg viewBox="0 0 120 80" className="h-full w-full">
+        <ellipse cx="60" cy="44" rx="42" ry="16" fill="#22d3ee" />
+        <ellipse cx="60" cy="44" rx="24" ry="8" fill="#67e8f9" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg viewBox="0 0 120 80" className="h-full w-full">
+      <rect x="18" y="18" width="84" height="44" rx="8" fill="#6b7280" />
+    </svg>
   );
 }
 

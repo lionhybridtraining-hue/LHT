@@ -1,5 +1,9 @@
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate, useOutletContext } from "react-router-dom";
 import { getAccessToken } from "@/lib/supabase";
+import type { AthleteOutletContext } from "@/components/atleta/AthleteLayout";
+import AppDownloadPopup from "@/components/atleta/AppDownloadPopup";
+import { fetchAthleteRunningPrograms } from "@/services/athlete-programs";
+import { fetchAthleteProfile } from "@/services/athlete-profile";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Accordion,
@@ -80,8 +84,8 @@ type GraphPoint = {
 
 const splitSectionLabelMap: Record<string, string> = {
   warmup: "Aquecimento",
-  sets: "Series",
-  rest: "Recuperacao",
+  sets: "Séries",
+  rest: "Recuperação",
   cooldown: "Arrefecimento",
 };
 
@@ -143,11 +147,11 @@ function formatPaceFromSeconds(secondsPerKm: number): string {
 function getSplitToneStyle(label: string): string {
   const normalized = label.toLowerCase();
 
-  if (normalized.includes("series")) {
+  if (normalized.includes("séries")) {
     return "border-[#2b6cb066] bg-[#1a2430] text-[#8fc3ff]";
   }
 
-  if (normalized.includes("recuperacao")) {
+  if (normalized.includes("recuperação")) {
     return "border-[#2f855a66] bg-[#18261f] text-[#8fe3b8]";
   }
 
@@ -161,11 +165,11 @@ function getSplitToneStyle(label: string): string {
 function getSplitSectionIcon(label: string) {
   const normalized = label.toLowerCase();
 
-  if (normalized.includes("series")) {
+  if (normalized.includes("séries")) {
     return <FaBolt size={11} className="text-[#8fc3ff]" />;
   }
 
-  if (normalized.includes("recuperacao")) {
+  if (normalized.includes("recuperação")) {
     return <FaSnowflake size={11} className="text-[#8fe3b8]" />;
   }
 
@@ -213,15 +217,15 @@ function SplitDetailsPanel({
 
   const splitMetrics: SplitMetric[] = [
     {
-      label: "Duracao estimada",
+      label: "Duração estimada",
       value: totalDurationSeconds > 0 ? formatSeconds(totalDurationSeconds) : "--",
     },
     {
-      label: "Distancia total",
+      label: "Distância total",
       value: `${totalDistanceKm.toFixed(1)}km`,
     },
     {
-      label: "Ritmo medio",
+      label: "Ritmo médio",
       value:
         averagePaceSeconds > 0
           ? `${formatPaceFromSeconds(averagePaceSeconds)}/km`
@@ -309,6 +313,7 @@ function TrainingSessionCard({
 }
 
 function Home() {
+  const navigate = useNavigate();
   const [trainingProgram, setTrainingProgram] = useState<TrainingPlan | null>(
     null
   );
@@ -316,12 +321,17 @@ function Home() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isPlanSaved, setIsPlanSaved] = useState<boolean>(false);
   const [savingPlan, setSavingPlan] = useState<boolean>(false);
+  const [athleteDisplayName, setAthleteDisplayName] = useState<string>("");
   const saveAttemptedRef = useRef(false);
 
   // Retrieve params from URL
   const { search } = useLocation();
   const location = useLocation();
   const params = new URLSearchParams(search);
+  
+  // Get outlet context with legacy flag
+  const outletContext = useOutletContext<AthleteOutletContext | undefined>();
+  const fromLegacy = outletContext?.fromLegacy ?? false;
   const progression_rate = params.get("progression_rate");
   const phase_duration = params.get("phase_duration");
   const training_frequency = params.get("training_frequency");
@@ -345,6 +355,30 @@ function Home() {
   const backToProgramsPath = "/atleta/programas";
   const regeneratePlanPath = "/atleta/onboarding/formulario";
   const catalogPath = "/programas";
+
+  useEffect(() => {
+    let mounted = true;
+
+    const hydrateProfileName = async () => {
+      try {
+        const profile = await fetchAthleteProfile();
+        if (!mounted) return;
+
+        const resolvedName =
+          profile.athlete?.name?.trim() ||
+          profile.onboarding?.fullName?.trim() ||
+          "";
+        setAthleteDisplayName(resolvedName);
+      } catch {
+        // Non-blocking, fallback still available from query param when present.
+      }
+    };
+
+    void hydrateProfileName();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   // Effect 1: Generate the training program
   useEffect(() => {
@@ -373,12 +407,12 @@ function Home() {
           setTrainingProgram(result.data);
         } else {
           setErrorMessage(
-            "Nao foi possivel gerar o plano com os dados recebidos."
+            "Não foi possível gerar o plano com os dados recebidos."
           );
         }
       } catch (err) {
         console.log(err);
-        setErrorMessage("Erro ao comunicar com o servico de planos.");
+        setErrorMessage("Erro ao comunicar com o serviço de planos.");
       } finally {
         setLoadingProgram(false);
       }
@@ -395,9 +429,44 @@ function Home() {
       .filter(([, value]) => value === null)
       .map(([key]) => key);
 
+    const allRequiredParamsAbsent = [
+      progression_rate,
+      phase_duration,
+      training_frequency,
+      program_distance,
+    ].every((value) => value === null || value.trim() === "");
+
     if (missingOrInvalidParams.length > 0) {
+      if (allRequiredParamsAbsent) {
+        const resolveGeneratedPlanPath = async () => {
+          try {
+            const payload = await fetchAthleteRunningPrograms();
+            const savedPlanPath = payload.runningPrograms.find(
+              (program) => program.status === "active" && program.hasPlanData
+            )?.openPath;
+
+            if (
+              savedPlanPath &&
+              savedPlanPath !== regeneratePlanPath &&
+              savedPlanPath !== `${location.pathname}${location.search}`
+            ) {
+              navigate(savedPlanPath, { replace: true });
+              return;
+            }
+          } catch {
+            // If lookup fails, continue to graceful empty state.
+          }
+
+          setErrorMessage(null);
+          setLoadingProgram(false);
+        };
+
+        void resolveGeneratedPlanPath();
+        return;
+      }
+
       setErrorMessage(
-        `Parametros obrigatorios em falta ou invalidos: ${missingOrInvalidParams.join(
+        `Parâmetros obrigatórios em falta ou inválidos: ${missingOrInvalidParams.join(
           ", "
         )}.`
       );
@@ -415,6 +484,10 @@ function Home() {
       parsedInitialVolume
     );
   }, [
+    navigate,
+    location.pathname,
+    location.search,
+    regeneratePlanPath,
     parsedInitialVolume,
     parsedPhaseDuration,
     parsedProgramDistance,
@@ -447,7 +520,7 @@ function Home() {
           race_dist: parsedRaceDist || null,
           race_time: parsedRaceTime || null,
           initial_volume: parsedInitialVolume || null,
-          athlete_name: name || null,
+          athlete_name: (athleteDisplayName || name || "").trim() || null,
         };
 
         const response = await fetch("/.netlify/functions/save-plan", {
@@ -477,7 +550,7 @@ function Home() {
     };
 
     savePlanToDatabase();
-  }, [trainingProgram, parsedProgressionRate, parsedPhaseDuration, parsedTrainingFrequency, parsedProgramDistance, parsedRaceDist, parsedRaceTime, parsedInitialVolume, name]);
+  }, [trainingProgram, parsedProgressionRate, parsedPhaseDuration, parsedTrainingFrequency, parsedProgramDistance, parsedRaceDist, parsedRaceTime, parsedInitialVolume, name, athleteDisplayName]);
 
   if (loadingProgram) {
     return (
@@ -495,7 +568,7 @@ function Home() {
           <h2 className="text-xl font-bold text-[#ffd4d4] mb-2">Erro no plano</h2>
           <p className="text-[#ffd4d4]">{errorMessage}</p>
           <p className="text-[#ffd4d4] mt-2 text-sm">
-            Confirma que a URL contem os parametros obrigatorios: progression_rate,
+            Confirma que a URL contém os parâmetros obrigatórios: progression_rate,
             phase_duration, training_frequency, program_distance.
           </p>
           <Link
@@ -518,11 +591,18 @@ function Home() {
   }
 
   if (trainingProgram) {
+    // Check if we're on the plano page (/atleta/plano)
+    const isOnPlanoPage = location.pathname === "/atleta/plano" || location.pathname === "/planocorrida/atleta/plano";
+
     return (
-      <div className="w-full min-h-screen flex flex-col items-center px-3 pb-10">
+      <>
+        {/* App Download Popup - shows only in legacy browser context on plano page */}
+        <AppDownloadPopup fromLegacy={fromLegacy} isOnPlanoPage={isOnPlanoPage} />
+        
+        <div className="w-full min-h-screen flex flex-col items-center px-3 pb-10">
         {/* Titulo e Nome da Pessoa */}
         <h1 className="mt-6 text-3xl font-semibold text-[#f4f6fa]">Plano de Treino LHT</h1>
-        <h2 className="text-lg font-semibold text-[#c9ced9]">{name}</h2>
+        <h2 className="text-lg font-semibold text-[#c9ced9]">{athleteDisplayName || name}</h2>
         
         {/* Plan save status indicator */}
         {savingPlan && (
@@ -554,13 +634,13 @@ function Home() {
                     rel="noopener"
                     className="rounded-xl border border-[#2f855a88] bg-[#163325] px-4 py-2 text-sm font-semibold text-[#d9f6e5] hover:bg-[#1d4330]"
                   >
-                    Aderir a comunidade
+                    Aderir à comunidade
                   </a>
                 <a
                   href={catalogPath}
                   className="rounded-xl bg-[linear-gradient(180deg,#e3b861,#d4a54f_55%,#bf8e3e)] px-4 py-2 text-sm font-semibold text-[#111111] shadow-[0_8px_22px_rgba(212,165,79,0.28)]"
                 >
-                  Ver catalogo completo
+                  Ver catálogo completo
                 </a>
               </div>
             </div>
@@ -713,22 +793,23 @@ function Home() {
             ))}
           </TabsContent>
         </Tabs>
-      </div>
+        </div>
+      </>
     );
   }
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4">
       <div className="max-w-xl w-full bg-[#1f1f1ff2] border border-[#d4a54f33] rounded-xl p-5">
-        <h2 className="text-xl font-bold mb-2 text-[#f4f6fa]">Sem dados de plano</h2>
+        <h2 className="text-xl font-bold mb-2 text-[#f4f6fa]">Ainda não tens plano gerado</h2>
         <p className="text-[#c9ced9]">
-          O servico respondeu sem dados para os parametros enviados.
+          Ainda não encontrámos um plano para esta conta. Gera o teu plano para começar.
         </p>
         <Link
           to={regeneratePlanPath}
           className="inline-block mt-4 px-4 py-2 rounded-md bg-[#d4a54f] text-[#111111] text-sm font-semibold hover:bg-[#c29740]"
         >
-          Preencher formulario
+          Gerar plano agora
         </Link>
         {insideAthleteApp ? (
           <Link

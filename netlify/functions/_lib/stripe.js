@@ -112,11 +112,14 @@ async function createStripeProductAndPrice({ name, description, priceCents, curr
   const stripe = cachedClient;
   if (!stripe) throw new Error('Stripe client not initialized');
   const product = await stripe.products.create({ name, description });
+  const recurringConfig = recurring && typeof recurring === 'object'
+    ? recurring
+    : (recurring ? { interval: 'month', interval_count: 1 } : null);
   const price = await stripe.prices.create({
     unit_amount: priceCents,
     currency,
     product: product.id,
-    ...(recurring ? { recurring: { interval: 'month' } } : {})
+    ...(recurringConfig ? { recurring: recurringConfig } : {})
   });
   return { productId: product.id, priceId: price.id };
 }
@@ -189,11 +192,19 @@ async function listPricesForProduct(productId) {
 async function createPriceForProduct({ productId, priceCents, currency = 'EUR', recurring = false }) {
   const stripe = cachedClient;
   if (!stripe) throw new Error('Stripe client not initialized');
+  const recurringConfig = recurring && typeof recurring === 'object'
+    ? {
+        interval: recurring.interval || 'month',
+        ...(Number.isInteger(recurring.intervalCount) && recurring.intervalCount > 1
+          ? { interval_count: recurring.intervalCount }
+          : {})
+      }
+    : (recurring ? { interval: 'month' } : null);
   return stripe.prices.create({
     unit_amount: priceCents,
     currency: currency.toLowerCase(),
     product: productId,
-    ...(recurring ? { recurring: { interval: 'month' } } : {})
+    ...(recurringConfig ? { recurring: recurringConfig } : {})
   });
 }
 

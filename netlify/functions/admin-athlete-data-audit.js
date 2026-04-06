@@ -55,7 +55,7 @@ function normalizeEmail(value) {
 
 async function getOnboardingIntake(config, { identityId, email }) {
   const params = [
-    "select=id,identity_id,athlete_id,email,phone,full_name,goal_distance,weekly_frequency,experience_level,consistency_level,funnel_stage,plan_generated_at,plan_storage,submitted_at,updated_at"
+    "select=id,identity_id,email,name,phone,goal_distance,weekly_frequency,experience_level,consistency_level,funnel_stage,plan_generated_at,plan_storage,onboarding_submitted_at,onboarding_updated_at"
   ];
 
   if (identityId) params.push(`identity_id=eq.${encodeURIComponent(identityId)}`);
@@ -64,10 +64,27 @@ async function getOnboardingIntake(config, { identityId, email }) {
   const rows = await supabaseRequest({
     url: config.supabaseUrl,
     serviceRoleKey: config.supabaseServiceRoleKey,
-    path: `onboarding_intake?${params.join("&")}&order=updated_at.desc&limit=20`
+    path: `athletes?${params.join("&")}&order=onboarding_updated_at.desc.nullslast,updated_at.desc.nullslast&limit=20`
   });
 
-  return Array.isArray(rows) ? rows : [];
+  if (!Array.isArray(rows)) return [];
+  return rows.map((row) => ({
+    id: row.id,
+    identity_id: row.identity_id,
+    athlete_id: row.id,
+    email: row.email,
+    phone: row.phone,
+    full_name: row.name,
+    goal_distance: row.goal_distance,
+    weekly_frequency: row.weekly_frequency,
+    experience_level: row.experience_level,
+    consistency_level: row.consistency_level,
+    funnel_stage: row.funnel_stage,
+    plan_generated_at: row.plan_generated_at,
+    plan_storage: row.plan_storage,
+    submitted_at: row.onboarding_submitted_at,
+    updated_at: row.onboarding_updated_at
+  }));
 }
 
 async function getOnboardingFormResponses(config, { identityId, email }) {

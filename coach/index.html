@@ -923,6 +923,7 @@
         <div class="coach-tabs" id="coachTabs">
           <button class="coach-tab-btn active" type="button" data-coach-tab="dashboard">Dashboard</button>
           <button class="coach-tab-btn" type="button" data-coach-tab="athlete">Atletas</button>
+          <button class="coach-tab-btn" type="button" data-coach-tab="zonas">Zonas</button>
           <button class="coach-tab-btn" type="button" data-coach-tab="planeamento">Planeamento</button>
           <button class="coach-tab-btn" type="button" data-coach-tab="forca">Força</button>
           <button class="coach-tab-btn" type="button" data-coach-tab="operacoes">Operações</button>
@@ -986,6 +987,18 @@
           </div>
           <p id="athleteFilterMeta" class="microcopy">A lista é carregada do Supabase.</p>
           <button id="openOneRmModal" class="btn btn-secondary" type="button" style="margin-top:10px;" disabled>Gerir 1RM do atleta</button>
+        </section>
+
+        <section class="section-card coach-tab-section" data-coach-tab="zonas" hidden>
+          <div style="display:flex; justify-content:space-between; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:10px;">
+            <h3 class="section-title" style="margin:0;">Zonas de treino por atleta</h3>
+            <div class="header-actions">
+              <button id="loadTrainingZonesBtn" class="btn btn-secondary" type="button" style="min-width:140px;">Atualizar</button>
+              <button id="addTrainingZoneProfileBtn" class="btn btn-primary" type="button">Adicionar modalidade</button>
+            </div>
+          </div>
+          <div id="trainingZonesList" style="display:grid; gap:10px;"></div>
+          <p id="trainingZonesMeta" class="microcopy">Seleciona um atleta para gerir zonas por modalidade.</p>
         </section>
 
         <section class="section-card coach-tab-section" data-coach-tab="athlete">
@@ -1501,6 +1514,129 @@
     </div>
   </div>
 
+  <div id="trainingZonesEditorModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="trainingZonesEditorTitle">
+    <div class="modal" style="width:min(760px,100%); max-height:min(92vh,860px); overflow:auto;">
+      <h3 id="trainingZonesEditorTitle">Editor de zonas</h3>
+      <p>Configura o perfil por família (FC/Performance), escopo (fallback/override) e método.</p>
+      <form id="trainingZonesForm">
+        <div class="form-grid">
+          <div class="field">
+            <label for="trainingZonesFamily">Família</label>
+            <select id="trainingZonesFamily">
+              <option value="heart_rate">Zonas FC</option>
+              <option value="performance">Zonas Performance</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="trainingZonesScope">Escopo</label>
+            <select id="trainingZonesScope">
+              <option value="general">Fallback geral</option>
+              <option value="modality">Por modalidade (override)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="trainingZonesMethod">Método</label>
+            <select id="trainingZonesMethod"></select>
+          </div>
+          <div class="field">
+            <label for="trainingZonesModality">Modalidade</label>
+            <select id="trainingZonesModality">
+              <option value="general">Geral (fallback)</option>
+              <option value="run">Corrida</option>
+              <option value="bike">Bike</option>
+              <option value="swim">Natação</option>
+              <option value="row">Remo</option>
+              <option value="other">Outros</option>
+            </select>
+          </div>
+          <div id="tzFieldMetricType" class="field" hidden>
+            <label for="trainingZonesMetricType">Métrica</label>
+            <select id="trainingZonesMetricType">
+              <option value="heart_rate">Frequência cardíaca</option>
+              <option value="pace">Pace</option>
+            </select>
+          </div>
+          <div id="tzFieldModel" class="field" hidden>
+            <label for="trainingZonesModel">Modelo</label>
+            <select id="trainingZonesModel">
+              <option value="friel_5">Friel 5 zonas</option>
+              <option value="jack_daniels">Jack Daniels (corrida)</option>
+              <option value="percent_hrmax">% FC max</option>
+              <option value="hrr">HRR (Karvonen)</option>
+              <option value="lthr">LTHR simples</option>
+            </select>
+          </div>
+          <div id="tzFieldLthr" class="field">
+            <label for="trainingZonesLthr">LTHR (bpm)</label>
+            <input id="trainingZonesLthr" type="number" min="1" step="1" placeholder="Ex.: 172" />
+          </div>
+          <div id="tzFieldHrMax" class="field">
+            <label for="trainingZonesHrMax">FC max (bpm)</label>
+            <input id="trainingZonesHrMax" type="number" min="1" step="1" placeholder="Ex.: 190" />
+          </div>
+          <div id="tzFieldHrRest" class="field">
+            <label for="trainingZonesHrRest">FC repouso (bpm)</label>
+            <input id="trainingZonesHrRest" type="number" min="1" step="1" placeholder="Ex.: 52" />
+          </div>
+          <div id="tzFieldVdot" class="field">
+            <label for="trainingZonesVdot">VDOT (corrida)</label>
+            <input id="trainingZonesVdot" type="number" min="1" step="0.1" placeholder="Ex.: 48" />
+            <div id="trainingZonesVdotSuggestion" class="microcopy" style="margin-top:4px; display:none;"></div>
+            <details id="trainingZonesVdotCalculator" style="margin-top:6px;">
+              <summary style="cursor:pointer; color:var(--text-soft); font-size:12px;">Calcular VDOT inline</summary>
+              <div style="margin-top:8px; display:grid; gap:8px; grid-template-columns:repeat(2, minmax(0, 1fr));">
+                <div class="field" style="margin:0;">
+                  <label for="trainingZonesVdotCalcDistance" style="font-size:12px;">Distância (km)</label>
+                  <input id="trainingZonesVdotCalcDistance" type="number" min="0.1" step="0.1" placeholder="10" />
+                </div>
+                <div class="field" style="margin:0;">
+                  <label for="trainingZonesVdotCalcTime" style="font-size:12px;">Tempo (min)</label>
+                  <input id="trainingZonesVdotCalcTime" type="number" min="1" step="0.1" placeholder="45" />
+                </div>
+              </div>
+              <div style="margin-top:8px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                <button id="trainingZonesVdotCalcBtn" class="btn btn-secondary" type="button" style="min-width:150px;">Calcular VDOT</button>
+                <span id="trainingZonesVdotCalcResult" class="microcopy"></span>
+              </div>
+            </details>
+          </div>
+          <div id="tzFieldThresholdPace" class="field">
+            <label id="trainingZonesThresholdPaceLabel" for="trainingZonesThresholdPace">Threshold pace (seg/km)</label>
+            <input id="trainingZonesThresholdPace" type="number" min="1" step="0.1" placeholder="Ex.: 258" />
+          </div>
+          <div class="field full" id="trainingZonesContextHint" hidden>
+            <div class="microcopy" id="trainingZonesContextHintText"></div>
+          </div>
+        </div>
+
+        <div style="margin-top:12px; overflow-x:auto; border:1px solid var(--line); border-radius:var(--radius-md);">
+          <table class="str-table" style="min-width:420px;">
+            <thead>
+              <tr>
+                <th>Zona</th>
+                <th>Mínimo</th>
+                <th>Máximo</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>Z1</td><td><input id="tz1Min" type="number" step="0.1" /></td><td><input id="tz1Max" type="number" step="0.1" /></td></tr>
+              <tr><td>Z2</td><td><input id="tz2Min" type="number" step="0.1" /></td><td><input id="tz2Max" type="number" step="0.1" /></td></tr>
+              <tr><td>Z3</td><td><input id="tz3Min" type="number" step="0.1" /></td><td><input id="tz3Max" type="number" step="0.1" /></td></tr>
+              <tr><td>Z4</td><td><input id="tz4Min" type="number" step="0.1" /></td><td><input id="tz4Max" type="number" step="0.1" /></td></tr>
+              <tr><td>Z5</td><td><input id="tz5Min" type="number" step="0.1" /></td><td><input id="tz5Max" type="number" step="0.1" /></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="form-actions" style="margin-top:12px;">
+          <button id="autoTrainingZonesBtn" class="btn btn-secondary" type="button">Auto preencher 5 zonas</button>
+          <button id="saveTrainingZonesBtn" class="btn btn-primary" type="submit">Guardar modalidade</button>
+          <button id="cancelTrainingZonesEditorBtn" class="btn btn-secondary" type="button">Fechar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- Strength Plan Modal -->
   <div id="strengthPlanModal" class="modal-backdrop hidden" role="dialog" aria-modal="true">
     <div class="modal">
@@ -1841,6 +1977,51 @@
     const athleteUploadManualStrengthFeedback = document.getElementById("athleteUploadManualStrengthFeedback");
     const athleteUploadSubmitButton = document.getElementById("athleteUploadSubmitButton");
     const athleteUploadCancelButton = document.getElementById("athleteUploadCancelButton");
+    const trainingZonesForm = document.getElementById("trainingZonesForm");
+    const trainingZonesList = document.getElementById("trainingZonesList");
+    const addTrainingZoneProfileBtn = document.getElementById("addTrainingZoneProfileBtn");
+    const trainingZonesFamily = document.getElementById("trainingZonesFamily");
+    const trainingZonesScope = document.getElementById("trainingZonesScope");
+    const trainingZonesMethod = document.getElementById("trainingZonesMethod");
+    const trainingZonesModality = document.getElementById("trainingZonesModality");
+    const trainingZonesMetricType = document.getElementById("trainingZonesMetricType");
+    const trainingZonesModel = document.getElementById("trainingZonesModel");
+    const trainingZonesLthr = document.getElementById("trainingZonesLthr");
+    const trainingZonesHrMax = document.getElementById("trainingZonesHrMax");
+    const trainingZonesHrRest = document.getElementById("trainingZonesHrRest");
+    const trainingZonesVdot = document.getElementById("trainingZonesVdot");
+    const trainingZonesThresholdPace = document.getElementById("trainingZonesThresholdPace");
+    const trainingZonesVdotSuggestion = document.getElementById("trainingZonesVdotSuggestion");
+    const trainingZonesVdotCalculator = document.getElementById("trainingZonesVdotCalculator");
+    const trainingZonesVdotCalcDistance = document.getElementById("trainingZonesVdotCalcDistance");
+    const trainingZonesVdotCalcTime = document.getElementById("trainingZonesVdotCalcTime");
+    const trainingZonesVdotCalcBtn = document.getElementById("trainingZonesVdotCalcBtn");
+    const trainingZonesVdotCalcResult = document.getElementById("trainingZonesVdotCalcResult");
+    const tzFieldLthr = document.getElementById("tzFieldLthr");
+    const tzFieldMetricType = document.getElementById("tzFieldMetricType");
+    const tzFieldModel = document.getElementById("tzFieldModel");
+    const tzFieldHrMax = document.getElementById("tzFieldHrMax");
+    const tzFieldHrRest = document.getElementById("tzFieldHrRest");
+    const tzFieldVdot = document.getElementById("tzFieldVdot");
+    const tzFieldThresholdPace = document.getElementById("tzFieldThresholdPace");
+    const trainingZonesThresholdPaceLabel = document.getElementById("trainingZonesThresholdPaceLabel");
+    const trainingZonesContextHint = document.getElementById("trainingZonesContextHint");
+    const trainingZonesContextHintText = document.getElementById("trainingZonesContextHintText");
+    const trainingZonesMeta = document.getElementById("trainingZonesMeta");
+    const loadTrainingZonesBtn = document.getElementById("loadTrainingZonesBtn");
+    const autoTrainingZonesBtn = document.getElementById("autoTrainingZonesBtn");
+    const trainingZonesEditorModal = document.getElementById("trainingZonesEditorModal");
+    const cancelTrainingZonesEditorBtn = document.getElementById("cancelTrainingZonesEditorBtn");
+    const tz1Min = document.getElementById("tz1Min");
+    const tz1Max = document.getElementById("tz1Max");
+    const tz2Min = document.getElementById("tz2Min");
+    const tz2Max = document.getElementById("tz2Max");
+    const tz3Min = document.getElementById("tz3Min");
+    const tz3Max = document.getElementById("tz3Max");
+    const tz4Min = document.getElementById("tz4Min");
+    const tz4Max = document.getElementById("tz4Max");
+    const tz5Min = document.getElementById("tz5Min");
+    const tz5Max = document.getElementById("tz5Max");
 
     const checkinDetailModal = document.getElementById("checkinDetailModal");
     const checkinDetailBody = document.getElementById("checkinDetailBody");
@@ -1859,6 +2040,8 @@
     let publicConfig = null;
 
     let athletes = [];
+    let athleteTrainingZoneProfiles = [];
+    let trainingZonesEditorInitialSnapshot = "";
     let selectedAthleteId = "";
     let selectedTrainingLoadWeekStart = "";
     let allCheckins = [];
@@ -1972,6 +2155,14 @@
       athleteSelect.disabled = !canUseApi;
       athleteSearchInput.disabled = !canUseApi;
       openAddAthleteModalButton.disabled = !canUseApi;
+      if (loadTrainingZonesBtn) loadTrainingZonesBtn.disabled = !canUseApi;
+      if (addTrainingZoneProfileBtn) addTrainingZoneProfileBtn.disabled = !canUseApi;
+      if (trainingZonesForm) {
+        const zoneInputs = trainingZonesForm.querySelectorAll("input, select, button");
+        zoneInputs.forEach((input) => {
+          input.disabled = !canUseApi;
+        });
+      }
       
       // Desabilitar inputs individuais dentro do form (form.disabled não funciona em HTML)
       const formInputs = form.querySelectorAll('input, select, textarea, button');
@@ -2051,6 +2242,754 @@
       athleteUploadSelectedAthlete.value = selectedAthleteInput.value || "";
       if (openAthleteUploadModalButton) {
         openAthleteUploadModalButton.disabled = !selectedAthleteId;
+      }
+    }
+
+    const TRAINING_ZONE_MODALITIES = ["general", "run", "bike", "swim", "row", "other"];
+    const TRAINING_ZONE_MODEL_OPTIONS = {
+      heart_rate: ["friel_5", "percent_hrmax", "hrr", "lthr"],
+      pace: ["jack_daniels"]
+    };
+    const TRAINING_ZONE_METHOD_OPTIONS = {
+      heart_rate: [
+        { value: "fcmax", label: "FCmax" },
+        { value: "hrr", label: "HRR" },
+        { value: "lthr", label: "LTHR" }
+      ],
+      performance_run: [
+        { value: "run_vdot", label: "Corrida (pace) · VDOT" },
+        { value: "run_lt_pace", label: "Corrida (pace) · LT Pace" }
+      ]
+    };
+
+    let trainingZonesCurrentMethod = "fcmax";
+    let trainingZonesPreferredLthrModel = "lthr";
+
+    function getTrainingZoneProfileKey(modality, metricType) {
+      return `${String(modality || "")}|${String(metricType || "")}`;
+    }
+
+    function getModalityLabel(modality) {
+      const key = String(modality || "").toLowerCase();
+      if (key === "general") return "Geral";
+      if (key === "run") return "Corrida";
+      if (key === "bike") return "Bike";
+      if (key === "swim") return "Natação";
+      if (key === "row") return "Remo";
+      return "Outros";
+    }
+
+    function getMetricLabel(metricType) {
+      return String(metricType || "").toLowerCase() === "pace" ? "Pace" : "FC";
+    }
+
+    function getTrainingZoneMethodLabel(profile) {
+      if (!profile) return "-";
+      const metricType = String(profile.metric_type || "heart_rate").toLowerCase();
+      const model = String(profile.model || "").toLowerCase();
+      const modality = String(profile.modality || "general").toLowerCase();
+      if (metricType === "pace" && model === "jack_daniels" && modality === "run") {
+        return Number.isFinite(Number(profile.threshold_pace_sec_per_km)) && !Number.isFinite(Number(profile.vdot))
+          ? "LT Pace"
+          : "VDOT";
+      }
+      if (metricType === "heart_rate") {
+        if (model === "percent_hrmax") return "FCmax";
+        if (model === "hrr") return "HRR";
+        return "LTHR";
+      }
+      return "-";
+    }
+
+    function getTrainingZoneScopeLabel(modality) {
+      return String(modality || "general").toLowerCase() === "general"
+        ? "Fallback geral"
+        : `Override ${getModalityLabel(modality)}`;
+    }
+
+    function syncTrainingZonesMethodOptions(preferredMethod) {
+      if (!trainingZonesMethod || !trainingZonesFamily) return;
+
+      const family = String(trainingZonesFamily.value || "heart_rate");
+      const modality = String(trainingZonesModality.value || "general");
+      const source = family === "heart_rate"
+        ? TRAINING_ZONE_METHOD_OPTIONS.heart_rate
+        : (modality === "run" ? TRAINING_ZONE_METHOD_OPTIONS.performance_run : []);
+
+      trainingZonesMethod.innerHTML = source.map((opt) => `<option value="${escapeHtml(opt.value)}">${escapeHtml(opt.label)}</option>`).join("");
+
+      if (!source.length) {
+        trainingZonesCurrentMethod = "";
+        return;
+      }
+
+      const allowedValues = new Set(source.map((opt) => opt.value));
+      const current = String(trainingZonesMethod.value || "");
+      const preferred = String(preferredMethod || "");
+      const next = allowedValues.has(current)
+        ? current
+        : (allowedValues.has(preferred) ? preferred : source[0].value);
+
+      trainingZonesMethod.value = next;
+      trainingZonesCurrentMethod = next;
+    }
+
+    function setTrainingZonesContextHint(message) {
+      if (!trainingZonesContextHint || !trainingZonesContextHintText) return;
+      if (!message) {
+        trainingZonesContextHint.hidden = true;
+        trainingZonesContextHintText.textContent = "";
+        return;
+      }
+      trainingZonesContextHint.hidden = false;
+      trainingZonesContextHintText.textContent = message;
+    }
+
+    function inferTrainingZoneMethodFromProfile(profile) {
+      if (!profile) return "fcmax";
+      const metricType = String(profile.metric_type || "heart_rate").toLowerCase();
+      const model = String(profile.model || "").toLowerCase();
+      const modality = String(profile.modality || "general").toLowerCase();
+
+      if (metricType === "pace" && model === "jack_daniels" && modality === "run") {
+        return Number.isFinite(Number(profile.threshold_pace_sec_per_km)) && !Number.isFinite(Number(profile.vdot))
+          ? "run_lt_pace"
+          : "run_vdot";
+      }
+      if (metricType === "heart_rate") {
+        if (model === "hrr") return "hrr";
+        if (model === "percent_hrmax") return "fcmax";
+        if (model === "friel_5" || model === "lthr") {
+          trainingZonesPreferredLthrModel = model;
+          return "lthr";
+        }
+      }
+      return "fcmax";
+    }
+
+    function syncTrainingZonesContextToHiddenFields() {
+      if (!trainingZonesFamily || !trainingZonesScope || !trainingZonesMethod) return;
+
+      const family = String(trainingZonesFamily.value || "heart_rate");
+      const scope = String(trainingZonesScope.value || "general");
+      const method = String(trainingZonesMethod.value || "");
+
+      if (scope === "general") {
+        trainingZonesModality.value = "general";
+      } else if (trainingZonesModality.value === "general") {
+        trainingZonesModality.value = "run";
+      }
+
+      if (family === "heart_rate") {
+        trainingZonesMetricType.value = "heart_rate";
+        if (method === "fcmax") {
+          trainingZonesModel.value = "percent_hrmax";
+        } else if (method === "hrr") {
+          trainingZonesModel.value = "hrr";
+        } else {
+          const preferred = trainingZonesPreferredLthrModel === "friel_5" ? "friel_5" : "lthr";
+          trainingZonesModel.value = preferred;
+        }
+        setTrainingZonesContextHint(scope === "general"
+          ? "Perfil FC geral (fallback): usado quando não existir perfil específico da modalidade."
+          : "Perfil FC por modalidade (override): sobrepõe o fallback geral para esta modalidade.");
+        trainingZonesCurrentMethod = String(trainingZonesMethod.value || "lthr");
+        return;
+      }
+
+      trainingZonesMetricType.value = "pace";
+      trainingZonesModel.value = "jack_daniels";
+      trainingZonesScope.value = "modality";
+      trainingZonesModality.value = "run";
+
+      if (method !== "run_vdot" && method !== "run_lt_pace") {
+        trainingZonesMethod.value = "run_vdot";
+      }
+
+      trainingZonesCurrentMethod = String(trainingZonesMethod.value || "run_vdot");
+
+      setTrainingZonesContextHint("Família Performance está em MVP para Corrida (pace). Ciclismo watts/FTP será ativado após migração de schema.");
+    }
+
+    function getZoneRowsFromForm() {
+      return [
+        { zone_number: 1, min_value: Number(tz1Min.value), max_value: Number(tz1Max.value), label: "Z1" },
+        { zone_number: 2, min_value: Number(tz2Min.value), max_value: Number(tz2Max.value), label: "Z2" },
+        { zone_number: 3, min_value: Number(tz3Min.value), max_value: Number(tz3Max.value), label: "Z3" },
+        { zone_number: 4, min_value: Number(tz4Min.value), max_value: Number(tz4Max.value), label: "Z4" },
+        { zone_number: 5, min_value: Number(tz5Min.value), max_value: Number(tz5Max.value), label: "Z5" }
+      ];
+    }
+
+    function normalizeZoneRows(zones) {
+      return (Array.isArray(zones) ? zones : [])
+        .map((zone, index) => ({
+          zone_number: Number(zone.zone_number || (index + 1)),
+          min_value: Number(zone.min_value),
+          max_value: Number(zone.max_value),
+          label: `Z${Number(zone.zone_number || (index + 1))}`
+        }))
+        .sort((a, b) => a.zone_number - b.zone_number);
+    }
+
+    function setZoneRowsInForm(zones) {
+      const sorted = normalizeZoneRows(zones);
+      const pick = (index, key) => sorted[index] && Number.isFinite(Number(sorted[index][key]))
+        ? String(Number(sorted[index][key]))
+        : "";
+      tz1Min.value = pick(0, "min_value");
+      tz1Max.value = pick(0, "max_value");
+      tz2Min.value = pick(1, "min_value");
+      tz2Max.value = pick(1, "max_value");
+      tz3Min.value = pick(2, "min_value");
+      tz3Max.value = pick(2, "max_value");
+      tz4Min.value = pick(3, "min_value");
+      tz4Max.value = pick(3, "max_value");
+      tz5Min.value = pick(4, "min_value");
+      tz5Max.value = pick(4, "max_value");
+    }
+
+    function clearTrainingZonesForm() {
+      if (trainingZonesFamily) trainingZonesFamily.value = "heart_rate";
+      if (trainingZonesScope) trainingZonesScope.value = "general";
+      if (trainingZonesMethod) trainingZonesMethod.value = "fcmax";
+      trainingZonesModality.value = "general";
+      trainingZonesMetricType.value = "heart_rate";
+      trainingZonesModel.value = "lthr";
+      trainingZonesCurrentMethod = "fcmax";
+      trainingZonesLthr.value = "";
+      trainingZonesHrMax.value = "";
+      trainingZonesHrRest.value = "";
+      trainingZonesVdot.value = "";
+      trainingZonesThresholdPace.value = "";
+      if (trainingZonesVdotSuggestion) {
+        trainingZonesVdotSuggestion.style.display = "none";
+        trainingZonesVdotSuggestion.textContent = "";
+      }
+      if (trainingZonesVdotCalcResult) trainingZonesVdotCalcResult.textContent = "";
+      if (trainingZonesVdotCalculator) trainingZonesVdotCalculator.open = false;
+      setZoneRowsInForm([]);
+      syncTrainingZonesMethodOptions("fcmax");
+      syncTrainingZonesContextToHiddenFields();
+      syncTrainingZonesModelOptions();
+      syncTrainingZonesFieldVisibility();
+    }
+
+    function applyTrainingZoneProfileToForm(profile) {
+      if (!profile) {
+        clearTrainingZonesForm();
+        return;
+      }
+
+      trainingZonesModality.value = profile.modality || "general";
+      if (trainingZonesScope) {
+        trainingZonesScope.value = String(profile.modality || "general").toLowerCase() === "general"
+          ? "general"
+          : "modality";
+      }
+
+      const metricType = String(profile.metric_type || "heart_rate").toLowerCase();
+      if (trainingZonesFamily) {
+        trainingZonesFamily.value = metricType === "pace" ? "performance" : "heart_rate";
+      }
+
+      const inferredMethod = inferTrainingZoneMethodFromProfile(profile);
+      syncTrainingZonesMethodOptions(inferredMethod);
+      if (trainingZonesMethod) trainingZonesMethod.value = inferredMethod;
+      trainingZonesCurrentMethod = inferredMethod;
+      syncTrainingZonesContextToHiddenFields();
+
+      trainingZonesMetricType.value = profile.metric_type || trainingZonesMetricType.value || "heart_rate";
+      trainingZonesModel.value = profile.model || trainingZonesModel.value || "lthr";
+      trainingZonesLthr.value = profile.lthr_bpm != null ? String(profile.lthr_bpm) : "";
+      trainingZonesHrMax.value = profile.hr_max_bpm != null ? String(profile.hr_max_bpm) : "";
+      trainingZonesHrRest.value = profile.hr_rest_bpm != null ? String(profile.hr_rest_bpm) : "";
+      trainingZonesVdot.value = profile.vdot != null ? String(profile.vdot) : "";
+      trainingZonesThresholdPace.value = profile.threshold_pace_sec_per_km != null
+        ? String(profile.threshold_pace_sec_per_km)
+        : "";
+      setZoneRowsInForm(profile.zones || []);
+      syncTrainingZonesModelOptions(profile.model || "lthr");
+      syncTrainingZonesFieldVisibility();
+      refreshTrainingZonesVdotSuggestion();
+    }
+
+    function formatVdot(value) {
+      const num = Number(value);
+      if (!Number.isFinite(num)) return "";
+      return String(Math.round(num * 10) / 10);
+    }
+
+    function getAthleteOnboardingAnswers() {
+      const athlete = athletes.find((item) => item.id === selectedAthleteId);
+      if (!athlete) return null;
+      return athlete.onboarding_answers || athlete.onboardingAnswers || null;
+    }
+
+    function getSuggestedVdotFromForm() {
+      const answers = getAthleteOnboardingAnswers();
+      if (!answers || typeof answers !== "object") return null;
+
+      const candidates = [
+        answers.vdot,
+        answers.planocorrida_landing && answers.planocorrida_landing.vdot,
+        answers.planocorridaLanding && answers.planocorridaLanding.vdot,
+        answers.planocorrida && answers.planocorrida.vdot,
+        answers.running && answers.running.vdot
+      ];
+
+      for (const value of candidates) {
+        const parsed = Number(value);
+        if (Number.isFinite(parsed) && parsed > 0) return parsed;
+      }
+      return null;
+    }
+
+    function refreshTrainingZonesVdotSuggestion() {
+      if (!trainingZonesVdotSuggestion) return;
+
+      const family = String(trainingZonesFamily && trainingZonesFamily.value || "heart_rate").toLowerCase();
+      const method = String(trainingZonesMethod && trainingZonesMethod.value || trainingZonesCurrentMethod || "fcmax").toLowerCase();
+      const showVdotContext = family === "performance" && method === "run_vdot";
+
+      if (!showVdotContext) {
+        trainingZonesVdotSuggestion.style.display = "none";
+        trainingZonesVdotSuggestion.textContent = "";
+        return;
+      }
+
+      const suggested = getSuggestedVdotFromForm();
+      if (!(Number.isFinite(suggested) && suggested > 0)) {
+        trainingZonesVdotSuggestion.style.display = "none";
+        trainingZonesVdotSuggestion.textContent = "";
+        return;
+      }
+
+      if (!trainingZonesVdot.value) {
+        trainingZonesVdot.value = formatVdot(suggested);
+      }
+
+      const shown = formatVdot(suggested);
+      trainingZonesVdotSuggestion.innerHTML = `Sugestão do formulário: VDOT ${escapeHtml(shown)} · <button type="button" id="trainingZonesUseSuggestedVdot" class="btn btn-secondary" style="min-width:auto; padding:6px 10px; margin-left:6px;">Usar</button>`;
+      trainingZonesVdotSuggestion.style.display = "block";
+
+      const useBtn = document.getElementById("trainingZonesUseSuggestedVdot");
+      if (useBtn) {
+        useBtn.addEventListener("click", () => {
+          trainingZonesVdot.value = shown;
+          trainingZonesMeta.textContent = `VDOT ${shown} aplicado da resposta ao formulário.`;
+        });
+      }
+    }
+
+    function syncTrainingZonesModelOptions(preferredModel) {
+      const metricType = String(trainingZonesMetricType.value || "heart_rate").toLowerCase();
+      const modality = String(trainingZonesModality.value || "general").toLowerCase();
+      const allowed = TRAINING_ZONE_MODEL_OPTIONS[metricType] || TRAINING_ZONE_MODEL_OPTIONS.heart_rate;
+
+      Array.from(trainingZonesModel.options).forEach((option) => {
+        const value = String(option.value || "").toLowerCase();
+        const isAllowed = allowed.includes(value);
+        option.hidden = !isAllowed;
+        option.disabled = !isAllowed;
+      });
+
+      if (metricType === "pace" && modality !== "run") {
+        trainingZonesMetricType.value = "heart_rate";
+        return syncTrainingZonesModelOptions(preferredModel);
+      }
+
+      const currentModel = String(trainingZonesModel.value || "").toLowerCase();
+      const preferred = String(preferredModel || "").toLowerCase();
+      const nextModel = allowed.includes(currentModel)
+        ? currentModel
+        : (allowed.includes(preferred) ? preferred : allowed[0]);
+
+      if (nextModel) trainingZonesModel.value = nextModel;
+    }
+
+    function syncTrainingZonesFieldVisibility() {
+      if (!tzFieldLthr || !tzFieldHrMax || !tzFieldHrRest || !tzFieldVdot || !tzFieldThresholdPace) {
+        return;
+      }
+
+      const family = String(trainingZonesFamily && trainingZonesFamily.value || "heart_rate").toLowerCase();
+      const method = String(trainingZonesMethod && trainingZonesMethod.value || trainingZonesCurrentMethod || "fcmax").toLowerCase();
+      const isPerformance = family === "performance";
+
+      tzFieldLthr.hidden = true;
+      tzFieldHrMax.hidden = true;
+      tzFieldHrRest.hidden = true;
+      tzFieldVdot.hidden = true;
+      tzFieldThresholdPace.hidden = true;
+
+      if (tzFieldMetricType) tzFieldMetricType.hidden = true;
+      if (tzFieldModel) tzFieldModel.hidden = true;
+      if (trainingZonesModality) trainingZonesModality.disabled = isPerformance;
+
+      if (!isPerformance) {
+        if (method === "hrr") {
+          tzFieldHrMax.hidden = false;
+          tzFieldHrRest.hidden = false;
+        } else if (method === "fcmax") {
+          tzFieldHrMax.hidden = false;
+        } else {
+          tzFieldLthr.hidden = false;
+        }
+      }
+
+      if (isPerformance) {
+        if (trainingZonesThresholdPaceLabel) {
+          trainingZonesThresholdPaceLabel.textContent = method === "run_lt_pace"
+            ? "LT Pace (seg/km)"
+            : "Pace limiar (seg/km)";
+        }
+
+        if (method === "run_lt_pace") {
+          tzFieldThresholdPace.hidden = false;
+          tzFieldVdot.hidden = true;
+        } else {
+          tzFieldVdot.hidden = false;
+          tzFieldThresholdPace.hidden = false;
+        }
+      } else if (trainingZonesThresholdPaceLabel) {
+        trainingZonesThresholdPaceLabel.textContent = "Pace limiar (seg/km)";
+      }
+
+      refreshTrainingZonesVdotSuggestion();
+    }
+
+    function calculateDanielsVdot(distanceKm, timeMinutes) {
+      const distance = Number(distanceKm);
+      const time = Number(timeMinutes);
+      if (!(Number.isFinite(distance) && distance > 0 && Number.isFinite(time) && time > 0)) {
+        return null;
+      }
+      const velocity = (distance * 1000) / time;
+      const vo2 = -4.6 + (0.182258 * velocity) + (0.000104 * velocity * velocity);
+      const percent = 0.8 + (0.1894393 * Math.exp(-0.012778 * time)) + (0.2989558 * Math.exp(-0.1932605 * time));
+      if (!(Number.isFinite(vo2) && Number.isFinite(percent) && percent > 0)) {
+        return null;
+      }
+      return vo2 / percent;
+    }
+
+    function findTrainingZoneProfile(modality, metricType) {
+      return athleteTrainingZoneProfiles.find((profile) => (
+        profile.modality === modality && profile.metric_type === metricType
+      )) || null;
+    }
+
+    function getTrainingZonesFormSnapshot() {
+      return JSON.stringify({
+        family: trainingZonesFamily ? trainingZonesFamily.value : "heart_rate",
+        scope: trainingZonesScope ? trainingZonesScope.value : "general",
+        method: trainingZonesMethod ? trainingZonesMethod.value : "fcmax",
+        modality: trainingZonesModality.value,
+        metricType: trainingZonesMetricType.value,
+        model: trainingZonesModel.value,
+        lthr: trainingZonesLthr.value,
+        hrMax: trainingZonesHrMax.value,
+        hrRest: trainingZonesHrRest.value,
+        vdot: trainingZonesVdot.value,
+        thresholdPace: trainingZonesThresholdPace.value,
+        zones: getZoneRowsFromForm()
+      });
+    }
+
+    function getNewTrainingZoneDefaultModality() {
+      const existing = new Set((Array.isArray(athleteTrainingZoneProfiles) ? athleteTrainingZoneProfiles : []).map((p) => p.modality));
+      return TRAINING_ZONE_MODALITIES.find((m) => !existing.has(m)) || "general";
+    }
+
+    function renderTrainingZonesList() {
+      if (!trainingZonesList) return;
+
+      if (!selectedAthleteId) {
+        trainingZonesList.innerHTML = '<div class="summary-metric"><span class="metric-label">Sem atleta selecionado</span><strong>Seleciona um atleta no tab Atletas</strong></div>';
+        return;
+      }
+
+      const profiles = Array.isArray(athleteTrainingZoneProfiles)
+        ? [...athleteTrainingZoneProfiles].sort((a, b) => {
+          const left = `${a.modality || ""}-${a.metric_type || ""}`;
+          const right = `${b.modality || ""}-${b.metric_type || ""}`;
+          return left.localeCompare(right);
+        })
+        : [];
+
+      if (!profiles.length) {
+        trainingZonesList.innerHTML = '<div class="summary-metric"><span class="metric-label">Sem perfis configurados</span><strong>Usa "Adicionar modalidade" para criar o primeiro perfil.</strong></div>';
+        return;
+      }
+
+      trainingZonesList.innerHTML = profiles.map((profile) => {
+        const key = getTrainingZoneProfileKey(profile.modality, profile.metric_type);
+        const updatedAt = profile.updated_at ? new Date(profile.updated_at).toLocaleString("pt-PT") : "-";
+        return `
+          <div class="summary-metric">
+            <div style="display:flex; justify-content:space-between; gap:10px; align-items:center; flex-wrap:wrap;">
+              <div>
+                <span class="metric-label">${escapeHtml(getModalityLabel(profile.modality))} · ${escapeHtml(getMetricLabel(profile.metric_type))}</span>
+                <strong>${escapeHtml(profile.model || "lthr")}</strong>
+                <div class="microcopy" style="margin-top:4px;">${escapeHtml(getTrainingZoneScopeLabel(profile.modality))} · ${escapeHtml(getTrainingZoneMethodLabel(profile))}</div>
+                <div class="microcopy" style="margin-top:4px;">Atualizado: ${escapeHtml(updatedAt)} · Zonas: ${Array.isArray(profile.zones) ? profile.zones.length : 0}</div>
+              </div>
+              <div class="header-actions" style="margin:0;">
+                <button type="button" class="btn btn-secondary" data-training-zones-action="edit" data-profile-key="${escapeHtml(key)}">Editar</button>
+                <button type="button" class="btn btn-secondary" data-training-zones-action="duplicate" data-profile-key="${escapeHtml(key)}">Duplicar</button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function openTrainingZonesEditor(profile) {
+      if (!selectedAthleteId) {
+        trainingZonesMeta.textContent = "Seleciona um atleta primeiro.";
+        return;
+      }
+
+      applyTrainingZoneProfileToForm(profile || {
+        modality: getNewTrainingZoneDefaultModality(),
+        metric_type: "heart_rate",
+        model: "lthr",
+        zones: []
+      });
+
+      syncTrainingZonesModelOptions((profile && profile.model) || null);
+      syncTrainingZonesFieldVisibility();
+      refreshTrainingZonesVdotSuggestion();
+      trainingZonesEditorInitialSnapshot = getTrainingZonesFormSnapshot();
+      trainingZonesEditorModal.classList.remove("hidden");
+      trainingZonesMeta.textContent = profile
+        ? `A editar ${getModalityLabel(profile.modality)} (${getMetricLabel(profile.metric_type)}).`
+        : "Novo perfil de zonas: preenche e guarda.";
+    }
+
+    function closeTrainingZonesEditor(force) {
+      if (!trainingZonesEditorModal || trainingZonesEditorModal.classList.contains("hidden")) return;
+      const hasChanges = getTrainingZonesFormSnapshot() !== trainingZonesEditorInitialSnapshot;
+      if (!force && hasChanges) {
+        const confirmed = window.confirm("Existem alterações por guardar. Fechar sem guardar?");
+        if (!confirmed) return;
+      }
+      trainingZonesEditorModal.classList.add("hidden");
+    }
+
+    function validateTrainingZonesPayload(payload) {
+      if (!payload || !payload.athleteId) return "Seleciona um atleta primeiro.";
+
+      const modality = String(payload.modality || "").toLowerCase();
+      const metricType = String(payload.metricType || "").toLowerCase();
+      const model = String(payload.model || "").toLowerCase();
+      const family = String(payload.family || "heart_rate").toLowerCase();
+      const method = String(payload.method || "fcmax").toLowerCase();
+
+      if (!TRAINING_ZONE_MODALITIES.includes(modality)) return "Modalidade inválida.";
+      if (!["heart_rate", "pace"].includes(metricType)) return "Métrica inválida.";
+      if (!["friel_5", "jack_daniels", "percent_hrmax", "hrr", "lthr"].includes(model)) return "Modelo inválido.";
+      if (model === "jack_daniels" && modality !== "run") return "Jack Daniels só é permitido para corrida.";
+
+      if (family === "heart_rate" && !["fcmax", "hrr", "lthr"].includes(method)) {
+        return "Método FC inválido.";
+      }
+      if (family === "performance" && !["run_vdot", "run_lt_pace"].includes(method)) {
+        return "Método Performance inválido.";
+      }
+
+      const p = payload.parameters || {};
+      const lthr = Number(p.lthrBpm);
+      const hrMax = Number(p.hrMaxBpm);
+      const hrRest = Number(p.hrRestBpm);
+      const vdot = Number(p.vdot);
+      const thresholdPace = Number(p.thresholdPaceSecPerKm);
+
+      if (family === "heart_rate") {
+        if (method === "fcmax" && !(Number.isFinite(hrMax) && hrMax > 0)) {
+          return "FCmax requer FC max válida.";
+        }
+        if (method === "hrr") {
+          if (!(Number.isFinite(hrMax) && hrMax > 0) || !(Number.isFinite(hrRest) && hrRest > 0)) {
+            return "HRR requer FC max e FC repouso válidas.";
+          }
+          if (hrMax <= hrRest) return "FC max deve ser maior que FC repouso.";
+        }
+        if (method === "lthr" && !(Number.isFinite(lthr) && lthr > 0)) {
+          return "LTHR requer valor de LTHR válido.";
+        }
+      }
+
+      if (family === "performance") {
+        if (!(Number.isFinite(thresholdPace) && thresholdPace > 0)) {
+          return "Performance corrida requer LT Pace (seg/km) válida.";
+        }
+        if (method === "run_vdot" && !(Number.isFinite(vdot) && vdot > 0)) {
+          return "Método VDOT requer VDOT válido.";
+        }
+      }
+
+      const zones = normalizeZoneRows(payload.zones);
+      if (zones.length !== 5) return "Define exatamente 5 zonas (Z1..Z5).";
+
+      for (let i = 0; i < zones.length; i += 1) {
+        const zone = zones[i];
+        if (zone.zone_number !== i + 1) return "As zonas devem estar numeradas de 1 a 5.";
+        if (!Number.isFinite(zone.min_value) || !Number.isFinite(zone.max_value)) {
+          return `Zona ${i + 1} requer mínimo e máximo numéricos.`;
+        }
+        if (zone.max_value <= zone.min_value) return `Zona ${i + 1} tem máximo inválido.`;
+        if (i > 0 && zone.min_value < zones[i - 1].max_value) return `Zona ${i + 1} sobrepõe a zona anterior.`;
+      }
+
+      return null;
+    }
+
+    function buildTrainingZonesPayload() {
+      syncTrainingZonesContextToHiddenFields();
+      const family = String(trainingZonesFamily && trainingZonesFamily.value || "heart_rate").toLowerCase();
+      const method = String(trainingZonesMethod && trainingZonesMethod.value || trainingZonesCurrentMethod || "fcmax").toLowerCase();
+      return {
+        athleteId: selectedAthleteId,
+        family,
+        scope: trainingZonesScope ? trainingZonesScope.value : "general",
+        method,
+        modality: trainingZonesModality.value,
+        metricType: trainingZonesMetricType.value,
+        model: trainingZonesModel.value,
+        parameters: {
+          lthrBpm: trainingZonesLthr.value ? Number(trainingZonesLthr.value) : null,
+          hrMaxBpm: trainingZonesHrMax.value ? Number(trainingZonesHrMax.value) : null,
+          hrRestBpm: trainingZonesHrRest.value ? Number(trainingZonesHrRest.value) : null,
+          thresholdPaceSecPerKm: trainingZonesThresholdPace.value ? Number(trainingZonesThresholdPace.value) : null,
+          vdot: trainingZonesVdot.value ? Number(trainingZonesVdot.value) : null
+        },
+        zones: normalizeZoneRows(getZoneRowsFromForm())
+      };
+    }
+
+    function autoFillTrainingZones() {
+      const family = String(trainingZonesFamily && trainingZonesFamily.value || "heart_rate").toLowerCase();
+      const method = String(trainingZonesMethod && trainingZonesMethod.value || trainingZonesCurrentMethod || "fcmax").toLowerCase();
+
+      if (family !== "heart_rate") {
+        trainingZonesMeta.textContent = method === "run_vdot"
+          ? "Auto preencher para Performance será ativado na próxima fase (VDOT/LT Pace)."
+          : "Auto preencher para LT Pace ainda não está disponível.";
+        return;
+      }
+
+      const model = trainingZonesModel.value;
+      const lthr = Number(trainingZonesLthr.value || 0);
+      const hrMax = Number(trainingZonesHrMax.value || 0);
+      const hrRest = Number(trainingZonesHrRest.value || 0);
+      const pct = [0.6, 0.7, 0.8, 0.87, 0.93, 1.0];
+
+      let base = null;
+      if (model === "percent_hrmax") {
+        base = hrMax;
+      } else if (model === "hrr") {
+        if (hrMax > hrRest) {
+          const v = pct.map((x) => hrRest + (hrMax - hrRest) * x);
+          setZoneRowsInForm([
+            { zone_number: 1, min_value: Math.round(v[0]), max_value: Math.round(v[1] - 1) },
+            { zone_number: 2, min_value: Math.round(v[1]), max_value: Math.round(v[2] - 1) },
+            { zone_number: 3, min_value: Math.round(v[2]), max_value: Math.round(v[3] - 1) },
+            { zone_number: 4, min_value: Math.round(v[3]), max_value: Math.round(v[4] - 1) },
+            { zone_number: 5, min_value: Math.round(v[4]), max_value: Math.round(v[5]) }
+          ]);
+          trainingZonesMeta.textContent = "Zonas preenchidas automaticamente com HRR.";
+          return;
+        }
+      } else {
+        base = lthr;
+      }
+
+      if (!Number.isFinite(base) || base <= 0) {
+        trainingZonesMeta.textContent = "Preenche o parâmetro base do modelo antes de auto preencher zonas.";
+        return;
+      }
+
+      const values = pct.map((x) => base * x);
+      setZoneRowsInForm([
+        { zone_number: 1, min_value: Math.round(values[0]), max_value: Math.round(values[1] - 1) },
+        { zone_number: 2, min_value: Math.round(values[1]), max_value: Math.round(values[2] - 1) },
+        { zone_number: 3, min_value: Math.round(values[2]), max_value: Math.round(values[3] - 1) },
+        { zone_number: 4, min_value: Math.round(values[3]), max_value: Math.round(values[4] - 1) },
+        { zone_number: 5, min_value: Math.round(values[4]), max_value: Math.round(values[5]) }
+      ]);
+      trainingZonesMeta.textContent = "Zonas preenchidas automaticamente.";
+    }
+
+    async function duplicateTrainingZoneProfile(profile) {
+      if (!profile) return;
+      const suggestion = getNewTrainingZoneDefaultModality();
+      const answer = window.prompt(
+        "Duplicar para modalidade (general|run|bike|swim|row|other):",
+        suggestion
+      );
+      if (!answer) return;
+
+      const targetModality = String(answer).trim().toLowerCase();
+      if (!TRAINING_ZONE_MODALITIES.includes(targetModality)) {
+        trainingZonesMeta.textContent = "Modalidade de destino inválida para duplicação.";
+        return;
+      }
+
+      const existingTarget = findTrainingZoneProfile(targetModality, profile.metric_type || "heart_rate");
+      if (existingTarget) {
+        const accepted = window.confirm("Já existe perfil no destino. Queres sobrescrever?");
+        if (!accepted) return;
+      }
+
+      openTrainingZonesEditor({
+        ...profile,
+        id: null,
+        modality: targetModality,
+        zones: normalizeZoneRows(profile.zones)
+      });
+      trainingZonesMeta.textContent = `Perfil duplicado para ${getModalityLabel(targetModality)}. Revê e guarda.`;
+    }
+
+    async function loadTrainingZonesForAthlete(athleteId) {
+      if (!athleteId) {
+        athleteTrainingZoneProfiles = [];
+        renderTrainingZonesList();
+        trainingZonesMeta.textContent = "Seleciona um atleta para gerir zonas por modalidade.";
+        return;
+      }
+
+      trainingZonesMeta.textContent = "A carregar zonas...";
+      try {
+        const data = await apiRequest("GET", `/.netlify/functions/coach-athlete-training-zones?athleteId=${encodeURIComponent(athleteId)}`);
+        athleteTrainingZoneProfiles = Array.isArray(data.profiles) ? data.profiles : [];
+        renderTrainingZonesList();
+        trainingZonesMeta.textContent = athleteTrainingZoneProfiles.length
+          ? `${athleteTrainingZoneProfiles.length} perfil(is) carregado(s).`
+          : "Sem perfis configurados. Podes adicionar uma modalidade agora.";
+      } catch (error) {
+        renderTrainingZonesList();
+        trainingZonesMeta.textContent = "Erro ao carregar zonas.";
+      }
+    }
+
+    async function saveTrainingZonesForAthlete() {
+      const payload = buildTrainingZonesPayload();
+      const validationError = validateTrainingZonesPayload(payload);
+      if (validationError) {
+        trainingZonesMeta.textContent = validationError;
+        return;
+      }
+
+      trainingZonesMeta.textContent = "A guardar zonas...";
+      try {
+        await apiRequest("PUT", "/.netlify/functions/coach-athlete-training-zones", payload);
+        await loadTrainingZonesForAthlete(selectedAthleteId);
+        closeTrainingZonesEditor(true);
+        trainingZonesMeta.textContent = "Zonas guardadas com sucesso.";
+      } catch (error) {
+        trainingZonesMeta.textContent = `Erro ao guardar zonas: ${error.message || "erro"}`;
       }
     }
 
@@ -2176,6 +3115,11 @@
           title: "Seleciona e prepara o contexto",
           description: "Escolhe o atleta, confirma estado de pagamento e valida rapidamente os dados-base antes de planear ou importar."
         },
+        zonas: {
+          eyebrow: "Zonas de Treino",
+          title: "Controla perfis por modalidade",
+          description: "Gere zonas por atleta para corrida, bike, natação e modalidades de fallback, com validação antes de guardar."
+        },
         planeamento: {
           eyebrow: "Planeamento",
           title: "Assignments e calendário",
@@ -2233,6 +3177,10 @@
 
       if (tabName === "dashboard") {
         loadCheckinOverview().catch((err) => showResult(err.message, true));
+      }
+
+      if (tabName === "zonas" && selectedAthleteId) {
+        loadTrainingZonesForAthlete(selectedAthleteId);
       }
     }
 
@@ -2923,6 +3871,7 @@
         syncTrainingLoadWeekControls();
         renderTrainingLoadSummary(null, "Sem dados calculados ainda.");
         renderStrengthMonitoring();
+        loadTrainingZonesForAthlete("");
         return;
       }
       const athlete = athletes.find((item) => item.id === selectedAthleteId);
@@ -2943,6 +3892,7 @@
       } else {
         renderStrengthMonitoring();
       }
+      loadTrainingZonesForAthlete(selectedAthleteId);
     }
 
     async function loadAthletes(preselectId) {
@@ -3201,6 +4151,105 @@
     });
 
     athleteSearchInput.addEventListener("input", applyAthleteFilter);
+    if (loadTrainingZonesBtn) {
+      loadTrainingZonesBtn.addEventListener("click", () => loadTrainingZonesForAthlete(selectedAthleteId));
+    }
+    if (addTrainingZoneProfileBtn) {
+      addTrainingZoneProfileBtn.addEventListener("click", () => openTrainingZonesEditor(null));
+    }
+    if (autoTrainingZonesBtn) {
+      autoTrainingZonesBtn.addEventListener("click", autoFillTrainingZones);
+    }
+    if (trainingZonesFamily) {
+      trainingZonesFamily.addEventListener("change", () => {
+        syncTrainingZonesMethodOptions(trainingZonesCurrentMethod);
+        syncTrainingZonesContextToHiddenFields();
+        syncTrainingZonesModelOptions();
+        syncTrainingZonesFieldVisibility();
+      });
+    }
+    if (trainingZonesScope) {
+      trainingZonesScope.addEventListener("change", () => {
+        syncTrainingZonesContextToHiddenFields();
+        syncTrainingZonesModelOptions();
+        syncTrainingZonesFieldVisibility();
+      });
+    }
+    if (trainingZonesMethod) {
+      trainingZonesMethod.addEventListener("change", () => {
+        trainingZonesCurrentMethod = String(trainingZonesMethod.value || "");
+        syncTrainingZonesContextToHiddenFields();
+        syncTrainingZonesModelOptions();
+        syncTrainingZonesFieldVisibility();
+      });
+    }
+    if (trainingZonesModality) {
+      trainingZonesModality.addEventListener("change", () => {
+        syncTrainingZonesMethodOptions(trainingZonesCurrentMethod);
+        syncTrainingZonesContextToHiddenFields();
+        syncTrainingZonesModelOptions();
+        syncTrainingZonesFieldVisibility();
+      });
+    }
+    if (trainingZonesVdotCalcBtn) {
+      trainingZonesVdotCalcBtn.addEventListener("click", () => {
+        const distanceKm = Number(trainingZonesVdotCalcDistance && trainingZonesVdotCalcDistance.value);
+        const timeMinutes = Number(trainingZonesVdotCalcTime && trainingZonesVdotCalcTime.value);
+        const vdot = calculateDanielsVdot(distanceKm, timeMinutes);
+        if (!(Number.isFinite(vdot) && vdot > 0)) {
+          if (trainingZonesVdotCalcResult) {
+            trainingZonesVdotCalcResult.textContent = "Valores inválidos para cálculo (distância e tempo > 0).";
+          }
+          return;
+        }
+        const rounded = formatVdot(vdot);
+        trainingZonesVdot.value = rounded;
+        if (trainingZonesVdotCalcResult) {
+          trainingZonesVdotCalcResult.textContent = `VDOT calculado: ${rounded}`;
+        }
+        trainingZonesMeta.textContent = `VDOT ${rounded} aplicado pelo cálculo inline.`;
+      });
+    }
+    if (cancelTrainingZonesEditorBtn) {
+      cancelTrainingZonesEditorBtn.addEventListener("click", () => closeTrainingZonesEditor(false));
+    }
+    if (trainingZonesEditorModal) {
+      trainingZonesEditorModal.addEventListener("click", (event) => {
+        if (event.target === trainingZonesEditorModal) {
+          closeTrainingZonesEditor(false);
+        }
+      });
+    }
+    if (trainingZonesForm) {
+      trainingZonesForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        await saveTrainingZonesForAthlete();
+      });
+    }
+    if (trainingZonesList) {
+      trainingZonesList.addEventListener("click", (event) => {
+        const target = event.target;
+        if (!(target instanceof HTMLElement)) return;
+        const btn = target.closest("[data-training-zones-action]");
+        if (!btn) return;
+        const action = btn.getAttribute("data-training-zones-action");
+        const key = btn.getAttribute("data-profile-key") || "";
+        const [modality, metricType] = key.split("|");
+        const profile = findTrainingZoneProfile(modality, metricType);
+        if (!profile) {
+          trainingZonesMeta.textContent = "Perfil não encontrado para esta ação.";
+          return;
+        }
+
+        if (action === "edit") {
+          openTrainingZonesEditor(profile);
+          return;
+        }
+        if (action === "duplicate") {
+          duplicateTrainingZoneProfile(profile);
+        }
+      });
+    }
     filterPayingOnly.addEventListener("change", applyAthleteFilter);
     checkinStatusFilter.addEventListener("change", applyCheckinsFilter);
     if (checkinOverviewRefreshBtn) {
@@ -7138,7 +8187,7 @@
             const result = await apiRequest("POST", adminAssignProgramApiBase, {
               athleteId,
               trainingProgramId,
-              startDate: startDate || new Date().toISOString().slice(0, 10),
+              startDate,
               durationWeeks,
               priceCentsSnapshot: program ? (program.price_cents || 0) : 0,
               currencySnapshot: program ? (program.currency || "EUR") : "EUR",
@@ -7222,7 +8271,7 @@
       }
 
       // Reset fields
-      if (coachNewAssignStart) coachNewAssignStart.value = new Date().toISOString().slice(0, 10);
+      if (coachNewAssignStart) coachNewAssignStart.value = "";
       if (coachNewAssignWeeks) coachNewAssignWeeks.value = "12";
       if (coachNewAssignNotes) coachNewAssignNotes.value = "";
       const presetSelect = document.getElementById("coach-new-assign-preset");

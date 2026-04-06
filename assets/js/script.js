@@ -41,7 +41,7 @@ window.addEventListener('load', handleScrollIndicator);
 // ===== Dynamic content via Netlify Function =====
 (function(){
   const CACHE_KEY = 'lht_dynamic_cache_v3';
-  const HOME_PROGRAMS_CACHE_KEY = 'lht_home_programs_cache_v1';
+  const HOME_PROGRAMS_CACHE_KEY = 'lht_home_programs_cache_v2';
   const HOME_PROGRAMS_ENDPOINT = '/.netlify/functions/list-programs';
   const HOME_PROGRAMS_LIMIT = 4;
 
@@ -98,6 +98,28 @@ window.addEventListener('load', handleScrollIndicator);
     node.textContent = String(value == null ? '' : value);
   }
 
+  function normalizePlainText(value, fallback){
+    var raw = String(value == null ? '' : value).trim();
+    if(!raw) return fallback || '';
+
+    var cleaned = raw
+      .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+      .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+      .replace(/<br\s*\/?>/gi, ' ')
+      .replace(/<\/(p|div|li|ul|ol|h[1-6]|blockquote|section|article)>/gi, ' ')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/&nbsp;/gi, ' ')
+      .replace(/&amp;/gi, '&')
+      .replace(/&lt;/gi, '<')
+      .replace(/&gt;/gi, '>')
+      .replace(/&quot;/gi, '"')
+      .replace(/&#39;|&apos;/gi, "'")
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    return cleaned || fallback || '';
+  }
+
   function firstDefinedValue(values, fallback){
     for(const value of values){
       if(value == null) continue;
@@ -110,6 +132,21 @@ window.addEventListener('load', handleScrollIndicator);
   function metadataValue(metadata, keys, fallback){
     const values = (keys || []).map((key) => metadata && Object.prototype.hasOwnProperty.call(metadata, key) ? metadata[key] : undefined);
     return firstDefinedValue(values, fallback);
+  }
+
+  function formatProgramAvailability(value){
+    var normalized = String(value || '').trim();
+    if(!normalized) return 'Acesso imediato';
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(normalized)) return normalized;
+    try {
+      return new Intl.DateTimeFormat('pt-PT', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+      }).format(new Date(normalized + 'T00:00:00'));
+    } catch(_err){
+      return normalized;
+    }
   }
 
   function pathName(){
@@ -322,14 +359,14 @@ window.addEventListener('load', handleScrollIndicator);
 
     var nextDate = document.getElementById('fp-next-date');
     var nextDateWrap = document.getElementById('fp-next-date-wrap');
-    var nextDateValue = firstDefinedValue([fp && fp.eventDate ? fp.eventDate : ''], '');
+    var nextDateValue = fp ? formatProgramAvailability(fp && fp.startDate ? fp.startDate : '') : '';
     if(nextDate && nextDateValue) text(nextDate, nextDateValue);
     if(nextDateWrap) nextDateWrap.hidden = !nextDateValue;
 
     var subtitle = document.getElementById('fp-subtitle');
     var subtitleText = firstDefinedValue([
-      fp && fp.subtitle ? fp.subtitle : '',
-      fp && fp.description ? fp.description : ''
+      normalizePlainText(fp && fp.subtitle ? fp.subtitle : '', ''),
+      normalizePlainText(fp && (fp.commercialDescription || fp.description) ? (fp.commercialDescription || fp.description) : '', '')
     ], 'Explora o destaque atual e entra no catalogo completo com o contexto certo para continuares a evoluir.');
     if(subtitle) subtitle.textContent = subtitleText;
 
@@ -429,14 +466,14 @@ window.addEventListener('load', handleScrollIndicator);
 
     var description = document.createElement('p');
     description.className = 'program-quick-description';
-    text(description, program && program.description ? program.description : 'Explora o programa no catalogo completo e entra com o contexto certo.');
+    text(description, normalizePlainText(program && (program.commercialDescription || program.description), 'Explora o programa no catalogo completo e entra com o contexto certo.'));
 
     var meta = document.createElement('div');
     meta.className = 'program-quick-meta';
     [
       formatProgramPrice(program && program.priceCents, program && program.currency),
       program && program.durationWeeks ? `${program.durationWeeks} semanas` : '',
-      program && program.followupType ? program.followupType : ''
+      formatProgramAvailability(program && program.startDate ? program.startDate : '')
     ].filter(Boolean).slice(0, 3).forEach(function(item){
       var chip = document.createElement('span');
       text(chip, item);

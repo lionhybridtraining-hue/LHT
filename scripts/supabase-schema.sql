@@ -26,9 +26,77 @@ create table if not exists athletes (
 
 alter table athletes add column if not exists coach_identity_id text;
 alter table athletes add column if not exists identity_id text;
+alter table athletes add column if not exists phone text;
+alter table athletes add column if not exists goal_distance numeric(6,2);
+alter table athletes add column if not exists weekly_frequency integer;
+alter table athletes add column if not exists experience_level text;
+alter table athletes add column if not exists consistency_level text;
+alter table athletes add column if not exists funnel_stage text default 'landing';
+alter table athletes add column if not exists plan_generated_at timestamptz;
+alter table athletes add column if not exists plan_storage text;
+alter table athletes add column if not exists onboarding_answers jsonb default '{}'::jsonb;
+alter table athletes add column if not exists onboarding_submitted_at timestamptz;
+alter table athletes add column if not exists onboarding_updated_at timestamptz;
 create index if not exists athletes_coach_identity_idx on athletes(coach_identity_id);
 create unique index if not exists athletes_identity_uidx on athletes(identity_id) where identity_id is not null;
 create index if not exists athletes_identity_idx on athletes(identity_id) where identity_id is not null;
+create index if not exists athletes_onboarding_updated_idx on athletes(onboarding_updated_at desc nulls last);
+create index if not exists athletes_funnel_stage_idx on athletes(funnel_stage, onboarding_updated_at desc nulls last);
+
+create table if not exists athlete_training_zone_profiles (
+  id uuid primary key default gen_random_uuid(),
+  athlete_id uuid not null references athletes(id) on delete cascade,
+  modality text not null,
+  metric_type text not null default 'heart_rate',
+  model text not null,
+  lthr_bpm integer,
+  hr_max_bpm integer,
+  hr_rest_bpm integer,
+  threshold_pace_sec_per_km numeric(7,2),
+  vdot numeric(5,2),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint athlete_training_zone_profiles_modality_check
+    check (modality in ('general', 'run', 'bike', 'swim', 'row', 'other')),
+  constraint athlete_training_zone_profiles_metric_type_check
+    check (metric_type in ('heart_rate', 'pace')),
+  constraint athlete_training_zone_profiles_model_check
+    check (model in ('friel_5', 'jack_daniels', 'percent_hrmax', 'hrr', 'lthr')),
+  constraint athlete_training_zone_profiles_unique
+    unique (athlete_id, modality, metric_type)
+);
+
+create table if not exists athlete_training_zones (
+  id uuid primary key default gen_random_uuid(),
+  profile_id uuid not null references athlete_training_zone_profiles(id) on delete cascade,
+  zone_number integer not null,
+  min_value numeric(8,2) not null,
+  max_value numeric(8,2) not null,
+  label text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint athlete_training_zones_zone_number_check
+    check (zone_number between 1 and 5),
+  constraint athlete_training_zones_range_check
+    check (max_value > min_value),
+  constraint athlete_training_zones_unique
+    unique (profile_id, zone_number)
+);
+
+create index if not exists athlete_training_zone_profiles_athlete_idx
+  on athlete_training_zone_profiles(athlete_id, modality, metric_type);
+create index if not exists athlete_training_zones_profile_idx
+  on athlete_training_zones(profile_id, zone_number);
+
+drop trigger if exists set_athlete_training_zone_profiles_updated_at on athlete_training_zone_profiles;
+create trigger set_athlete_training_zone_profiles_updated_at
+before update on athlete_training_zone_profiles
+for each row execute procedure set_updated_at();
+
+drop trigger if exists set_athlete_training_zones_updated_at on athlete_training_zones;
+create trigger set_athlete_training_zones_updated_at
+before update on athlete_training_zones
+for each row execute procedure set_updated_at();
 
 create table if not exists training_sessions (
   id uuid primary key default gen_random_uuid(),
@@ -411,24 +479,69 @@ before update on coaches
 for each row
 execute function set_updated_at();
 
+create table if not exists training_events (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  event_date date,
+  event_location text,
+  event_description text,
+  calendar_visible boolean not null default true,
+  calendar_highlight_rank integer,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  deleted_at timestamptz
+);
+
+create index if not exists training_events_date_idx
+on training_events (event_date)
+where deleted_at is null;
+
+create index if not exists training_events_rank_idx
+on training_events (calendar_highlight_rank, event_date)
+where deleted_at is null and calendar_visible = true;
+
+create unique index if not exists training_events_identity_uidx
+on training_events (lower(name), event_date, lower(coalesce(event_location, '')))
+where deleted_at is null;
+
+drop trigger if exists set_training_events_updated_at on training_events;
+create trigger set_training_events_updated_at
+before update on training_events
+for each row
+execute function set_updated_at();
+
 create table if not exists training_programs (
   id uuid primary key default gen_random_uuid(),
   external_source text not null default 'trainingpeaks',
   external_id text,
   name text not null,
+  commercial_description text,
+  technical_description text,
   description text,
   image_url text,
   duration_weeks integer not null check (duration_weeks > 0),
   price_cents integer not null default 0,
+  recurring_price_monthly_cents integer check (recurring_price_monthly_cents is null or recurring_price_monthly_cents >= 0),
+  recurring_price_quarterly_cents integer check (recurring_price_quarterly_cents is null or recurring_price_quarterly_cents >= 0),
+  recurring_price_annual_cents integer check (recurring_price_annual_cents is null or recurring_price_annual_cents >= 0),
   currency text not null default 'EUR',
   stripe_product_id text,
   stripe_price_id text,
+  stripe_price_id_monthly text,
+  stripe_price_id_quarterly text,
+  stripe_price_id_annual text,
   billing_type text not null default 'one_time' check (billing_type in ('one_time', 'recurring')),
+  event_id uuid references training_events(id) on delete set null,
+  start_date date,
   status text not null default 'draft' check (status in ('draft', 'active', 'archived')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   deleted_at timestamptz
 );
+
+create index if not exists training_programs_event_idx
+on training_programs (event_id)
+where deleted_at is null;
 
 alter table training_programs drop column if exists followup_type;
 alter table training_programs drop column if exists is_scheduled_template;
@@ -448,6 +561,18 @@ where deleted_at is null;
 create unique index if not exists training_programs_stripe_price_uidx
 on training_programs (stripe_price_id)
 where stripe_price_id is not null and deleted_at is null;
+
+create unique index if not exists training_programs_stripe_price_monthly_uidx
+on training_programs (stripe_price_id_monthly)
+where stripe_price_id_monthly is not null and deleted_at is null;
+
+create unique index if not exists training_programs_stripe_price_quarterly_uidx
+on training_programs (stripe_price_id_quarterly)
+where stripe_price_id_quarterly is not null and deleted_at is null;
+
+create unique index if not exists training_programs_stripe_price_annual_uidx
+on training_programs (stripe_price_id_annual)
+where stripe_price_id_annual is not null and deleted_at is null;
 
 drop trigger if exists set_training_programs_updated_at on training_programs;
 create trigger set_training_programs_updated_at
@@ -712,72 +837,7 @@ before update on leads_central
 for each row
 execute function set_updated_at();
 
--- Onboarding intake responses (authenticated athlete form)
-
-create table if not exists onboarding_intake (
-  id uuid primary key default gen_random_uuid(),
-  identity_id text not null unique,
-  athlete_id uuid references athletes(id) on delete set null,
-  email text not null,
-  phone text,
-  full_name text,
-  goal_distance numeric(6,2),
-  weekly_frequency integer,
-  experience_level text,
-  consistency_level text,
-  funnel_stage text not null default 'landing',
-  plan_generated_at timestamptz,
-  plan_storage text,
-  answers jsonb not null default '{}'::jsonb,
-  submitted_at timestamptz not null default now(),
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
-
-alter table onboarding_intake add column if not exists athlete_id uuid references athletes(id) on delete set null;
-alter table onboarding_intake add column if not exists phone text;
-alter table onboarding_intake add column if not exists full_name text;
-alter table onboarding_intake add column if not exists goal_distance numeric(6,2);
-alter table onboarding_intake add column if not exists weekly_frequency integer;
-alter table onboarding_intake add column if not exists experience_level text;
-alter table onboarding_intake add column if not exists consistency_level text;
-alter table onboarding_intake add column if not exists funnel_stage text;
-alter table onboarding_intake add column if not exists plan_generated_at timestamptz;
-alter table onboarding_intake add column if not exists plan_storage text;
-
-update onboarding_intake
-set funnel_stage = 'landing'
-where funnel_stage is null;
-
-alter table onboarding_intake alter column funnel_stage set default 'landing';
-alter table onboarding_intake alter column funnel_stage set not null;
-
-create index if not exists onboarding_intake_submitted_idx
-on onboarding_intake (submitted_at desc);
-
-create index if not exists onboarding_intake_athlete_idx
-on onboarding_intake (athlete_id)
-where athlete_id is not null;
-
-create index if not exists onboarding_intake_email_idx
-on onboarding_intake (email);
-
-create index if not exists onboarding_intake_phone_idx
-on onboarding_intake (phone)
-where phone is not null;
-
-create index if not exists onboarding_intake_funnel_stage_idx
-on onboarding_intake (funnel_stage, submitted_at desc);
-
-create index if not exists onboarding_intake_plan_generated_idx
-on onboarding_intake (plan_generated_at desc)
-where plan_generated_at is not null;
-
-drop trigger if exists set_onboarding_intake_updated_at on onboarding_intake;
-create trigger set_onboarding_intake_updated_at
-before update on onboarding_intake
-for each row
-execute function set_updated_at();
+-- Onboarding intake now lives in athletes (onboarding_answers + structured columns)
 
 -- AI control center (Phase 1)
 

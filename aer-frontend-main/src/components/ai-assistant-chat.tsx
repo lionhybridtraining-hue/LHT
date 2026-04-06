@@ -17,9 +17,9 @@ type ChatMessage = {
 const QUICK_PROMPTS = [
   "Como usar este plano?",
   "Como ajustar carga semanal?",
-  "Como evitar lesao?",
+  "Como evitar lesão?",
   "O que dizem os meus check-ins?",
-  "Como esta a minha carga de treino?",
+  "Como está a minha carga de treino?",
 ];
 
 export default function AiAssistantChat({ isOpen, onClose }: AiAssistantChatProps) {
@@ -71,7 +71,7 @@ export default function AiAssistantChat({ isOpen, onClose }: AiAssistantChatProp
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: "Erro de rede" }));
         if (response.status === 401) {
-          throw new Error("Sessao expirada. Faz login novamente.");
+          throw new Error("Sessão expirada. Faz login novamente.");
         }
         throw new Error(errorData.error || "Erro ao comunicar com o assistente");
       }
@@ -88,7 +88,7 @@ export default function AiAssistantChat({ isOpen, onClose }: AiAssistantChatProp
         err instanceof Error ? err.message : "Erro desconhecido ao contactar o assistente";
       setError(errorMessage);
       console.error("Chat error:", err);
-      return "Desculpa, nao consegui processar a tua pergunta neste momento. Tenta novamente em alguns instantes.";
+      return "Desculpa, não consegui processar a tua pergunta neste momento. Tenta novamente em alguns instantes.";
     }
   }
 

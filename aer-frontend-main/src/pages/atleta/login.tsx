@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { enforceSessionMaxAge, signInWithGoogle, supabase } from "@/lib/supabase";
 
 const BG = "radial-gradient(circle at top, rgba(212,165,79,0.14) 0%, #1a1a1a 46%, #090909 100%)";
 
 export default function AtletaLoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const returnTo = (location.state as { returnTo?: string } | null)?.returnTo;
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -17,7 +19,7 @@ export default function AtletaLoginPage() {
       if (!isMounted) return;
       const wasExpired = await enforceSessionMaxAge(session);
       if (!wasExpired && session?.user) {
-        navigate("/atleta/perfil", { replace: true });
+        navigate(returnTo ?? "/atleta/perfil", { replace: true });
         return;
       }
       setLoading(false);
@@ -29,7 +31,7 @@ export default function AtletaLoginPage() {
       if (!isMounted) return;
       const wasExpired = await enforceSessionMaxAge(session);
       if (!wasExpired && session?.user) {
-        navigate("/atleta/perfil", { replace: true });
+        navigate(returnTo ?? "/atleta/perfil", { replace: true });
       } else {
         setLoading(false);
       }
@@ -45,9 +47,9 @@ export default function AtletaLoginPage() {
     setErrorMessage(null);
     setSubmitting(true);
     try {
-      await signInWithGoogle("/atleta/perfil");
+      await signInWithGoogle(returnTo ?? "/atleta/perfil");
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Nao foi possivel iniciar sessao.");
+      setErrorMessage(error instanceof Error ? error.message : "Não foi possível iniciar sessão.");
       setSubmitting(false);
     }
   };
@@ -76,7 +78,7 @@ export default function AtletaLoginPage() {
             Login do Atleta
           </h1>
           <p className="mt-2 text-sm text-[#a9b2bf]">
-            Entra com Google. Se faltar informacao do teu perfil, vais completar o registo no passo seguinte.
+            Entra com Google. Se faltar informação do teu perfil, vais completar o registo no passo seguinte.
           </p>
         </div>
 

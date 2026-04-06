@@ -1,0 +1,157 @@
+```
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                   TEST ACCOUNT CLEANUP - 3 OPTIONS                          ║
+║                   Email: rodrigolibanio1999@gmail.com                        ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+┌──────────────────────────────────┬──────────────────────────────────┬─────────────────────────────────┐
+│  OPTION 1: SUPABASE DASHBOARD    │  OPTION 2: NETLIFY FUNCTION     │  OPTION 3: TEST AUTOMATION      │
+├──────────────────────────────────┼──────────────────────────────────┼─────────────────────────────────┤
+│                                  │                                  │                                 │
+│ ✅ Easiest for manual testing     │ ✅ Programmatic/automated        │ ✅ Integrated with CI/CD        │
+│                                  │                                  │                                 │
+│ 📋 File:                         │ 📋 File:                        │ 📋 File:                       │
+│    cleanup-athlete-test-         │    netlify/functions/           │    test-cleanup-client.js      │
+│    account.sql                   │    admin-cleanup-athlete.js     │                                 │
+│                                  │                                  │                                 │
+│ 🔧 Setup:                        │ 🔧 Setup:                       │ 🔧 Setup:                      │
+│    1. Go to Supabase Console     │    1. Deploy function (npm     │    1. Add to test suite         │
+│    2. SQL Editor > New Query     │       run build)                │    2. Import cleanup client     │
+│    3. Copy/paste SQL file        │    2. Use Bearer token          │    3. Call in beforeEach()     │
+│    4. Run                        │       (admin)                   │    4. Test runs fresh         │
+│                                  │                                  │                                 │
+│ ⏱️  Time:                        │ ⏱️  Time:                       │ ⏱️  Time:                      │
+│    ~2 minutes                    │    ~5 seconds (API call)        │    Automatic (every test)      │
+│                                  │                                  │                                 │
+│ 👤 Requires:                     │ 👤 Requires:                    │ 👤 Requires:                   │
+│    - Supabase access             │    - Admin token (Supabase      │    - Admin API token           │
+│    - Service role key visible    │      Auth)                      │    - Jest/Puppeteer setup      │
+│                                  │                                  │                                 │
+│ 💡 Use when:                     │ 💡 Use when:                    │ 💡 Use when:                   │
+│    - Quick test                  │    - Integrating with           │    - Running automated tests   │
+│    - Manual verification         │      other tools                │    - Want fresh account per    │
+│    - One-off cleanup             │    - Building admin UI          │      test case                 │
+│                                  │    - Scheduled cleanup          │    - CI/CD pipeline            │
+│                                  │                                  │                                 │
+└──────────────────────────────────┴──────────────────────────────────┴─────────────────────────────────┘
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                        QUICK REFERENCE COMMANDS                             ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+OPTION 1: SQL Script
+────────────────────
+1. Copy: scripts/cleanup-athlete-test-account.sql
+2. Paste into: Supabase > SQL Editor
+3. Click: RUN
+
+Alternative with more logging:
+→ Use: cleanup-athlete-test-account-v2.sql
+
+
+OPTION 2: API Endpoint
+──────────────────────
+# Via cURL:
+curl -X POST https://lht.app/.netlify/functions/admin-cleanup-athlete \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"email":"rodrigolibanio1999@gmail.com"}'
+
+# Via browser console (after admin login):
+const cleanup = new TestAthleteCleanup(localStorage.getItem('sb-admin-token'));
+await cleanup.cleanup('rodrigolibanio1999@gmail.com');
+
+
+OPTION 3: In Tests
+──────────────────
+// Jest/Puppeteer
+describe('Free plan funnel', () => {
+  let cleanup;
+  
+  beforeAll(() => {
+    cleanup = new TestAthleteCleanup(process.env.ADMIN_TOKEN);
+  });
+  
+  beforeEach(async () => {
+    await cleanup.cleanup('rodrigolibanio1999@gmail.com');
+  });
+  
+  it('landing → plan_generated', async () => {
+    // Your test here
+  });
+});
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                        WHAT GETS DELETED                                    ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+DATA CATEGORIES                   TABLES AFFECTED
+─────────────────────────────────┬──────────────────────────────────────────
+✅ Athlete Identity              │ athletes
+✅ Training Data                 │ training_sessions, athlete_strava_connections
+✅ Zone Profiles                 │ athlete_training_zone_profiles
+✅ Strength Programs             │ strength_plan_instances
+✅ Training Plans                │ program_assignments, athlete_weekly_plan
+✅ Stripe Purchases              │ stripe_purchases
+✅ Training History              │ strength_log_sets, weekly_checkins
+✅ Funnel Tracking               │ leads_central
+✅ Onboarding Records            │ onboarding_intake
+✅ AI Logs                        │ ai_logs
+
+TOTAL: ~14 tables affected (cascading deletes via foreign keys)
+
+═════════════════════════════════════════════════════════════════════════════════
+
+📝 TESTING CHECKLIST AFTER CLEANUP
+
+After cleanup, follow this checklist to verify the complete funnel:
+
+[ ] 1. LANDING PAGE (No auth)
+      Navigate to /planocorrida
+      Fill landing form (name, goal, frequency, experience, consistency)
+      Submit → verify funnel_stage = 'landing_submitted' in DB
+
+[ ] 2. MULTI-STEP FORM
+      Redirected to /formulario
+      Fill all form steps
+      Submit → verify funnel_stage = 'plan_generated', formCompleted = true
+
+[ ] 3. PLAN GENERATED
+      See generated plan
+      Verify DB: planocorrida_landing.formCompleted = true
+
+[ ] 4. PROFILE PAGE
+      Go to /perfil
+      Fill ONLY core 6 fields (name, phone, DOB, height, weight, sex)
+      Submit → no errors for missing goal/frequency/experience/consistency
+
+[ ] 5. LOGIN & PROGRAM ACCESS
+      Login with test account
+      Go to /programas
+      Access running program
+      Verify DB: last_activity_type = 'plan_accessed'
+
+[ ] 6. PWA SIGNALS (Optional)
+      Simulate beforeinstallprompt in DevTools
+      Install app
+      Verify DB: pwa.installPromptedAt, pwa.installedAt set
+
+═════════════════════════════════════════════════════════════════════════════════
+
+📚 DOCUMENTATION FILES
+
+CLEANUP-README.md              → Full reference (all options, troubleshooting)
+CLEANUP-QUICK-START.md         → Step-by-step walkthrough (Portuguese/English)
+cleanup-athlete-test-account.sql      → Simple SQL script
+cleanup-athlete-test-account-v2.sql   → SQL with detailed logging
+admin-cleanup-athlete.js       → Netlify Function source
+test-cleanup-client.js         → JavaScript/Node.js client
+
+═════════════════════════════════════════════════════════════════════════════════
+
+💚 RECOMMENDED: Start with Option 1 (SQL Dashboard) for first cleanup
+   Then integrate Option 2 (API) if doing repeated testing
+   Finally use Option 3 (Automation) for CI/CD
+
+═════════════════════════════════════════════════════════════════════════════════
+```

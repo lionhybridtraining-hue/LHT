@@ -1,0 +1,381 @@
+```
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║                     CLEANUP → TEST FLOW DIAGRAM                              ║
+║                 Complete Funnel Testing Guide (Visual Map)                    ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+
+STEP 0: CLEANUP
+══════════════════════════════════════════════════════════════════════════════════
+
+                   ╔════════════════════════════╗
+                   │  Test Account Cleanup      │
+                   │ rodrigolibanio...@gmail    │
+                   ╚════════════════════════════╝
+                              │
+        ┌───────────────────────┼───────────────────────┐
+        │                       │                       │
+        ▼                       ▼                       ▼
+    ┌─────────┐            ┌──────────┐           ┌─────────────┐
+    │ Option1 │            │ Option 2 │           │  Option 3   │
+    │   SQL   │            │   API    │           │ Automation  │
+    │ Sudo    │            │ Function │           │  Tests      │
+    └─────────┘            └──────────┘           └─────────────┘
+        │                       │                       │
+        └───────────────────────┼───────────────────────┘
+                                │
+                   Athlete Record DELETED ✓
+                   All associated data DELETED ✓
+                                │
+                                ▼
+                    Fresh test account ready
+
+
+STEP 1: LANDING PAGE (Unauthenticated)
+══════════════════════════════════════════════════════════════════════════════════
+
+    ┌─────────────────────────────────────┐
+    │ Browser → /planocorrida             │
+    │ (Incognito recommended)             │
+    └─────────────────────────────────────┘
+                    │
+                    ▼
+    ┌─────────────────────────────────────┐
+    │ Landing Page Form                   │ ← See form component
+    │ ✓ Full Name                         │
+    │ ✓ Goal Distance                     │
+    │ ✓ Weekly Frequency                  │
+    │ ✓ Experience Level                  │
+    │ ✓ Current Consistency               │
+    └─────────────────────────────────────┘
+                    │
+                    ▼
+    ┌─────────────────────────────────────┐
+    │ FORM SUBMIT                         │
+    │ Calls mergeOnboardingAnswers        │
+    │ Sets: formCompleted = false         │
+    │ Sets: entryAt = timestamp           │
+    └─────────────────────────────────────┘
+                    │
+        ┌───────────┴───────────┐
+        │                       │
+        ▼                       ▼
+    CREATE                  SYNC LEAD
+    athlete                 to leads_central
+    record                  
+        │                       │
+        │                       └─→  funnel_stage = 'landing_submitted'
+        │                           last_activity_type = 'landing_viewed'
+        │                           planocorrida_landing = {...}
+        │
+        └─→ ✓ VERIFY DATABASE:
+            SELECT * FROM athletes 
+            WHERE email = 'rodrigolibanio1999@gmail.com'
+            
+            Expected:
+            - funnel_stage = 'landing_submitted'
+            - onboarding_answers.planocorrida_landing.entryAt = timestamp
+            - onboarding_answers.planocorrida_landing.formCompleted = FALSE
+
+
+STEP 2: MULTI-STEP FORM
+══════════════════════════════════════════════════════════════════════════════════
+
+    ┌─────────────────────────────────────┐
+    │ Redirect to /planocorrida/formulario│
+    └─────────────────────────────────────┘
+                    │
+                    ▼
+    ┌─────────────────────────────────────────────────────┐
+    │ Multi-Step Plan Generation Form                     │
+    │                                                     │
+    │ Step 1: Running Info                                │
+    │   ─ Weekly frequency                                │
+    │   ─ Distance goals                                  │
+    │   ─ Race type preference                            │
+    │                                                     │
+    │ Step 2: Fitness Assessment                          │
+    │   ─ Current fitness level                           │
+    │   ─ Training history                                │
+    │                                                     │
+    │ Step N: Final Summary                               │
+    │   └─ "Gerar Plano" button (Submit)                 │
+    └─────────────────────────────────────────────────────┘
+                    │
+                    ▼ (each step)
+    ┌─────────────────────────────────────┐
+    │ AUTO-SAVE DRAFT                     │
+    │ Calls: buildLandingPayload()        │
+    │ Sets: formCompleted = false         │
+    │ (Safe to close browser)             │
+    └─────────────────────────────────────┘
+                    │
+                    ▼ (final submit)
+    ┌─────────────────────────────────────┐
+    │ FINAL SUBMIT                        │
+    │ Calls: buildLandingPayload({        │
+    │   formCompleted: true,              │
+    │   completedAt: timestamp            │
+    │ })                                  │
+    │                                     │
+    │ Generates running plan              │
+    │ Saves plan to plan_storage          │
+    │ Updates funnel_stage                │
+    └─────────────────────────────────────┘
+                    │
+        ┌───────────┴───────────┐
+        │                       │
+        ▼                       ▼
+    UPDATE              PROMOTE FUNNEL
+    plan_storage        to 'plan_generated'
+    plan_data           (only if formCompleted=true)
+                            │
+        ┌───────────────────┴───────────────────┐
+        │                                       │
+        ▼                                       ▼
+    SET plan_generated_at        UPDATE leads_central
+    = now()                      funnel_stage = 'plan_generated'
+                                 last_activity_type = 'plan_generated'
+                                 
+        │                                       │
+        └───────────────────┬───────────────────┘
+                            │
+                            ▼
+            ✓ VERIFY DATABASE:
+            
+            SELECT *, 
+               onboarding_answers->>'planocorrida_landing' as landing,
+               plan_storage
+            FROM athletes WHERE email = '...'
+            
+            Expected:
+            - funnel_stage = 'plan_generated' ✓
+            - plan_generated_at ≠ null ✓
+            - onboarding_answers.planocorrida_landing.formCompleted = TRUE ✓
+            - plan_storage has plan_data ✓
+            
+            SELECT funnel_stage, last_activity_type, lead_status
+            FROM leads_central WHERE email = '...'
+            
+            Expected:
+            - funnel_stage = 'plan_generated' ✓
+            - last_activity_type = 'plan_generated' ✓
+            - lead_status = 'qualified' ✓
+
+
+STEP 3: SHOW GENERATED PLAN
+══════════════════════════════════════════════════════════════════════════════════
+
+    ┌─────────────────────────────────────┐
+    │ Redirect to /plano/{plan_id}        │
+    │                                     │
+    │ Display generated running plan      │
+    │ Show progression by week            │
+    │ Show workouts/training structure    │
+    └─────────────────────────────────────┘
+
+
+STEP 4: PROFILE PAGE (Required for full onboarding)
+══════════════════════════════════════════════════════════════════════════════════
+
+    ┌─────────────────────────────────────┐
+    │ Navigate to /perfil                 │
+    │ (Usually prompted after plan gen)   │
+    └─────────────────────────────────────┘
+                    │
+                    ▼
+    ┌─────────────────────────────────────────────────────┐
+    │ Profile Form - CORE FIELDS ONLY                     │
+    │                                                     │
+    │ ✓ Full Name        (required)                       │
+    │ ✓ Phone            (required)                       │
+    │ ✓ Date of Birth    (required)                       │
+    │ ✓ Height (cm)      (required)                       │
+    │ ✓ Weight (kg)      (required)                       │
+    │ ✓ Sex              (required)                       │
+    │                                                     │
+    │ ✗ Goal Distance              (REMOVED - not here)  │
+    │ ✗ Weekly Frequency           (REMOVED - not here)  │
+    │ ✗ Experience Level           (REMOVED - not here)  │
+    │ ✗ Consistency Level          (REMOVED - not here)  │
+    │                                                     │
+    │ Submit button for save                              │
+    └─────────────────────────────────────────────────────┘
+                    │
+                    ▼
+    ┌─────────────────────────────────────┐
+    │ Save Profile                        │
+    │ Calls: saveAthleteProfile()         │
+    │ Updates athletes record             │
+    │ Sets: dateOfBirth, name, sex, etc   │
+    └─────────────────────────────────────┘
+                    │
+                    ▼
+            ✓ VERIFY DATABASE:
+            
+            SELECT id, name, email, phone, 
+                   date_of_birth, height_cm, weight_kg, sex,
+                   goal_distance, weekly_frequency    -- Should be NULL
+            FROM athletes WHERE email = '...'
+            
+            Expected:
+            - name, phone, date_of_birth, height_cm, weight_kg, sex all filled
+            - goal_distance = NULL (not required anymore) ✓
+            - weekly_frequency = NULL (not required anymore) ✓
+
+
+STEP 5: LOGIN & PROGRAM ACCESS
+══════════════════════════════════════════════════════════════════════════════════
+
+    ┌─────────────────────────────────────┐
+    │ Logout from previous session        │
+    └─────────────────────────────────────┘
+                    │
+                    ▼
+    ┌─────────────────────────────────────┐
+    │ Login to App                        │
+    │ Email: rodrigolibanio1999@gmail.com │
+    │ Password: [test account password]   │
+    └─────────────────────────────────────┘
+                    │
+                    ▼
+    ┌─────────────────────────────────────┐
+    │ Navigate to /programas              │
+    │ (My Running Programs)               │
+    └─────────────────────────────────────┘
+                    │
+                    ▼
+    ┌─────────────────────────────────────┐
+    │ APP CALLS athlete-my-programs       │
+    │                                     │
+    │ Inside: upsertCentralLead()         │
+    │ Sets: lastActivityType = 'plan_     │
+    │       accessed'                     │
+    │ Sets: lastActivityAt = now()        │
+    └─────────────────────────────────────┘
+                    │
+                    ▼
+    ┌─────────────────────────────────────┐
+    │ Show Running Programs               │
+    │ Display: Plan from purchase/        │
+    │ assignment                          │
+    │ Allow: Access to plan details       │
+    └─────────────────────────────────────┘
+                    │
+                    ▼
+            ✓ VERIFY DATABASE:
+            
+            SELECT funnel_stage, lead_status, 
+                   last_activity_type, last_activity_at
+            FROM leads_central WHERE email = '...'
+            
+            Expected:
+            - funnel_stage = 'plan_generated' (unchanged)
+            - last_activity_type = 'plan_accessed' ✓ (NEW)
+            - last_activity_at = now() ✓
+
+
+STEP 6: PWA INSTALL SIGNAL (Optional but tracked)
+══════════════════════════════════════════════════════════════════════════════════
+
+    ┌─────────────────────────────────────┐
+    │ Chrome: Simulate beforeinstallprompt│
+    │ (DevTools Cmd+P → beforeinstall)    │
+    │                                     │
+    │ OR in real Chrome mobile            │
+    │ Show "Add to Home Screen" prompt    │
+    └─────────────────────────────────────┘
+                    │
+                    ▼
+    ┌─────────────────────────────────────┐
+    │ main.tsx beforeinstallprompt        │
+    │ listener fires                      │
+    │                                     │
+    │ Calls: syncPwaSignal({              │
+    │   installPromptedAt: timestamp      │
+    │ })                                  │
+    │                                     │
+    │ Updates: onboarding_answers.pwa     │
+    └─────────────────────────────────────┘
+                    │
+                    ▼
+    ┌─────────────────────────────────────┐
+    │ User clicks: "Install"              │
+    │                                     │
+    │ main.tsx appinstalled listener      │
+    │ fires                               │
+    │                                     │
+    │ Calls: syncPwaSignal({              │
+    │   installedAt: timestamp            │
+    │ })                                  │
+    │                                     │
+    │ Updates: onboarding_answers.pwa     │
+    │ Updates: leads_central activity     │
+    └─────────────────────────────────────┘
+                    │
+                    ▼
+            ✓ VERIFY DATABASE:
+            
+            SELECT onboarding_answers->'pwa' as pwa_obj
+            FROM athletes WHERE email = '...'
+            
+            Expected:
+            - pwa.installPromptedAt = timestamp ✓
+            - pwa.installedAt = timestamp ✓
+            
+            SELECT last_activity_type, last_activity_at
+            FROM leads_central WHERE email = '...'
+            
+            Expected:
+            - last_activity_type = 'app_installed' ✓ (if tracked)
+
+
+FINAL VERIFICATION
+══════════════════════════════════════════════════════════════════════════════════
+
+Complete queries to verify entire funnel progression:
+
+```sql
+-- Main athlete progression
+SELECT 
+  id, email, name, phone, 
+  funnel_stage, plan_generated_at, 
+  onboarding_submitted_at,
+  (onboarding_answers->'planocorrida_landing'->>'formCompleted')::boolean as form_completed,
+  (onboarding_answers->'planocorrida_landing'->>'entryAt') as entry_at,
+  (onboarding_answers->'pwa'->>'installPromptedAt') as pwa_prompted,
+  (onboarding_answers->'pwa'->>'installedAt') as pwa_installed
+FROM athletes 
+WHERE email = 'rodrigolibanio1999@gmail.com';
+
+-- Lead tracking/funnel progression
+SELECT 
+  id, email, phone, full_name,
+  funnel_stage, lead_status,
+  last_activity_type, last_activity_at,
+  created_at
+FROM leads_central 
+WHERE email = 'rodrigolibanio1999@gmail.com'
+ORDER BY last_activity_at DESC;
+
+-- Activity timeline
+SELECT 
+  funnel_stage, lead_status, last_activity_type, last_activity_at
+FROM leads_central 
+WHERE email = 'rodrigolibanio1999@gmail.com'
+UNION ALL
+SELECT 
+  'Database Time',
+  TO_CHAR(NOW(), 'YYYY-MM-DD HH24:MI:SS'),
+  'Current UTC:',
+  NOW()
+```
+
+Expected progression:
+1. landing_viewed          (entry on landing page)
+2. landing_submitted       (landing form filled)
+3. plan_generated          (form completed, plan generated)
+4. plan_accessed           (accessed /programas)
+5. app_installed           (optional: PWA installed)
+
+═════════════════════════════════════════════════════════════════════════════════
+```

@@ -42,32 +42,7 @@ CREATE POLICY "Athletes read own weekly checkins"
 		)
 	);
 
--- 3) onboarding_intake
-ALTER TABLE onboarding_intake ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "Service role full access on onboarding_intake"
-	ON onboarding_intake;
-CREATE POLICY "Service role full access on onboarding_intake"
-	ON onboarding_intake FOR ALL
-	TO service_role
-	USING (true) WITH CHECK (true);
-
-DROP POLICY IF EXISTS "Athletes read own onboarding intake"
-	ON onboarding_intake;
-CREATE POLICY "Athletes read own onboarding intake"
-	ON onboarding_intake FOR SELECT
-	TO authenticated
-	USING (identity_id = auth.uid()::text);
-
-DROP POLICY IF EXISTS "Athletes update own onboarding intake"
-	ON onboarding_intake;
-CREATE POLICY "Athletes update own onboarding intake"
-	ON onboarding_intake FOR UPDATE
-	TO authenticated
-	USING (identity_id = auth.uid()::text)
-	WITH CHECK (identity_id = auth.uid()::text);
-
--- 4) onboarding_form_responses
+-- 3) onboarding_form_responses
 ALTER TABLE onboarding_form_responses ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Service role full access on onboarding_form_responses"
@@ -92,7 +67,7 @@ CREATE POLICY "Athletes update own onboarding form responses"
 	USING (identity_id = auth.uid()::text)
 	WITH CHECK (identity_id = auth.uid()::text);
 
--- 5) athlete_strava_connections
+-- 4) athlete_strava_connections
 DO $$
 BEGIN
 	IF to_regclass('public.athlete_strava_connections') IS NOT NULL THEN

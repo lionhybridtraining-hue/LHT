@@ -32,13 +32,54 @@ const {
   getStripePurchasesForIdentity,
   getAllInstancesForAthlete,
   getActiveAssignmentsForAthlete,
-  listStrengthPlans
+  listStrengthPlans,
+  listPaymentPlans,
+  listPaymentCharges
 } = require("./_lib/supabase");
 
-function derivePurchasePhase({ purchase, instance, isCoachLocked, isInGrace }) {
+function derivePhasedPaymentState(charges) {
+  if (!Array.isArray(charges) || !charges.length) return { status: "none" };
+
+  const now = new Date().toISOString();
+  const today = now.slice(0, 10);
+
+  const paid = charges.filter((c) => c.status === "paid").length;
+  const overdue = charges.filter((c) => c.status === "overdue");
+  const failed = charges.filter((c) => c.status === "failed");
+
+  // Any overdue charge with expired grace = blocked
+  const overdueBlocked = overdue.some((c) => {
+    if (!c.grace_period_ends_at) return true;
+    return new Date(c.grace_period_ends_at) < new Date(now);
+  });
+
+  if (overdueBlocked) return { status: "blocked", paid, overdue: overdue.length };
+
+  // Failed charges still within grace = grace state
+  const inGrace = [...overdue, ...failed].some((c) =>
+    c.grace_period_ends_at && new Date(c.grace_period_ends_at) >= new Date(now)
+  );
+
+  if (inGrace) return { status: "grace", paid, overdue: overdue.length };
+
+  // All paid/skipped/cancelled = complete
+  const allDone = charges.every((c) =>
+    c.status === "paid" || c.status === "skipped" || c.status === "cancelled"
+  );
+  if (allDone) return { status: "complete", paid };
+
+  return { status: "active", paid, total: charges.length };
+}
+
+function derivePurchasePhase({ purchase, instance, isCoachLocked, isInGrace, phasedState }) {
   if (purchase.status === "cancelled") return "cancelled";
   if (purchase.status === "payment_failed" && !isInGrace) return "expired";
   if (purchase.status === "payment_failed" && isInGrace) return "grace";
+
+  // Phased payment gating
+  if (phasedState && phasedState.status === "blocked") return "expired";
+  if (phasedState && phasedState.status === "grace") return "grace";
+
   if (isCoachLocked) return "coached";
 
   const accessModel = (instance && instance.access_model) ||
@@ -76,6 +117,16 @@ exports.handler = async (event) => {
       getAllInstancesForAthlete(config, athlete.id),
       getActiveAssignmentsForAthlete(config, athlete.id)
     ]);
+
+    // Load phased payment plans for this identity
+    const phasedPlans = await listPaymentPlans(config, { identityId, status: undefined, limit: 100 });
+    const phasedChargesByPurchaseId = {};
+    for (const plan of phasedPlans) {
+      if (plan.stripe_purchase_id) {
+        const charges = await listPaymentCharges(config, { paymentPlanId: plan.id });
+        phasedChargesByPurchaseId[plan.stripe_purchase_id] = charges;
+      }
+    }
 
     // Index instances by stripe_purchase_id and program_assignment_id for O(1) lookup
     const instanceByPurchaseId = {};
@@ -139,7 +190,10 @@ exports.handler = async (event) => {
         purchase.grace_period_ends_at > now
       );
 
-      const phase = derivePurchasePhase({ purchase, instance, isCoachLocked, isInGrace });
+      const phasedCharges = phasedChargesByPurchaseId[purchase.id] || null;
+      const phasedState = phasedCharges ? derivePhasedPaymentState(phasedCharges) : null;
+
+      const phase = derivePurchasePhase({ purchase, instance, isCoachLocked, isInGrace, phasedState });
 
       const canCreateInstance =
         purchase.status === "paid" || isInGrace
