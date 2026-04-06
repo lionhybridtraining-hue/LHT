@@ -2,6 +2,12 @@
   publish = "."
   command = "npm run build"
 
+[build.environment]
+  # VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are public Supabase client values
+  # (anon key, protected by RLS) — Vite bakes them into the bundle by design.
+  # Exclude them from secret scanning to prevent false-positive build failures.
+  SECRETS_SCAN_OMIT_KEYS = "VITE_SUPABASE_URL,VITE_SUPABASE_ANON_KEY"
+
 [dev]
   port = 8888
   publish = "."
