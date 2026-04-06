@@ -2681,6 +2681,49 @@ details[open] .programs-create-summary {
   background: rgba(200, 154, 60, 0.24);
 }
 
+.save-central-lead-btn {
+  font-family: "Oswald", sans-serif;
+  font-size: 0.82rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 5px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--accent-deep);
+  background: rgba(200, 154, 60, 0.12);
+  color: var(--ink);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.save-central-lead-btn:hover {
+  background: rgba(200, 154, 60, 0.24);
+}
+
+.central-lead-stage-select,
+.central-lead-status-select {
+  min-width: 150px;
+  font-family: inherit;
+  font-size: 0.82rem;
+  padding: 5px 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--ink);
+}
+
+.central-lead-chip {
+  border: 1px solid rgba(241, 200, 111, 0.24);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--white);
+  cursor: pointer;
+}
+
+.central-lead-chip.is-active {
+  border-color: rgba(241, 200, 111, 0.66);
+  background: rgba(200, 154, 60, 0.2);
+  color: #fff4d8;
+}
+
 /* ===== MODO ESSENCIAL ===== */
 .sc-essencial {
   display: flex;
@@ -4424,3 +4467,21 @@ dialog {
     font-size: 0.68rem;
   }
 }
+
+/* Admin Notifications */
+.badge {
+  display: inline-block;
+  background: #e53e3e;
+  color: #fff;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 7px;
+  vertical-align: middle;
+  margin-left: 6px;
+}
+
+.notif-severity-warning { color: #b7791f; font-weight: 600; }
+.notif-severity-error   { color: #c53030; font-weight: 600; }
+.notif-severity-info    { color: #2b6cb0; }
+.notif-row-read td      { opacity: 0.5; }

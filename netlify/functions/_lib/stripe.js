@@ -180,6 +180,31 @@ async function deleteCoupon(couponId) {
   return stripe.coupons.del(couponId);
 }
 
+// Listar promotion codes
+async function listPromotionCodes({ limit = 100 } = {}) {
+  const stripe = cachedClient;
+  if (!stripe) throw new Error('Stripe client not initialized');
+  const result = await stripe.promotionCodes.list({ limit });
+  return result.data || [];
+}
+
+// Criar promotion code para um cupão
+async function createPromotionCode({ couponId, code, maxRedemptions }) {
+  const stripe = cachedClient;
+  if (!stripe) throw new Error('Stripe client not initialized');
+  const params = {
+    promotion: {
+      type: 'coupon',
+      coupon: couponId
+    },
+    code
+  };
+  if (Number.isFinite(maxRedemptions) && maxRedemptions > 0) {
+    params.max_redemptions = maxRedemptions;
+  }
+  return stripe.promotionCodes.create(params);
+}
+
 // Listar preços por produto
 async function listPricesForProduct(productId) {
   const stripe = cachedClient;
@@ -264,6 +289,8 @@ module.exports = {
   listCoupons,
   createCoupon,
   deleteCoupon,
+  listPromotionCodes,
+  createPromotionCode,
   listPricesForProduct,
   createPriceForProduct,
   archivePrice,

@@ -400,10 +400,12 @@ exports.handler = async (event) => {
 
     const funnelStage = mergeFunnelStage(existing ? existing.funnel_stage : null, structured.funnelStage);
 
+    // Only mark as submitted if this is a full form completion, not an auto-save
+    const isAutoSave = query.auto_save === "true" || query.auto_save === "1";
     const onboardingSubmittedAt =
       existing && existing.onboarding_submitted_at
         ? existing.onboarding_submitted_at
-        : structured.hasFormCompletion
+        : !isAutoSave && structured.hasFormCompletion
           ? now
           : null;
 
@@ -472,6 +474,8 @@ exports.handler = async (event) => {
       ok: true,
       athleteId: athlete.id,
       submittedAt: updated ? updated.onboarding_submitted_at : patch.onboarding_submitted_at,
+      isAutoSave: isAutoSave,
+      autoSaveBitmap: Object.keys(mergedAnswers),
       legacySync
     });
   } catch (err) {

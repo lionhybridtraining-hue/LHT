@@ -251,6 +251,9 @@ function normalizeProgramPayload(payload) {
     name,
     external_source: externalSource,
     external_id: externalId,
+    default_coach_identity_id: payload.defaultCoachIdentityId == null
+      ? (payload.default_coach_identity_id == null ? null : payload.default_coach_identity_id.toString().trim() || null)
+      : payload.defaultCoachIdentityId.toString().trim() || null,
     commercial_description: commercialDescription,
     technical_description: technicalDescription,
     description,
@@ -305,6 +308,7 @@ function mapProgram(row) {
     startDate: row.start_date || null,
     immediateAccess: !row.start_date,
     presetSelection: row.preset_selection || null,
+    defaultCoachIdentityId: row.default_coach_identity_id || null,
     createdAt: row.created_at || null,
     updatedAt: row.updated_at || null
   };

@@ -1183,6 +1183,13 @@
                 </select>
                 <small class="field-hint">Define quem controla a instancia e como o acesso e gerido apos o pagamento.</small>
               </div>
+              <div class="field">
+                <label for="program-default-coach">Coach por defeito</label>
+                <select id="program-default-coach">
+                  <option value="">Nenhum (self-serve)</option>
+                </select>
+                <small class="field-hint">Coach atribuido automaticamente ao atleta quando compra este programa.</small>
+              </div>
             </div>
           </div>
 
@@ -1407,6 +1414,13 @@
                       <option value="self_serve">self_serve</option>
                       <option value="coached_recurring">coached_recurring</option>
                     </select>
+                  </div>
+                  <div class="field">
+                    <label for="edit-program-default-coach">Coach por defeito</label>
+                    <select id="edit-program-default-coach">
+                      <option value="">Nenhum (self-serve)</option>
+                    </select>
+                    <small class="field-hint">Coach auto-atribuido ao atleta na compra.</small>
                   </div>
                   <div class="field">
                     <label for="edit-program-status">Estado</label>
@@ -1671,6 +1685,7 @@
               <select id="vendas-filter-source">
                 <option value="">Todas</option>
                 <option value="stripe">stripe</option>
+                <option value="stripe_simulated">stripe_simulated</option>
                 <option value="admin_override">admin_override</option>
               </select>
             </div>
@@ -1706,6 +1721,8 @@
                   <th>Valor</th>
                   <th>Estado</th>
                   <th>Tipo</th>
+                  <th>Forma faturacao</th>
+                  <th>Metodo pagamento</th>
                   <th>Canal</th>
                   <th>Source</th>
                   <th>Pago em</th>
@@ -1765,7 +1782,8 @@
             <table class="athletes-table">
               <thead>
                 <tr>
-                  <th>Nome</th>
+                  <th>Nome interno</th>
+                  <th>Código (checkout)</th>
                   <th>Desconto</th>
                   <th>Duracao</th>
                   <th>Usos</th>
@@ -1776,6 +1794,7 @@
               </thead>
               <tbody id="coupons-body"></tbody>
             </table>
+            <p class="message" style="margin-top:8px;font-size:0.85rem;color:var(--ink-soft)">O código que o atleta digita no checkout é o campo <strong>Nome</strong> sanitizado para maiúsculas (ex.: DESCONTO20). Criado automaticamente como Promotion Code no Stripe.</p>
           </div>
         </div>
 
@@ -1963,6 +1982,8 @@
                   <th>Cobranca</th>
                   <th>Programa</th>
                   <th>Valor</th>
+                  <th>Forma faturacao</th>
+                  <th>Metodo pagamento</th>
                   <th>Data</th>
                   <th>Estado</th>
                   <th>Pago a</th>
@@ -2026,6 +2047,38 @@
         </div>
 
         <p id="operations-message" class="message" role="status"></p>
+
+        <!-- Admin Notifications -->
+        <div class="editor-top" style="margin-bottom:0">
+          <div>
+            <p class="section-eyebrow">Sistema</p>
+            <h3 style="margin:0">Notificacoes <span id="notif-unread-badge" class="badge" hidden></span></h3>
+          </div>
+          <div class="editor-actions">
+            <button id="notif-refresh-btn" type="button">Atualizar</button>
+            <label style="display:flex;align-items:center;gap:6px;font-size:13px;">
+              <input id="notif-include-read" type="checkbox" /> Mostrar lidas
+            </label>
+          </div>
+        </div>
+        <div id="notif-empty" class="athletes-empty" hidden>
+          <p>Sem notificacoes pendentes.</p>
+        </div>
+        <div class="athletes-list-wrap" id="notif-list-wrap" hidden>
+          <table class="athletes-table">
+            <thead>
+              <tr>
+                <th>Severidade</th>
+                <th>Titulo</th>
+                <th>Mensagem</th>
+                <th>Data</th>
+                <th>Acoes</th>
+              </tr>
+            </thead>
+            <tbody id="notif-body"></tbody>
+          </table>
+        </div>
+        <hr style="margin:24px 0;" />
 
         <div class="athletes-toolbar operations-toolbar">
           <div class="field field-wide">
@@ -3093,6 +3146,7 @@
       programStripePriceIdAnnual: document.getElementById('program-stripe-price-id-annual'),
       programBillingType: document.getElementById('program-billing-type'),
       programAccessModel: document.getElementById('program-access-model'),
+      programDefaultCoach: document.getElementById('program-default-coach'),
       programStatus: document.getElementById('program-status'),
       programEventId: document.getElementById('program-event-id'),
       programStartDate: document.getElementById('program-start-date'),
@@ -3132,6 +3186,7 @@
       editProgramStripePriceIdAnnual: document.getElementById('edit-program-stripe-price-id-annual'),
       editProgramBillingType: document.getElementById('edit-program-billing-type'),
       editProgramAccessModel: document.getElementById('edit-program-access-model'),
+      editProgramDefaultCoach: document.getElementById('edit-program-default-coach'),
       editProgramStatus: document.getElementById('edit-program-status'),
       editProgramEventId: document.getElementById('edit-program-event-id'),
       editProgramStartDate: document.getElementById('edit-program-start-date'),
@@ -3304,6 +3359,14 @@
       quickAssignCoachSaveBtn: document.getElementById('quick-assign-coach-save-btn'),
       quickAssignCoachCancelBtn: document.getElementById('quick-assign-coach-cancel-btn')
     };
+
+    const centralLeadsUiEnabled = Boolean(
+      els.tabLeadsCentral &&
+      els.leadsCentralPanel &&
+      els.leadsCentralMessage &&
+      els.leadsCentralBody &&
+      els.leadsCentralEmpty
+    );
 
     const tabConfig = {
       blog: {
@@ -4504,6 +4567,69 @@
       showOperationsMessage('Auditoria concluida.', false);
     }
 
+    // ── Admin Notifications ──────────────────────────────────────────────────
+
+    async function loadAdminNotifications() {
+      if (!state.user) return;
+      const includeRead = document.getElementById('notif-include-read') && document.getElementById('notif-include-read').checked ? '1' : '0';
+      const data = await apiRequest('GET', `/.netlify/functions/admin-notifications?includeRead=${includeRead}`);
+      const notifications = data && Array.isArray(data.notifications) ? data.notifications : [];
+      const unreadCount = data && typeof data.unreadCount === 'number' ? data.unreadCount : 0;
+
+      const badge = document.getElementById('notif-unread-badge');
+      if (badge) {
+        if (unreadCount > 0) {
+          badge.textContent = unreadCount;
+          badge.hidden = false;
+        } else {
+          badge.hidden = true;
+        }
+      }
+
+      const body = document.getElementById('notif-body');
+      const emptyEl = document.getElementById('notif-empty');
+      const wrapEl = document.getElementById('notif-list-wrap');
+      if (!body) return;
+
+      if (notifications.length === 0) {
+        if (emptyEl) emptyEl.hidden = false;
+        if (wrapEl) wrapEl.hidden = true;
+        return;
+      }
+
+      if (emptyEl) emptyEl.hidden = true;
+      if (wrapEl) wrapEl.hidden = false;
+
+      body.innerHTML = notifications.map((n) => {
+        const severityClass = `notif-severity-${n.severity || 'info'}`;
+        const rowClass = n.read_at || n.dismissed_at ? 'notif-row-read' : '';
+        const date = n.created_at ? new Date(n.created_at).toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+        const isActioned = Boolean(n.read_at || n.dismissed_at);
+        return `<tr class="${rowClass}" data-notif-id="${n.id}">
+          <td class="${severityClass}">${n.severity || 'info'}</td>
+          <td>${escHtml(n.title || '')}</td>
+          <td>${escHtml(n.message || '')}</td>
+          <td style="white-space:nowrap;">${date}</td>
+          <td style="white-space:nowrap;">
+            ${isActioned ? '<span style="color:#999;font-size:12px;">Lida</span>' : `
+              <button type="button" class="action-btn" onclick="markNotification('${n.id}','read')">Marcar lida</button>
+              <button type="button" class="action-btn" onclick="markNotification('${n.id}','dismiss')">Dispensar</button>
+            `}
+          </td>
+        </tr>`;
+      }).join('');
+    }
+
+    function escHtml(str) {
+      return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    async function markNotification(id, action) {
+      if (!state.user) return;
+      await apiRequest('PATCH', '/.netlify/functions/admin-notifications', { id, action });
+      await loadAdminNotifications();
+    }
+
     function clearDataAudit() {
       state.dataAudit = null;
       els.auditIdentityId.value = '';
@@ -4549,6 +4675,21 @@
           els.assignCoachSelect.appendChild(option);
         });
       }
+
+      // Populate program default-coach dropdowns
+      ['program-default-coach', 'edit-program-default-coach'].forEach((selectId) => {
+        const sel = document.getElementById(selectId);
+        if (!sel) return;
+        const currentVal = sel.value || '';
+        sel.innerHTML = '<option value="">Nenhum (self-serve)</option>';
+        state.coaches.forEach((coach) => {
+          const option = document.createElement('option');
+          option.value = coach.identityId;
+          option.textContent = `${coach.name || coach.email} (${coach.email})`;
+          if (currentVal && currentVal === coach.identityId) option.selected = true;
+          sel.appendChild(option);
+        });
+      });
     }
 
     async function loadCoaches(selectedIdentityId) {
@@ -5596,6 +5737,221 @@
       state.leads = Array.isArray(data.leads) ? data.leads : [];
       renderLeads();
       showLeadsMessage(`Leads carregadas: ${state.leads.length}.`, false);
+    }
+
+    function showCentralLeadsMessage(text, isError) {
+      if (!centralLeadsUiEnabled) return;
+      els.leadsCentralMessage.textContent = text || '';
+      els.leadsCentralMessage.classList.toggle('error', Boolean(isError));
+      els.leadsCentralMessage.classList.toggle('success', !isError && Boolean(text));
+    }
+
+    const CENTRAL_LEAD_STAGE_LABELS = {
+      landing: 'Landing',
+      landing_submitted: 'Landing enviada',
+      meta_received: 'Meta recebida',
+      onboarding_submitted: 'Onboarding enviado',
+      plan_generated: 'Plano gerado',
+      coach_application: 'Aplicacao coach',
+      qualified: 'Qualificada',
+      converted: 'Convertida',
+      disqualified: 'Desqualificada'
+    };
+
+    const CENTRAL_LEAD_STAGE_OPTIONS = [
+      'landing',
+      'landing_submitted',
+      'meta_received',
+      'onboarding_submitted',
+      'plan_generated',
+      'coach_application',
+      'qualified',
+      'converted',
+      'disqualified'
+    ];
+
+    const CENTRAL_LEAD_STATUS_LABELS = {
+      new: 'Novo',
+      contacted: 'Contactado',
+      qualified: 'Qualificado',
+      converted: 'Convertido',
+      disqualified: 'Desqualificado'
+    };
+
+    const CENTRAL_LEAD_STATUS_OPTIONS = ['new', 'contacted', 'qualified', 'converted', 'disqualified'];
+
+    function buildCentralLeadsQueryString() {
+      const params = new URLSearchParams();
+      if (state.centralLeadsFilters.source) params.set('source', state.centralLeadsFilters.source);
+      if (state.centralLeadsFilters.funnelStage) params.set('funnel_stage', state.centralLeadsFilters.funnelStage);
+      if (state.centralLeadsFilters.leadStatus) params.set('lead_status', state.centralLeadsFilters.leadStatus);
+      if (state.centralLeadsFilters.query) params.set('q', state.centralLeadsFilters.query);
+      if (state.centralLeadsFilters.dateFrom) params.set('date_from', state.centralLeadsFilters.dateFrom);
+      if (state.centralLeadsFilters.dateTo) params.set('date_to', state.centralLeadsFilters.dateTo);
+      params.set('limit', '150');
+      return params.toString();
+    }
+
+    function recomputeCentralLeadsCountsByStage() {
+      const counts = {};
+      state.centralLeads.forEach((lead) => {
+        const key = lead.funnelStage || 'landing';
+        counts[key] = (counts[key] || 0) + 1;
+      });
+      state.centralLeadsCountsByStage = counts;
+    }
+
+    function renderCentralLeadsStageChips() {
+      if (!centralLeadsUiEnabled || !els.centralLeadsStageChips) return;
+      const total = state.centralLeads.length;
+      const counts = state.centralLeadsCountsByStage || {};
+      const selectedStage = state.centralLeadsFilters.funnelStage || '';
+
+      const chips = [
+        `<button type="button" class="surface-chip central-lead-chip${selectedStage ? '' : ' is-active'}" data-central-lead-stage="">Todos (${total})</button>`
+      ];
+
+      CENTRAL_LEAD_STAGE_OPTIONS.forEach((stage) => {
+        const count = counts[stage] || 0;
+        const label = CENTRAL_LEAD_STAGE_LABELS[stage] || stage;
+        const activeClass = selectedStage === stage ? ' is-active' : '';
+        chips.push(`<button type="button" class="surface-chip central-lead-chip${activeClass}" data-central-lead-stage="${escapeHtml(stage)}">${escapeHtml(label)} (${count})</button>`);
+      });
+
+      els.centralLeadsStageChips.innerHTML = chips.join('');
+    }
+
+    function renderCentralLeads() {
+      if (!centralLeadsUiEnabled) return;
+      els.leadsCentralBody.innerHTML = '';
+
+      if (!state.centralLeads.length) {
+        els.leadsCentralEmpty.hidden = false;
+        renderCentralLeadsStageChips();
+        return;
+      }
+
+      els.leadsCentralEmpty.hidden = true;
+      const fragment = document.createDocumentFragment();
+
+      state.centralLeads.forEach((lead) => {
+        const row = document.createElement('tr');
+        row.dataset.leadId = lead.id;
+
+        const stageSelect = document.createElement('select');
+        stageSelect.className = 'central-lead-stage-select';
+        stageSelect.dataset.leadId = lead.id;
+        CENTRAL_LEAD_STAGE_OPTIONS.forEach((s) => {
+          const opt = document.createElement('option');
+          opt.value = s;
+          opt.textContent = CENTRAL_LEAD_STAGE_LABELS[s] || s;
+          if (s === lead.funnelStage) opt.selected = true;
+          stageSelect.appendChild(opt);
+        });
+
+        const statusSelect = document.createElement('select');
+        statusSelect.className = 'central-lead-status-select';
+        statusSelect.dataset.leadId = lead.id;
+        CENTRAL_LEAD_STATUS_OPTIONS.forEach((s) => {
+          const opt = document.createElement('option');
+          opt.value = s;
+          opt.textContent = CENTRAL_LEAD_STATUS_LABELS[s] || s;
+          if (s === lead.leadStatus) opt.selected = true;
+          statusSelect.appendChild(opt);
+        });
+
+        const saveBtn = document.createElement('button');
+        saveBtn.type = 'button';
+        saveBtn.className = 'save-central-lead-btn';
+        saveBtn.textContent = 'Guardar';
+        saveBtn.dataset.leadId = lead.id;
+
+        const tdActions = document.createElement('td');
+        tdActions.className = 'lead-actions-cell';
+        tdActions.appendChild(stageSelect);
+        tdActions.appendChild(statusSelect);
+        tdActions.appendChild(saveBtn);
+
+        row.innerHTML = `
+          <td>${escapeHtml(lead.source || '-')}</td>
+          <td>${escapeHtml(lead.fullName || '-')}</td>
+          <td>${escapeHtml(lead.email || lead.emailNormalized || '-')}</td>
+          <td>${escapeHtml(lead.phone || lead.phoneNormalized || '-')}</td>
+          <td>${escapeHtml(CENTRAL_LEAD_STAGE_LABELS[lead.funnelStage] || lead.funnelStage || '-')}</td>
+          <td>${escapeHtml(CENTRAL_LEAD_STATUS_LABELS[lead.leadStatus] || lead.leadStatus || '-')}</td>
+          <td>${escapeHtml(lead.lastActivityType || '-')}<br><small>${escapeHtml(formatDate(lead.lastActivityAt))}</small></td>
+          <td>${formatDate(lead.createdAt)}</td>
+        `;
+
+        row.appendChild(tdActions);
+        fragment.appendChild(row);
+      });
+
+      els.leadsCentralBody.appendChild(fragment);
+      renderCentralLeadsStageChips();
+    }
+
+    function syncCentralLeadsFiltersToUI() {
+      if (!centralLeadsUiEnabled) return;
+      if (els.centralLeadsSourceFilter) els.centralLeadsSourceFilter.value = state.centralLeadsFilters.source || '';
+      if (els.centralLeadsStatusFilter) els.centralLeadsStatusFilter.value = state.centralLeadsFilters.leadStatus || '';
+      if (els.centralLeadsDateFrom) els.centralLeadsDateFrom.value = state.centralLeadsFilters.dateFrom || '';
+      if (els.centralLeadsDateTo) els.centralLeadsDateTo.value = state.centralLeadsFilters.dateTo || '';
+      if (els.centralLeadsQuery) els.centralLeadsQuery.value = state.centralLeadsFilters.query || '';
+    }
+
+    async function refreshCentralLeadsData() {
+      if (!centralLeadsUiEnabled) return;
+      if (!state.user) return;
+      showCentralLeadsMessage('A carregar funil de leads...', false);
+      const queryString = buildCentralLeadsQueryString();
+      const endpoint = queryString ? `${centralLeadsApiBase}?${queryString}` : centralLeadsApiBase;
+      const data = await apiRequest('GET', endpoint);
+      state.centralLeads = Array.isArray(data.leads) ? data.leads : [];
+      state.centralLeadsCountsByStage = data && data.countsByStage && typeof data.countsByStage === 'object'
+        ? data.countsByStage
+        : {};
+      if (!Object.keys(state.centralLeadsCountsByStage).length) {
+        recomputeCentralLeadsCountsByStage();
+      }
+      renderCentralLeads();
+      showCentralLeadsMessage(`Leads no funil: ${state.centralLeads.length}.`, false);
+    }
+
+    function clearCentralLeadsFilters() {
+      if (!centralLeadsUiEnabled) return;
+      state.centralLeadsFilters = {
+        source: '',
+        leadStatus: '',
+        funnelStage: '',
+        query: '',
+        dateFrom: '',
+        dateTo: ''
+      };
+      syncCentralLeadsFiltersToUI();
+    }
+
+    async function saveCentralLeadUpdate(leadId) {
+      if (!centralLeadsUiEnabled) return;
+      const row = els.leadsCentralBody.querySelector(`tr[data-lead-id="${CSS.escape(leadId)}"]`);
+      if (!row) return;
+
+      const stageSelect = row.querySelector('.central-lead-stage-select');
+      const statusSelect = row.querySelector('.central-lead-status-select');
+      const funnelStage = stageSelect ? stageSelect.value : undefined;
+      const leadStatus = statusSelect ? statusSelect.value : undefined;
+
+      await apiRequest('PATCH', centralLeadsApiBase, { id: leadId, funnelStage, leadStatus });
+      showCentralLeadsMessage('Lead do funil atualizada.', false);
+
+      const lead = state.centralLeads.find((item) => item.id === leadId);
+      if (lead) {
+        if (funnelStage !== undefined) lead.funnelStage = funnelStage;
+        if (leadStatus !== undefined) lead.leadStatus = leadStatus;
+      }
+
+      recomputeCentralLeadsCountsByStage();
+      renderCentralLeads();
     }
 
     function showProgramsMessage(text, isError) {
@@ -7087,6 +7443,7 @@
         eventDescription: els.programEventDescription,
         calendarVisible: els.programCalendarVisible,
         calendarHighlightRank: els.programCalendarHighlightRank,
+        defaultCoachIdentityId: els.programDefaultCoach,
         recurringPricingFields: els.programRecurringPricingFields,
         createStripe: els.programCreateStripe
       };
@@ -7122,6 +7479,7 @@
         eventDescription: els.editProgramEventDescription,
         calendarVisible: els.editProgramCalendarVisible,
         calendarHighlightRank: els.editProgramCalendarHighlightRank,
+        defaultCoachIdentityId: els.editProgramDefaultCoach,
         recurringPricingFields: els.editProgramRecurringPricingFields
       };
     }
@@ -7443,6 +7801,9 @@
       const calendarVisible = fields.calendarVisible ? Boolean(fields.calendarVisible.checked) : true;
       const rawCalendarHighlightRank = getFieldValue(fields.calendarHighlightRank).trim();
       const calendarHighlightRank = rawCalendarHighlightRank === '' ? null : Number(rawCalendarHighlightRank);
+      const defaultCoachIdentityId = fields.defaultCoachIdentityId
+        ? (fields.defaultCoachIdentityId.value || '').trim() || null
+        : null;
 
       if (!name) throw new Error('Nome do programa e obrigatorio.');
       if (!Number.isInteger(durationWeeks) || durationWeeks <= 0) {
@@ -7503,6 +7864,7 @@
         eventDescription,
         calendarVisible,
         calendarHighlightRank,
+        defaultCoachIdentityId,
       };
 
       if (options.includeCreateStripe && fields.createStripe && fields.createStripe.checked) {
@@ -7571,6 +7933,7 @@
       if (fields.eventDescription) fields.eventDescription.value = program.eventDescription || '';
       if (fields.calendarVisible) fields.calendarVisible.checked = program.calendarVisible !== false;
       if (fields.calendarHighlightRank) fields.calendarHighlightRank.value = program.calendarHighlightRank == null ? '' : String(program.calendarHighlightRank);
+      if (fields.defaultCoachIdentityId) fields.defaultCoachIdentityId.value = program.defaultCoachIdentityId || '';
       syncRecurringPricingVisibility(fields);
       syncEditProgramPriceFieldVisibility();
 
@@ -8203,6 +8566,16 @@
       state.siteContent = null;
       state.coaches = [];
       state.leads = [];
+      state.centralLeads = [];
+      state.centralLeadsCountsByStage = {};
+      state.centralLeadsFilters = {
+        source: '',
+        leadStatus: '',
+        funnelStage: '',
+        query: '',
+        dateFrom: '',
+        dateTo: ''
+      };
       state.aiPrompts = [];
       state.aiPromptVersions = [];
       state.aiLogs = [];
@@ -8233,6 +8606,9 @@
       renderList();
       renderCoachOptions();
       renderLeads();
+      if (centralLeadsUiEnabled) {
+        renderCentralLeads();
+      }
       renderProgramsTable();
       renderProgramEventOptions();
       renderProgramOptions();
@@ -8250,6 +8626,9 @@
       showSiteContentMessage('Faz login para gerir o conteudo do site.', false);
       resetForm({ clearLocalDraft: false });
       showLeadsMessage('Faz login para ver as leads Meta.', false);
+      if (centralLeadsUiEnabled) {
+        showCentralLeadsMessage('Faz login para ver o funil central.', false);
+      }
       showProgramsMessage('Faz login para gerir programas.', false);
       showAiMessage('Faz login para gerir prompts e logs de IA.', false);
       showOperationsMessage('Faz login para usar a auditoria de dados.', false);
@@ -8862,6 +9241,13 @@
             showLeadsMessage(err.message, true);
           }
         }
+        if (centralLeadsUiEnabled && activeTab === 'leadsCentral') {
+          try {
+            await refreshCentralLeadsData();
+          } catch (err) {
+            showCentralLeadsMessage(err.message, true);
+          }
+        }
         if (activeTab === 'programs') {
           try {
             await refreshProgramsData();
@@ -9324,6 +9710,100 @@
         showLeadsMessage(err.message, true);
       }
     });
+
+    if (els.refreshCentralLeadsBtn) {
+      els.refreshCentralLeadsBtn.addEventListener('click', async () => {
+        try {
+          await refreshCentralLeadsData();
+        } catch (err) {
+          showCentralLeadsMessage(err.message, true);
+        }
+      });
+    }
+
+    if (els.clearCentralLeadsFiltersBtn) {
+      els.clearCentralLeadsFiltersBtn.addEventListener('click', async () => {
+        clearCentralLeadsFilters();
+        try {
+          await refreshCentralLeadsData();
+        } catch (err) {
+          showCentralLeadsMessage(err.message, true);
+        }
+      });
+    }
+
+    if (els.centralLeadsSourceFilter) {
+      els.centralLeadsSourceFilter.addEventListener('change', async (event) => {
+        state.centralLeadsFilters.source = event.target.value || '';
+        try {
+          await refreshCentralLeadsData();
+        } catch (err) {
+          showCentralLeadsMessage(err.message, true);
+        }
+      });
+    }
+
+    if (els.centralLeadsStatusFilter) {
+      els.centralLeadsStatusFilter.addEventListener('change', async (event) => {
+        state.centralLeadsFilters.leadStatus = event.target.value || '';
+        try {
+          await refreshCentralLeadsData();
+        } catch (err) {
+          showCentralLeadsMessage(err.message, true);
+        }
+      });
+    }
+
+    if (els.centralLeadsDateFrom) {
+      els.centralLeadsDateFrom.addEventListener('change', async (event) => {
+        state.centralLeadsFilters.dateFrom = event.target.value || '';
+        try {
+          await refreshCentralLeadsData();
+        } catch (err) {
+          showCentralLeadsMessage(err.message, true);
+        }
+      });
+    }
+
+    if (els.centralLeadsDateTo) {
+      els.centralLeadsDateTo.addEventListener('change', async (event) => {
+        state.centralLeadsFilters.dateTo = event.target.value || '';
+        try {
+          await refreshCentralLeadsData();
+        } catch (err) {
+          showCentralLeadsMessage(err.message, true);
+        }
+      });
+    }
+
+    let centralLeadsSearchDebounceTimer = null;
+    if (els.centralLeadsQuery) {
+      els.centralLeadsQuery.addEventListener('input', (event) => {
+        state.centralLeadsFilters.query = (event.target.value || '').trim();
+        if (centralLeadsSearchDebounceTimer) {
+          clearTimeout(centralLeadsSearchDebounceTimer);
+        }
+        centralLeadsSearchDebounceTimer = setTimeout(() => {
+          refreshCentralLeadsData().catch((err) => showCentralLeadsMessage(err.message, true));
+        }, 260);
+      });
+    }
+
+    if (els.centralLeadsStageChips) {
+      els.centralLeadsStageChips.addEventListener('click', async (event) => {
+        const target = event.target;
+        if (!(target instanceof HTMLButtonElement)) return;
+        const selectedStage = target.dataset.centralLeadStage;
+        if (selectedStage === undefined) return;
+        state.centralLeadsFilters.funnelStage = selectedStage;
+        renderCentralLeadsStageChips();
+        try {
+          await refreshCentralLeadsData();
+        } catch (err) {
+          showCentralLeadsMessage(err.message, true);
+        }
+      });
+    }
 
     els.refreshProgramsBtn.addEventListener('click', async () => {
       try {
@@ -10015,7 +10495,7 @@
     function chargeStatusBadge(status) {
       const map = {
         paid: 'badge-ok', pending: 'badge-warn', processing: 'badge-warn',
-        failed: 'badge-danger', overdue: 'badge-danger', cancelled: 'badge-danger',
+        failed: 'badge-danger', overdue: 'badge-danger', cancelled: 'badge-danger', refunded: 'badge-danger',
         skipped: 'badge-warn'
       };
       return '<span class="status-badge ' + (map[status] || '') + '">' + escapeHtml(status || '-') + '</span>';
@@ -10025,7 +10505,7 @@
       els.chargesBody.innerHTML = '';
       const rows = state.chargesData || [];
       if (!rows.length) {
-        els.chargesBody.innerHTML = '<tr><td colspan="9">Sem linhas de pagamento.</td></tr>';
+        els.chargesBody.innerHTML = '<tr><td colspan="11">Sem linhas de pagamento.</td></tr>';
         return;
       }
       const frag = document.createDocumentFragment();
@@ -10033,19 +10513,22 @@
         const tr = document.createElement('tr');
         const label = c.chargeLabel || ('#' + (c.chargeNumber || '-'));
         const actions = [];
-        if (c.status === 'failed' || c.status === 'overdue') {
+        const canManage = Boolean(c.paymentPlanId);
+        if (canManage && (c.status === 'failed' || c.status === 'overdue')) {
           actions.push('<button class="charge-retry-btn btn-xs" data-charge-id="' + escapeHtml(c.id) + '" data-plan-id="' + escapeHtml(c.paymentPlanId) + '">Retry</button>');
         }
-        if (c.status === 'pending' || c.status === 'failed' || c.status === 'overdue') {
+        if (canManage && (c.status === 'pending' || c.status === 'failed' || c.status === 'overdue')) {
           actions.push('<button class="charge-skip-btn btn-xs" data-charge-id="' + escapeHtml(c.id) + '" data-plan-id="' + escapeHtml(c.paymentPlanId) + '">Skip</button>');
         }
-        if (c.status !== 'paid' && c.status !== 'cancelled' && c.status !== 'skipped') {
+        if (canManage && c.status !== 'paid' && c.status !== 'cancelled' && c.status !== 'skipped') {
           actions.push('<button class="charge-cancel-btn btn-xs btn-danger" data-charge-id="' + escapeHtml(c.id) + '" data-plan-id="' + escapeHtml(c.paymentPlanId) + '">Cancelar</button>');
         }
         tr.innerHTML =
           '<td>' + escapeHtml(label) + '</td>' +
           '<td>' + escapeHtml(c.programName || '-') + '</td>' +
           '<td>' + formatCurrencyCents(c.amountCents || 0, c.currency || 'EUR') + '</td>' +
+          '<td>' + escapeHtml(c.billingMode || '-') + '</td>' +
+          '<td>' + escapeHtml(c.paymentMethod || '-') + '</td>' +
           '<td>' + formatDate(c.dueDate) + '</td>' +
           '<td>' + chargeStatusBadge(c.status) + '</td>' +
           '<td>' + formatDate(c.paidAt) + '</td>' +
@@ -10115,7 +10598,7 @@
     function renderVendasTable() {
       els.vendasBody.innerHTML = '';
       if (!state.purchases.length) {
-        els.vendasBody.innerHTML = '<tr><td colspan="10">Sem compras registadas.</td></tr>';
+        els.vendasBody.innerHTML = '<tr><td colspan="12">Sem compras registadas.</td></tr>';
         return;
       }
       const frag = document.createDocumentFragment();
@@ -10137,6 +10620,8 @@
           '<td>' + escapeHtml(formatCurrencyCents(p.amountCents, p.currency)) + '</td>' +
           '<td>' + statusBadge(p.status) + '</td>' +
           '<td>' + escapeHtml(p.billingType || '-') + '</td>' +
+          '<td>' + escapeHtml(p.billingMode || '-') + '</td>' +
+          '<td>' + escapeHtml(p.paymentMethod || '-') + '</td>' +
           '<td>' + escapeHtml(formatCheckoutChannel(p.checkoutChannel)) + '</td>' +
           '<td>' + escapeHtml(p.source || '-') + '</td>' +
           '<td>' + formatDate(p.paidAt) + '</td>' +
@@ -10212,15 +10697,19 @@
     function renderCouponsTable() {
       els.couponsBody.innerHTML = '';
       if (!state.coupons.length) {
-        els.couponsBody.innerHTML = '<tr><td colspan="7">Sem cupoes registados.</td></tr>';
+        els.couponsBody.innerHTML = '<tr><td colspan="8">Sem cupoes registados.</td></tr>';
         return;
       }
       const frag = document.createDocumentFragment();
       state.coupons.forEach((c) => {
         const tr = document.createElement('tr');
         const discount = c.percentOff ? c.percentOff + '%' : formatCurrencyCents(c.amountOff, c.currency || 'EUR');
+        const codes = Array.isArray(c.promotionCodes) && c.promotionCodes.length
+          ? c.promotionCodes.map((pc) => '<code style="background:var(--surface-2,#f0f0f0);padding:1px 5px;border-radius:3px;font-size:0.85em;">' + escapeHtml(pc.code) + (pc.active === false ? ' (inativo)' : '') + '</code>').join(' ')
+          : '<span style="color:var(--ink-soft);font-size:0.82em;">—</span>';
         tr.innerHTML =
           '<td>' + escapeHtml(c.name || c.id) + '</td>' +
+          '<td>' + codes + '</td>' +
           '<td>' + escapeHtml(discount) + '</td>' +
           '<td>' + escapeHtml(c.duration || '-') + (c.durationInMonths ? ' (' + c.durationInMonths + ' meses)' : '') + '</td>' +
           '<td>' + (c.timesRedeemed || 0) + '/' + (c.maxRedemptions || '∞') + '</td>' +
@@ -10259,8 +10748,11 @@
         payload.amount_off = Math.round(val * 100);
       }
       showVendasMessage('A criar cupao...', false);
-      await apiRequest('POST', adminStripeCouponsApiBase, payload);
-      showVendasMessage('Cupao criado com sucesso.', false);
+      const result = await apiRequest('POST', adminStripeCouponsApiBase, payload);
+      const promoInfo = result && result.promotionCode && result.promotionCode.code
+        ? ' Código de checkout: ' + result.promotionCode.code
+        : ' (Promotion Code não criado — verifica se o nome contém caracteres válidos)';
+      showVendasMessage('Cupao criado com sucesso.' + promoInfo, false);
       els.couponName.value = '';
       els.couponValue.value = '';
       await refreshCouponsData();
@@ -10531,6 +11023,30 @@
       }
     });
 
+    if (els.leadsCentralBody) {
+      els.leadsCentralBody.addEventListener('click', async (event) => {
+        const target = event.target;
+        if (!(target instanceof HTMLButtonElement)) return;
+        if (!target.classList.contains('save-central-lead-btn')) return;
+
+        const leadId = target.dataset.leadId || '';
+        if (!leadId) return;
+
+        const originalText = target.textContent;
+        target.disabled = true;
+        target.textContent = 'A guardar...';
+
+        try {
+          await saveCentralLeadUpdate(leadId);
+        } catch (err) {
+          showCentralLeadsMessage(err.message, true);
+        } finally {
+          target.disabled = false;
+          target.textContent = originalText;
+        }
+      });
+    }
+
     els.refreshSiteContentBtn.addEventListener('click', async () => {
       try {
         await refreshSiteContentData();
@@ -10690,6 +11206,12 @@
       clearDataAudit();
     });
 
+    // Notifications wiring
+    const notifRefreshBtn = document.getElementById('notif-refresh-btn');
+    const notifIncludeRead = document.getElementById('notif-include-read');
+    if (notifRefreshBtn) notifRefreshBtn.addEventListener('click', () => loadAdminNotifications());
+    if (notifIncludeRead) notifIncludeRead.addEventListener('change', () => loadAdminNotifications());
+
     function configureUnifiedAthletesPanel() {
       const setSubview = (view) => {
         const isAthletes = view !== 'coaches';
@@ -10735,18 +11257,31 @@
     els.tabCalendario.addEventListener('click', () => setActiveTab('calendario'));
     els.tabVendas.addEventListener('click', () => setActiveTab('vendas'));
     els.tabLeads.addEventListener('click', () => setActiveTab('leads'));
+    if (els.tabLeadsCentral) {
+      els.tabLeadsCentral.addEventListener('click', () => setActiveTab('leadsCentral'));
+    }
     els.tabAi.addEventListener('click', () => setActiveTab('ai'));
-    els.tabOperations.addEventListener('click', () => setActiveTab('operations'));
+    els.tabOperations.addEventListener('click', () => {
+      setActiveTab('operations');
+      loadAdminNotifications();
+    });
 
     setAuthUI();
     const initialTab = resolveTabFromLocation();
     setActiveTab(initialTab, { updateHash: false });
     renderLeads();
+    if (centralLeadsUiEnabled) {
+      renderCentralLeads();
+      syncCentralLeadsFiltersToUI();
+    }
     renderProgramsTable();
     renderProgramOptions();
     setSiteContentEditors(null);
     showSiteContentMessage('Faz login para gerir o conteudo do site.', false);
     showLeadsMessage('Faz login para ver as leads Meta.', false);
+    if (centralLeadsUiEnabled) {
+      showCentralLeadsMessage('Faz login para ver o funil central.', false);
+    }
     showProgramsMessage('Faz login para gerir programas.', false);
     showCalendarioMessage('Faz login para gerir o calendário.', false);
     wireCalendarioEvents();

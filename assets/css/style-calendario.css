@@ -1,11 +1,5 @@
-.hero-calendar {
-  background:
-    linear-gradient(180deg, rgba(10, 10, 10, 0.5), rgba(6, 6, 6, 0.82)),
-    radial-gradient(circle at 50% 20%, rgba(212, 165, 79, 0.18), transparent 45%),
-    url('../img/TP_Coach.jpg');
-  background-size: cover;
-  background-position: center;
-  min-height: min(92vh, 980px);
+header.hero.hero-calendar {
+  min-height: min(60vh, 980px);
 }
 
 .hero-calendar-content {

@@ -1358,7 +1358,7 @@ function buildRecurringSchemaMissingError() {
 
 async function listTrainingPrograms(config) {
   const eventSelect = "id,name,event_date,event_location,event_description,calendar_visible,calendar_highlight_rank,created_at,updated_at";
-  const programSelect = `id,external_source,external_id,name,commercial_description,technical_description,description,image_url,duration_weeks,price_cents,recurring_price_monthly_cents,recurring_price_quarterly_cents,recurring_price_annual_cents,currency,stripe_product_id,stripe_price_id,stripe_price_id_monthly,stripe_price_id_quarterly,stripe_price_id_annual,billing_type,status,access_model,preset_selection,event_id,start_date,event:training_events(${eventSelect}),created_at,updated_at`;
+  const programSelect = `id,external_source,external_id,name,commercial_description,technical_description,description,image_url,duration_weeks,price_cents,recurring_price_monthly_cents,recurring_price_quarterly_cents,recurring_price_annual_cents,currency,stripe_product_id,stripe_price_id,stripe_price_id_monthly,stripe_price_id_quarterly,stripe_price_id_annual,billing_type,status,access_model,preset_selection,default_coach_identity_id,event_id,start_date,event:training_events(${eventSelect}),created_at,updated_at`;
   try {
     return await supabaseRequest({
       url: config.supabaseUrl,
@@ -1488,7 +1488,7 @@ async function updateTrainingProgram(config, id, patch) {
 
 async function getTrainingProgramById(config, id) {
   const eventSelect = "id,name,event_date,event_location,event_description,calendar_visible,calendar_highlight_rank,created_at,updated_at";
-  const programSelect = `id,external_source,external_id,name,commercial_description,technical_description,description,image_url,duration_weeks,price_cents,recurring_price_monthly_cents,recurring_price_quarterly_cents,recurring_price_annual_cents,currency,status,access_model,preset_selection,stripe_product_id,stripe_price_id,stripe_price_id_monthly,stripe_price_id_quarterly,stripe_price_id_annual,billing_type,event_id,start_date,event:training_events(${eventSelect}),created_at,updated_at`;
+  const programSelect = `id,external_source,external_id,name,commercial_description,technical_description,description,image_url,duration_weeks,price_cents,recurring_price_monthly_cents,recurring_price_quarterly_cents,recurring_price_annual_cents,currency,status,access_model,preset_selection,default_coach_identity_id,stripe_product_id,stripe_price_id,stripe_price_id_monthly,stripe_price_id_quarterly,stripe_price_id_annual,billing_type,event_id,start_date,event:training_events(${eventSelect}),created_at,updated_at`;
   try {
     const rows = await supabaseRequest({
       url: config.supabaseUrl,
@@ -1981,6 +1981,58 @@ async function updateMetaLead(config, id, patch) {
     path: `meta_leads?id=eq.${encodeURIComponent(id)}`,
     method: "PATCH",
     body: patch,
+    prefer: "return=representation"
+  });
+}
+
+async function listCentralLeads(config, {
+  source,
+  funnelStage,
+  leadStatus,
+  query,
+  dateFrom,
+  dateTo,
+  limit,
+  offset
+} = {}) {
+  const params = [
+    "select=id,athlete_id,identity_id,meta_lead_id,source,last_source,source_ref_id,email,email_normalized,phone,phone_normalized,full_name,funnel_stage,lead_status,last_activity_type,last_activity_at,profile,created_at,updated_at",
+    "order=created_at.desc"
+  ];
+
+  if (source) params.push(`source=eq.${encodeURIComponent(source)}`);
+  if (funnelStage) params.push(`funnel_stage=eq.${encodeURIComponent(funnelStage)}`);
+  if (leadStatus) params.push(`lead_status=eq.${encodeURIComponent(leadStatus)}`);
+  if (dateFrom) params.push(`created_at=gte.${encodeURIComponent(dateFrom)}`);
+  if (dateTo) params.push(`created_at=lte.${encodeURIComponent(dateTo)}`);
+
+  const queryText = typeof query === "string" ? query.trim() : "";
+  if (queryText) {
+    const ilike = `*${queryText}*`;
+    const orExpr = `(email.ilike.${ilike},email_normalized.ilike.${ilike},phone.ilike.${ilike},phone_normalized.ilike.${ilike},full_name.ilike.${ilike})`;
+    params.push(`or=${encodeURIComponent(orExpr)}`);
+  }
+
+  if (Number.isFinite(limit) && limit > 0) params.push(`limit=${Math.floor(limit)}`);
+  if (Number.isFinite(offset) && offset > 0) params.push(`offset=${Math.floor(offset)}`);
+
+  return supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `leads_central?${params.join("&")}`
+  });
+}
+
+async function updateCentralLead(config, id, patch) {
+  return supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `leads_central?id=eq.${encodeURIComponent(id)}`,
+    method: "PATCH",
+    body: {
+      ...patch,
+      updated_at: new Date().toISOString()
+    },
     prefer: "return=representation"
   });
 }
@@ -3030,7 +3082,17 @@ async function upsertCentralLead(config, {
     existing = Array.isArray(rows) ? rows[0] || null : null;
   }
 
-  const funnelRank = { landing: 0, landing_submitted: 1, onboarding_submitted: 2, plan_generated: 3 };
+  const funnelRank = {
+    landing: 0,
+    meta_received: 1,
+    landing_submitted: 1,
+    onboarding_submitted: 2,
+    plan_generated: 3,
+    coach_application: 4,
+    qualified: 5,
+    converted: 6,
+    disqualified: 7
+  };
   const existingRank = funnelRank[existing && existing.funnel_stage] || 0;
   const incomingRank = funnelRank[funnelStage] || 0;
   const resolvedFunnelStage = incomingRank >= existingRank
@@ -3231,6 +3293,56 @@ async function listAllPaymentChargesAdmin(config, { status, dueDateFrom, dueDate
   return Array.isArray(rows) ? rows : [];
 }
 
+// ── Admin Notifications ────────────────────────────────────────────────────
+
+async function createAdminNotification(config, { type, severity, title, message, athleteId, metadata }) {
+  const payload = {
+    type: type || "system",
+    severity: severity || "info",
+    title: title || "",
+    message: message || "",
+    metadata: metadata && typeof metadata === "object" ? metadata : {}
+  };
+  if (athleteId) payload.athlete_id = athleteId;
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: "admin_notifications",
+    method: "POST",
+    body: [payload],
+    prefer: "return=representation"
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function listAdminNotifications(config, { includeRead = false, limit = 50 } = {}) {
+  const safeLimit = Math.min(Number(limit) || 50, 200);
+  const filter = includeRead
+    ? `admin_notifications?select=*&order=created_at.desc&limit=${safeLimit}`
+    : `admin_notifications?read_at=is.null&dismissed_at=is.null&select=*&order=created_at.desc&limit=${safeLimit}`;
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: filter
+  });
+  return Array.isArray(rows) ? rows : [];
+}
+
+async function markAdminNotificationRead(config, id, action) {
+  // action: 'read' | 'dismiss'
+  const now = new Date().toISOString();
+  const patch = action === "dismiss" ? { dismissed_at: now } : { read_at: now };
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `admin_notifications?id=eq.${encodeURIComponent(id)}`,
+    method: "PATCH",
+    body: patch,
+    prefer: "return=representation"
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
 module.exports = {
   insertTrainingSessions,
   upsertTrainingSessionsBySource,
@@ -3367,6 +3479,8 @@ module.exports = {
   insertMetaLead,
   listMetaLeads,
   updateMetaLead,
+  listCentralLeads,
+  updateCentralLead,
   listAiPrompts,
   getAiPromptById,
   getActiveAiPrompt,
@@ -3449,6 +3563,9 @@ module.exports = {
   findPlannedRunningSlotsForDate,
   markRunningPlanSlotCompleted,
   upsertCentralLead,
+  createAdminNotification,
+  listAdminNotifications,
+  markAdminNotificationRead,
 };
 
 

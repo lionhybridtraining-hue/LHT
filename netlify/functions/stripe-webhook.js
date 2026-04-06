@@ -23,6 +23,10 @@ const {
   resumeInstancesByStripeSubscription,
   createProgramAssignment,
   getActiveLikeProgramAssignment,
+  getCoachByIdentityId,
+  setAthleteCoachIdentity,
+  createAdminNotification,
+  upsertCentralLead,
   getPaymentChargeByStripePI,
   updatePaymentCharge,
   getPaymentPlanCharges,
@@ -114,6 +118,21 @@ async function handleCheckoutCompleted(config, stripe, session) {
 
   const record = await upsertStripePurchaseBySessionId(config, purchase);
 
+  // Mirror Stripe conversions into the central lead funnel.
+  try {
+    await upsertCentralLead(config, {
+      identityId,
+      email: (session.customer_details && session.customer_details.email) || purchase.email || null,
+      fullName: (session.customer_details && session.customer_details.name) || null,
+      funnelStage: "converted",
+      leadStatus: "converted",
+      lastActivityType: "purchase_completed",
+      lastActivityAt: new Date().toISOString()
+    });
+  } catch (err) {
+    console.error("[stripe-webhook] Failed to upsert central lead conversion:", err.message || err);
+  }
+
   // Auto-provision program assignment for the purchase.
   let autoAssignment = null;
   if (record && record.id) {
@@ -164,29 +183,75 @@ async function ensureAssignmentForPurchase(config, { identityId, email, program,
     return { created: false, reason: "already_assigned", assignment: existing };
   }
 
+  // Resolve default coach from program
+  const defaultCoachIdentityId = program.default_coach_identity_id || null;
+  let coachId = null;
+  if (defaultCoachIdentityId) {
+    try {
+      const coach = await getCoachByIdentityId(config, defaultCoachIdentityId);
+      coachId = coach ? coach.id : null;
+    } catch (_) {
+      // non-fatal: assignment still created without coach
+    }
+  }
+
+  // Auto-assign coach to athlete if program declares one
+  let coachReplaced = false;
+  const previousCoachIdentityId = athlete.coach_identity_id || null;
+  if (defaultCoachIdentityId && previousCoachIdentityId !== defaultCoachIdentityId) {
+    coachReplaced = Boolean(previousCoachIdentityId); // true only if replacing an existing coach
+    try {
+      await setAthleteCoachIdentity(config, athlete.id, defaultCoachIdentityId);
+    } catch (err) {
+      console.error("[stripe-webhook] Failed to set athlete coach_identity_id:", err.message || err);
+    }
+  }
+
   const durationWeeks = program.duration_weeks || 12;
   const startDate = new Date().toISOString().slice(0, 10);
-  const endMs = Date.now() + durationWeeks * 7 * 24 * 60 * 60 * 1000;
-  const computedEndDate = new Date(endMs).toISOString().slice(0, 10);
 
   const assignment = await createProgramAssignment(config, {
     athlete_id: athlete.id,
-    coach_id: null,
+    coach_id: coachId,
     training_program_id: program.id,
     start_date: startDate,
     duration_weeks: durationWeeks,
     status: "active",
-    computed_end_date: computedEndDate,
     price_cents_snapshot: purchase.price_cents || 0,
     currency_snapshot: purchase.currency || "EUR",
     followup_type_snapshot: "standard",
     notes: `Auto-created from Stripe purchase ${purchase.id}`
   });
 
+  // Notify admin if a coach was automatically replaced
+  if (coachReplaced && assignment) {
+    try {
+      await createAdminNotification(config, {
+        type: "coach_auto_replaced",
+        severity: "warning",
+        title: "Coach substituído automaticamente",
+        message: `Atleta ${athlete.name || athlete.email || athlete.id} foi reatribuído ao coach do programa "${program.name}" após nova compra. Coach anterior: ${previousCoachIdentityId}.`,
+        athleteId: athlete.id,
+        metadata: {
+          programId: program.id,
+          programName: program.name,
+          newCoachIdentityId: defaultCoachIdentityId,
+          previousCoachIdentityId,
+          assignmentId: assignment.id,
+          purchaseId: purchase.id
+        }
+      });
+    } catch (err) {
+      console.error("[stripe-webhook] Failed to create admin notification:", err.message || err);
+    }
+  }
+
   return {
     created: Boolean(assignment),
     reason: assignment ? "created" : "create_failed",
-    assignment: assignment || null
+    assignment: assignment || null,
+    coachAutoSet: Boolean(defaultCoachIdentityId && coachId),
+    coachReplaced
   };
 }
 

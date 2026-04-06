@@ -2,9 +2,17 @@ const { json } = require("./_lib/http");
 const { getConfig } = require("./_lib/config");
 const { requireAuthenticatedUser } = require("./_lib/authz");
 const { getProgramAssociationAccess, resolveProgram } = require("./_lib/program-access");
-const { getStripeClient, normalizeStripeError, toStripePurchaseRecord } = require("./_lib/stripe");
+const {
+  getStripeClient,
+  normalizeStripeError,
+  toStripePurchaseRecord,
+  toPaymentIntentPurchaseRecord,
+  toIsoFromUnix
+} = require("./_lib/stripe");
 const {
   upsertStripePurchaseBySessionId,
+  upsertStripePurchaseByPaymentIntentId,
+  getTrainingProgramById,
   getAthleteByIdentity,
   upsertAthleteByIdentity,
   listStrengthPlans,
@@ -81,6 +89,66 @@ async function syncFromSession(config, user, sessionId, fallbackProgramId) {
   return program;
 }
 
+async function syncFromPaymentIntent(config, user, paymentIntentId, fallbackProgramId) {
+  if (!paymentIntentId) return null;
+
+  const stripe = getStripeClient(config);
+  const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+  const metadata = paymentIntent && paymentIntent.metadata ? paymentIntent.metadata : {};
+
+  const identityId = typeof metadata.identity_id === "string" ? metadata.identity_id : "";
+  if (!identityId || identityId !== user.sub) {
+    const error = new Error("PaymentIntent nao pertence ao utilizador autenticado");
+    error.statusCode = 403;
+    throw error;
+  }
+
+  const programId = typeof metadata.program_id === "string" && metadata.program_id
+    ? metadata.program_id
+    : (fallbackProgramId || "");
+  if (!programId) return null;
+
+  const program = await getTrainingProgramById(config, programId);
+  if (!program) return null;
+
+  const subscriptionId = typeof metadata.subscription_id === "string" && metadata.subscription_id
+    ? metadata.subscription_id
+    : null;
+  let expiresAt = null;
+  if (subscriptionId) {
+    try {
+      const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+      if (subscription && Number.isFinite(subscription.current_period_end)) {
+        expiresAt = toIsoFromUnix(subscription.current_period_end);
+      }
+    } catch (_) {
+      // Non-fatal: purchase can still be upserted without expires_at.
+    }
+  }
+
+  const purchase = toPaymentIntentPurchaseRecord({
+    paymentIntent,
+    identityId: user.sub,
+    programId: program.id,
+    billingType: metadata.billing_type || program.billing_type,
+    email: metadata.email || user.email || null,
+    source: "stripe_elements",
+    subscriptionId,
+    expiresAt
+  });
+
+  const record = await upsertStripePurchaseByPaymentIntentId(config, purchase);
+
+  await ensureStrengthInstanceForPurchase(config, {
+    identityId: user.sub,
+    email: user.email || metadata.email || null,
+    program,
+    purchase: record
+  });
+
+  return program;
+}
+
 async function ensureStrengthInstanceForPurchase(config, { identityId, email, program, purchase }) {
   if (!identityId || !program || !purchase || !purchase.id) return;
 
@@ -134,9 +202,14 @@ exports.handler = async (event) => {
     const requestedProgramId = query.program_id || "";
     const requestedProgramExternalId = query.program_external_id || query.program || "";
     const sessionId = query.session_id || "";
+    const paymentIntentId = query.payment_intent || "";
 
     if (sessionId) {
       await syncFromSession(config, auth.user, sessionId, requestedProgramId);
+    }
+
+    if (paymentIntentId) {
+      await syncFromPaymentIntent(config, auth.user, paymentIntentId, requestedProgramId);
     }
 
     const athlete = await getAthleteByIdentity(config, auth.user.sub);

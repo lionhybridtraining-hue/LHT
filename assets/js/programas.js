@@ -17,6 +17,7 @@
   let checkoutPaymentIntentId = '';
   let checkoutSubscriptionId = '';
   let checkoutBusy = false;
+  let checkoutNoPaymentRedirectUrl = '';
   let appliedCoupon = null;
   let selectedInterval = '';
   let lastSelectedProgramId = '';
@@ -227,6 +228,32 @@
     nodes.spinner.hidden = !checkoutBusy;
   }
 
+  function enterNoPaymentRequiredState(redirectUrl){
+    var nodes = getCheckoutNodes();
+    checkoutNoPaymentRedirectUrl = redirectUrl || '';
+
+    if(nodes.pe){
+      nodes.pe.style.display = 'none';
+    }
+    if(nodes.couponRow) nodes.couponRow.hidden = true;
+
+    setCheckoutError('');
+    if(nodes.processing){
+      nodes.processing.hidden = false;
+      var msg = nodes.processing.querySelector('span:last-child');
+      if(msg){
+        msg.textContent = 'Desconto 100% confirmado. Nao ha cobranca Stripe para esta compra.';
+      }
+    }
+
+    setCheckoutBusy(false);
+    if(nodes.submit && nodes.submitText){
+      nodes.submit.hidden = false;
+      nodes.submit.disabled = false;
+      nodes.submitText.textContent = 'Continuar para onboarding';
+    }
+  }
+
   function initStripe(){
     if(stripeInstance) return stripeInstance;
     if(!window.Stripe){
@@ -344,6 +371,7 @@
     setCouponFeedback('');
     if(nodes.couponApply) nodes.couponApply.disabled = true;
 
+    var previousCoupon = appliedCoupon;
     try {
       var token = await getValidAccessToken();
       if(!token) throw new Error('Sessao expirada.');
@@ -365,13 +393,33 @@
       var msg = appliedCoupon.name || code;
       if(appliedCoupon.percentOff) msg += ' (-' + appliedCoupon.percentOff + '%)';
       else if(appliedCoupon.amountOff) msg += ' (-' + formatPrice(appliedCoupon.amountOff, checkoutProgram ? checkoutProgram.currency : 'EUR') + ')';
+
+      // Recreate PI after coupon validation so the real charge amount matches UI.
+      setCheckoutBusy(true);
+      var refreshedCheckout = await createPaymentIntentForModal(checkoutProgram);
+      if(refreshedCheckout && refreshedCheckout.noPaymentRequired){
+        setCouponFeedback('Desconto 100% aplicado. Sem cobranca.', 'success');
+        updateDisplayedPrice();
+        var directUrl = '/onboarding?program_id=' + encodeURIComponent((refreshedCheckout.program && refreshedCheckout.program.id) ? refreshedCheckout.program.id : checkoutProgram.id);
+        enterNoPaymentRequiredState(directUrl);
+        return;
+      }
+      if(!refreshedCheckout || !refreshedCheckout.clientSecret){
+        throw new Error('Nao foi possivel atualizar o pagamento com desconto.');
+      }
+      checkoutClientSecret = refreshedCheckout.clientSecret;
+      checkoutPaymentIntentId = refreshedCheckout.paymentIntentId || checkoutPaymentIntentId;
+      checkoutSubscriptionId = refreshedCheckout.subscriptionId || checkoutSubscriptionId;
+      mountPaymentElement(checkoutClientSecret);
+
       setCouponFeedback(msg, 'success');
       updateDisplayedPrice();
     } catch(err){
-      appliedCoupon = null;
+      appliedCoupon = previousCoupon || null;
       setCouponFeedback(err.message || 'Cupao invalido.', 'error');
       updateDisplayedPrice();
     } finally {
+      setCheckoutBusy(false);
       if(nodes.couponApply) nodes.couponApply.disabled = false;
     }
   }
@@ -398,6 +446,9 @@
     var payload = await response.json();
     if(!response.ok){
       throw new Error((payload && payload.error) ? payload.error : 'Nao foi possivel iniciar checkout.');
+    }
+    if(payload && payload.noPaymentRequired){
+      return payload;
     }
     if(!payload.clientSecret){
       throw new Error('Checkout sem client secret.');
@@ -447,6 +498,7 @@
     checkoutClientSecret = checkoutData.clientSecret || '';
     checkoutPaymentIntentId = checkoutData.paymentIntentId || '';
     checkoutSubscriptionId = checkoutData.subscriptionId || '';
+    checkoutNoPaymentRedirectUrl = '';
     appliedCoupon = null;
     selectedInterval = '';
 
@@ -462,6 +514,7 @@
     buildIntervalOptions(program);
 
     if(nodes.couponRow) nodes.couponRow.hidden = false;
+    if(nodes.pe) nodes.pe.style.display = '';
     if(nodes.couponInput) nodes.couponInput.value = '';
     setCouponFeedback('');
 
@@ -480,12 +533,14 @@
     checkoutClientSecret = '';
     checkoutPaymentIntentId = '';
     checkoutSubscriptionId = '';
+    checkoutNoPaymentRedirectUrl = '';
     appliedCoupon = null;
     selectedInterval = '';
     setCheckoutBusy(false);
     setCheckoutError('');
     setCouponFeedback('');
     if(nodes.processing) nodes.processing.hidden = true;
+    if(nodes.pe) nodes.pe.style.display = '';
     if(nodes.intervalContainer) nodes.intervalContainer.hidden = true;
     if(nodes.couponRow) nodes.couponRow.hidden = true;
     if(nodes.overlay) nodes.overlay.hidden = true;
@@ -493,6 +548,11 @@
   }
 
   async function handleCheckoutSubmit(){
+    if(checkoutNoPaymentRedirectUrl){
+      window.location.href = checkoutNoPaymentRedirectUrl;
+      return;
+    }
+
     if(checkoutBusy || !checkoutClientSecret || !checkoutProgram || !stripeElements){
       return;
     }
@@ -502,7 +562,7 @@
       setCheckoutBusy(true);
       var nodes = getCheckoutNodes();
       var stripe = initStripe();
-      var returnUrl = window.location.origin + '/onboarding?program_id=' + encodeURIComponent(checkoutProgram.id) + '&payment_intent=' + encodeURIComponent(checkoutPaymentIntentId);
+      var returnUrl = window.location.origin + '/onboarding?program_id=' + encodeURIComponent(checkoutProgram.id) + '&payment_intent=' + encodeURIComponent(checkoutPaymentIntentId || '');
 
       var result = await stripe.confirmPayment({
         elements: stripeElements,
@@ -526,8 +586,10 @@
         throw new Error('Pagamento sem resposta valida do Stripe.');
       }
 
+      var redirectUrl = window.location.origin + '/onboarding?program_id=' + encodeURIComponent(checkoutProgram.id) + '&payment_intent=' + encodeURIComponent(pi.id || checkoutPaymentIntentId || '');
+
       if(pi.status === 'succeeded'){
-        window.location.href = returnUrl;
+        window.location.href = redirectUrl;
         return;
       }
 
@@ -894,6 +956,10 @@
     try {
       var payload = await createPaymentIntentForModal(program);
       if(!payload) return;
+      if(payload.noPaymentRequired){
+        window.location.href = '/onboarding?program_id=' + encodeURIComponent((payload.program && payload.program.id) ? payload.program.id : program.id);
+        return;
+      }
       openCheckoutModal(payload.program || program, payload);
     } catch (err) {
       errorMessage = err.message || 'Nao foi possivel iniciar checkout.';

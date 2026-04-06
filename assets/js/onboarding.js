@@ -125,6 +125,135 @@
   let loadingIntake = false;
   let authReady = false;
   let accessState = { status: 'idle', program: null, purchase: null, message: '' };
+  
+  // Auto-save state
+  let autoSaveTimeout = null;
+  let autoSaveInProgress = false;
+  let lastAutoSaveTime = 0;
+  let notification = null;
+
+  // Debounce utility
+  function debounce(fn, delay) {
+    let timeoutId = null;
+    return function debounced(...args) {
+      if (timeoutId) clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => fn(...args), delay);
+    };
+  }
+
+  // Auto-save intake answers
+  async function autoSaveIntakeAnswers(form) {
+    if (autoSaveInProgress) return;
+    if (!currentUser || !accessToken) return;
+    
+    const now = Date.now();
+    if (now - lastAutoSaveTime < 5000) return; // Min 5 seconds between saves
+
+    try {
+      autoSaveInProgress = true;
+      const { answers } = collectIntakeAnswers(form);
+      
+      // Don't require all fields to be filled for auto-save
+      const hasAtLeastOneAnswer = Object.values(answers).some(v => v !== '' && v !== null && (!Array.isArray(v) || v.length > 0));
+      if (!hasAtLeastOneAnswer) return;
+
+      const response = await fetch('/.netlify/functions/onboarding-intake?' + buildProgramQuery() + '&auto_save=true', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer ' + accessToken
+        },
+        body: JSON.stringify({ answers })
+      });
+
+      const payload = await response.json();
+      if (response.ok) {
+        intakeDraft = answers;
+        lastAutoSaveTime = now;
+        // Show subtle auto-save indicator
+        const statusEl = form.querySelector('.status');
+        if (statusEl) {
+          statusEl.hidden = false;
+          statusEl.className = 'status ok';
+          statusEl.textContent = 'Guardado automaticamente';
+          setTimeout(() => { statusEl.hidden = true; }, 2000);
+        }
+      }
+    } catch (err) {
+      // Silent fail for auto-save - don't interrupt user experience
+      console.debug('Auto-save failed:', err.message);
+    } finally {
+      autoSaveInProgress = false;
+    }
+  }
+
+  // Create debounced auto-save
+  const debouncedAutoSave = debounce((form) => autoSaveIntakeAnswers(form), 3000);
+
+  // Fetch onboarding notification
+  async function fetchOnboardingNotification() {
+    if (!currentUser || !accessToken) return null;
+    
+    try {
+      const response = await fetch('/.netlify/functions/onboarding-notification', {
+        method: 'GET',
+        headers: {
+          Authorization: 'Bearer ' + accessToken
+        }
+      });
+
+      const payload = await response.json();
+      if (response.ok && payload.notification) {
+        // Check if user has dismissed this notification
+        const dismissedKey = payload.notification.storageKey;
+        const isDismissed = localStorage.getItem(dismissedKey) === 'true';
+        if (!isDismissed) {
+          return payload.notification;
+        }
+      }
+    } catch (err) {
+      console.debug('Notification fetch failed:', err.message);
+    }
+    return null;
+  }
+
+  // Display notification banner
+  function renderNotificationBanner(container, notif) {
+    if (!notif) return;
+
+    const banner = document.createElement('div');
+    banner.className = 'notification-banner notification-' + notif.severity;
+    banner.style.cssText = 'display:flex;align-items:center;gap:12px;padding:12px 16px;margin-bottom:16px;border-radius:8px;background:#1f3a2f;border-left:4px solid #10b981;color:#d1fae5;font-size:14px;';
+
+    const message = document.createElement('span');
+    message.style.flex = '1';
+    message.innerHTML = `<strong>${notif.title}:</strong> ${notif.message}`;
+    banner.appendChild(message);
+
+    const action = document.createElement('button');
+    action.type = 'button';
+    action.className = 'btn';
+    action.textContent = notif.action;
+    action.style.marginRight = '8px';
+    action.onclick = () => {
+      if (notif.actionUrl) window.location.href = notif.actionUrl;
+    };
+    banner.appendChild(action);
+
+    if (notif.dismissible) {
+      const dismiss = document.createElement('button');
+      dismiss.type = 'button';
+      dismiss.textContent = '✕';
+      dismiss.style.cssText = 'background:transparent;border:none;color:#10b981;cursor:pointer;font-size:16px;padding:0 6px;';
+      dismiss.onclick = () => {
+        localStorage.setItem(notif.storageKey, 'true');
+        banner.remove();
+      };
+      banner.appendChild(dismiss);
+    }
+
+    container.insertBefore(banner, container.firstChild);
+  }
 
   function clampIndex(i){ if(i < 0) return 0; if(i >= steps.length) return steps.length-1; return i; }
 
@@ -136,7 +265,8 @@
     return {
       programId: params.get('program_id') || '',
       programExternalId: params.get('program') || params.get('program_external_id') || '',
-      sessionId: params.get('session_id') || ''
+      sessionId: params.get('session_id') || '',
+      paymentIntentId: params.get('payment_intent') || ''
     };
   }
 
@@ -146,6 +276,7 @@
     if(selection.programId) params.set('program_id', selection.programId);
     if(selection.programExternalId) params.set('program', selection.programExternalId);
     if(selection.sessionId) params.set('session_id', selection.sessionId);
+    if(selection.paymentIntentId) params.set('payment_intent', selection.paymentIntentId);
     return params.toString();
   }
 
@@ -301,6 +432,11 @@
       if(payload.hasAccess && !loadingIntake && intakeDraft === null){
         loadIntakeDraft();
       }
+
+      // Fetch notification if user has access (is on onboarding step)
+      if(payload.hasAccess && currentIndex === 4) { // 4 is the 'condicao' step index
+        notification = await fetchOnboardingNotification();
+      }
     } catch (err) {
       accessState = {
         status: 'error',
@@ -367,7 +503,16 @@
     currentIndex = clampIndex(index);
     state.current = steps[currentIndex].id;
     saveState();
-    render();
+    
+    // Fetch notification when navigating to condicao step
+    if(currentIndex === 4 && currentUser && accessToken) { // 4 is the 'condicao' step index
+      fetchOnboardingNotification().then(notif => {
+        notification = notif;
+        render();
+      });
+    } else {
+      render();
+    }
   }
   function markDone(id){ state.done[id] = true; saveState(); setProgress(); }
 
@@ -573,6 +718,11 @@
     p.textContent = 'Este questionario e guardado na tua ficha para personalizar o plano e o acompanhamento.';
     container.appendChild(p);
 
+    // Show notification banner if applicable
+    if (notification) {
+      renderNotificationBanner(container, notification);
+    }
+
     const authBox = document.createElement('div');
     authBox.className = 'auth-box';
     const authMeta = document.createElement('div');
@@ -621,6 +771,12 @@
     next.style.pointerEvents = state.done.condicao ? 'auto' : 'none';
     actions.appendChild(next);
     form.appendChild(actions);
+
+    // Add auto-save listeners to all form inputs
+    form.querySelectorAll('input, textarea, select').forEach(input => {
+      input.addEventListener('blur', () => debouncedAutoSave(form));
+      input.addEventListener('change', () => debouncedAutoSave(form));
+    });
 
     form.addEventListener('submit', async (e)=>{
       e.preventDefault();

@@ -3,6 +3,7 @@ const { getConfig } = require("./_lib/config");
 const { requireAuthenticatedUser } = require("./_lib/authz");
 const { resolveProgram } = require("./_lib/program-access");
 const { getStripeClient, normalizeStripeError } = require("./_lib/stripe");
+const { createStripePurchase } = require("./_lib/supabase");
 const { sendCAPIEvent, buildUserData } = require("./_lib/meta-capi");
 
 function getCookieValue(cookies, key) {
@@ -32,12 +33,14 @@ async function getOrCreateCustomer(stripe, { email, identityId }) {
 
 async function resolvePromotionCode(stripe, code) {
   if (!code || typeof code !== "string") return null;
-  const sanitized = code.trim().slice(0, 100);
+  const sanitized = code.trim().toUpperCase().slice(0, 100);
   if (!sanitized) return null;
-  const list = await stripe.promotionCodes.list({ code: sanitized, active: true, limit: 1 });
+  const list = await stripe.promotionCodes.list({ code: sanitized, active: true, limit: 1, expand: ["data.promotion.coupon"] });
   if (!list || !Array.isArray(list.data) || !list.data[0]) return null;
   const promo = list.data[0];
-  if (!promo.coupon || !promo.coupon.valid) return null;
+  if (!promo.promotion || promo.promotion.type !== "coupon") return null;
+  const coupon = promo.promotion.coupon;
+  if (!coupon || typeof coupon === "string" || !coupon.valid) return null;
   return promo;
 }
 
@@ -159,8 +162,11 @@ exports.handler = async (event) => {
         expand: ["latest_invoice.payment_intent"]
       };
 
-      if (promo && promo.coupon) {
-        subParams.coupon = promo.coupon.id;
+      if (promo && promo.promotion && promo.promotion.type === "coupon") {
+        const subscriptionCoupon = promo.promotion.coupon;
+        if (subscriptionCoupon && typeof subscriptionCoupon !== "string") {
+          subParams.coupon = subscriptionCoupon.id;
+        }
       }
 
       const subscription = await stripe.subscriptions.create(subParams);
@@ -194,8 +200,11 @@ exports.handler = async (event) => {
       };
 
       // Apply coupon discount to one-time payment
-      if (promo && promo.coupon) {
-        const coupon = promo.coupon;
+      if (promo && promo.promotion && promo.promotion.type === "coupon") {
+        const coupon = promo.promotion.coupon;
+        if (!coupon || typeof coupon === "string") {
+          throw new Error("Codigo de desconto invalido ou expirado");
+        }
         if (coupon.amount_off && Number.isFinite(coupon.amount_off)) {
           piParams.amount = Math.max(0, piParams.amount - coupon.amount_off);
         } else if (coupon.percent_off && Number.isFinite(coupon.percent_off)) {
@@ -203,6 +212,44 @@ exports.handler = async (event) => {
         }
         piParams.metadata.coupon_code = couponCode;
         piParams.metadata.coupon_id = coupon.id;
+      }
+
+      // Stripe does not allow creating PaymentIntents with amount 0.
+      // For 100% discounts we persist a paid purchase directly and let onboarding/check-access continue.
+      if (piParams.amount <= 0) {
+        const nowIso = new Date().toISOString();
+        const purchase = await createStripePurchase(config, {
+          stripe_session_id: null,
+          stripe_customer_id: null,
+          stripe_payment_intent_id: null,
+          stripe_subscription_id: null,
+          identity_id: auth.user.sub,
+          program_id: program.id,
+          email: auth.user.email || null,
+          amount_cents: 0,
+          currency: String(price.currency || program.currency || "EUR").toUpperCase(),
+          billing_type: program.billing_type || "one_time",
+          status: "paid",
+          source: "stripe_zero_coupon",
+          paid_at: nowIso,
+          expires_at: null
+        });
+
+        return json(200, {
+          ok: true,
+          noPaymentRequired: true,
+          purchaseId: purchase && purchase.id ? purchase.id : null,
+          redirectUrl: `${config.siteUrl}/onboarding?program_id=${encodeURIComponent(program.id)}`,
+          program: {
+            id: program.id,
+            externalId: program.external_id || null,
+            name: program.name,
+            billingType: program.billing_type,
+            priceCents: 0,
+            originalPriceCents: price.unit_amount,
+            currency: String(price.currency || program.currency || "EUR").toUpperCase()
+          }
+        });
       }
 
       paymentIntent = await stripe.paymentIntents.create(piParams);

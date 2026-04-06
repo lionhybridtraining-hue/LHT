@@ -10,7 +10,6 @@ import "@fontsource/poppins/700.css";
 import "./index.css";
 import { BrowserRouter } from "react-router-dom";
 import { loadRuntimePublicConfig } from "./lib/public-config";
-import { getAccessToken } from "./lib/supabase";
 import { mergeOnboardingAnswers } from "./lib/onboarding-intake";
 
 interface BeforeInstallPromptEvent extends Event {
@@ -39,6 +38,7 @@ bootstrap();
 
 async function syncPwaSignal(partial: Record<string, unknown>) {
   try {
+    const { getAccessToken } = await import("./lib/supabase");
     const accessToken = await getAccessToken();
     if (!accessToken) return;
 

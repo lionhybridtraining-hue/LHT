@@ -78,6 +78,11 @@ header.hero{
   box-shadow: 0 0 80px rgba(0,0,0,.35) inset, 0 0 80px rgba(212,165,79,.15), 0 0 140px rgba(212,165,79,.12);
   overflow:hidden;
 }
+
+header.hero.home-hero {
+  min-height: 90vh;
+}
+
 /* Scroll indicator (visual sugestão para continuar a explorar) */
 .scroll-indicator{
   position:absolute; left:50%; bottom:34px; transform:translateX(-50%);

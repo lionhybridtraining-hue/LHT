@@ -1,7 +1,7 @@
 const { parseJsonBody, json } = require("./_lib/http");
 const { getConfig } = require("./_lib/config");
 const { requireRole } = require("./_lib/authz");
-const { getStripeClient, listCoupons, createCoupon, deleteCoupon, normalizeStripeError } = require("./_lib/stripe");
+const { getStripeClient, listCoupons, createCoupon, deleteCoupon, listPromotionCodes, createPromotionCode, normalizeStripeError } = require("./_lib/stripe");
 
 function mapCoupon(c) {
   return {
@@ -19,6 +19,13 @@ function mapCoupon(c) {
   };
 }
 
+function getPromotionCouponId(promotionCode) {
+  const promotion = promotionCode && promotionCode.promotion ? promotionCode.promotion : null;
+  const coupon = promotion && promotion.type === "coupon" ? promotion.coupon : null;
+  if (!coupon) return null;
+  return typeof coupon === "string" ? coupon : coupon.id || null;
+}
+
 exports.handler = async (event) => {
   const method = event.httpMethod;
 
@@ -30,8 +37,18 @@ exports.handler = async (event) => {
     const stripe = getStripeClient(config);
 
     if (method === "GET") {
-      const coupons = await listCoupons();
-      return json(200, { coupons: coupons.map(mapCoupon) });
+      const [coupons, promoCodes] = await Promise.all([listCoupons(), listPromotionCodes()]);
+      // Index promo codes by coupon id
+      const promosByCoupon = {};
+      promoCodes.forEach((pc) => {
+        const couponId = getPromotionCouponId(pc);
+        if (!couponId) return;
+        if (!promosByCoupon[couponId]) promosByCoupon[couponId] = [];
+        promosByCoupon[couponId].push({ id: pc.id, code: pc.code, active: pc.active, timesRedeemed: pc.times_redeemed });
+      });
+      return json(200, {
+        coupons: coupons.map((c) => ({ ...mapCoupon(c), promotionCodes: promosByCoupon[c.id] || [] }))
+      });
     }
 
     if (method === "POST") {
@@ -56,7 +73,26 @@ exports.handler = async (event) => {
         maxRedemptions: body.max_redemptions ? Number(body.max_redemptions) : undefined
       });
 
-      return json(201, { coupon: mapCoupon(coupon) });
+      // Automatically create a Promotion Code so the code is usable at checkout
+      const promoCode = name.toUpperCase().replace(/[^A-Z0-9_-]/g, "");
+      let promotionCode = null;
+      if (promoCode) {
+        try {
+          promotionCode = await createPromotionCode({
+            couponId: coupon.id,
+            code: promoCode,
+            maxRedemptions: body.max_redemptions ? Number(body.max_redemptions) : undefined
+          });
+        } catch (promoErr) {
+          // Promo code creation failed (e.g. code already exists) — coupon still created
+          console.warn("admin-stripe-coupons: promotion code creation failed:", promoErr.message);
+        }
+      }
+
+      return json(201, {
+        coupon: { ...mapCoupon(coupon), promotionCodes: promotionCode ? [{ id: promotionCode.id, code: promotionCode.code, active: promotionCode.active }] : [] },
+        promotionCode: promotionCode ? { id: promotionCode.id, code: promotionCode.code } : null
+      });
     }
 
     if (method === "DELETE") {

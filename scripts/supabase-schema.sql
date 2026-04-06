@@ -1153,3 +1153,39 @@ begin
     );
   end if;
 end $$;
+
+-- ============================================================
+-- Auto-coach assignment & Admin Notifications
+-- ============================================================
+
+-- Allow programs to declare a default coach (auto-assigned on purchase)
+alter table training_programs add column if not exists default_coach_identity_id text;
+
+-- Allow assignments without a coach (self-serve programs)
+alter table program_assignments alter column coach_id drop not null;
+
+-- Admin notifications — system events requiring operator awareness
+create table if not exists admin_notifications (
+  id uuid primary key default gen_random_uuid(),
+  type text not null check (type in (
+    'coach_auto_replaced',
+    'athlete_no_coach',
+    'payment_failed',
+    'system'
+  )),
+  severity text not null default 'info' check (severity in ('info', 'warning', 'error')),
+  title text not null,
+  message text not null,
+  athlete_id uuid references athletes(id) on delete set null,
+  metadata jsonb not null default '{}'::jsonb,
+  read_at timestamptz,
+  dismissed_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists admin_notifications_unread_idx
+on admin_notifications (created_at desc)
+where read_at is null and dismissed_at is null;
+
+create index if not exists admin_notifications_created_idx
+on admin_notifications (created_at desc);
