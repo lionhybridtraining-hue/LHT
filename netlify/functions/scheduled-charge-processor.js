@@ -124,11 +124,8 @@ async function processCharge(config, stripe, charge) {
 async function resolveStripeCustomer(config, stripe, plan) {
   // If there's a linked stripe_purchase, use its customer_id
   if (plan.stripe_purchase_id) {
-    const { getStripePurchaseBySessionId } = require("./_lib/supabase");
-    // Use generic supabase request to get customer from purchase
-    const { supabaseRequest } = require("./_lib/supabase-internal") || {};
     try {
-      const rows = await require("./_lib/supabase").getPaymentPlanById(config, plan.id);
+      await require("./_lib/supabase").getPaymentPlanById(config, plan.id);
       // Fallback: search Stripe customers by identity
     } catch (_) { /* fallback below */ }
   }
