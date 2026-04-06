@@ -5,6 +5,10 @@ node_modules
 .env.local
 .env.*.local
 
+# Vite build output — built by Netlify at deploy time, must not be committed
+# (it contains baked-in env vars that trigger secret scanning)
+planocorrida/
+
 # Python artifacts
 __pycache__/
 *.pyc

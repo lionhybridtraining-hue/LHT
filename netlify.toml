@@ -92,21 +92,6 @@
   status = 200
 
 [[redirects]]
-  from = "/planocorrida/assets/*"
-  to = "/planocorrida/assets/:splat"
-  status = 200
-
-[[redirects]]
-  from = "/planocorrida/sw.js"
-  to = "/planocorrida/sw.js"
-  status = 200
-
-[[redirects]]
-  from = "/planocorrida/manifest.json"
-  to = "/planocorrida/manifest.json"
-  status = 200
-
-[[redirects]]
   from = "/planocorrida/*"
   to = "/planocorrida/index.html"
   status = 200
@@ -145,21 +130,6 @@
   for = "/assets/*"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
-
-[[headers]]
-  for = "/planocorrida/assets/*"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
-
-[[headers]]
-  for = "/planocorrida/index.html"
-  [headers.values]
-    Cache-Control = "no-cache"
-
-[[headers]]
-  for = "/planocorrida/sw.js"
-  [headers.values]
-    Cache-Control = "no-cache"
 
 # Override JS caching to ensure latest code loads
 [[headers]]
