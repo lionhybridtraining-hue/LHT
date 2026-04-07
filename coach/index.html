@@ -593,7 +593,7 @@
 
       /* Plan top bar: select fills row, buttons wrap to next row */
       #strengthPlanTopBar { width: 100%; }
-      #strengthPlanTopBar #strengthPlanSelect { min-width: 0 !important; width: 100%; flex: 1 1 100%; }
+      #strengthPlanTopBar #strengthPlanSelect { width: 100%; flex: 1 1 100%; }
       #strengthPlanTopBar .btn-small { flex: 1 1 auto; }
 
       /* Save area no longer pushed to the right – just wraps naturally */
@@ -605,9 +605,9 @@
 
       /* Shorten phase-note so it doesn't overflow on small screens */
       .str-section-header .phase-note { max-width: 160px; }
-      .str-section-header .phase-note-input { width: 140px; }
+      .str-section-header .phase-note-input { width: 100%; max-width: 160px; }
 
-      /* Instances & exercise-catalog filter controls – prevent full-width */
+      /* Make filter controls full-width for easier tapping on mobile */
       #inst-status-filter, #inst-athlete-filter, #inst-search-filter,
       #exCrudSearch, #exCrudCatFilter, #exCrudSubcatFilter { width: 100%; box-sizing: border-box; }
       #inst-refresh-btn { width: auto; }
@@ -1227,7 +1227,7 @@
           <div style="display:flex; justify-content:space-between; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:10px;">
             <h3 class="section-title" style="margin:0;">Planos de Força</h3>
             <div id="strengthPlanTopBar" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-              <select id="strengthPlanSelect" style="min-width:160px; flex:1;">
+              <select id="strengthPlanSelect" style="flex:1; min-width:160px;">
                 <option value="">— Selecionar plano —</option>
               </select>
               <button class="btn btn-small" id="newStrengthPlanBtn">+ Novo Plano</button>
