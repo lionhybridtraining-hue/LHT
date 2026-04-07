@@ -586,9 +586,11 @@
       }
 
       /* ── Força tab mobile ── */
+      /* Hide exercise catalog table on mobile */
+      #exercisesSection { display: none !important; }
+
       /* Keep small action buttons auto-width (prevent width:100% override) */
       #strengthSection .btn-small,
-      #exercisesSection .btn-small,
       #strengthSection .btn-ghost { width: auto; }
 
       /* Plan top bar: select fills row, buttons wrap to next row */
@@ -608,8 +610,7 @@
       .str-section-header .phase-note-input { width: 100%; max-width: 160px; }
 
       /* Make filter controls full-width for easier tapping on mobile */
-      #inst-status-filter, #inst-athlete-filter, #inst-search-filter,
-      #exCrudSearch, #exCrudCatFilter, #exCrudSubcatFilter { width: 100%; box-sizing: border-box; }
+      #inst-status-filter, #inst-athlete-filter, #inst-search-filter { width: 100%; box-sizing: border-box; }
       #inst-refresh-btn { width: auto; }
     }
 
@@ -1346,7 +1347,7 @@
         </section>
 
         <!-- ═══════════ INSTANCES SECTION ═══════════ -->
-        <section class="section-card coach-tab-section" data-coach-tab="forca" hidden style="padding:24px 0;">
+        <section class="section-card coach-tab-section" data-coach-tab="planeamento" hidden style="padding:24px 0;">
           <h2 style="margin-bottom:16px; color:#c9d1d9;">Instâncias de Força</h2>
           <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px; flex-wrap:wrap;">
             <select id="inst-status-filter" style="padding:6px 10px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9;">
@@ -1787,6 +1788,7 @@
       </div>
       <div id="exercisePickerList" style="max-height:300px; overflow-y:auto; border:1px solid var(--line); border-radius:var(--radius-md); padding:4px;"></div>
       <div class="modal-actions" style="margin-top:8px;">
+        <button class="btn btn-primary" type="button" id="createExerciseFromPickerBtn">+ Criar Novo Exercício</button>
         <button class="btn btn-secondary" type="button" id="cancelAddExerciseBtn">Cancelar</button>
       </div>
     </div>
@@ -4851,6 +4853,7 @@
     const warmupPresetList = document.getElementById("warmupPresetList");
     const warmupPresetPreview = document.getElementById("warmupPresetPreview");
     let addExerciseTargetSection = "";
+    let isCreatingFromPicker = false; // Track if we're creating an exercise from the picker modal
 
     // ── Client-side engine functions ──
     function parseTempo(s) {
@@ -6783,6 +6786,12 @@
       addExerciseModal.classList.add("hidden");
     });
 
+    document.getElementById("createExerciseFromPickerBtn").addEventListener("click", () => {
+      // Open the exercise creation modal and keep the exercise picker context
+      isCreatingFromPicker = true;
+      openExerciseCrudModal(null);
+    });
+
     document.getElementById("saveWarmupCancelBtn").addEventListener("click", () => {
       saveWarmupModal.classList.add("hidden");
       strPendingWarmupPayload = null;
@@ -7526,6 +7535,7 @@
     document.getElementById("newExerciseBtn").addEventListener("click", () => openExerciseCrudModal(null));
     document.getElementById("exCrudCancelBtn").addEventListener("click", () => {
       document.getElementById("exerciseCrudModal").classList.add("hidden");
+      isCreatingFromPicker = false; // Reset the flag
     });
 
     document.getElementById("exCrudCategory").addEventListener("change", () => {
@@ -7566,16 +7576,73 @@
       btn.disabled = true;
       btn.textContent = "A guardar…";
       try {
+        let createdExercise = null;
         if (editId) {
           await apiRequest("PATCH", "/.netlify/functions/exercises", { id: editId, ...payload });
         } else {
-          await apiRequest("POST", "/.netlify/functions/exercises", payload);
+          createdExercise = await apiRequest("POST", "/.netlify/functions/exercises", payload);
         }
         // Reload catalog
         strExercises = [];
         await loadExerciseCatalog();
         document.getElementById("exerciseCrudModal").classList.add("hidden");
-        renderExerciseCrudList();
+
+        // If we're creating from the picker, automatically add the exercise to the plan
+        if (isCreatingFromPicker && !editId && createdExercise && addExerciseTargetSection) {
+          isCreatingFromPicker = false; // Reset the flag
+
+          // Find the newly created exercise in the catalog
+          const newExercise = strExercises.find(ex => ex.name === payload.name);
+          if (newExercise) {
+            // Add the exercise using the existing flow
+            if (isEditingInstanceMode()) {
+              addExerciseToCurrentSnapshot(addExerciseTargetSection, newExercise);
+              scheduleSave();
+            } else {
+              const existing = getExercisesForDaySection(strSelectedDay, addExerciseTargetSection);
+              const nextOrder = existing.length > 0 ? Math.max(...existing.map(e => e.exercise_order)) + 1 : 1;
+
+              // Flush any pending saves
+              if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; await flushSave(); }
+
+              try {
+                const resp = await apiRequest("PUT", "/.netlify/functions/strength-plan", {
+                  plan_id: strCurrentPlan.plan.id,
+                  exercises: [{
+                    plan_id: strCurrentPlan.plan.id,
+                    exercise_id: newExercise.id,
+                    day_number: strSelectedDay,
+                    section: addExerciseTargetSection,
+                    exercise_order: nextOrder,
+                    superset_group: null,
+                    each_side: !!newExercise.default_each_side,
+                    weight_per_side: !!newExercise.default_weight_per_side,
+                    plyo_mechanical_load: addExerciseTargetSection === "plyos_speed" ? "medium" : null
+                  }]
+                });
+                const data = resp;
+                if (data.plan_exercises && data.plan_exercises.length > 0) {
+                  const newPe = data.plan_exercises[0];
+                  const totalWeeks = Number(strCurrentPlan.plan.total_weeks) || 1;
+                  const blankRx = [];
+                  for (let w = 1; w <= totalWeeks; w++) {
+                    blankRx.push({ plan_exercise_id: newPe.id, week_number: w });
+                  }
+                  if (blankRx.length > 0) {
+                    await apiRequest("PUT", "/.netlify/functions/strength-plan", {
+                      plan_id: data.plan.id, prescriptions: blankRx
+                    });
+                  }
+                }
+                await loadStrengthPlanFull(strCurrentPlan.plan.id);
+              } catch (e) { console.error("Add exercise failed", e); }
+            }
+            // Refresh the picker list
+            renderExercisePicker();
+          }
+        } else {
+          renderExerciseCrudList();
+        }
       } catch (err) {
         alert("Erro ao guardar exercício: " + (err.message || ""));
       } finally {
