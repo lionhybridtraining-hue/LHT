@@ -1854,7 +1854,9 @@
           </div>
           <div class="field">
             <label for="exCrudSubcategory">Subcategoria</label>
-            <input id="exCrudSubcategory" placeholder="Ex.: squat" />
+            <select id="exCrudSubcategory">
+              <option value="">—</option>
+            </select>
           </div>
           <div class="field" style="grid-column:1/-1;">
             <label for="exCrudVideoUrl">URL de vídeo (instruções)</label>
@@ -7485,6 +7487,12 @@
       container.innerHTML = html;
     }
 
+    function populateExCrudSubcategorySelect(category, currentValue) {
+      const subcats = [...new Set(strExercises.filter(e => !category || e.category === category).map(e => e.subcategory).filter(Boolean))].sort();
+      const sel = document.getElementById("exCrudSubcategory");
+      sel.innerHTML = '<option value="">—</option>' + subcats.map(s => `<option value="${escapeHtml(s)}"${s === currentValue ? ' selected' : ''}>${escapeHtml(s)}</option>`).join("");
+    }
+
     function openExerciseCrudModal(exerciseId) {
       const modal = document.getElementById("exerciseCrudModal");
       const form = document.getElementById("exerciseCrudForm");
@@ -7501,12 +7509,14 @@
         document.getElementById("exCrudSaveBtn").textContent = "Guardar";
         document.getElementById("exCrudName").value = ex.name || "";
         document.getElementById("exCrudCategory").value = ex.category || "";
-        document.getElementById("exCrudSubcategory").value = ex.subcategory || "";
+        populateExCrudSubcategorySelect(ex.category || "", ex.subcategory || "");
         document.getElementById("exCrudVideoUrl").value = ex.video_url || "";
         document.getElementById("exCrudDescription").value = ex.description || "";
         document.getElementById("exCrudWeightPerSide").value = ex.default_weight_per_side ? "true" : "false";
         document.getElementById("exCrudEachSide").value = ex.default_each_side ? "true" : "false";
         document.getElementById("exCrudTempo").value = ex.default_tempo || "";
+      } else {
+        populateExCrudSubcategorySelect("", "");
       }
 
       modal.classList.remove("hidden");
@@ -7516,6 +7526,11 @@
     document.getElementById("newExerciseBtn").addEventListener("click", () => openExerciseCrudModal(null));
     document.getElementById("exCrudCancelBtn").addEventListener("click", () => {
       document.getElementById("exerciseCrudModal").classList.add("hidden");
+    });
+
+    document.getElementById("exCrudCategory").addEventListener("change", () => {
+      const cat = document.getElementById("exCrudCategory").value;
+      populateExCrudSubcategorySelect(cat, "");
     });
 
     document.getElementById("exCrudList").addEventListener("click", (e) => {
