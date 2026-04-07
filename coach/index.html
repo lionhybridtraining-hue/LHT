@@ -584,6 +584,33 @@
         flex: 1;
         min-width: 0;
       }
+
+      /* ── Força tab mobile ── */
+      /* Keep small action buttons auto-width (prevent width:100% override) */
+      #strengthSection .btn-small,
+      #exercisesSection .btn-small,
+      #strengthSection .btn-ghost { width: auto; }
+
+      /* Plan top bar: select fills row, buttons wrap to next row */
+      #strengthPlanTopBar { width: 100%; }
+      #strengthPlanTopBar #strengthPlanSelect { min-width: 0 !important; width: 100%; flex: 1 1 100%; }
+      #strengthPlanTopBar .btn-small { flex: 1 1 auto; }
+
+      /* Save area no longer pushed to the right – just wraps naturally */
+      .save-area { margin-left: 0; }
+
+      /* Day label input fills available space */
+      #strengthDayLabelEditor { flex-direction: column; align-items: flex-start; }
+      #strengthDayLabelInput  { min-width: 0; width: 100%; box-sizing: border-box; }
+
+      /* Shorten phase-note so it doesn't overflow on small screens */
+      .str-section-header .phase-note { max-width: 160px; }
+      .str-section-header .phase-note-input { width: 140px; }
+
+      /* Instances & exercise-catalog filter controls – prevent full-width */
+      #inst-status-filter, #inst-athlete-filter, #inst-search-filter,
+      #exCrudSearch, #exCrudCatFilter, #exCrudSubcatFilter { width: 100%; box-sizing: border-box; }
+      #inst-refresh-btn { width: auto; }
     }
 
     @media (max-width: 480px) {
@@ -609,6 +636,13 @@
       .metrics-summary-grid { grid-template-columns: 1fr; }
 
       .btn { min-width: 0; }
+
+      /* ── Força tab small-screen ── */
+      /* Compact coach tab buttons */
+      .coach-tab-btn { padding: 8px 10px; font-size: 11px; }
+
+      /* Volume summary: 2 columns on very small screens */
+      #strengthVolumeSummary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
 
     /* ── Strength Planning ── */
@@ -868,6 +902,27 @@
     @media (pointer: coarse) {
       .str-touch-move { display:inline-flex; }
       .str-drag-handle { display:none; }
+
+      /* Larger touch targets for table inputs and selects */
+      .str-table input, .str-table select {
+        min-height: 36px;
+        padding: 4px 6px;
+        font-size: 14px;
+      }
+      .str-table input[type=number] { width: 60px; }
+      .str-table .rm-input, .str-table .load-input { width: 64px; }
+
+      /* Reps/dur toggle: easier to tap */
+      .reps-dur-toggle { min-height: 36px; padding: 4px 8px; font-size: 11px; }
+
+      /* Remove-exercise button */
+      .str-rm-btn { min-width: 36px; min-height: 36px; font-size: 14px; }
+
+      /* Day / week tab buttons */
+      .day-tab, .week-tab { min-height: 36px; padding: 6px 14px; }
+
+      /* Move up/down buttons */
+      .str-move-btn { min-width: 32px; min-height: 32px; font-size: 14px; }
     }
 
     .status-badge {
@@ -1171,8 +1226,8 @@
         <section class="section-card coach-tab-section" id="strengthSection" data-coach-tab="forca" hidden>
           <div style="display:flex; justify-content:space-between; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:10px;">
             <h3 class="section-title" style="margin:0;">Planos de Força</h3>
-            <div style="display:flex; gap:8px; align-items:center;">
-              <select id="strengthPlanSelect" style="min-width:200px;">
+            <div id="strengthPlanTopBar" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+              <select id="strengthPlanSelect" style="min-width:160px; flex:1;">
                 <option value="">— Selecionar plano —</option>
               </select>
               <button class="btn btn-small" id="newStrengthPlanBtn">+ Novo Plano</button>
@@ -1215,7 +1270,7 @@
                 <button class="btn btn-small btn-ghost" id="refreshStrengthMonitorBtn" type="button" title="Atualizar monitorização">↻</button>
               </div>
               <div id="strengthMonitorMeta" class="microcopy" style="margin-top:4px;">Seleciona atleta e plano para ver monitorização.</div>
-              <div style="margin-top:8px; display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:8px;">
+              <div id="strengthMonitorMetrics" style="margin-top:8px; display:grid; grid-template-columns:repeat(auto-fit,minmax(100px,1fr)); gap:8px;">
                 <div class="vol-metric"><span class="vol-label">Aderência</span><span id="smCompliance" class="vol-value">—</span></div>
                 <div class="vol-metric"><span class="vol-label">Planeado (kg)</span><span id="smPlannedKg" class="vol-value">—</span></div>
                 <div class="vol-metric"><span class="vol-label">Executado (kg)</span><span id="smActualKg" class="vol-value">—</span></div>
@@ -1304,12 +1359,12 @@
             <select id="inst-athlete-filter" style="padding:6px 10px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9;">
               <option value="">Todos os atletas</option>
             </select>
-            <input id="inst-search-filter" type="text" placeholder="Pesquisar atleta..." style="padding:6px 10px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9; min-width:160px;" />
+            <input id="inst-search-filter" type="text" placeholder="Pesquisar atleta..." style="padding:6px 10px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9;" />
             <button id="inst-refresh-btn" type="button" class="btn" title="Atualizar">↻</button>
           </div>
 
           <div style="overflow-x:auto;">
-            <table style="width:100%; border-collapse:collapse;">
+            <table style="width:100%; min-width:640px; border-collapse:collapse;">
               <thead>
                 <tr style="border-bottom:1px solid #30363d;">
                   <th style="padding:8px; text-align:left; color:#8b949e;">Atleta</th>
