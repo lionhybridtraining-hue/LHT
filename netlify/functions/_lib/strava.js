@@ -47,7 +47,9 @@ function parseSignedState(config, state) {
   const payloadText = base64UrlDecode(encodedPayload);
   const expectedSignature = createStateSignature(payloadText, getStateSecret(config));
 
-  if (receivedSignature !== expectedSignature) {
+  const sigBuf = Buffer.from(receivedSignature, "utf8");
+  const expBuf = Buffer.from(expectedSignature, "utf8");
+  if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) {
     throw new Error("Invalid OAuth state signature");
   }
 

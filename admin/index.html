@@ -8373,9 +8373,10 @@
       const normalized = String(field && field.value ? field.value : '').replace(',', '.').trim();
       if (!normalized) return null;
       const cents = Math.round(Number(normalized) * 100);
-      if (!Number.isInteger(cents) || cents <= 0) {
+      if (!Number.isInteger(cents) || cents < 0) {
         throw new Error(`${label} deve ser um numero positivo.`);
       }
+      if (cents === 0) return null;
       return cents;
     }
 
@@ -8613,14 +8614,16 @@
         fields.recurringPriceMonthly ? fields.recurringPriceMonthly.value : '',
         'Preço mensal'
       );
-      const recurringPriceQuarterlyCents = parseEurosToCents(
+      let recurringPriceQuarterlyCents = parseEurosToCents(
         fields.recurringPriceQuarterly ? fields.recurringPriceQuarterly.value : '',
         'Preço trimestral'
       );
-      const recurringPriceAnnualCents = parseEurosToCents(
+      let recurringPriceAnnualCents = parseEurosToCents(
         fields.recurringPriceAnnual ? fields.recurringPriceAnnual.value : '',
         'Preço anual'
       );
+      if (recurringPriceQuarterlyCents === 0) recurringPriceQuarterlyCents = null;
+      if (recurringPriceAnnualCents === 0) recurringPriceAnnualCents = null;
       const currency = (fields.currency.value || 'EUR').trim().toUpperCase() || 'EUR';
       const stripeProductId = (fields.stripeProductId.value || '').trim() || null;
       const stripePriceId = (fields.stripePriceId.value || '').trim() || null;
@@ -8725,12 +8728,16 @@
 
     function populateProgramEditForm(program) {
       const fields = getProgramEditFieldRefs();
+      const normalizeOptionalRecurringCents = (value) => {
+        const numeric = Number(value);
+        return Number.isFinite(numeric) && numeric > 0 ? numeric : null;
+      };
       state.editProgramOriginal = {
         id: program.id || null,
         priceCents: Number.isFinite(Number(program.priceCents)) ? Number(program.priceCents) : null,
         recurringPriceMonthlyCents: Number.isFinite(Number(program.recurringPriceMonthlyCents)) ? Number(program.recurringPriceMonthlyCents) : null,
-        recurringPriceQuarterlyCents: Number.isFinite(Number(program.recurringPriceQuarterlyCents)) ? Number(program.recurringPriceQuarterlyCents) : null,
-        recurringPriceAnnualCents: Number.isFinite(Number(program.recurringPriceAnnualCents)) ? Number(program.recurringPriceAnnualCents) : null,
+        recurringPriceQuarterlyCents: normalizeOptionalRecurringCents(program.recurringPriceQuarterlyCents),
+        recurringPriceAnnualCents: normalizeOptionalRecurringCents(program.recurringPriceAnnualCents),
         stripePriceId: program.stripePriceId || null,
         stripePriceIdMonthly: program.stripePriceIdMonthly || null,
         stripePriceIdQuarterly: program.stripePriceIdQuarterly || null,
@@ -8760,13 +8767,13 @@
           : '';
       }
       if (fields.recurringPriceQuarterly) {
-        fields.recurringPriceQuarterly.value = Number.isFinite(Number(program.recurringPriceQuarterlyCents))
-          ? (Number(program.recurringPriceQuarterlyCents) / 100).toFixed(2)
+        fields.recurringPriceQuarterly.value = Number.isFinite(normalizeOptionalRecurringCents(program.recurringPriceQuarterlyCents))
+          ? (normalizeOptionalRecurringCents(program.recurringPriceQuarterlyCents) / 100).toFixed(2)
           : '';
       }
       if (fields.recurringPriceAnnual) {
-        fields.recurringPriceAnnual.value = Number.isFinite(Number(program.recurringPriceAnnualCents))
-          ? (Number(program.recurringPriceAnnualCents) / 100).toFixed(2)
+        fields.recurringPriceAnnual.value = Number.isFinite(normalizeOptionalRecurringCents(program.recurringPriceAnnualCents))
+          ? (normalizeOptionalRecurringCents(program.recurringPriceAnnualCents) / 100).toFixed(2)
           : '';
       }
       state.editProgramOneTimeDraft = fields.priceCents.value || '';

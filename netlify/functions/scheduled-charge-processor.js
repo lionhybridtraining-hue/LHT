@@ -20,7 +20,10 @@ const {
   listDuePaymentCharges,
   updatePaymentCharge,
   updatePaymentPlan,
-  getPaymentPlanCharges
+  getPaymentPlanCharges,
+  listExpiredGracePeriodPurchases,
+  updateStripePurchaseById,
+  pauseInstancesByStripeSubscription
 } = require("./_lib/supabase");
 const { getStripeClient } = require("./_lib/stripe");
 
@@ -48,7 +51,6 @@ async function processCharge(config, stripe, charge) {
   try {
     // Create Stripe Payment Intent off-session
     // Requires the customer to have a saved payment method
-    // The identity_id maps to a Stripe customer via the existing purchase record
     const customerId = await resolveStripeCustomer(config, stripe, plan);
     if (!customerId) {
       await updatePaymentCharge(config, charge.id, {
@@ -59,10 +61,36 @@ async function processCharge(config, stripe, charge) {
       return { chargeId: charge.id, status: "failed", reason: "no_stripe_customer" };
     }
 
-    const paymentIntent = await stripe.paymentIntents.create({
+    // Resolve default payment method from the customer
+    let defaultPaymentMethod = null;
+    try {
+      const customer = await stripe.customers.retrieve(customerId);
+      defaultPaymentMethod = customer.invoice_settings && customer.invoice_settings.default_payment_method
+        ? customer.invoice_settings.default_payment_method
+        : customer.default_source || null;
+      if (!defaultPaymentMethod) {
+        // Fallback: list payment methods and pick the first card
+        const methods = await stripe.paymentMethods.list({ customer: customerId, type: "card", limit: 1 });
+        if (methods && methods.data && methods.data[0]) {
+          defaultPaymentMethod = methods.data[0].id;
+        }
+      }
+    } catch (_) { /* non-fatal: PI.create will use customer default if available */ }
+
+    if (!defaultPaymentMethod) {
+      await updatePaymentCharge(config, charge.id, {
+        status: "failed",
+        failure_reason: "no_payment_method",
+        retry_count: charge.retry_count + 1
+      });
+      return { chargeId: charge.id, status: "failed", reason: "no_payment_method" };
+    }
+
+    const piParams = {
       amount: charge.amount_cents,
       currency: (charge.currency || plan.currency || "eur").toLowerCase(),
       customer: customerId,
+      payment_method: defaultPaymentMethod,
       off_session: true,
       confirm: true,
       metadata: {
@@ -72,7 +100,9 @@ async function processCharge(config, stripe, charge) {
         program_id: plan.program_id || ""
       },
       description: charge.charge_label || `Parcela ${charge.charge_number}`
-    }, {
+    };
+
+    const paymentIntent = await stripe.paymentIntents.create(piParams, {
       idempotencyKey: `charge_${charge.id}_attempt_${charge.retry_count + 1}`
     });
 
@@ -122,15 +152,32 @@ async function processCharge(config, stripe, charge) {
 }
 
 async function resolveStripeCustomer(config, stripe, plan) {
-  // If there's a linked stripe_purchase, use its customer_id
+  // 1. If there's a linked stripe_purchase, use its stripe_customer_id directly
   if (plan.stripe_purchase_id) {
     try {
-      await require("./_lib/supabase").getPaymentPlanById(config, plan.id);
-      // Fallback: search Stripe customers by identity
+      const { getStripePurchaseById } = require("./_lib/supabase");
+      const purchase = await getStripePurchaseById(config, plan.stripe_purchase_id);
+      if (purchase && purchase.stripe_customer_id) {
+        return purchase.stripe_customer_id;
+      }
     } catch (_) { /* fallback below */ }
   }
 
-  // Search Stripe for customer matching the identity
+  // 2. Find the most recent paid purchase for this identity to get customer_id
+  if (plan.identity_id) {
+    try {
+      const { getStripePurchasesForIdentity } = require("./_lib/supabase");
+      const purchases = await getStripePurchasesForIdentity(config, plan.identity_id);
+      const withCustomer = Array.isArray(purchases)
+        ? purchases.find((p) => p.stripe_customer_id)
+        : null;
+      if (withCustomer) {
+        return withCustomer.stripe_customer_id;
+      }
+    } catch (_) { /* fallback below */ }
+  }
+
+  // 3. Search Stripe for customer matching the identity metadata
   if (plan.identity_id) {
     try {
       const customers = await stripe.customers.search({
@@ -140,9 +187,7 @@ async function resolveStripeCustomer(config, stripe, plan) {
       if (customers && customers.data && customers.data[0]) {
         return customers.data[0].id;
       }
-    } catch (_) { /* search not available, try list */ }
-
-    // Fallback: if we have the purchase record we can get customer_id directly
+    } catch (_) { /* search not available */ }
   }
 
   return null;
@@ -161,16 +206,42 @@ async function checkPlanCompletion(config, planId) {
   }
 }
 
+// Revoke access for purchases whose grace period has expired (run alongside charge processing)
+async function enforceExpiredGracePeriods(config) {
+  let revoked = 0;
+  try {
+    const expired = await listExpiredGracePeriodPurchases(config);
+    for (const purchase of expired) {
+      await updateStripePurchaseById(config, purchase.id, {
+        expires_at: new Date().toISOString()
+      });
+      // Pause strength instances if subscription-based
+      if (purchase.stripe_subscription_id) {
+        try {
+          await pauseInstancesByStripeSubscription(config, purchase.stripe_subscription_id);
+        } catch (_) { /* non-fatal */ }
+      }
+      revoked += 1;
+    }
+  } catch (err) {
+    console.error("[scheduled-charge-processor] Grace period enforcement error:", err.message || err);
+  }
+  return revoked;
+}
+
 exports.handler = async (event) => {
   try {
     const config = getConfig();
     const stripe = getStripeClient(config);
     const today = new Date().toISOString().slice(0, 10);
 
+    // Enforce expired grace periods first
+    const gracePeriodRevoked = await enforceExpiredGracePeriods(config);
+
     const dueCharges = await listDuePaymentCharges(config, { beforeDate: today });
 
     if (!dueCharges.length) {
-      return json(200, { processed: 0, message: "No charges due" });
+      return json(200, { processed: 0, message: "No charges due", gracePeriodRevoked });
     }
 
     const results = [];
@@ -189,7 +260,7 @@ exports.handler = async (event) => {
       paid,
       failed,
       skipped,
-      results
+      gracePeriodRevoked
     });
   } catch (err) {
     return json(500, { error: err.message || "Scheduler error" });

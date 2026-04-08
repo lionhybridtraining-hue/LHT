@@ -390,13 +390,27 @@
         percentOff: payload.percentOff || 0,
         name: payload.name || ''
       };
-      var msg = appliedCoupon.name || code;
+      var msg = (appliedCoupon.name || code).replace(/[<>&"']/g, function(c){ return '&#' + c.charCodeAt(0) + ';'; });
       if(appliedCoupon.percentOff) msg += ' (-' + appliedCoupon.percentOff + '%)';
       else if(appliedCoupon.amountOff) msg += ' (-' + formatPrice(appliedCoupon.amountOff, checkoutProgram ? checkoutProgram.currency : 'EUR') + ')';
 
       // Recreate PI after coupon validation so the real charge amount matches UI.
+      // Cancel the previous PI to avoid abandoned intents in Stripe.
       setCheckoutBusy(true);
+      var previousPiId = checkoutPaymentIntentId;
       var refreshedCheckout = await createPaymentIntentForModal(checkoutProgram);
+      if(previousPiId && refreshedCheckout && refreshedCheckout.paymentIntentId && previousPiId !== refreshedCheckout.paymentIntentId){
+        try {
+          var cancelToken = await getValidAccessToken();
+          if(cancelToken){
+            fetch('/.netlify/functions/cancel-payment-intent', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + cancelToken },
+              body: JSON.stringify({ payment_intent_id: previousPiId })
+            }).catch(function(){});
+          }
+        } catch(_){}
+      }
       if(refreshedCheckout && refreshedCheckout.noPaymentRequired){
         setCouponFeedback('Desconto 100% aplicado. Sem cobranca.', 'success');
         updateDisplayedPrice();

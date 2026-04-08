@@ -41,9 +41,15 @@ exports.handler = async (event) => {
 
     // Update local DB
     const isPartial = Number.isFinite(amountCents) && amountCents > 0 && amountCents < (purchase.amount_cents || 0);
+    const currentRefunded = Number.isFinite(purchase.amount_refunded_cents) ? purchase.amount_refunded_cents : 0;
+    const refundedAmount = refund.amount || amountCents || purchase.amount_cents || 0;
+    const newTotalRefunded = currentRefunded + refundedAmount;
+    const fullyRefunded = newTotalRefunded >= (purchase.amount_cents || 0);
+
     const updated = await updateStripePurchasesByPaymentIntentId(config, paymentIntentId, {
-      status: isPartial ? "paid" : "refunded",
-      expires_at: isPartial ? purchase.expires_at : new Date().toISOString()
+      status: fullyRefunded ? "refunded" : "paid",
+      amount_refunded_cents: newTotalRefunded,
+      expires_at: fullyRefunded ? new Date().toISOString() : purchase.expires_at
     });
 
     return json(200, {

@@ -1686,6 +1686,16 @@ async function upsertStripePurchaseBySessionId(config, payload) {
   return Array.isArray(rows) ? rows[0] || null : null;
 }
 
+async function getStripePurchaseById(config, id) {
+  if (!id) return null;
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `stripe_purchases?id=eq.${encodeURIComponent(id)}&select=*&limit=1`
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
 async function updateStripePurchaseById(config, id, patch) {
   const rows = await supabaseRequest({
     url: config.supabaseUrl,
@@ -1777,12 +1787,15 @@ async function upsertStripePurchaseByPaymentIntentId(config, payload) {
   if (!payload || !payload.stripe_payment_intent_id) {
     throw new Error("stripe_payment_intent_id is required for payment intent upsert");
   }
-  const existing = await getStripePurchaseByPaymentIntentId(config, payload.stripe_payment_intent_id);
-  if (existing && existing.id) {
-    return updateStripePurchaseById(config, existing.id, payload);
-  }
-
-  return createStripePurchase(config, payload);
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: "stripe_purchases?on_conflict=stripe_payment_intent_id",
+    method: "POST",
+    body: [payload],
+    prefer: "resolution=merge-duplicates,return=representation"
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
 }
 
 async function listStripePurchases(config, { status, programId, email, source, from, to, limit, offset } = {}) {
@@ -3612,6 +3625,16 @@ async function markAdminNotificationRead(config, id, action) {
   return Array.isArray(rows) ? rows[0] || null : null;
 }
 
+async function listExpiredGracePeriodPurchases(config) {
+  const now = new Date().toISOString();
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `stripe_purchases?status=eq.payment_failed&grace_period_ends_at=lt.${encodeURIComponent(now)}&or=(expires_at.is.null,expires_at.gt.${encodeURIComponent(now)})&select=id,stripe_subscription_id,identity_id&limit=100`
+  });
+  return Array.isArray(rows) ? rows : [];
+}
+
 module.exports = {
   insertTrainingSessions,
   upsertTrainingSessionsBySource,
@@ -3677,6 +3700,7 @@ module.exports = {
   listEnrichedAssignments,
   createStripePurchase,
   upsertStripePurchaseBySessionId,
+  getStripePurchaseById,
   updateStripePurchaseById,
   getStripePurchaseBySessionId,
   getStripePurchaseBySubscriptionId,
@@ -3686,6 +3710,7 @@ module.exports = {
   updateStripePurchasesByPaymentIntentId,
   upsertStripePurchaseByPaymentIntentId,
   listStripePurchases,
+  listExpiredGracePeriodPurchases,
   createPaymentPlan,
   getPaymentPlanById,
   updatePaymentPlan,

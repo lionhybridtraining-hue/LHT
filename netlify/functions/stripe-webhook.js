@@ -503,47 +503,57 @@ exports.handler = async (event) => {
           }
         });
       }
-      return json(200, { received: true, type: stripeEvent.type, result, ga, capi: capi ? { ok: capi.ok } : null });
+      return json(200, { received: true, type: stripeEvent.type, persisted: result.persisted });
     }
 
     if (stripeEvent.type === "payment_intent.succeeded") {
       const paymentIntent = stripeEvent.data.object;
-      const result = await handlePaymentIntentSucceeded(config, stripe, paymentIntent);
-      let ga = null;
-      let capi = null;
 
-      if (result.persisted && result.record) {
-        ga = await sendGaPurchase({
-          measurementId: process.env.GA_MEASUREMENT_ID,
-          apiSecret: process.env.GA_API_SECRET,
-          transactionId: result.record.stripe_payment_intent_id || result.record.id,
-          value: (result.record.amount_cents || 0) / 100,
-          currency: result.record.currency,
-          items: buildGaItems(result.program)
-        });
+      // Guard: skip PIs that originated from a Checkout Session to avoid duplicate purchases.
+      // Checkout Session PIs do not carry identity_id/program_id in PI metadata.
+      // Additionally, if the PI has an invoice with a subscription, it's handled by invoice.paid instead.
+      if (typeof paymentIntent.invoice === "string" && paymentIntent.invoice) {
+        // This PI belongs to a subscription invoice — handled by invoice.paid event.
+        // Fall through to phased-charge reconciliation below instead of creating a purchase.
+      } else {
+        const result = await handlePaymentIntentSucceeded(config, stripe, paymentIntent);
+        let ga = null;
+        let capi = null;
 
-        const meta = paymentIntent.metadata || {};
-        capi = await sendCAPIEvent(config, {
-          event_name: "Purchase",
-          event_time: Math.floor(Date.now() / 1000),
-          event_id: `purchase_${paymentIntent.id}`,
-          event_source_url: meta.event_source_url || `${config.siteUrl}/programas.html`,
-          action_source: "website",
-          user_data: buildUserData({
-            email: meta.email || undefined,
-            fbp: meta.fbp || undefined,
-            fbc: meta.fbc || undefined
-          }),
-          custom_data: {
+        if (result.persisted && result.record) {
+          ga = await sendGaPurchase({
+            measurementId: process.env.GA_MEASUREMENT_ID,
+            apiSecret: process.env.GA_API_SECRET,
+            transactionId: result.record.stripe_payment_intent_id || result.record.id,
             value: (result.record.amount_cents || 0) / 100,
-            currency: (result.record.currency || "EUR").toUpperCase(),
-            content_ids: [result.program ? (result.program.external_id || result.program.id) : "purchase"],
-            content_type: "product"
-          }
-        });
-      }
+            currency: result.record.currency,
+            items: buildGaItems(result.program)
+          });
 
-      return json(200, { received: true, type: stripeEvent.type, result, ga, capi: capi ? { ok: capi.ok } : null });
+          const meta = paymentIntent.metadata || {};
+          capi = await sendCAPIEvent(config, {
+            event_name: "Purchase",
+            event_time: Math.floor(Date.now() / 1000),
+            event_id: `purchase_${paymentIntent.id}`,
+            event_source_url: meta.event_source_url || `${config.siteUrl}/programas.html`,
+            action_source: "website",
+            user_data: buildUserData({
+              email: meta.email || undefined,
+              fbp: meta.fbp || undefined,
+              fbc: meta.fbc || undefined
+            }),
+            custom_data: {
+              value: (result.record.amount_cents || 0) / 100,
+              currency: (result.record.currency || "EUR").toUpperCase(),
+              content_ids: [result.program ? (result.program.external_id || result.program.id) : "purchase"],
+              content_type: "product"
+            }
+          });
+        }
+
+        return json(200, { received: true, type: stripeEvent.type, persisted: result.persisted });
+      }
+      // If PI has an invoice, skip purchase creation (handled above) and fall through
     }
 
     if (stripeEvent.type === "invoice.paid") {
@@ -557,7 +567,7 @@ exports.handler = async (event) => {
         });
         // Resume coached_recurring instances that were paused due to payment failure
         const resumed = await resumeInstancesByStripeSubscription(config, invoice.subscription);
-        return json(200, { received: true, type: stripeEvent.type, updated: updated.length, resumed: resumed.length });
+        return json(200, { received: true, type: stripeEvent.type });
       }
     }
 
@@ -570,19 +580,24 @@ exports.handler = async (event) => {
           status: "payment_failed",
           grace_period_ends_at: gracePeriodEndsAt
         });
-        return json(200, { received: true, type: stripeEvent.type, updated: updated.length, gracePeriodEndsAt });
+        return json(200, { received: true, type: stripeEvent.type });
       }
     }
 
     if (stripeEvent.type === "customer.subscription.deleted") {
       const subscription = stripeEvent.data.object;
+      // If cancel_at_period_end was used, the subscription ends at period_end.
+      // Use the period end as expires_at rather than now() to honour the paid period.
+      const effectiveExpiresAt = subscription.cancel_at_period_end && Number.isFinite(subscription.current_period_end)
+        ? toIsoFromUnix(subscription.current_period_end)
+        : new Date().toISOString();
       const updated = await updateStripePurchasesBySubscriptionId(config, subscription.id, {
         status: "cancelled",
-        expires_at: new Date().toISOString()
+        expires_at: effectiveExpiresAt
       });
       // Pause coached_recurring strength instances linked to this subscription
       const paused = await pauseInstancesByStripeSubscription(config, subscription.id);
-      return json(200, { received: true, type: stripeEvent.type, updated: updated.length, paused: paused.length });
+      return json(200, { received: true, type: stripeEvent.type });
     }
 
     if (stripeEvent.type === "charge.refunded") {
@@ -592,7 +607,7 @@ exports.handler = async (event) => {
           status: "refunded",
           expires_at: new Date().toISOString()
         });
-        return json(200, { received: true, type: stripeEvent.type, updated: updated.length });
+        return json(200, { received: true, type: stripeEvent.type });
       }
     }
 
@@ -611,6 +626,13 @@ exports.handler = async (event) => {
         return json(200, { received: true, type: stripeEvent.type, persisted: false, reason: "missing_identity_or_program" });
       }
 
+      // Guard: do NOT overwrite a purchase that is already paid (out-of-order events).
+      const { getStripePurchaseBySessionId } = require("./_lib/supabase");
+      const existingPurchase = await getStripePurchaseBySessionId(config, session.id);
+      if (existingPurchase && existingPurchase.status === "paid") {
+        return json(200, { received: true, type: stripeEvent.type, persisted: false, reason: "already_paid" });
+      }
+
       const abandoned = toStripePurchaseRecord({
         session,
         identityId,
@@ -624,7 +646,7 @@ exports.handler = async (event) => {
       abandoned.paid_at = null;
 
       const record = await upsertStripePurchaseBySessionId(config, abandoned);
-      return json(200, { received: true, type: stripeEvent.type, persisted: true, record });
+      return json(200, { received: true, type: stripeEvent.type, persisted: true });
     }
 
     // ── Phased payment charge reconciliation ──
@@ -652,7 +674,7 @@ exports.handler = async (event) => {
             if (allDone) {
               await updatePaymentPlan(config, charge.payment_plan_id, { status: "completed" });
             }
-            return json(200, { received: true, type: stripeEvent.type, chargeReconciled: true, chargeId: charge.id, status: "paid" });
+            return json(200, { received: true, type: stripeEvent.type, chargeReconciled: true });
           }
           if (stripeEvent.type === "payment_intent.payment_failed" && charge.status !== "paid") {
             await updatePaymentCharge(config, charge.id, {
@@ -661,7 +683,7 @@ exports.handler = async (event) => {
               failure_reason: (pi.last_payment_error && pi.last_payment_error.message) || "payment_failed",
               failed_at: new Date().toISOString()
             });
-            return json(200, { received: true, type: stripeEvent.type, chargeReconciled: true, chargeId: charge.id, status: "failed" });
+            return json(200, { received: true, type: stripeEvent.type, chargeReconciled: true });
           }
         }
         // charge_id in metadata but not found in our ledger — proceed to normal handling

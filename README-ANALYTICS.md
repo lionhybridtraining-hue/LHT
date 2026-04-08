@@ -1,8 +1,12 @@
 # GA4 Custom Definitions Guide
 
-Property: G-K3EJSN5M4Y
+**Property**: G-K3EJSN5M4Y  
+**Status**: ⚠️ Parcialmente implementado (eventos a enviar, custom definitions por registar no GA4 Admin)  
+**Last Updated**: April 8, 2026
 
 Use GA4 Admin to register these custom definitions so the parameters sent from the site are queryable in Reports and Explore.
+
+> **Nota**: Os eventos são enviados pelo frontend via Consent Mode (só disparam após aceitação de cookies). As custom dimensions/metrics abaixo **precisam de ser registadas manualmente no GA4 Admin** para aparecerem em Reports. Sem registo, os dados são enviados mas não ficam queryáveis.
 
 ## Event-scoped Custom Dimensions
 - item_list_id: Section/list identifier (from `section_view`)

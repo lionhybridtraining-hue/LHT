@@ -3,7 +3,21 @@
 **Timeline**: 2-3 weeks (Target: late April 2026)  
 **Goal**: MVP with working strength + calendar + basic Strava display  
 **Owner**: Dev team  
-**Status**: 🔴 Not started
+**Status**: � In Progress (~68% complete as of Apr 8, 2026)
+
+### ✅ Already Completed (Prior to Sprint)
+| Area | Completion | Notes |
+|------|-----------|-------|
+| Strength Backend | 100% | Plans, instances, exercises, prescriptions, logs |
+| Strength Athlete UI | 100% | Full workout logging flow |
+| Calendar/Programa | 90% | Preset-driven scheduling, needs polish |
+| Strava OAuth | 100% | Connection flow working |
+| Strava Sync | 80% | Activity ingest working, display pending |
+| Blog System | 100% | Supabase-first, static JSON generation |
+| Athlete Profile Flow | 100% | Onboarding + settings |
+| Training Zones Backend | 85% | Family/method MVP |
+| Training Zones Coach UI | 100% | Editor complete |
+| Auth (Supabase JWT) | 100% | Google OAuth, migrated from Netlify Identity Mar 18, 2026 |
 
 ---
 

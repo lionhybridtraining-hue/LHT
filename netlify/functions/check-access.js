@@ -18,7 +18,11 @@ const {
   listStrengthPlans,
   getStrengthInstanceByStripePurchaseId,
   createStrengthPlanInstance,
-  getStrengthPlanFull
+  getStrengthPlanFull,
+  getActiveLikeProgramAssignment,
+  createProgramAssignment,
+  getCoachByIdentityId,
+  setAthleteCoachIdentity
 } = require("./_lib/supabase");
 
 function getQuery(event) {
@@ -149,8 +153,54 @@ async function syncFromPaymentIntent(config, user, paymentIntentId, fallbackProg
   return program;
 }
 
+async function ensureAssignmentForPurchase(config, { identityId, email, program, purchase }) {
+  if (!identityId || !program || !program.id) return null;
+
+  let athlete = await getAthleteByIdentity(config, identityId);
+  if (!athlete && email) {
+    athlete = await upsertAthleteByIdentity(config, { identityId, email, name: email });
+  }
+  if (!athlete) return null;
+
+  const existing = await getActiveLikeProgramAssignment(config, athlete.id, program.id);
+  if (existing) return existing;
+
+  const defaultCoachIdentityId = program.default_coach_identity_id || null;
+  let coachId = null;
+  if (defaultCoachIdentityId) {
+    try {
+      const coach = await getCoachByIdentityId(config, defaultCoachIdentityId);
+      coachId = coach ? coach.id : null;
+    } catch (_) { /* non-fatal */ }
+    if (athlete.coach_identity_id !== defaultCoachIdentityId) {
+      try { await setAthleteCoachIdentity(config, athlete.id, defaultCoachIdentityId); } catch (_) { /* non-fatal */ }
+    }
+  }
+
+  return createProgramAssignment(config, {
+    athlete_id: athlete.id,
+    coach_id: coachId,
+    training_program_id: program.id,
+    start_date: new Date().toISOString().slice(0, 10),
+    duration_weeks: program.duration_weeks || 12,
+    status: "active",
+    price_cents_snapshot: purchase.amount_cents || 0,
+    currency_snapshot: purchase.currency || "EUR",
+    followup_type_snapshot: "standard",
+    notes: `Auto-created from check-access sync for purchase ${purchase.id}`
+  });
+}
+
 async function ensureStrengthInstanceForPurchase(config, { identityId, email, program, purchase }) {
   if (!identityId || !program || !purchase || !purchase.id) return;
+
+  // Ensure assignment exists first
+  let assignment = null;
+  try {
+    assignment = await ensureAssignmentForPurchase(config, { identityId, email, program, purchase });
+  } catch (err) {
+    console.error("[check-access] ensureAssignmentForPurchase failed:", err.message || err);
+  }
 
   const existing = await getStrengthInstanceByStripePurchaseId(config, purchase.id);
   if (existing) return;
@@ -182,7 +232,7 @@ async function ensureStrengthInstanceForPurchase(config, { identityId, email, pr
     assigned_by: identityId,
     access_model: program.access_model || null,
     stripe_purchase_id: purchase.id,
-    program_assignment_id: null,
+    program_assignment_id: assignment ? assignment.id : null,
     coach_locked_until: null,
     plan_snapshot: planSnapshot ? JSON.stringify(planSnapshot) : null
   });

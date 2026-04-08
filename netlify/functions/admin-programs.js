@@ -416,6 +416,28 @@ function normalizeProgramPayload(payload) {
   };
 }
 
+function stripLegacyProgramCalendarFields(patch) {
+  if (!patch || typeof patch !== "object") return;
+  [
+    "calendarHighlightRank",
+    "calendarVisible",
+    "eventName",
+    "eventDate",
+    "eventLocation",
+    "eventDescription",
+    "calendar_highlight_rank",
+    "calendar_visible",
+    "event_name",
+    "event_date",
+    "event_location",
+    "event_description"
+  ].forEach((field) => {
+    if (Object.prototype.hasOwnProperty.call(patch, field)) {
+      delete patch[field];
+    }
+  });
+}
+
 function mapProgram(row) {
   return {
     id: row.id,
@@ -633,6 +655,7 @@ exports.handler = async (event) => {
 
       const patch = parseJsonBody(event);
       const dbPatch = { ...patch };
+      stripLegacyProgramCalendarFields(dbPatch);
 
       if (dbPatch.name !== undefined) {
         const value = String(dbPatch.name || "").trim();
@@ -794,6 +817,12 @@ exports.handler = async (event) => {
         }
         dbPatch.preset_selection = value || "athlete";
         delete dbPatch.presetSelection;
+      }
+      if (dbPatch.defaultCoachIdentityId !== undefined) {
+        dbPatch.default_coach_identity_id = dbPatch.defaultCoachIdentityId == null
+          ? null
+          : String(dbPatch.defaultCoachIdentityId).trim() || null;
+        delete dbPatch.defaultCoachIdentityId;
       }
       if (dbPatch.access_model === "coached_recurring" && dbPatch.billing_type && dbPatch.billing_type !== "recurring") {
         return json(400, { error: "accessModel coached_recurring requires billingType recurring" });

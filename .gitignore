@@ -9,16 +9,10 @@ node_modules
 # (it contains baked-in env vars that trigger secret scanning)
 planocorrida/
 
-# Python artifacts
+# Python artifacts (legacy, kept for safety)
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
 *.so
 *.dist-info/
-
-# Keep only backend source entry files if aer-backend is used as app code.
-aer-backend/*
-!aer-backend/main.py
-!aer-backend/athlete_funcs.py
-!aer-backend/training_funcs.py

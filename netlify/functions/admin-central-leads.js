@@ -1,3 +1,4 @@
+const crypto = require("crypto");
 const { parseJsonBody, json } = require("./_lib/http");
 const { getConfig } = require("./_lib/config");
 const { requireRole } = require("./_lib/authz");
@@ -47,7 +48,7 @@ function normalizePhone(value) {
 }
 
 function createManualSourceRefId() {
-  return `manual_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  return `manual_${Date.now()}_${crypto.randomBytes(6).toString("hex")}`;
 }
 
 function clampInt(value, fallback, min, max) {

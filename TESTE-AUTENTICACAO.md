@@ -1,8 +1,10 @@
 # Teste de Autenticação do /coach
 
-## ✅ Status: Implementação Completa
+## ✅ Status: Implementação Completa (Migrado para Supabase)
 
-Todo o código de autenticação está implementado corretamente. Em ambiente de desenvolvimento local **sem Netlify Identity real**, os endpoints retornam **500** quando tentam validar a token — isto é **esperado em desenvolvimento local**.
+> **Nota**: A autenticação foi migrada de Netlify Identity para **Supabase JWT + Google OAuth** em **18 de Março de 2026**. Toda a referência anterior a Netlify Identity é legacy.
+
+Todo o código de autenticação está implementado corretamente. Em ambiente de desenvolvimento local **sem Supabase auth configurado**, os endpoints podem retornar **401** quando tentam validar a token — isto é **esperado em desenvolvimento local sem .env configurado**.
 
 ## 📋 Checklist de Implementação
 
@@ -18,11 +20,11 @@ Todo o código de autenticação está implementado corretamente. Em ambiente de
 - [x] `scripts/supabase-schema.sql` — Migração com `coach_identity_id` + índice
 
 ### Frontend (✅ COMPLETO)
-- [x] `coach/index.html` — netlify-identity-widget script
+- [x] `coach/index.html` — Supabase Auth (Google OAuth) integration
 - [x] `coach/index.html` — Auth panel na header (login/logout buttons)
 - [x] `coach/index.html` — Estado global `state = { user, token }`
 - [x] `coach/index.html` — Funções: `getToken()`, `apiRequest()`, `setAuthUI()`, `handleAuthChange()`
-- [x] `coach/index.html` — Listeners para eventos de Netlify Identity
+- [x] `coach/index.html` — JWT validation via Supabase JWKS
 - [x] `coach/index.html` — Todos os 6 endpoints wrapeados com `apiRequest()`
 - [x] `coach/index.html` — UX guardas (forms desabilitadas sem login)
 
@@ -41,8 +43,8 @@ curl https://seu-dominio.netlify.app/.netlify/functions/list-athletes
 ### Teste 2: Login no /coach
 1. Abrir `http://localhost:8888/coach` (ou `https://seu-dominio.netlify.app/coach`)
 2. Deverá mostrar: "Não autenticado" + Botão "Entrar"
-3. Clicar "Entrar" para abrir Netlify Identity widget
-4. Login com credentials de teste
+3. Clicar "Entrar" para iniciar Google OAuth flow
+4. Login com conta Google autorizada
 5. Página deverá mostrar: "Autenticado: seu-email@dominio.com"
 
 ### Teste 3: Criar Atleta com Autenticação
@@ -65,13 +67,13 @@ curl https://seu-dominio.netlify.app/.netlify/functions/list-athletes
 ## 🔧 Comportamento em Diferentes Ambientes
 
 ### Desenvolvimento Local (npm run dev:offline)
-- Netlify Identity: **NÃO** está disponível
-- Endpoints com auth: Retornam **500** (erro ao validar token)
-- **Por quê?**: `getIdentityUserFromToken()` tenta chamar /.netlify/identity/user que não existe
-- **Isso é normal**: Esperado em dev local sem Netlify real
+- Supabase Auth: Pode **não** estar acessível sem `.env` local configurado
+- Endpoints com auth: Retornam **401** (erro ao validar JWT)
+- **Por quê?**: JWT validation requer JWKS do Supabase (configurável via env vars)
+- **Isso é normal**: Esperado em dev local sem Supabase configurado
 
 ### Staging/Production (Netlify)
-- Netlify Identity: **SIM** está disponível (se ativado em Site Settings)
+- Supabase Auth: **SIM** está disponível (Google OAuth configurado)
 - Endpoints com auth:
   - Sem token: Retornam **401** { "error": "Authentication required" }
   - Com token inválida: Retornam **401**
@@ -88,13 +90,13 @@ curl https://seu-dominio.netlify.app/.netlify/functions/list-athletes
 2. **Deploy código**:
    - Push branch para produtor/staging
    - Netlify auto-deploys
-   - Todos os 10 functions (incluindo novo `auth-identity.js`) são carregados
+   - Todos os functions (incluindo auth helpers) são carregados
 
-3. **Ativar Netlify Identity**:
-   - Netlify Dashboard → Site Settings → Identity
-   - Clique "Enable Identity"
-   - Configure email provider (Netlify ou SendGrid)
-   - Crie usuários de teste (ou use auto-signup)
+3. **Configurar Supabase Auth**:
+   - Supabase Dashboard → Authentication → Providers
+   - Ativar Google OAuth provider
+   - Configurar Google Client ID + Secret
+   - Definir Redirect URL para domínio Netlify
 
 4. **Testar Flow Completo**:
    - Ir para `/coach`
@@ -151,14 +153,14 @@ async function apiRequest(method, url, body) {
 
 ## ❓ FAQ
 
-**P: Por que recebo 500 em `/.netlify/functions/list-athletes` localmente?**
-R: Porque `auth-identity.js` tenta validar a Netlify Identity token, mas em dev local sem Identity configurado, falha. Isto é normal. Em produção Netlify, vai retornar 401 se não tiver token.
+**P: Por que recebo 401 em `/.netlify/functions/list-athletes` localmente?**
+R: Porque o JWT validation requer JWKS (JSON Web Key Set) do Supabase. Sem `.env` com `SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY` configurados, a validação falha. Isto é normal. Em produção, vai retornar 401 se não tiver token.
 
 **P: Como faço override da autenticação em dev local?**
-R: Criar um mock de `getAuthenticatedUser()` ou adicionar bypass flag em `.env.local`. Mas isto ia comprometer a segurança. Melhor testar com Identity real em staging.
+R: Configurar `.env.local` com as variáveis Supabase (`SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`). Em alternativa, usar o Supabase local via Docker.
 
 **P: E se um coach tentar fazer login com email de outro coach?**
-R: Netlify Identity vai dar login sucesso (porque o email existe). Mas só terá acesso aos seus próprios atletas (`coach_identity_id` match). Outros retornarão 403.
+R: Google OAuth dará login com sucesso (porque o email é válido). Mas só terá acesso aos seus próprios atletas (`coach_identity_id` match via Supabase user.sub). Outros retornarão 403.
 
 **P: Posso ter múltiplos coaches compartilhando um atleta?**
 R: Atualmente NÃO (design 1-atleta:1-coach). Para suporte a múltiplos coaches, seria preciso:
@@ -173,7 +175,7 @@ R: Ficarão com `coach_identity_id = NULL`. Queries filtram apenas `coach_identi
 
 - [ ] SQL migration aplicada em Supabase
 - [ ] Deploy feito em Netlify
-- [ ] Netlify Identity está ativado (Site Settings → Identity)
+- [ ] Supabase Auth configurado (Google OAuth provider ativo)
 - [ ] Teste de login manual em `/coach` ✅
 - [ ] Teste de upload CSV para seu atleta ✅
 - [ ] Teste de acesso negado a atleta de outro coach ✅
@@ -181,5 +183,5 @@ R: Ficarão com `coach_identity_id = NULL`. Queries filtram apenas `coach_identi
 
 ---
 
-**Data de Implementação**: 2024
+**Data de Implementação**: 2024 (original), migrado para Supabase JWT em Março 2026  
 **Status**: ✅ Completo e pronto para produção

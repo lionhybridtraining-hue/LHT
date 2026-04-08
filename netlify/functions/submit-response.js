@@ -76,7 +76,8 @@ exports.handler = async (event) => {
       submitted_via: isAuthenticatedOwner ? "identity" : "token",
       submitted_by_identity_id: isAuthenticatedOwner ? authenticatedAthlete.identity_id : null,
       status: "pending_coach",
-      responded_at: new Date().toISOString()
+      responded_at: new Date().toISOString(),
+      token: null
     });
 
     return json(200, {

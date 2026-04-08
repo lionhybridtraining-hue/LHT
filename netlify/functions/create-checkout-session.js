@@ -56,6 +56,8 @@ exports.handler = async (event) => {
       },
       success_url: successUrl,
       cancel_url: cancelUrl
+    }, {
+      idempotencyKey: `checkout_${auth.user.sub}_${program.id}_${Date.now()}`
     });
 
     // ── CAPI: send InitiateCheckout event server-side ─────────────────────

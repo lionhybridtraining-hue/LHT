@@ -3,7 +3,7 @@ const { getConfig } = require("./_lib/config");
 const { requireAuthenticatedUser } = require("./_lib/authz");
 const { resolveProgram } = require("./_lib/program-access");
 const { getStripeClient, normalizeStripeError } = require("./_lib/stripe");
-const { createStripePurchase } = require("./_lib/supabase");
+const { createStripePurchase, getAthleteByIdentity, upsertAthleteByIdentity, getActiveLikeProgramAssignment, createProgramAssignment, getCoachByIdentityId, setAthleteCoachIdentity, listStrengthPlans, getStrengthInstanceByStripePurchaseId, createStrengthPlanInstance, getStrengthPlanFull } = require("./_lib/supabase");
 const { sendCAPIEvent, buildUserData } = require("./_lib/meta-capi");
 
 function getCookieValue(cookies, key) {
@@ -77,6 +77,77 @@ function getAvailableRecurringIntervals(program) {
     annual: program.stripe_price_id_annual || null
   };
   return Object.keys(map).filter((interval) => !!map[interval]);
+}
+
+async function ensureZeroCouponProvisioning(config, { identityId, email, program, purchase }) {
+  try {
+    // 1. Ensure athlete exists
+    let athlete = await getAthleteByIdentity(config, identityId);
+    if (!athlete && email) {
+      athlete = await upsertAthleteByIdentity(config, { identityId, email, name: email });
+    }
+    if (!athlete) return;
+
+    // 2. Create program assignment if none exists
+    const existing = await getActiveLikeProgramAssignment(config, athlete.id, program.id);
+    let assignmentId = existing ? existing.id : null;
+    if (!existing) {
+      const defaultCoachIdentityId = program.default_coach_identity_id || null;
+      let coachId = null;
+      if (defaultCoachIdentityId) {
+        try {
+          const coach = await getCoachByIdentityId(config, defaultCoachIdentityId);
+          coachId = coach ? coach.id : null;
+        } catch (_) { /* non-fatal */ }
+        if (athlete.coach_identity_id !== defaultCoachIdentityId) {
+          try { await setAthleteCoachIdentity(config, athlete.id, defaultCoachIdentityId); } catch (_) { /* non-fatal */ }
+        }
+      }
+      const assignment = await createProgramAssignment(config, {
+        athlete_id: athlete.id,
+        coach_id: coachId,
+        training_program_id: program.id,
+        start_date: new Date().toISOString().slice(0, 10),
+        duration_weeks: program.duration_weeks || 12,
+        status: "active",
+        price_cents_snapshot: 0,
+        currency_snapshot: program.currency || "EUR",
+        followup_type_snapshot: "standard",
+        notes: `Auto-created from zero-coupon purchase ${purchase.id}`
+      });
+      assignmentId = assignment ? assignment.id : null;
+    }
+
+    // 3. Create strength instance if template exists
+    const existingInstance = await getStrengthInstanceByStripePurchaseId(config, purchase.id);
+    if (existingInstance) return;
+
+    const plans = await listStrengthPlans(config, { trainingProgramId: program.id });
+    const template = Array.isArray(plans) ? (plans.find((p) => p.status === "active") || plans[0] || null) : null;
+    if (!template) return;
+
+    let planSnapshot = null;
+    try {
+      const full = await getStrengthPlanFull(config, template.id);
+      if (full) planSnapshot = { exercises: full.exercises, prescriptions: full.prescriptions, phaseNotes: full.phaseNotes || [] };
+    } catch (_) { /* non-fatal */ }
+
+    await createStrengthPlanInstance(config, {
+      plan_id: template.id,
+      athlete_id: athlete.id,
+      start_date: null,
+      load_round: 2.5,
+      status: "active",
+      assigned_by: identityId,
+      access_model: program.access_model || null,
+      stripe_purchase_id: purchase.id,
+      program_assignment_id: assignmentId,
+      coach_locked_until: null,
+      plan_snapshot: planSnapshot ? JSON.stringify(planSnapshot) : null
+    });
+  } catch (err) {
+    console.error("ensureZeroCouponProvisioning failed:", err.message || err);
+  }
 }
 
 exports.handler = async (event) => {
@@ -253,6 +324,16 @@ exports.handler = async (event) => {
           expires_at: null
         });
 
+        // Auto-provision assignment and strength instance (same as webhook flow)
+        if (purchase && purchase.id) {
+          await ensureZeroCouponProvisioning(config, {
+            identityId: auth.user.sub,
+            email: auth.user.email || null,
+            program,
+            purchase
+          });
+        }
+
         return json(200, {
           ok: true,
           noPaymentRequired: true,
@@ -270,7 +351,9 @@ exports.handler = async (event) => {
         });
       }
 
-      paymentIntent = await stripe.paymentIntents.create(piParams);
+      paymentIntent = await stripe.paymentIntents.create(piParams, {
+        idempotencyKey: `pi_${auth.user.sub}_${program.id}_${Date.now()}`
+      });
     }
 
     if (config.metaCapiAccessToken && config.metaDatasetId) {

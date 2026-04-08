@@ -849,6 +849,25 @@
       min-width:140px;
     }
     .str-table .str-ex-name { line-height:1.2; }
+    .str-table .str-ex-name-btn,
+    .str-mobile-title-btn {
+      appearance:none;
+      border:none;
+      background:none;
+      padding:0;
+      margin:0;
+      color:inherit;
+      font:inherit;
+      line-height:inherit;
+      text-align:left;
+      cursor:pointer;
+    }
+    .str-table .str-ex-name-btn:hover,
+    .str-mobile-title-btn:hover {
+      color:var(--gold);
+      text-decoration:underline;
+      text-underline-offset:2px;
+    }
     .str-table .str-ex-flags { display:flex; gap:4px; flex-wrap:wrap; }
     .str-table .str-ex-flag {
       display:inline-flex;
@@ -876,6 +895,32 @@
     }
     .str-table .rm-input::placeholder, .str-table .load-input::placeholder {
       color:var(--muted); opacity:0.7;
+    }
+    .str-rm-wrap {
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+    }
+    .str-inc-pop {
+      display:none;
+      padding:6px;
+      border:1px solid var(--line);
+      border-radius:6px;
+      background:rgba(0,0,0,0.55);
+    }
+    .str-rm-wrap.open .str-inc-pop {
+      display:block;
+    }
+    .str-inc-pop label {
+      display:block;
+      font-size:10px;
+      color:var(--gold);
+      margin-bottom:4px;
+      letter-spacing:0.04em;
+      text-transform:uppercase;
+    }
+    .str-inc-pop input {
+      width:100%;
     }
 
     /* 1RM management table */
@@ -906,6 +951,11 @@
     .reps-dur-cell input { flex:1; min-width:0; }
     .reps-dur-toggle { background:none; border:1px solid var(--line); border-radius:3px; color:var(--muted); cursor:pointer; font-size:9px; padding:2px 4px; line-height:1; white-space:nowrap; flex-shrink:0; }
     .reps-dur-toggle:hover { color:var(--gold); border-color:var(--gold); }
+    .reps-range-toggle { background:none; border:1px solid var(--line); border-radius:3px; color:var(--muted); cursor:pointer; font-size:9px; padding:2px 4px; line-height:1; white-space:nowrap; flex-shrink:0; }
+    .reps-range-toggle:hover { color:var(--gold); border-color:var(--gold); }
+    .reps-range-cell { display:flex; align-items:center; gap:4px; min-width:0; flex:1; }
+    .reps-range-cell input { width:42px !important; min-width:0; flex:0 0 auto; }
+    .reps-range-cell span { color:var(--muted); font-size:11px; line-height:1; }
 
     .exercise-pick-item {
       padding:6px 8px;
@@ -1564,7 +1614,10 @@
 
             <!-- Week tabs -->
             <!-- Week tabs -->
-            <div id="strengthWeekTabs" style="display:flex; gap:4px; flex-wrap:wrap; margin-bottom:0;"></div>
+            <div style="display:flex; gap:8px; align-items:center; justify-content:space-between; flex-wrap:wrap; margin-bottom:0;">
+              <div id="strengthWeekTabs" style="display:flex; gap:4px; flex-wrap:wrap; margin-bottom:0;"></div>
+              <button class="btn btn-small btn-ghost" id="copyPrevWeekRxBtn" type="button" title="Copiar prescrições da semana anterior">Copiar semana anterior</button>
+            </div>
             </div><!-- /#strengthTabsBar -->
 
             <div id="strengthWorkoutNotesEditor" style="margin-bottom:12px; padding:12px; border:1px solid var(--line); border-radius:var(--radius-md); background:var(--surface-2);">
@@ -5069,9 +5122,11 @@
       reordered.splice(nextIndex, 0, moved);
 
       let hasAnyChange = false;
+      const changedOrders = [];
       for (let i = 0; i < reordered.length; i++) {
         const expectedOrder = i + 1;
         if (reordered[i].exercise_order !== expectedOrder) {
+          changedOrders.push({ id: reordered[i].id, finalOrder: expectedOrder });
           queueExerciseChange(reordered[i].id, "exercise_order", expectedOrder);
           reordered[i].exercise_order = expectedOrder;
           hasAnyChange = true;
@@ -5086,6 +5141,21 @@
         clearTimeout(saveTimer);
         saveTimer = null;
       }
+
+      // In template mode, avoid transient unique collisions on
+      // (plan_id, day_number, section, exercise_order) by writing temporary
+      // unique slots first, then final contiguous slots.
+      if (!isEditingInstanceMode() && changedOrders.length > 1) {
+        const tempBase = reordered.length + 100;
+        for (let i = 0; i < changedOrders.length; i++) {
+          queueExerciseChange(changedOrders[i].id, "exercise_order", tempBase + i);
+        }
+        await flushSave();
+        for (const change of changedOrders) {
+          queueExerciseChange(change.id, "exercise_order", change.finalOrder);
+        }
+      }
+
       await flushSave();
       renderDayView();
     }
@@ -5110,6 +5180,7 @@
     const strengthSections = document.getElementById("strengthSections");
     const strengthDayTabs = document.getElementById("strengthDayTabs");
     const strengthWeekTabs = document.getElementById("strengthWeekTabs");
+    const copyPrevWeekRxBtn = document.getElementById("copyPrevWeekRxBtn");
     const strengthDayLabelInput = document.getElementById("strengthDayLabelInput");
     const strengthPlanNotesInput = document.getElementById("strengthPlanNotesInput");
     const strengthWeekNotesInput = document.getElementById("strengthWeekNotesInput");
@@ -5139,6 +5210,11 @@
     let addExerciseTargetSection = "";
     let isCreatingFromPicker = false; // Track if we're creating an exercise from the picker modal
     const pendingExerciseAddKeys = new Set();
+    const repsRangeModeByKey = {};
+
+    function getRxModeKey(peId, week) {
+      return `${peId}_${week}`;
+    }
 
     // ── Client-side engine functions ──
     function parseTempo(s) {
@@ -5201,8 +5277,37 @@
         if (section === "plyos_speed") return estimatePlyoReps(rx.duration_seconds, rx.gct, pe.plyo_mechanical_load) || 0;
         return estimateRepsFromDuration(rx.duration_seconds, rx.tempo) || 0;
       }
+      if (rx.reps_min != null && rx.reps_max != null) {
+        return Math.max(0, Math.round((Number(rx.reps_min) + Number(rx.reps_max)) / 2));
+      }
       return rx.reps || 0;
     }
+
+    function getPrescriptionRepTarget(rx) {
+      if (!rx) return 0;
+      if (rx.reps_min != null && rx.reps_max != null) {
+        return Math.max(0, Math.round((Number(rx.reps_min) + Number(rx.reps_max)) / 2));
+      }
+      return Number(rx.reps) || 0;
+    }
+
+    function buildRepsDurControl(rx, peId, week) {
+      const isDur = rx.prescription_type === "duration";
+      const modeKey = getRxModeKey(peId, week);
+      const forcedRange = repsRangeModeByKey[modeKey];
+      const hasRange = !isDur && (forcedRange === true || (forcedRange !== false && rx.reps_min != null && rx.reps_max != null));
+      let valueControl = "";
+      if (isDur) {
+        valueControl = `<input type="number" value="${rx.duration_seconds || ""}" data-field="duration_seconds" data-peid="${peId}" data-week="${week}" min="0" placeholder="s" />`;
+      } else if (hasRange) {
+        valueControl = `<div class="reps-range-cell"><input type="number" value="${rx.reps_min || ""}" data-field="reps_min" data-peid="${peId}" data-week="${week}" min="0" /><span>–</span><input type="number" value="${rx.reps_max || ""}" data-field="reps_max" data-peid="${peId}" data-week="${week}" min="0" /></div>`;
+      } else {
+        valueControl = `<input type="number" value="${rx.reps || ""}" data-field="reps" data-peid="${peId}" data-week="${week}" min="0" />`;
+      }
+
+      return `<div class="reps-dur-cell">${valueControl}<button type="button" class="reps-dur-toggle" data-peid="${peId}" data-week="${week}" title="Alternar reps/duração">${isDur ? "seg" : "rep"}</button>${isDur ? "" : `<button type="button" class="reps-range-toggle" data-peid="${peId}" data-week="${week}" title="Alternar reps fixas/intervalo">${hasRange ? "rng" : "min-max"}</button>`}</div>`;
+    }
+
     function resolveLoad(rx, pe, oneRm, loadRound, week) {
       if (rx.load_override_kg != null && rx.load_override_kg !== "") return { rmPercent:null, loadKg:Number(rx.load_override_kg) };
       const inc = pe.rm_percent_increase_per_week || 0;
@@ -5212,7 +5317,7 @@
         const rm = Number(rx.rm_percent_override) + (w-1)*inc;
         return { rmPercent:rm, loadKg: oneRm ? roundToPlates(oneRm*rm, round) : null };
       }
-      const base = calcRmPercent(rx.reps, rx.rir);
+      const base = calcRmPercent(getPrescriptionRepTarget(rx), rx.rir);
       if (!base) return { rmPercent:null, loadKg:null };
       const rm = base + (w-1)*inc;
       return { rmPercent:rm, loadKg: oneRm ? roundToPlates(oneRm*rm, round) : null };
@@ -5785,6 +5890,77 @@
         btn.addEventListener("click", () => { strSelectedWeek = w; renderWeekTabs(); renderDayView(); refreshStrengthWorkoutNoteEditor(); });
         strengthWeekTabs.appendChild(btn);
       }
+      if (copyPrevWeekRxBtn) {
+        const canCopy = Boolean(strCurrentPlan && strCurrentPlan.plan && strCurrentPlan.plan.id) && strSelectedWeek > 1;
+        copyPrevWeekRxBtn.disabled = !canCopy;
+        copyPrevWeekRxBtn.title = canCopy
+          ? `Copiar prescrições da W${strSelectedWeek - 1} para W${strSelectedWeek}`
+          : "Seleciona W2+ para copiar da semana anterior";
+      }
+    }
+
+    function copyPrescriptionsFromPreviousWeek() {
+      if (!strCurrentPlan || !strCurrentPlan.plan) return;
+      const targetWeek = Number(strSelectedWeek) || 1;
+      const sourceWeek = targetWeek - 1;
+      if (sourceWeek < 1) {
+        showResult("Seleciona W2 ou superior para copiar da semana anterior.", "error");
+        return;
+      }
+
+      const fields = [
+        "prescription_type",
+        "sets",
+        "reps",
+        "reps_min",
+        "reps_max",
+        "duration_seconds",
+        "rest_seconds",
+        "rir",
+        "tempo",
+        "gct",
+        "method",
+        "rm_percent_override",
+        "load_override_kg",
+        "coach_notes"
+      ];
+
+      const exercises = Array.isArray(strCurrentPlan.exercises) ? strCurrentPlan.exercises : [];
+      strCurrentPlan.prescriptions = Array.isArray(strCurrentPlan.prescriptions) ? strCurrentPlan.prescriptions : [];
+      let copiedCount = 0;
+
+      for (const pe of exercises) {
+        const source = getPrescription(pe.id, sourceWeek);
+        if (!source) continue;
+
+        let target = getPrescription(pe.id, targetWeek);
+        if (!target) {
+          target = { plan_exercise_id: pe.id, week_number: targetWeek };
+          strCurrentPlan.prescriptions.push(target);
+        }
+
+        const key = `${pe.id}_${targetWeek}`;
+        if (!pendingPrescriptionChanges[key]) {
+          pendingPrescriptionChanges[key] = { plan_exercise_id: pe.id, week_number: targetWeek };
+        }
+
+        for (const field of fields) {
+          const value = source[field] == null ? null : source[field];
+          target[field] = value;
+          pendingPrescriptionChanges[key][field] = value;
+        }
+        copiedCount += 1;
+      }
+
+      if (copiedCount === 0) {
+        showResult(`Sem prescrições na W${sourceWeek} para copiar.`, "error");
+        return;
+      }
+
+      if (isEditingInstanceMode()) strInstanceSnapshotDirty = true;
+      renderDayView();
+      scheduleSave();
+      showResult(`Copiados ${copiedCount} exercício(s) de W${sourceWeek} para W${targetWeek}.`, "success");
     }
 
     function getExercisesForDaySection(day, section) {
@@ -6313,41 +6489,41 @@
 
         let fieldsHtml = "";
         if (section === "warm_up" || section === "conditioning") {
-          const isDur = rx.prescription_type === "duration";
           fieldsHtml = [
             buildField("Ordem", orderSelect),
             buildField("Sets", `<input type="number" value="${rx.sets || ""}" data-field="sets" data-peid="${pe.id}" data-week="${week}" min="1" />`),
-            buildField("Reps / Dur", `<div class="reps-dur-cell"><input type="number" value="${isDur ? (rx.duration_seconds || "") : (rx.reps || "")}" data-field="${isDur ? "duration_seconds" : "reps"}" data-peid="${pe.id}" data-week="${week}" min="0" placeholder="${isDur ? "s" : ""}" /><button type="button" class="reps-dur-toggle" data-peid="${pe.id}" data-week="${week}" title="Alternar reps/duração">${isDur ? "seg" : "rep"}</button></div>`),
+            buildField("Reps / Dur", buildRepsDurControl(rx, pe.id, week)),
             buildField("Rest", `<input type="number" value="${rx.rest_seconds || ""}" data-field="rest_seconds" data-peid="${pe.id}" data-week="${week}" min="0" placeholder="s" />`)
           ].join("");
         } else if (section === "plyos_speed") {
-          const isDur = rx.prescription_type === "duration";
           fieldsHtml = [
             buildField("Ordem", orderSelect),
             buildField("Sets", `<input type="number" value="${rx.sets || ""}" data-field="sets" data-peid="${pe.id}" data-week="${week}" min="1" />`),
-            buildField("Reps / Dur", `<div class="reps-dur-cell"><input type="number" value="${isDur ? (rx.duration_seconds || "") : (rx.reps || "")}" data-field="${isDur ? "duration_seconds" : "reps"}" data-peid="${pe.id}" data-week="${week}" min="0" placeholder="${isDur ? "s" : ""}" /><button type="button" class="reps-dur-toggle" data-peid="${pe.id}" data-week="${week}" title="Alternar reps/duração">${isDur ? "seg" : "rep"}</button></div>`),
+            buildField("Reps / Dur", buildRepsDurControl(rx, pe.id, week)),
             buildField("Rest", `<input type="number" value="${rx.rest_seconds || ""}" data-field="rest_seconds" data-peid="${pe.id}" data-week="${week}" min="0" placeholder="s" />`),
             buildField("GCT", `<select data-field="gct" data-peid="${pe.id}" data-week="${week}"><option value="">—</option><option value="rápido" ${rx.gct === "rápido" ? "selected" : ""}>Rápido</option><option value="intermédio" ${rx.gct === "intermédio" ? "selected" : ""}>Intermédio</option><option value="altura" ${rx.gct === "altura" ? "selected" : ""}>Altura</option></select>`),
             buildField("M.Load", `<select data-field="plyo_mechanical_load" data-peid="${pe.id}"><option value="">—</option><option value="high" ${pe.plyo_mechanical_load === "high" ? "selected" : ""}>High</option><option value="medium" ${pe.plyo_mechanical_load === "medium" ? "selected" : ""}>Medium</option><option value="low" ${pe.plyo_mechanical_load === "low" ? "selected" : ""}>Low</option></select>`)
           ].join("");
         } else if (section === "main") {
-          const autoRm = calcRmPercent(Number(rx.reps) || 0, Number(rx.rir) || 0);
+          const autoRm = calcRmPercent(getPrescriptionRepTarget(rx), Number(rx.rir) || 0);
           const autoRmDisplay = autoRm != null ? (autoRm * 100).toFixed(1) : "";
+          const weekInc = Number(pe.rm_percent_increase_per_week) || 0;
+          const effectiveAutoRm = autoRm != null ? (autoRm + (Math.max(1, Number(week) || 1) - 1) * weekInc) : null;
+          const effectiveAutoRmDisplay = effectiveAutoRm != null ? (effectiveAutoRm * 100).toFixed(1) : autoRmDisplay;
+          const incPercentVal = pe.rm_percent_increase_per_week != null && pe.rm_percent_increase_per_week !== '' ? (Number(pe.rm_percent_increase_per_week) * 100).toFixed(1) : '';
           const rmOverrideVal = rx.rm_percent_override != null && rx.rm_percent_override !== "" ? (Number(rx.rm_percent_override) * 100).toFixed(1) : "";
           const loadOverrideVal = rx.load_override_kg != null && rx.load_override_kg !== "" ? Number(rx.load_override_kg) : "";
-          const isDur = rx.prescription_type === "duration";
           const resolved = resolveLoad(rx, pe, oneRm, loadRound, week);
           const loadPlaceholder = resolved.loadKg != null ? resolved.loadKg.toFixed(1) : (oneRm ? "" : "sem 1RM");
           fieldsHtml = [
             buildField("Ordem", orderSelect),
             buildField("Sets", `<input type="number" value="${rx.sets || ""}" data-field="sets" data-peid="${pe.id}" data-week="${week}" min="1" />`),
-            buildField("Reps / Dur", `<div class="reps-dur-cell"><input type="number" value="${isDur ? (rx.duration_seconds || "") : (rx.reps || "")}" data-field="${isDur ? "duration_seconds" : "reps"}" data-peid="${pe.id}" data-week="${week}" min="0" placeholder="${isDur ? "s" : ""}" /><button type="button" class="reps-dur-toggle" data-peid="${pe.id}" data-week="${week}" title="Alternar reps/duração">${isDur ? "seg" : "rep"}</button></div>`),
+            buildField("Reps / Dur", buildRepsDurControl(rx, pe.id, week)),
             buildField("Rest", `<input type="number" value="${rx.rest_seconds || ""}" data-field="rest_seconds" data-peid="${pe.id}" data-week="${week}" min="0" placeholder="s" />`),
             buildField("RIR", `<input type="number" value="${rx.rir != null ? rx.rir : ""}" data-field="rir" data-peid="${pe.id}" data-week="${week}" min="0" max="10" />`),
             buildField("Tempo", `<input value="${rx.tempo || ""}" data-field="tempo" data-peid="${pe.id}" data-week="${week}" placeholder="3-1-X-0" />`),
-            buildField("%RM", `<input type="number" value="${rmOverrideVal}" data-field="rm_percent_override" data-peid="${pe.id}" data-week="${week}" placeholder="${autoRmDisplay}" step="0.1" min="0" max="100" class="rm-input" />`),
+            buildField("%RM", `<div class="str-rm-wrap"><input type="number" value="${rmOverrideVal}" data-field="rm_percent_override" data-peid="${pe.id}" data-week="${week}" placeholder="${effectiveAutoRmDisplay}" step="0.1" min="0" max="100" class="rm-input str-rm-trigger" /><div class="str-inc-pop"><label>+%/sem</label><input type="number" value="${incPercentVal}" data-field="rm_percent_increase_per_week" data-peid="${pe.id}" placeholder="%" step="0.1" min="0" max="20" /></div></div>`),
             buildField("Load", `<input type="number" value="${loadOverrideVal}" data-field="load_override_kg" data-peid="${pe.id}" data-week="${week}" placeholder="${loadPlaceholder}" step="0.5" min="0" class="load-input" />`),
-            buildField("+%/sem", `<input type="number" value="${pe.rm_percent_increase_per_week != null && pe.rm_percent_increase_per_week !== '' ? (Number(pe.rm_percent_increase_per_week) * 100).toFixed(1) : ''}" data-field="rm_percent_increase_per_week" data-peid="${pe.id}" placeholder="%" step="0.1" min="0" max="20" />`),
             buildField("Notes", `<input value="${rx.coach_notes || ""}" data-field="coach_notes" data-peid="${pe.id}" data-week="${week}" placeholder="Notas..." />`, true)
           ].join("");
         }
@@ -6356,7 +6532,7 @@
           <div class="str-mobile-head">
             <div class="str-mobile-exercise">
               <div class="str-mobile-topline"><span>${lbl.label}</span>${oneRm ? `<span>1RM: ${oneRm}kg</span>` : ""}</div>
-              <div class="str-mobile-title" title="${escapeHtml(exName)}">${escapeHtml(exName)}</div>
+              <div class="str-mobile-title" title="${escapeHtml(exName)}"><button type="button" class="str-mobile-title-btn" data-edit-exid="${exId}" title="Editar exercício">${escapeHtml(exName)}</button></div>
               ${exMetaHtml}
             </div>
             <div class="str-mobile-actions"><button class="str-rm-btn" data-rmpe="${pe.id}" title="Remover">✕</button></div>
@@ -6398,7 +6574,6 @@
           {label:"Ordem"}, {label:"Exercício"}, {label:"Sets"}, {label:"Reps/Dur"}, {label:"Rest"}, {label:"RIR"},
           {label:"Tempo", cls:"str-col-secondary"},
           {label:"%RM", cls:"str-col-secondary"}, {label:"Load"},
-          {label:"+%/sem", cls:"str-col-secondary"},
           {label:"Notes", cls:"str-col-secondary"}, {label:"", cls:"str-col-secondary"}, {label:""}
         ];
       } else {
@@ -6451,30 +6626,22 @@
         const expandBtn = `<td class="str-col-expand-td"><button type="button" class="str-expand-btn" data-expand-peid="${pe.id}" title="Mais campos">⋯</button></td>`;
 
         if (section === "warm_up" || section === "conditioning") {
-          const isDur = rx.prescription_type === "duration";
           row.innerHTML = `
             <td><div class="str-order-cell"><span class="str-drag-handle" draggable="true" data-drag-peid="${pe.id}" data-section="${section}" title="Arrastar para reordenar">⋮⋮</span>${moveButtons}${orderSelect}</div></td>
-            <td title="${exName}"><div class="str-exercise-cell"><div class="str-ex-name">${exName}</div>${exMetaHtml}</div></td>
+            <td title="${exName}"><div class="str-exercise-cell"><div class="str-ex-name"><button type="button" class="str-ex-name-btn" data-edit-exid="${exId}" title="Editar exercício">${escapeHtml(exName)}</button></div>${exMetaHtml}</div></td>
             <td><input type="number" value="${rx.sets||''}" data-field="sets" data-peid="${pe.id}" data-week="${week}" min="1" /></td>
-            <td><div class="reps-dur-cell">
-              <input type="number" value="${isDur ? (rx.duration_seconds||'') : (rx.reps||'')}" data-field="${isDur ? 'duration_seconds' : 'reps'}" data-peid="${pe.id}" data-week="${week}" min="0" placeholder="${isDur ? 's' : ''}" />
-              <button type="button" class="reps-dur-toggle" data-peid="${pe.id}" data-week="${week}" title="Alternar reps/duração">${isDur ? 'seg' : 'rep'}</button>
-            </div></td>
+            <td>${buildRepsDurControl(rx, pe.id, week)}</td>
             <td><input type="number" value="${rx.rest_seconds||''}" data-field="rest_seconds" data-peid="${pe.id}" data-week="${week}" min="0" placeholder="s" /></td>
             <td class="str-col-secondary"></td>
             <td><button class="str-rm-btn" data-rmpe="${pe.id}" title="Remover">✕</button></td>
             ${expandBtn}
           `;
         } else if (section === "plyos_speed") {
-          const isDur = rx.prescription_type === "duration";
           row.innerHTML = `
             <td><div class="str-order-cell"><span class="str-drag-handle" draggable="true" data-drag-peid="${pe.id}" data-section="${section}" title="Arrastar para reordenar">⋮⋮</span>${moveButtons}${orderSelect}</div></td>
-            <td title="${exName}"><div class="str-exercise-cell"><div class="str-ex-name">${exName}</div>${exMetaHtml}</div></td>
+            <td title="${exName}"><div class="str-exercise-cell"><div class="str-ex-name"><button type="button" class="str-ex-name-btn" data-edit-exid="${exId}" title="Editar exercício">${escapeHtml(exName)}</button></div>${exMetaHtml}</div></td>
             <td><input type="number" value="${rx.sets||''}" data-field="sets" data-peid="${pe.id}" data-week="${week}" min="1" /></td>
-            <td><div class="reps-dur-cell">
-              <input type="number" value="${isDur ? (rx.duration_seconds||'') : (rx.reps||'')}" data-field="${isDur ? 'duration_seconds' : 'reps'}" data-peid="${pe.id}" data-week="${week}" min="0" placeholder="${isDur ? 's' : ''}" />
-              <button type="button" class="reps-dur-toggle" data-peid="${pe.id}" data-week="${week}" title="Alternar reps/duração">${isDur ? 'seg' : 'rep'}</button>
-            </div></td>
+            <td>${buildRepsDurControl(rx, pe.id, week)}</td>
             <td><input type="number" value="${rx.rest_seconds||''}" data-field="rest_seconds" data-peid="${pe.id}" data-week="${week}" min="0" placeholder="s" /></td>
             <td><select data-field="gct" data-peid="${pe.id}" data-week="${week}" style="width:68px;">
               <option value="">—</option>
@@ -6493,29 +6660,28 @@
             ${expandBtn}
           `;
         } else if (section === "main") {
-          const autoRm = calcRmPercent(Number(rx.reps)||0, Number(rx.rir)||0);
+          const autoRm = calcRmPercent(getPrescriptionRepTarget(rx), Number(rx.rir)||0);
           const autoRmDisplay = autoRm != null ? (autoRm * 100).toFixed(1) : "";
+          const weekInc = Number(pe.rm_percent_increase_per_week) || 0;
+          const effectiveAutoRm = autoRm != null ? (autoRm + (Math.max(1, Number(week) || 1) - 1) * weekInc) : null;
+          const effectiveAutoRmDisplay = effectiveAutoRm != null ? (effectiveAutoRm * 100).toFixed(1) : autoRmDisplay;
+          const incPercentVal = pe.rm_percent_increase_per_week != null && pe.rm_percent_increase_per_week !== '' ? (Number(pe.rm_percent_increase_per_week) * 100).toFixed(1) : '';
           const hasRmOverride = rx.rm_percent_override != null && rx.rm_percent_override !== "";
           const rmOverrideVal = hasRmOverride ? (Number(rx.rm_percent_override) * 100).toFixed(1) : "";
           const hasLoadOverride = rx.load_override_kg != null && rx.load_override_kg !== "";
           const loadOverrideVal = hasLoadOverride ? Number(rx.load_override_kg) : "";
-          const isDur = rx.prescription_type === "duration";
           const { rmPercent, loadKg } = resolveLoad(rx, pe, oneRm, loadRound, week);
           const loadPlaceholder = loadKg != null ? loadKg.toFixed(1) : (oneRm ? "" : "sem 1RM");
           row.innerHTML = `
             <td><div class="str-order-cell"><span class="str-drag-handle" draggable="true" data-drag-peid="${pe.id}" data-section="${section}" title="Arrastar para reordenar">⋮⋮</span>${moveButtons}${orderSelect}</div></td>
-            <td title="${exName}${oneRm ? ' · 1RM: '+oneRm+'kg' : ''}"><div class="str-exercise-cell"><div class="str-ex-name">${exName}</div>${exMetaHtml}</div></td>
+            <td title="${exName}${oneRm ? ' · 1RM: '+oneRm+'kg' : ''}"><div class="str-exercise-cell"><div class="str-ex-name"><button type="button" class="str-ex-name-btn" data-edit-exid="${exId}" title="Editar exercício">${escapeHtml(exName)}</button></div>${exMetaHtml}</div></td>
             <td><input type="number" value="${rx.sets||''}" data-field="sets" data-peid="${pe.id}" data-week="${week}" min="1" /></td>
-            <td><div class="reps-dur-cell">
-              <input type="number" value="${isDur ? (rx.duration_seconds||'') : (rx.reps||'')}" data-field="${isDur ? 'duration_seconds' : 'reps'}" data-peid="${pe.id}" data-week="${week}" min="0" placeholder="${isDur ? 's' : ''}" />
-              <button type="button" class="reps-dur-toggle" data-peid="${pe.id}" data-week="${week}" title="Alternar reps/duração">${isDur ? 'seg' : 'rep'}</button>
-            </div></td>
+            <td>${buildRepsDurControl(rx, pe.id, week)}</td>
             <td><input type="number" value="${rx.rest_seconds||''}" data-field="rest_seconds" data-peid="${pe.id}" data-week="${week}" min="0" placeholder="s" /></td>
             <td><input type="number" value="${rx.rir!=null?rx.rir:''}" data-field="rir" data-peid="${pe.id}" data-week="${week}" min="0" max="10" /></td>
             <td class="str-col-secondary"><input value="${rx.tempo||''}" data-field="tempo" data-peid="${pe.id}" data-week="${week}" placeholder="3-1-X-0" style="width:72px;" /></td>
-            <td class="str-col-secondary"><input type="number" value="${rmOverrideVal}" data-field="rm_percent_override" data-peid="${pe.id}" data-week="${week}" placeholder="${autoRmDisplay}" step="0.1" min="0" max="100" style="width:56px;" class="rm-input" /></td>
+            <td class="str-col-secondary"><div class="str-rm-wrap"><input type="number" value="${rmOverrideVal}" data-field="rm_percent_override" data-peid="${pe.id}" data-week="${week}" placeholder="${effectiveAutoRmDisplay}" step="0.1" min="0" max="100" style="width:56px;" class="rm-input str-rm-trigger" /><div class="str-inc-pop"><label>+%/sem</label><input type="number" value="${incPercentVal}" data-field="rm_percent_increase_per_week" data-peid="${pe.id}" placeholder="%" step="0.1" min="0" max="20" /></div></div></td>
             <td><input type="number" value="${loadOverrideVal}" data-field="load_override_kg" data-peid="${pe.id}" data-week="${week}" placeholder="${loadPlaceholder}" step="0.5" min="0" style="width:56px;" class="load-input" /></td>
-            <td class="str-col-secondary"><input type="number" value="${pe.rm_percent_increase_per_week != null && pe.rm_percent_increase_per_week !== '' ? (Number(pe.rm_percent_increase_per_week) * 100).toFixed(1) : ''}" data-field="rm_percent_increase_per_week" data-peid="${pe.id}" placeholder="%" step="0.1" min="0" max="20" style="width:48px;" /></td>
             <td class="str-col-secondary"><input value="${rx.coach_notes||''}" data-field="coach_notes" data-peid="${pe.id}" data-week="${week}" style="width:80px;" /></td>
             <td class="str-col-secondary"></td>
             <td><button class="str-rm-btn" data-rmpe="${pe.id}" title="Remover">✕</button></td>
@@ -6527,8 +6693,12 @@
 
         // Build detail row for mobile expand (hidden fields accessible via expand button)
         if (section === "main") {
-          const autoRm2 = calcRmPercent(Number(rx.reps)||0, Number(rx.rir)||0);
+          const autoRm2 = calcRmPercent(getPrescriptionRepTarget(rx), Number(rx.rir)||0);
           const autoRmD = autoRm2 != null ? (autoRm2 * 100).toFixed(1) : "";
+          const weekInc2 = Number(pe.rm_percent_increase_per_week) || 0;
+          const effectiveAutoRm2 = autoRm2 != null ? (autoRm2 + (Math.max(1, Number(week) || 1) - 1) * weekInc2) : null;
+          const effectiveAutoRmD = effectiveAutoRm2 != null ? (effectiveAutoRm2 * 100).toFixed(1) : autoRmD;
+          const incPercentVal2 = pe.rm_percent_increase_per_week != null && pe.rm_percent_increase_per_week !== '' ? (Number(pe.rm_percent_increase_per_week) * 100).toFixed(1) : '';
           const rmOv = (rx.rm_percent_override != null && rx.rm_percent_override !== "") ? (Number(rx.rm_percent_override) * 100).toFixed(1) : "";
           const { loadKg: lkg2 } = resolveLoad(rx, pe, oneRm, loadRound, week);
           const lph = lkg2 != null ? lkg2.toFixed(1) : (oneRm ? "" : "");
@@ -6538,8 +6708,7 @@
           const totalCols = row.children.length;
           detailRow.innerHTML = `<td colspan="${totalCols}"><div class="str-detail-grid">
             <div class="str-detail-field"><label>Tempo</label><input value="${rx.tempo||''}" data-field="tempo" data-peid="${pe.id}" data-week="${week}" placeholder="3-1-X-0" /></div>
-            <div class="str-detail-field"><label>%RM</label><input type="number" value="${rmOv}" data-field="rm_percent_override" data-peid="${pe.id}" data-week="${week}" placeholder="${autoRmD}" step="0.1" min="0" max="100" class="rm-input" /></div>
-            <div class="str-detail-field"><label>+%/sem</label><input type="number" value="${pe.rm_percent_increase_per_week != null && pe.rm_percent_increase_per_week !== '' ? (Number(pe.rm_percent_increase_per_week) * 100).toFixed(1) : ''}" data-field="rm_percent_increase_per_week" data-peid="${pe.id}" placeholder="%" step="0.1" min="0" max="20" /></div>
+            <div class="str-detail-field"><label>%RM</label><div class="str-rm-wrap"><input type="number" value="${rmOv}" data-field="rm_percent_override" data-peid="${pe.id}" data-week="${week}" placeholder="${effectiveAutoRmD}" step="0.1" min="0" max="100" class="rm-input str-rm-trigger" /><div class="str-inc-pop"><label>+%/sem</label><input type="number" value="${incPercentVal2}" data-field="rm_percent_increase_per_week" data-peid="${pe.id}" placeholder="%" step="0.1" min="0" max="20" /></div></div></div>
             <div class="str-detail-field"><label>Notes</label><input value="${rx.coach_notes||''}" data-field="coach_notes" data-peid="${pe.id}" data-week="${week}" placeholder="Notas..." /></div>
           </div></td>`;
           tbody.appendChild(detailRow);
@@ -6658,7 +6827,9 @@
       if (field === "rm_percent_override" || field === "load_override_kg") {
         stored = value;
       } else {
-        stored = value === "" ? null : (["sets","reps","rest_seconds","rir","duration_seconds"].includes(field) ? Number(value) : value);
+        stored = (value === "" || value == null)
+          ? null
+          : (["sets","reps","reps_min","reps_max","rest_seconds","rir","duration_seconds"].includes(field) ? Number(value) : value);
       }
       pendingPrescriptionChanges[key][field] = stored;
 
@@ -6858,6 +7029,7 @@
         queueExerciseChange(peId, field, val);
         if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
         flushSave();
+        renderDayView();
         return;
       } else if (field === "rm_percent_override" || field === "load_override_kg") {
         // Handled by handleTableInput with correct % → decimal conversion
@@ -6884,7 +7056,10 @@
 
       // Queue save on every input event (debounced)
       if (peId && week && field !== "order_label" && field !== "plyo_mechanical_load") {
-        if (field === "rm_percent_override") {
+        if (field === "rm_percent_increase_per_week") {
+          const val = el.value === "" ? null : Number(el.value) / 100;
+          queueExerciseChange(peId, field, val);
+        } else if (field === "rm_percent_override") {
           const pct = el.value === "" ? null : Number(el.value) / 100;
           queuePrescriptionChange(peId, parseInt(week, 10), field, pct);
         } else if (field === "load_override_kg") {
@@ -6895,7 +7070,7 @@
       }
 
       // Live-update %RM and Load placeholders
-      if (!["reps", "rir", "rm_percent_override", "load_override_kg"].includes(field)) return;
+      if (!["reps", "reps_min", "reps_max", "rir", "rm_percent_override", "load_override_kg", "rm_percent_increase_per_week"].includes(field)) return;
       const scope = el.closest(".str-item-scope") || el.closest("tr");
       if (!scope) return;
       const rmInput = scope.querySelector(".rm-input");
@@ -6904,23 +7079,29 @@
 
       // Read current values from the row inputs
       const repsEl = scope.querySelector('[data-field="reps"]');
+      const repsMinEl = scope.querySelector('[data-field="reps_min"]');
+      const repsMaxEl = scope.querySelector('[data-field="reps_max"]');
       const rirEl = scope.querySelector('[data-field="rir"]');
-      const reps = repsEl ? Number(repsEl.value) || 0 : 0;
+      const repsSingle = repsEl ? Number(repsEl.value) || 0 : 0;
+      const repsMin = repsMinEl ? Number(repsMinEl.value) || 0 : 0;
+      const repsMax = repsMaxEl ? Number(repsMaxEl.value) || 0 : 0;
+      const reps = (repsMinEl && repsMaxEl) ? Math.max(0, Math.round((repsMin + repsMax) / 2)) : repsSingle;
       const rir = rirEl ? Number(rirEl.value) || 0 : 0;
 
       // Update %RM placeholder (auto-calc from reps+rir)
       const autoRm = calcRmPercent(reps, rir);
-      rmInput.placeholder = autoRm != null ? (autoRm * 100).toFixed(1) : "";
+      const pe = strCurrentPlan ? strCurrentPlan.exercises.find(x => x.id === peId) : null;
+      const inc = pe ? (pe.rm_percent_increase_per_week || 0) : 0;
+      const weekNum = parseInt(week, 10) || 1;
+      const adjustedAutoRm = autoRm != null ? (autoRm + (weekNum - 1) * inc) : null;
+      rmInput.placeholder = adjustedAutoRm != null ? (adjustedAutoRm * 100).toFixed(1) : "";
 
       // Determine effective %RM for load placeholder
-      const pe = strCurrentPlan ? strCurrentPlan.exercises.find(x => x.id === peId) : null;
       const exId = pe && pe.exercise ? pe.exercise.id : (pe ? pe.exercise_id : null);
       const oneRm = exId ? strOneRms[exId] : null;
       const loadRound = getEffectiveLoadRound();
       const rmOverrideVal = rmInput.value !== "" ? Number(rmInput.value) / 100 : null;
       const effectiveRm = rmOverrideVal != null ? rmOverrideVal : autoRm;
-      const inc = pe ? (pe.rm_percent_increase_per_week || 0) : 0;
-      const weekNum = parseInt(week, 10) || 1;
       const adjustedRm = effectiveRm != null ? effectiveRm + (weekNum - 1) * inc : null;
       if (loadInput.value === "") {
         if (adjustedRm != null && oneRm) {
@@ -6929,6 +7110,9 @@
           loadInput.placeholder = oneRm ? "" : "sem 1RM";
         }
       }
+
+      // Keep volume cards in sync while editing (no need to switch week/day)
+      updateVolumeSummary(strSelectedDay, strSelectedWeek);
     }
 
     function handleTableDragStart(e) {
@@ -6994,6 +7178,25 @@
     }
 
     async function handleTableClick(e) {
+      const rmTrigger = e.target.closest(".str-rm-trigger");
+      if (rmTrigger) {
+        const wrap = rmTrigger.closest(".str-rm-wrap");
+        if (wrap) {
+          document.querySelectorAll(".str-rm-wrap.open").forEach((item) => {
+            if (item !== wrap) item.classList.remove("open");
+          });
+          wrap.classList.toggle("open");
+        }
+        return;
+      }
+
+      const editExerciseBtn = e.target.closest("[data-edit-exid]");
+      if (editExerciseBtn) {
+        const exerciseId = editExerciseBtn.getAttribute("data-edit-exid");
+        if (exerciseId) openExerciseCrudModal(exerciseId);
+        return;
+      }
+
       const moveBtn = e.target.closest("[data-move-peid]");
       if (moveBtn) {
         const peId = moveBtn.getAttribute("data-move-peid");
@@ -7016,10 +7219,37 @@
         // Clear opposite field
         if (newType === "duration") {
           queuePrescriptionChange(peId, week, "reps", null);
+          queuePrescriptionChange(peId, week, "reps_min", null);
+          queuePrescriptionChange(peId, week, "reps_max", null);
         } else {
           queuePrescriptionChange(peId, week, "duration_seconds", null);
         }
         queuePrescriptionChange(peId, week, "prescription_type", newType);
+        renderDayView();
+        return;
+      }
+
+      const rangeToggle = e.target.closest(".reps-range-toggle");
+      if (rangeToggle) {
+        const peId = rangeToggle.getAttribute("data-peid");
+        const week = parseInt(rangeToggle.getAttribute("data-week"), 10);
+        const modeKey = getRxModeKey(peId, week);
+        const rx = getPrescription(peId, week) || {};
+        if (rx.prescription_type === "duration") return;
+
+        const hasRange = repsRangeModeByKey[modeKey] === true || (rx.reps_min != null && rx.reps_max != null);
+        if (hasRange) {
+          const midpoint = Math.max(0, Math.round((Number(rx.reps_min) + Number(rx.reps_max)) / 2));
+          repsRangeModeByKey[modeKey] = false;
+          queuePrescriptionChange(peId, week, "reps", midpoint);
+          queuePrescriptionChange(peId, week, "reps_min", null);
+          queuePrescriptionChange(peId, week, "reps_max", null);
+        } else {
+          repsRangeModeByKey[modeKey] = true;
+          queuePrescriptionChange(peId, week, "reps", null);
+          queuePrescriptionChange(peId, week, "reps_min", null);
+          queuePrescriptionChange(peId, week, "reps_max", null);
+        }
         renderDayView();
         return;
       }
@@ -7040,6 +7270,11 @@
         await loadStrengthPlanFull(strCurrentPlan.plan.id);
       } catch (e) { console.error("Remove exercise failed", e); }
     }
+
+    document.addEventListener("click", (event) => {
+      if (event.target.closest(".str-rm-wrap")) return;
+      document.querySelectorAll(".str-rm-wrap.open").forEach((item) => item.classList.remove("open"));
+    });
 
     // ── Add exercise modal ──
     function openAddExerciseModal(section) {
@@ -7249,12 +7484,27 @@
       const exId = item.getAttribute("data-exid");
       const exercise = strExercises.find(ex => ex.id === exId);
       if (!exercise) return;
+
+      // Prevent double-click and show visual feedback
+      if (item.classList.contains("adding")) return;
+      item.classList.add("adding");
+      const originalHtml = item.innerHTML;
+      item.innerHTML = `<div class="exercise-pick-main"><span class="exercise-pick-name" style="color:var(--gold);">A adicionar…</span></div>`;
+
       try {
         const added = await addExerciseToSelectedSection(addExerciseTargetSection, exercise);
         if (added) {
           addExerciseModal.classList.add("hidden");
+        } else {
+          item.innerHTML = originalHtml;
+          item.classList.remove("adding");
+          showResult("Não foi possível adicionar o exercício. Verifica se o plano está carregado.", "error");
         }
-      } catch (e) { console.error("Add exercise failed", e); }
+      } catch (err) {
+        item.innerHTML = originalHtml;
+        item.classList.remove("adding");
+        showResult("Erro ao adicionar exercício: " + (err.message || "erro desconhecido"), "error");
+      }
     });
 
     document.getElementById("cancelAddExerciseBtn").addEventListener("click", () => {
@@ -7603,6 +7853,12 @@
       if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
       await flushSave();
     });
+
+    if (copyPrevWeekRxBtn) {
+      copyPrevWeekRxBtn.addEventListener("click", () => {
+        copyPrescriptionsFromPreviousWeek();
+      });
+    }
 
     // Ctrl+S shortcut for saving
     document.addEventListener("keydown", (e) => {
@@ -8043,6 +8299,7 @@
     document.getElementById("exerciseCrudForm").addEventListener("submit", async (e) => {
       e.preventDefault();
       const editId = document.getElementById("exCrudEditId").value;
+      const creatingFromPickerFlow = isCreatingFromPicker && !editId;
       const payload = {
         name: document.getElementById("exCrudName").value.trim(),
         category: document.getElementById("exCrudCategory").value || null,
@@ -8056,41 +8313,55 @@
       if (!payload.name) return;
 
       const btn = document.getElementById("exCrudSaveBtn");
+      const createFromPickerBtn = document.getElementById("createExerciseFromPickerBtn");
       btn.disabled = true;
-      btn.textContent = "A guardar…";
+      if (createFromPickerBtn) createFromPickerBtn.disabled = true;
+      btn.textContent = creatingFromPickerFlow ? "A criar exercício…" : "A guardar…";
       try {
-        let createdExercise = null;
+        let savedExercise = null;
         if (editId) {
-          await apiRequest("PATCH", "/.netlify/functions/exercises", { id: editId, ...payload });
+          const result = await apiRequest("PATCH", "/.netlify/functions/exercises", { id: editId, ...payload });
+          // Update in-memory catalog without a full reload
+          savedExercise = (result && result.exercise) ? result.exercise : (result && result.id ? result : null);
+          if (savedExercise) {
+            const idx = strExercises.findIndex(ex => ex.id === editId);
+            if (idx !== -1) strExercises[idx] = savedExercise;
+          } else {
+            // Fallback: merge payload fields into the cached object
+            const cached = strExercises.find(ex => ex.id === editId);
+            if (cached) Object.assign(cached, payload);
+          }
         } else {
-          createdExercise = await apiRequest("POST", "/.netlify/functions/exercises", payload);
+          const result = await apiRequest("POST", "/.netlify/functions/exercises", payload);
+          savedExercise = (result && result.exercise) ? result.exercise : (result && result.id ? result : null);
+          // Insert into in-memory catalog immediately — no full reload needed
+          if (savedExercise) {
+            strExercises.push(savedExercise);
+          }
         }
-        // Reload catalog
-        strExercises = [];
-        await loadExerciseCatalog();
-        document.getElementById("exerciseCrudModal").classList.add("hidden");
 
         // If we're creating from the picker, automatically add the exercise to the plan
-        if (isCreatingFromPicker && !editId && createdExercise && addExerciseTargetSection) {
-          const createdExerciseId = createdExercise && typeof createdExercise === "object" ? createdExercise.id : null;
-          const normalizedName = payload.name.trim().toLowerCase();
-          const newExercise = strExercises.find(ex => ex.id === createdExerciseId)
-            || strExercises.find(ex => (ex.name || "").trim().toLowerCase() === normalizedName);
-          if (newExercise) {
-            await addExerciseToSelectedSection(addExerciseTargetSection, newExercise);
-            addExerciseModal.classList.add("hidden");
-          }
+        if (isCreatingFromPicker && !editId && savedExercise && addExerciseTargetSection) {
+          btn.textContent = "A adicionar ao plano…";
+          showResult("A criar exercício e a adicionar ao plano de força…", "");
+          await addExerciseToSelectedSection(addExerciseTargetSection, savedExercise);
+          document.getElementById("exerciseCrudModal").classList.add("hidden");
+          addExerciseModal.classList.add("hidden");
           document.getElementById("exerciseSearchInput").value = payload.name;
           renderExercisePicker();
+          showResult("Exercício criado e adicionado ao plano com sucesso.", "success");
           isCreatingFromPicker = false;
         } else {
+          document.getElementById("exerciseCrudModal").classList.add("hidden");
           isCreatingFromPicker = false;
           renderExerciseCrudList();
         }
       } catch (err) {
         alert("Erro ao guardar exercício: " + (err.message || ""));
+        showResult("Erro ao criar/adicionar exercício: " + (err.message || "erro"), "error");
       } finally {
         btn.disabled = false;
+        if (createFromPickerBtn) createFromPickerBtn.disabled = false;
         btn.textContent = editId ? "Guardar" : "Criar";
       }
     });

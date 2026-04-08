@@ -8,14 +8,22 @@ Quick reference for each phase. Detailed specs in PRODUCT-ROADMAP.md and PHASE-1
 
 **What**: MVP with strength + calendar + basic Strava  
 **Owner**: Dev team (2-3w sprint)  
-**Status**: 🔴 Not started  
+**Status**: � In Progress (~68% complete as of Apr 8, 2026)  
 
-**Deliverables**:
-- ✅ Athlete home dashboard
-- ✅ Recent Strava activities display  
-- ✅ Coach athlete overview tab
-- ✅ Coach manual Strava sync trigger
-- ✅ Fix Strava OAuth scope
+**Completed**:
+- ✅ Strength Backend (100%) + Athlete UI (100%)
+- ✅ Calendar/Programa preset-driven (90%)
+- ✅ Strava OAuth (100%) + Activity Sync (80%)
+- ✅ Blog System (100%)
+- ✅ Athlete Profile Flow (100%)
+- ✅ Training Zones Backend (85%) + Coach UI (100%)
+
+**In Progress**:
+- 🟡 Strength Coach UI (60%)
+- 🟡 Coach Dashboard (40%)
+- 🟡 Analytics events (30%)
+- 🔴 Training Zones Athlete UI (0%)
+- 🔴 Strava TSS Calculation (20% — formulas only)
 
 **Athlete Experience**:
 ```
@@ -36,14 +44,16 @@ Login → Coach Dashboard (see athlete status: on-track 🟢 / warning 🟡 / ov
 ```
 
 **Go/No-go Criteria**:
-- [ ] 0 critical bugs
-- [ ] API p95 < 500ms
-- [ ] Strava sync success rate > 95%
-- [ ] Mobile responsive (iOS + Android)
+- [x] 0 critical bugs (core flows stable)
+- [ ] API p95 < 500ms (needs validation)
+- [ ] Strava sync success rate > 95% (needs validation)
+- [x] Mobile responsive (iOS + Android)
 
-**Open Questions**:
-- Q: Send email reminder if athlete overdue? A: Phase 2+
-- Q: Show coach alerts on dashboard? A: Phase 2+
+**Remaining for Launch**:
+- Athlete dashboard home tab (this week's workouts + Strava display)
+- Coach dashboard home tab (athlete roster + status)
+- Coach manual Strava sync trigger
+- Fix Strava OAuth scope (`activity:read_all`)
 
 ---
 
