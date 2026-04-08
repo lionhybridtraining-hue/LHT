@@ -37,11 +37,13 @@ alter table athletes add column if not exists plan_storage text;
 alter table athletes add column if not exists onboarding_answers jsonb default '{}'::jsonb;
 alter table athletes add column if not exists onboarding_submitted_at timestamptz;
 alter table athletes add column if not exists onboarding_updated_at timestamptz;
+alter table athletes add column if not exists last_login_at timestamptz;
 create index if not exists athletes_coach_identity_idx on athletes(coach_identity_id);
 create unique index if not exists athletes_identity_uidx on athletes(identity_id) where identity_id is not null;
 create index if not exists athletes_identity_idx on athletes(identity_id) where identity_id is not null;
 create index if not exists athletes_onboarding_updated_idx on athletes(onboarding_updated_at desc nulls last);
 create index if not exists athletes_funnel_stage_idx on athletes(funnel_stage, onboarding_updated_at desc nulls last);
+create index if not exists athletes_last_login_idx on athletes(last_login_at desc nulls last);
 
 create table if not exists athlete_training_zone_profiles (
   id uuid primary key default gen_random_uuid(),
@@ -519,6 +521,7 @@ create table if not exists training_programs (
   technical_description text,
   description text,
   image_url text,
+  classification jsonb,
   duration_weeks integer not null check (duration_weeks > 0),
   price_cents integer not null default 0,
   recurring_price_monthly_cents integer check (recurring_price_monthly_cents is null or recurring_price_monthly_cents >= 0),
@@ -552,6 +555,14 @@ where external_id is not null and deleted_at is null;
 
 create index if not exists training_programs_status_idx
 on training_programs (status)
+where deleted_at is null;
+
+create index if not exists training_programs_classification_gin_idx
+on training_programs using gin (classification)
+where deleted_at is null;
+
+create index if not exists training_programs_classification_primary_category_idx
+on training_programs ((classification->>'primaryCategory'))
 where deleted_at is null;
 
 create index if not exists training_programs_billing_type_idx
@@ -632,6 +643,7 @@ create table if not exists stripe_purchases (
   identity_id text not null,
   program_id uuid not null references training_programs(id) on delete restrict,
   email text,
+  customer_name text,
   amount_cents integer not null default 0,
   currency text not null default 'EUR',
   billing_type text not null default 'one_time' check (billing_type in ('one_time', 'recurring')),
@@ -709,6 +721,7 @@ create table if not exists leads_central (
     'planocorrida_form',
     'planocorrida_generated',
     'meta_ads',
+    'stripe',
     'coach_landing',
     'onboarding',
     'manual'
@@ -718,6 +731,7 @@ create table if not exists leads_central (
     'planocorrida_form',
     'planocorrida_generated',
     'meta_ads',
+    'stripe',
     'coach_landing',
     'onboarding',
     'manual'
@@ -738,6 +752,7 @@ create table if not exists leads_central (
     'meta_received',
     'onboarding_submitted',
     'plan_generated',
+    'app_installed',
     'coach_application',
     'qualified',
     'converted',
@@ -836,6 +851,41 @@ create trigger set_leads_central_updated_at
 before update on leads_central
 for each row
 execute function set_updated_at();
+
+create table if not exists leads_central_events (
+  id uuid primary key default gen_random_uuid(),
+  lead_id uuid not null references leads_central(id) on delete cascade,
+  source text,
+  event_type text not null default 'lead_update',
+  activity_type text,
+  funnel_stage text,
+  lead_status text,
+  actor text,
+  payload jsonb not null default '{}'::jsonb,
+  event_at timestamptz not null default now(),
+  created_at timestamptz not null default now()
+);
+
+create index if not exists leads_central_events_lead_event_idx
+on leads_central_events (lead_id, event_at desc, created_at desc);
+
+create index if not exists leads_central_events_type_idx
+on leads_central_events (event_type, event_at desc);
+
+create table if not exists login_events (
+  id uuid primary key default gen_random_uuid(),
+  athlete_id uuid references athletes(id) on delete set null,
+  identity_id text,
+  logged_in_at timestamptz not null default now(),
+  device_hint text,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists login_events_athlete_logged_in_idx
+on login_events (athlete_id, logged_in_at desc);
+
+create index if not exists login_events_identity_logged_in_idx
+on login_events (identity_id, logged_in_at desc);
 
 -- Onboarding intake now lives in athletes (onboarding_answers + structured columns)
 

@@ -80,7 +80,30 @@ header.hero{
 }
 
 header.hero.home-hero {
-  min-height: 90vh;
+  min-height: unset;
+  height: 95vh;
+  height: 95svh;
+  padding: 12px 0 56px;
+  align-items: center;
+  justify-content: center;
+}
+
+header.hero.home-hero .hero-logo {
+  max-width: clamp(120px, 14vw, 200px);
+  margin-bottom: 14px;
+}
+
+header.hero.home-hero h1 {
+  font-size: clamp(24px, 4.5vw, 54px);
+  margin-bottom: 8px;
+}
+
+header.hero.home-hero .lead {
+  margin: 4px auto 12px;
+}
+
+header.hero.home-hero .copy {
+  margin-bottom: 16px;
 }
 
 /* Scroll indicator (visual sugestão para continuar a explorar) */
@@ -149,7 +172,6 @@ header.hero.home-hero {
 section{background:radial-gradient(circle at 50% 0, #1e1e1e 0%, #0b0b0b 82%); padding:var(--py) 0}
 
 /* Darker sections for depth alternation */
-#como-funciona,
 #avaliacoes,
 #fundador {
   background: radial-gradient(circle at 50% 0, #1a1a1a 0%, #0d0d0d 80%);
@@ -157,7 +179,6 @@ section{background:radial-gradient(circle at 50% 0, #1e1e1e 0%, #0b0b0b 82%); pa
 }
 
 /* Add subtle gold glow to darker sections */
-#como-funciona::before,
 #avaliacoes::before,
 #fundador::before {
   content: "";
@@ -340,68 +361,6 @@ section .intro{color:var(--muted); max-width:860px; margin:0 auto 18px; text-ali
 }
 .badge{
   display:inline-block; background:linear-gradient(180deg,#2d8cff,#1666d8); color:#fff; padding:4px 10px; border-radius:12px; font-size:11px; font-weight:600; letter-spacing:.4px; margin-right:8px; box-shadow:0 0 10px rgba(45,140,255,.35);
-}
-
-/* Steps section */
-#como-funciona{
-  position:relative;
-}
-#como-funciona .steps{
-  display:grid; gap:20px; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); margin-top:24px;
-}
-#como-funciona .step{
-  /* Background image is set inline in HTML; keep sizing rules here */
-  position: relative;
-  overflow: hidden;
-  display: block; /* full-card clickable anchor */
-  cursor: pointer;
-  text-decoration: none;
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  border:none; /* remove light outline around cards */
-  border-radius:16px; padding:18px 16px;
-  box-shadow: 0 8px 24px -6px rgba(0,0,0,.55), 0 0 22px rgba(0,0,0,.30) inset;
-  transition: transform .35s cubic-bezier(0.4, 0, 0.2, 1), box-shadow .35s ease, filter .35s ease;
-}
-#como-funciona .step::before{ content: none; }
-#como-funciona .step::after{
-  /* Overlay opacity is directly controlled by --bg-dim (0–1) */
-  content:""; position:absolute; inset:0; border-radius:inherit;
-  background: linear-gradient(180deg, rgba(0,0,0,1), rgba(0,0,0,1));
-  opacity: var(--bg-dim, .60);
-  pointer-events: none;
-  z-index:1;
-  transition: opacity .22s ease;
-}
-#como-funciona .step > *{ position: relative; z-index: 2; }
-#como-funciona .step:hover{
-  transform: translateY(-6px) scale(1.02);
-  filter: brightness(1.05);
-  box-shadow:
-    0 16px 36px -8px rgba(0,0,0,.70), /* deeper drop */
-    0 0 24px rgba(212,165,79,.22),     /* stronger gold glow */
-    0 0 0 1px rgba(212,165,79,.28) inset; /* more visible gold edge */
-}
-#como-funciona .step:hover::after{
-  opacity: calc(var(--bg-dim, .60) - .10); /* reveal image slightly on hover */
-}
-#como-funciona .step:focus-visible{
-  outline: 2px solid rgba(212,165,79,.35);
-  outline-offset: 2px;
-  border-radius: 16px;
-}
-#como-funciona .step h3{margin:4px 0 6px; font-family:'Oswald',sans-serif; font-size:16px; letter-spacing:.6px; text-transform:uppercase; color:var(--gold-soft)}
-#como-funciona .step p{margin:0; font-size:14px; color:#c5c9d1}
-#como-funciona .num{
-  display:inline-flex; width:40px; height:40px; align-items:center; justify-content:center;
-  border-radius:50%; background:rgba(212,165,79,.14); color:var(--gold); font-weight:600; font-size:14px; letter-spacing:.5px; box-shadow:0 0 0 1px rgba(212,165,79,.28), 0 4px 12px -2px rgba(0,0,0,.55);
-}
-/* Legibilidade: sombra leve no texto dentro dos cards */
-#como-funciona .step h3,
-#como-funciona .step p,
-#como-funciona .step .num{
-  text-shadow: 0 2px 6px rgba(0,0,0,.45);
 }
 
 .founder-image {
@@ -623,6 +582,32 @@ section .intro{color:var(--muted); max-width:860px; margin:0 auto 18px; text-ali
   height:3px;
   background:linear-gradient(90deg, transparent, rgba(212,165,79,.95), rgba(64,145,255,.62), transparent);
   pointer-events:none;
+}
+
+.program-feature-visual{
+  position:relative;
+  margin:0;
+  height:clamp(220px, 30vw, 340px);
+  overflow:hidden;
+  border-radius:28px 28px 0 0;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.01)),
+    radial-gradient(circle at top left, rgba(212,165,79,.18), transparent 42%);
+}
+
+.program-feature-visual::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:linear-gradient(180deg, rgba(5,10,18,.04) 0%, rgba(5,10,18,.18) 58%, rgba(5,10,18,.68) 100%);
+  pointer-events:none;
+}
+
+.program-feature-image{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:block;
 }
 
 .program-feature-content{
@@ -956,6 +941,11 @@ section .intro{color:var(--muted); max-width:860px; margin:0 auto 18px; text-ali
     border-radius:22px;
   }
 
+  .program-feature-visual{
+    border-radius:22px 22px 0 0;
+    height:clamp(190px, 52vw, 280px);
+  }
+
   .program-feature-content,
   .programs-quick-rail-wrap{
     padding:20px;
@@ -1222,6 +1212,11 @@ footer .legal span{opacity:.6}
   .scroll-indicator{ bottom:22px; font-size:11px; }
   /* Top align hero content and reduce top padding for better first fold */
   header.hero{ min-height: 100vh; padding: 16px 0 90px; align-items:flex-start; }
+  header.hero.home-hero{ height: 90vh; height: 90svh; min-height: unset; padding: 10px 0 44px; align-items: center; }
+  header.hero.home-hero .hero-logo{ max-width: clamp(100px, 28vw, 160px); margin-bottom: 10px; }
+  header.hero.home-hero h1{ font-size: clamp(22px, 7vw, 38px); margin-bottom: 6px; }
+  header.hero.home-hero .lead{ margin: 4px auto 10px; }
+  header.hero.home-hero .copy{ margin-bottom: 12px; }
   .hero-logo { max-width: clamp(150px, 38vw, 220px); margin-bottom: 20px; animation: fadeIn 0.8s ease-out; }
   .hero .copy { font-size: 14px; line-height: 1.5; margin-bottom: 20px; }
   .list { margin: 12px auto 0; }

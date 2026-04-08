@@ -13,20 +13,28 @@ function getCookieValue(cookies, key) {
   return match ? match[1] : "";
 }
 
-async function getOrCreateCustomer(stripe, { email, identityId }) {
+async function getOrCreateCustomer(stripe, { email, name, identityId }) {
   if (!email) {
     return stripe.customers.create({
+      ...(name ? { name } : {}),
       metadata: identityId ? { identity_id: identityId } : {}
     });
   }
 
   const existing = await stripe.customers.list({ email, limit: 1 });
   if (existing && Array.isArray(existing.data) && existing.data[0]) {
-    return existing.data[0];
+    const cust = existing.data[0];
+    // Update name if we have it and customer doesn't
+    if (name && !cust.name) {
+      await stripe.customers.update(cust.id, { name });
+      cust.name = name;
+    }
+    return cust;
   }
 
   return stripe.customers.create({
     email,
+    ...(name ? { name } : {}),
     metadata: identityId ? { identity_id: identityId } : {}
   });
 }
@@ -147,6 +155,7 @@ exports.handler = async (event) => {
     if (program.billing_type === "recurring") {
       const customer = await getOrCreateCustomer(stripe, {
         email: auth.user.email || "",
+        name: auth.user.name || "",
         identityId: auth.user.sub
       });
 
@@ -191,9 +200,17 @@ exports.handler = async (event) => {
         }
       });
     } else {
+      // Create/resolve Stripe Customer for one-time payments too
+      const customer = await getOrCreateCustomer(stripe, {
+        email: auth.user.email || "",
+        name: auth.user.name || "",
+        identityId: auth.user.sub
+      });
+
       const piParams = {
         amount: price.unit_amount,
         currency: price.currency,
+        customer: customer.id,
         metadata,
         receipt_email: auth.user.email || undefined,
         automatic_payment_methods: { enabled: true }
@@ -220,12 +237,13 @@ exports.handler = async (event) => {
         const nowIso = new Date().toISOString();
         const purchase = await createStripePurchase(config, {
           stripe_session_id: null,
-          stripe_customer_id: null,
+          stripe_customer_id: customer.id,
           stripe_payment_intent_id: null,
           stripe_subscription_id: null,
           identity_id: auth.user.sub,
           program_id: program.id,
           email: auth.user.email || null,
+          customer_name: auth.user.name || null,
           amount_cents: 0,
           currency: String(price.currency || program.currency || "EUR").toUpperCase(),
           billing_type: program.billing_type || "one_time",

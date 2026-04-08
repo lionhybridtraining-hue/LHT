@@ -1,13 +1,14 @@
 const { parseJsonBody, json } = require("./_lib/http");
 const { getConfig } = require("./_lib/config");
 const { requireRole } = require("./_lib/authz");
-const { listCentralLeads, updateCentralLead } = require("./_lib/supabase");
+const { listCentralLeads, createCentralLead, updateCentralLead } = require("./_lib/supabase");
 
 const VALID_SOURCES = [
   "planocorrida_landing",
   "planocorrida_form",
   "planocorrida_generated",
   "meta_ads",
+  "stripe",
   "coach_landing",
   "onboarding",
   "manual"
@@ -19,6 +20,7 @@ const VALID_FUNNEL_STAGES = [
   "meta_received",
   "onboarding_submitted",
   "plan_generated",
+  "app_installed",
   "coach_application",
   "qualified",
   "converted",
@@ -26,6 +28,27 @@ const VALID_FUNNEL_STAGES = [
 ];
 
 const VALID_LEAD_STATUS = ["new", "contacted", "qualified", "converted", "disqualified"];
+
+function normalizeText(value) {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed.length ? trimmed : null;
+}
+
+function normalizeEmail(value) {
+  const text = normalizeText(value);
+  return text ? text.toLowerCase() : null;
+}
+
+function normalizePhone(value) {
+  const text = normalizeText(value);
+  if (!text) return null;
+  return text.replace(/\s+/g, " ");
+}
+
+function createManualSourceRefId() {
+  return `manual_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+}
 
 function clampInt(value, fallback, min, max) {
   const parsed = Number.parseInt(String(value || ""), 10);
@@ -68,7 +91,7 @@ function countByStage(leads) {
 
 exports.handler = async (event) => {
   const method = event.httpMethod;
-  if (!["GET", "PATCH"].includes(method)) {
+  if (!["GET", "POST", "PATCH"].includes(method)) {
     return json(405, { error: "Method not allowed" });
   }
 
@@ -131,6 +154,52 @@ exports.handler = async (event) => {
       payload = parseJsonBody(event);
     } catch (err) {
       return json(400, { error: `JSON invalido: ${err.message}` });
+    }
+
+    if (method === "POST") {
+      const source = normalizeText(payload.source) || "manual";
+      const funnelStage = normalizeText(payload.funnelStage) || "landing";
+      const leadStatus = normalizeText(payload.leadStatus) || "new";
+      const fullName = normalizeText(payload.fullName);
+      const email = normalizeEmail(payload.email);
+      const phone = normalizePhone(payload.phone);
+      const notes = normalizeText(payload.notes);
+
+      if (!VALID_SOURCES.includes(source)) {
+        return json(400, { error: `source must be one of: ${VALID_SOURCES.join(", ")}` });
+      }
+      if (!VALID_FUNNEL_STAGES.includes(funnelStage)) {
+        return json(400, { error: `funnelStage must be one of: ${VALID_FUNNEL_STAGES.join(", ")}` });
+      }
+      if (!VALID_LEAD_STATUS.includes(leadStatus)) {
+        return json(400, { error: `leadStatus must be one of: ${VALID_LEAD_STATUS.join(", ")}` });
+      }
+      if (!fullName && !email && !phone) {
+        return json(400, { error: "Provide at least fullName, email or phone" });
+      }
+
+      const nowIso = new Date().toISOString();
+      const profilePatch = {};
+      if (notes) profilePatch.manualNotes = notes;
+
+      const rows = await createCentralLead(config, {
+        source,
+        last_source: source,
+        source_ref_id: createManualSourceRefId(),
+        email,
+        email_normalized: email,
+        phone,
+        phone_normalized: phone,
+        full_name: fullName,
+        funnel_stage: funnelStage,
+        lead_status: leadStatus,
+        last_activity_type: "manual_create",
+        last_activity_at: nowIso,
+        profile: profilePatch
+      });
+
+      const created = Array.isArray(rows) && rows.length ? mapLead(rows[0]) : null;
+      return json(201, { lead: created });
     }
 
     const id = typeof payload.id === "string" ? payload.id.trim() : "";

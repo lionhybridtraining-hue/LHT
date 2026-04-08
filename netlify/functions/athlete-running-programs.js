@@ -48,7 +48,7 @@ exports.handler = async (event) => {
       await upsertCentralLead(config, {
         athleteId: athlete.id,
         identityId,
-        source: "athlete_app",
+        source: "planocorrida_generated",
         email: athlete.email || auth.user.email || "",
         phone: athlete.phone || null,
         fullName: athlete.name || null,

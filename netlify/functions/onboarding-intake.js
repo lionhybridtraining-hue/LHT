@@ -129,8 +129,14 @@ function mergeFunnelStage(existingStage, incomingStage) {
   const rank = {
     landing: 0,
     landing_submitted: 1,
+    meta_received: 1,
     onboarding_submitted: 2,
-    plan_generated: 3
+    plan_generated: 3,
+    app_installed: 4,
+    coach_application: 5,
+    qualified: 6,
+    converted: 7,
+    disqualified: 8
   };
 
   const normalizedExisting = typeof existingStage === "string" ? existingStage : "landing";
@@ -235,15 +241,17 @@ function extractStructuredFromAnswers(answers) {
     consistencyLevel: normalizeCanonicalConsistencyLevel(
       pickFirstDefined(landing.currentConsistency, root.consistency_level, root.consistencyLevel)
     ),
-    funnelStage: canPromoteToPlanGenerated
-      ? "plan_generated"
-      : hasOnboardingAnswers
-        ? "onboarding_submitted"
-        : landingCompleted
-        ? "onboarding_submitted"
-        : hasLandingAnswers
-          ? "landing_submitted"
-          : "landing",
+    funnelStage: pwa.installedAt
+      ? "app_installed"
+      : canPromoteToPlanGenerated
+        ? "plan_generated"
+        : hasOnboardingAnswers
+          ? "onboarding_submitted"
+          : landingCompleted
+            ? "onboarding_submitted"
+            : hasLandingAnswers
+              ? "landing_submitted"
+              : "landing",
     planGeneratedAt: canPromoteToPlanGenerated ? new Date().toISOString() : null,
     planStorage:
       planGeneration && planGeneration.storage && typeof planGeneration.storage === "string"
@@ -261,7 +269,7 @@ function inferLeadSource(answers) {
 }
 
 function inferLeadStatus(funnelStage) {
-  if (funnelStage === "plan_generated" || funnelStage === "onboarding_submitted") return "qualified";
+  if (funnelStage === "plan_generated" || funnelStage === "onboarding_submitted" || funnelStage === "app_installed") return "qualified";
   return "new";
 }
 
@@ -400,12 +408,10 @@ exports.handler = async (event) => {
 
     const funnelStage = mergeFunnelStage(existing ? existing.funnel_stage : null, structured.funnelStage);
 
-    // Only mark as submitted if this is a full form completion, not an auto-save
-    const isAutoSave = query.auto_save === "true" || query.auto_save === "1";
     const onboardingSubmittedAt =
       existing && existing.onboarding_submitted_at
         ? existing.onboarding_submitted_at
-        : !isAutoSave && structured.hasFormCompletion
+        : structured.hasFormCompletion
           ? now
           : null;
 
@@ -474,8 +480,6 @@ exports.handler = async (event) => {
       ok: true,
       athleteId: athlete.id,
       submittedAt: updated ? updated.onboarding_submitted_at : patch.onboarding_submitted_at,
-      isAutoSave: isAutoSave,
-      autoSaveBitmap: Object.keys(mergedAnswers),
       legacySync
     });
   } catch (err) {

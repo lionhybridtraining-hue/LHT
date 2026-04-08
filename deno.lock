@@ -13,6 +13,7 @@
       "dependencies": [
         "npm:adm-zip@~0.5.16",
         "npm:netlify-cli@^24.2.0",
+        "npm:pg@^8.20.0",
         "npm:resend@^4.8.0",
         "npm:stripe@^20.4.1"
       ]

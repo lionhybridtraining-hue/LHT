@@ -22,4 +22,3 @@ aer-backend/*
 !aer-backend/main.py
 !aer-backend/athlete_funcs.py
 !aer-backend/training_funcs.py
-nohup.out

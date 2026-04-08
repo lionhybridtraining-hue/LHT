@@ -70,6 +70,33 @@ function buildGaItems(program) {
   }];
 }
 
+function derivePurchaseStatusFromPaymentIntent(paymentIntent, fallbackStatus = "pending") {
+  if (!paymentIntent || typeof paymentIntent !== "object") {
+    return fallbackStatus;
+  }
+
+  const charge = paymentIntent.latest_charge && typeof paymentIntent.latest_charge === "object"
+    ? paymentIntent.latest_charge
+    : null;
+  const amount = Number.isFinite(paymentIntent.amount) ? paymentIntent.amount : 0;
+  const chargeAmountRefunded = Number.isFinite(charge && charge.amount_refunded)
+    ? charge.amount_refunded
+    : 0;
+  const amountRefunded = Number.isFinite(paymentIntent.amount_refunded)
+    ? paymentIntent.amount_refunded
+    : chargeAmountRefunded;
+
+  if (paymentIntent.status === "canceled") return "cancelled";
+  if (charge && charge.refunded === true) return "refunded";
+  if (amount > 0 && amountRefunded >= amount) return "refunded";
+  if (paymentIntent.status === "succeeded") return "paid";
+  if (["requires_payment_method", "requires_confirmation", "requires_action", "processing"].includes(paymentIntent.status)) {
+    return "pending";
+  }
+
+  return fallbackStatus;
+}
+
 async function buildPlanSnapshot(config, planId) {
   try {
     const full = await getStrengthPlanFull(config, planId);
@@ -116,12 +143,27 @@ async function handleCheckoutCompleted(config, stripe, session) {
     subscription
   });
 
+  // Stripe may replay checkout.session.completed after a refund.
+  // Always resolve canonical status from the current PaymentIntent state.
+  if (typeof session.payment_intent === "string" && session.payment_intent) {
+    try {
+      const paymentIntent = await stripe.paymentIntents.retrieve(session.payment_intent, { expand: ["latest_charge"] });
+      purchase.status = derivePurchaseStatusFromPaymentIntent(paymentIntent, purchase.status);
+      if (purchase.status === "refunded") {
+        purchase.expires_at = new Date().toISOString();
+      }
+    } catch (_) {
+      // Non-fatal: fall back to the session-derived status.
+    }
+  }
+
   const record = await upsertStripePurchaseBySessionId(config, purchase);
 
   // Mirror Stripe conversions into the central lead funnel.
   try {
     await upsertCentralLead(config, {
       identityId,
+      source: "stripe",
       email: (session.customer_details && session.customer_details.email) || purchase.email || null,
       fullName: (session.customer_details && session.customer_details.name) || null,
       funnelStage: "converted",
@@ -332,16 +374,30 @@ async function handlePaymentIntentSucceeded(config, stripe, paymentIntent) {
     }
   }
 
+  // Resolve customer name from Stripe if available
+  let customerName = null;
+  if (typeof paymentIntent.customer === "string" && paymentIntent.customer) {
+    try {
+      const cust = await stripe.customers.retrieve(paymentIntent.customer);
+      customerName = cust && cust.name ? String(cust.name) : null;
+    } catch (_) { /* non-fatal */ }
+  }
+
   const purchase = toPaymentIntentPurchaseRecord({
     paymentIntent,
     identityId,
     programId: program.id,
     billingType: metadata.billing_type || program.billing_type,
     email: metadata.email || null,
+    customerName,
     source: "stripe_elements",
     subscriptionId,
     expiresAt
   });
+  purchase.status = derivePurchaseStatusFromPaymentIntent(paymentIntent, purchase.status);
+  if (purchase.status === "refunded") {
+    purchase.expires_at = new Date().toISOString();
+  }
 
   const record = await upsertStripePurchaseByPaymentIntentId(config, purchase);
 

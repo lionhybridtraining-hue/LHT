@@ -12,7 +12,10 @@
 </head>
 <body>
   <section id="admin-auth-gate" class="auth-gate">
-    <div class="auth-gate-card">
+    <div id="auth-loading-indicator" class="auth-gate-card" style="text-align:center">
+      <p>A verificar sessao...</p>
+    </div>
+    <div id="auth-login-card" class="auth-gate-card" hidden>
       <p class="auth-gate-eyebrow">Acesso restrito</p>
       <h2>Login obrigatorio</h2>
       <p>Para ver o painel de administracao tens de iniciar sessao.</p>
@@ -41,6 +44,7 @@
           <button id="tab-calendario" class="admin-tab" type="button" role="tab" aria-selected="false" aria-controls="calendario-panel">Calendário</button>
           <button id="tab-vendas" class="admin-tab" type="button" role="tab" aria-selected="false" aria-controls="vendas-panel">Vendas</button>
           <button id="tab-leads" class="admin-tab" type="button" role="tab" aria-selected="false" aria-controls="leads-panel">Leads Meta</button>
+          <button id="tab-leads-central" class="admin-tab" type="button" role="tab" aria-selected="false" aria-controls="leads-central-panel">Funil Leads</button>
           <button id="tab-ai" class="admin-tab" type="button" role="tab" aria-selected="false" aria-controls="ai-panel">IA</button>
           <button id="tab-operations" class="admin-tab" type="button" role="tab" aria-selected="false" aria-controls="operations-panel">Operacoes</button>
         </div>
@@ -1193,7 +1197,60 @@
             </div>
           </div>
 
-          <div class="programs-form-section">
+          <div class="programs-form-section field-wide">
+            <div class="programs-form-section-head">
+              <h3>Classificacao e automacao</h3>
+              <p>Define se inclui forca/endurance, qual a modalidade de cada componente e o nivel recomendado.</p>
+            </div>
+            <div class="programs-form-grid">
+              <div class="field">
+                <label for="program-strength-modality-select">Modalidade de forca</label>
+                <select id="program-strength-modality-select">
+                  <option value="">Sem componente de forca</option>
+                  <option value="included_unspecified">Incluida (nao especificada)</option>
+                  <option value="__custom__">+ Criar nova modalidade</option>
+                </select>
+                <input id="program-strength-modality-custom" type="text" placeholder="Nova modalidade de forca (ex.: ginasio)" hidden />
+                <small class="field-hint">Seleciona uma existente ou cria nova. Vazio = sem componente de forca.</small>
+              </div>
+
+              <div class="field">
+                <label for="program-endurance-modality-select">Modalidade de endurance</label>
+                <select id="program-endurance-modality-select">
+                  <option value="">Sem componente de endurance</option>
+                  <option value="included_unspecified">Incluida (nao especificada)</option>
+                  <option value="__custom__">+ Criar nova modalidade</option>
+                </select>
+                <input id="program-endurance-modality-custom" type="text" placeholder="Nova modalidade de endurance (ex.: corrida)" hidden />
+                <small class="field-hint">Para criar nova: escolhe "+ Criar nova modalidade" e escreve no campo abaixo. Vazio = sem componente de endurance.</small>
+              </div>
+
+              <div class="field">
+                <label>Experiencia de ginasio recomendada</label>
+                <div class="checkbox-grid" style="display:grid; grid-template-columns:1fr; gap:6px;">
+                  <label class="checkbox-line" for="program-experience-strength-beginner"><input id="program-experience-strength-beginner" name="program-experience-strength-levels" type="checkbox" value="beginner" /><span>Iniciante</span></label>
+                  <label class="checkbox-line" for="program-experience-strength-intermediate"><input id="program-experience-strength-intermediate" name="program-experience-strength-levels" type="checkbox" value="intermediate" /><span>Intermediario</span></label>
+                  <label class="checkbox-line" for="program-experience-strength-advanced"><input id="program-experience-strength-advanced" name="program-experience-strength-levels" type="checkbox" value="advanced" /><span>Avancado</span></label>
+                </div>
+              </div>
+
+              <div class="field">
+                <label>Experiencia de endurance recomendada</label>
+                <div class="checkbox-grid" style="display:grid; grid-template-columns:1fr; gap:6px;">
+                  <label class="checkbox-line" for="program-experience-endurance-beginner"><input id="program-experience-endurance-beginner" name="program-experience-endurance-levels" type="checkbox" value="beginner" /><span>Iniciante</span></label>
+                  <label class="checkbox-line" for="program-experience-endurance-intermediate"><input id="program-experience-endurance-intermediate" name="program-experience-endurance-levels" type="checkbox" value="intermediate" /><span>Intermediario</span></label>
+                  <label class="checkbox-line" for="program-experience-endurance-advanced"><input id="program-experience-endurance-advanced" name="program-experience-endurance-levels" type="checkbox" value="advanced" /><span>Avancado</span></label>
+                </div>
+              </div>
+
+              <div class="field field-wide">
+                <label for="program-classification-notes">Notas operacionais</label>
+                <textarea id="program-classification-notes" rows="3" placeholder="Observações internas para segmentação e ações automáticas."></textarea>
+              </div>
+            </div>
+          </div>
+
+          <div class="programs-form-section field-wide">
             <div class="programs-form-section-head">
               <h3>Prova & Disponibilidade</h3>
               <p>Seleciona uma prova para associar este programa. A configuração de calendario (visibilidade, ordem) é gerida na aba <strong>Calendário</strong>.</p>
@@ -1213,7 +1270,7 @@
               </div>
             </div>
           </div>
-          <div class="form-actions">
+          <div class="form-actions programs-actions-stack field-wide">
             <button id="create-program-btn" type="button">Criar programa</button>
             <button type="button" class="action-btn action-btn-secondary" onclick="document.getElementById('programs-create-details').open = false">Cancelar</button>
           </div>
@@ -1251,6 +1308,15 @@
                 <option value="">Billing: Todos</option>
                 <option value="one_time">one_time</option>
                 <option value="recurring">recurring</option>
+              </select>
+              <select id="programs-filter-modality" class="programs-filter-select">
+                <option value="">Modalidade: Todas</option>
+              </select>
+              <select id="programs-filter-experience" class="programs-filter-select">
+                <option value="">Experiencia: Todos</option>
+                <option value="beginner">Iniciante</option>
+                <option value="intermediate">Intermediario</option>
+                <option value="advanced">Avancado</option>
               </select>
               <button id="programs-clear-filters-btn" type="button" class="programs-filter-clear-btn">Limpar tudo</button>
             </div>
@@ -1435,6 +1501,58 @@
 
               <div class="programs-form-section field-wide">
                 <div class="programs-form-section-head">
+                  <h3>Classificacao e automacao</h3>
+                  <p>Define se inclui forca/endurance, qual a modalidade de cada componente e o nivel recomendado.</p>
+                </div>
+                <div class="programs-form-grid">
+                  <div class="field">
+                    <label for="edit-program-strength-modality-select">Modalidade de forca</label>
+                    <select id="edit-program-strength-modality-select">
+                      <option value="">Sem componente de forca</option>
+                      <option value="included_unspecified">Incluida (nao especificada)</option>
+                      <option value="__custom__">+ Criar nova modalidade</option>
+                    </select>
+                    <input id="edit-program-strength-modality-custom" type="text" placeholder="Nova modalidade de forca (ex.: ginasio)" hidden />
+                  </div>
+
+                  <div class="field">
+                    <label for="edit-program-endurance-modality-select">Modalidade de endurance</label>
+                    <select id="edit-program-endurance-modality-select">
+                      <option value="">Sem componente de endurance</option>
+                      <option value="included_unspecified">Incluida (nao especificada)</option>
+                      <option value="__custom__">+ Criar nova modalidade</option>
+                    </select>
+                    <input id="edit-program-endurance-modality-custom" type="text" placeholder="Nova modalidade de endurance (ex.: corrida)" hidden />
+                    <small class="field-hint">Para criar nova: escolhe "+ Criar nova modalidade" e escreve no campo abaixo.</small>
+                  </div>
+
+                  <div class="field">
+                    <label>Experiencia de ginasio recomendada</label>
+                    <div class="checkbox-grid" style="display:grid; grid-template-columns:1fr; gap:6px;">
+                      <label class="checkbox-line" for="edit-program-experience-strength-beginner"><input id="edit-program-experience-strength-beginner" name="edit-program-experience-strength-levels" type="checkbox" value="beginner" /><span>Iniciante</span></label>
+                      <label class="checkbox-line" for="edit-program-experience-strength-intermediate"><input id="edit-program-experience-strength-intermediate" name="edit-program-experience-strength-levels" type="checkbox" value="intermediate" /><span>Intermediario</span></label>
+                      <label class="checkbox-line" for="edit-program-experience-strength-advanced"><input id="edit-program-experience-strength-advanced" name="edit-program-experience-strength-levels" type="checkbox" value="advanced" /><span>Avancado</span></label>
+                    </div>
+                  </div>
+
+                  <div class="field">
+                    <label>Experiencia de endurance recomendada</label>
+                    <div class="checkbox-grid" style="display:grid; grid-template-columns:1fr; gap:6px;">
+                      <label class="checkbox-line" for="edit-program-experience-endurance-beginner"><input id="edit-program-experience-endurance-beginner" name="edit-program-experience-endurance-levels" type="checkbox" value="beginner" /><span>Iniciante</span></label>
+                      <label class="checkbox-line" for="edit-program-experience-endurance-intermediate"><input id="edit-program-experience-endurance-intermediate" name="edit-program-experience-endurance-levels" type="checkbox" value="intermediate" /><span>Intermediario</span></label>
+                      <label class="checkbox-line" for="edit-program-experience-endurance-advanced"><input id="edit-program-experience-endurance-advanced" name="edit-program-experience-endurance-levels" type="checkbox" value="advanced" /><span>Avancado</span></label>
+                    </div>
+                  </div>
+
+                  <div class="field field-wide">
+                    <label for="edit-program-classification-notes">Notas operacionais</label>
+                    <textarea id="edit-program-classification-notes" rows="3" placeholder="Observações internas para segmentação e ações automáticas."></textarea>
+                  </div>
+                </div>
+              </div>
+
+              <div class="programs-form-section field-wide">
+                <div class="programs-form-section-head">
                   <h3>Prova & Disponibilidade</h3>
                   <p>Seleciona uma prova para associar este programa. A configuração de calendario (visibilidade, ordem) é gerida na aba <strong>Calendário</strong>.</p>
                 </div>
@@ -1454,7 +1572,7 @@
                 </div>
               </div>
 
-              <div class="form-actions field-wide">
+              <div class="form-actions programs-actions-stack field-wide">
                 <button id="save-program-edit-btn" type="button">Guardar alteracoes</button>
                 <button id="cancel-program-edit-btn" type="button">Cancelar</button>
               </div>
@@ -1717,6 +1835,7 @@
               <thead>
                 <tr>
                   <th>Email</th>
+                  <th>Cliente</th>
                   <th>Programa</th>
                   <th>Valor</th>
                   <th>Estado</th>
@@ -1725,6 +1844,9 @@
                   <th>Metodo pagamento</th>
                   <th>Canal</th>
                   <th>Source</th>
+                  <th>Stripe PI</th>
+                  <th>Reemb. Stripe</th>
+                  <th>Criado em</th>
                   <th>Pago em</th>
                   <th>Expira</th>
                   <th>Acoes</th>
@@ -2037,132 +2159,255 @@
         </div>
       </section>
 
+      <section id="leads-central-panel" class="admin-athletes" hidden>
+        <div class="editor-top">
+          <div>
+            <p class="section-eyebrow">Pipeline Comercial</p>
+            <h2>Funil de Leads</h2>
+            <p>Visao unificada de todas as leads do funil: Meta Ads, landing pages, onboarding e conversoes.</p>
+          </div>
+          <div class="editor-actions">
+            <button id="create-central-lead-btn" type="button">+ Nova lead</button>
+            <button id="refresh-central-leads-btn" type="button">Atualizar</button>
+            <button id="clear-central-leads-filters-btn" type="button">Limpar filtros</button>
+          </div>
+        </div>
+
+        <p id="leads-central-message" class="message" role="status"></p>
+
+        <div class="athletes-toolbar" style="flex-wrap:wrap;gap:8px;">
+          <div class="field">
+            <label for="central-leads-source-filter">Fonte</label>
+            <select id="central-leads-source-filter">
+              <option value="">Todas</option>
+              <option value="meta_ads">Meta Ads (Facebook/Instagram)</option>
+              <option value="planocorrida_landing">Plano de Corrida (Lead Magnet)</option>
+              <option value="onboarding">Onboarding</option>
+              <option value="stripe">Stripe (Compra)</option>
+              <option value="coach_landing">Coach Landing</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="central-leads-status-filter">Estado</label>
+            <select id="central-leads-status-filter">
+              <option value="">Todos</option>
+              <option value="new">Novo</option>
+              <option value="contacted">Contactado</option>
+              <option value="qualified">Qualificado</option>
+              <option value="converted">Convertido</option>
+              <option value="disqualified">Desqualificado</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="central-leads-date-from">De</label>
+            <input id="central-leads-date-from" type="date" />
+          </div>
+          <div class="field">
+            <label for="central-leads-date-to">Ate</label>
+            <input id="central-leads-date-to" type="date" />
+          </div>
+          <div class="field field-wide">
+            <label for="central-leads-query">Pesquisa</label>
+            <input id="central-leads-query" type="search" placeholder="Nome ou email..." />
+          </div>
+        </div>
+
+        <div id="central-leads-stage-chips" class="central-lead-chips-row" style="display:flex;flex-wrap:wrap;gap:6px;margin:12px 0;"></div>
+
+        <div id="leads-central-empty" class="athletes-empty" hidden>
+          <p>Sem leads no funil.</p>
+          <span>As leads aparecem aqui quando preenchem um formulario, submetem o onboarding ou completam uma compra.</span>
+        </div>
+
+        <div class="athletes-list-wrap">
+          <table class="athletes-table">
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>Contacto</th>
+                <th>Fonte</th>
+                <th>Estado</th>
+                <th>Ultima atividade</th>
+                <th>Acoes</th>
+              </tr>
+            </thead>
+            <tbody id="leads-central-body"></tbody>
+          </table>
+        </div>
+
+        <dialog id="create-central-lead-dialog" class="admin-action-dialog">
+          <div class="modal-header">
+            <h3>Nova lead manual</h3>
+            <button id="close-create-central-lead-dialog-btn" type="button" class="modal-close-btn" aria-label="Fechar">✕</button>
+          </div>
+          <div class="modal-content">
+            <div class="admin-inline-form">
+              <div class="field field-wide">
+                <label for="central-lead-full-name">Nome</label>
+                <input id="central-lead-full-name" type="text" placeholder="Ex.: Ana Silva" />
+              </div>
+              <div class="field">
+                <label for="central-lead-email">Email</label>
+                <input id="central-lead-email" type="email" placeholder="Ex.: ana@email.com" />
+              </div>
+              <div class="field">
+                <label for="central-lead-phone">Telefone</label>
+                <input id="central-lead-phone" type="text" placeholder="Ex.: +351 91 000 0000" />
+              </div>
+              <div class="field">
+                <label for="central-lead-source">Fonte</label>
+                <select id="central-lead-source">
+                  <option value="manual">Manual</option>
+                  <option value="meta_ads">Meta Ads</option>
+                  <option value="planocorrida_landing">Plano de Corrida (Landing)</option>
+                  <option value="planocorrida_form">Plano de Corrida (Formulario)</option>
+                  <option value="planocorrida_generated">Plano de Corrida (Gerado)</option>
+                  <option value="onboarding">Onboarding</option>
+                  <option value="stripe">Stripe</option>
+                  <option value="coach_landing">Coach Landing</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="central-lead-stage">Etapa inicial</label>
+                <select id="central-lead-stage">
+                  <option value="landing">Landing</option>
+                  <option value="landing_submitted">Landing enviada</option>
+                  <option value="meta_received">Meta recebida</option>
+                  <option value="onboarding_submitted">Onboarding enviado</option>
+                  <option value="plan_generated">Plano gerado</option>
+                  <option value="app_installed">App instalada</option>
+                  <option value="coach_application">Aplicacao coach</option>
+                  <option value="qualified">Qualificada</option>
+                  <option value="converted">Convertida</option>
+                  <option value="disqualified">Desqualificada</option>
+                </select>
+              </div>
+              <div class="field field-wide">
+                <label for="central-lead-notes">Notas internas</label>
+                <textarea id="central-lead-notes" rows="3" placeholder="Contexto inicial da lead..."></textarea>
+              </div>
+              <div class="form-actions">
+                <button id="save-central-lead-btn" type="button">Criar lead</button>
+                <button id="cancel-create-central-lead-btn" type="button">Cancelar</button>
+              </div>
+            </div>
+          </div>
+        </dialog>
+
+        <dialog id="central-lead-details-dialog" class="admin-action-dialog admin-action-dialog-wide">
+          <div class="modal-header">
+            <h3 id="central-lead-details-title">Detalhe da lead</h3>
+            <button id="close-central-lead-details-dialog-btn" type="button" class="modal-close-btn" aria-label="Fechar">✕</button>
+          </div>
+          <div class="modal-content">
+            <div id="central-lead-details-content" class="lead-details-grid"></div>
+          </div>
+        </dialog>
+      </section>
+
       <section id="operations-panel" class="admin-athletes" hidden>
         <div class="editor-top">
           <div>
             <p class="section-eyebrow">Operations</p>
             <h2>Operacoes</h2>
-            <p>Area preparada para monitorizacao de cargas, check-ins, onboarding e qualidade de dados.</p>
+            <p>Monitorizacao operacional de notificacoes e retencao de atletas.</p>
           </div>
         </div>
 
         <p id="operations-message" class="message" role="status"></p>
 
-        <!-- Admin Notifications -->
-        <div class="editor-top" style="margin-bottom:0">
-          <div>
-            <p class="section-eyebrow">Sistema</p>
-            <h3 style="margin:0">Notificacoes <span id="notif-unread-badge" class="badge" hidden></span></h3>
+        <section class="ops-section" aria-labelledby="ops-notifications-title">
+          <div class="ops-section-head">
+            <div>
+              <p class="section-eyebrow">Sistema</p>
+              <h3 id="ops-notifications-title" class="ops-title">Notificacoes <span id="notif-unread-badge" class="badge" hidden></span></h3>
+              <p class="ops-subtitle">Alertas operacionais e eventos que precisam de acao.</p>
+            </div>
+            <div class="editor-actions">
+              <button id="notif-refresh-btn" type="button">Atualizar</button>
+              <label class="ops-inline-check">
+                <input id="notif-include-read" type="checkbox" /> Mostrar lidas
+              </label>
+            </div>
           </div>
-          <div class="editor-actions">
-            <button id="notif-refresh-btn" type="button">Atualizar</button>
-            <label style="display:flex;align-items:center;gap:6px;font-size:13px;">
-              <input id="notif-include-read" type="checkbox" /> Mostrar lidas
-            </label>
+
+          <div id="notif-empty" class="athletes-empty" hidden>
+            <p>Sem notificacoes pendentes.</p>
           </div>
-        </div>
-        <div id="notif-empty" class="athletes-empty" hidden>
-          <p>Sem notificacoes pendentes.</p>
-        </div>
-        <div class="athletes-list-wrap" id="notif-list-wrap" hidden>
-          <table class="athletes-table">
-            <thead>
-              <tr>
-                <th>Severidade</th>
-                <th>Titulo</th>
-                <th>Mensagem</th>
-                <th>Data</th>
-                <th>Acoes</th>
-              </tr>
-            </thead>
-            <tbody id="notif-body"></tbody>
-          </table>
-        </div>
-        <hr style="margin:24px 0;" />
-
-        <div class="athletes-toolbar operations-toolbar">
-          <div class="field field-wide">
-            <label for="audit-athlete-select">Selecao rapida de atleta</label>
-            <select id="audit-athlete-select">
-              <option value="">A carregar atletas...</option>
-            </select>
+          <div class="athletes-list-wrap" id="notif-list-wrap" hidden>
+            <table class="athletes-table">
+              <thead>
+                <tr>
+                  <th>Severidade</th>
+                  <th>Titulo</th>
+                  <th>Mensagem</th>
+                  <th>Data</th>
+                  <th>Acoes</th>
+                </tr>
+              </thead>
+              <tbody id="notif-body"></tbody>
+            </table>
           </div>
-          <div class="field">
-            <label for="audit-identity-id">Identity ID (Supabase UUID)</label>
-            <input id="audit-identity-id" type="text" placeholder="Ex.: a99b2131-..." />
+        </section>
+
+        <section class="ops-section" aria-labelledby="ops-retention-title">
+          <div class="ops-section-head">
+            <div>
+              <p class="section-eyebrow">Retencao App</p>
+              <h3 id="ops-retention-title" class="ops-title">Atividade e logins</h3>
+              <p class="ops-subtitle">Visao de atividade recente dos atletas autenticados na app.</p>
+            </div>
+            <div class="editor-actions">
+              <button id="refresh-retention-dashboard-btn" type="button">Atualizar dashboard</button>
+            </div>
           </div>
-          <div class="field">
-            <label for="audit-athlete-id">Athlete ID</label>
-            <input id="audit-athlete-id" type="text" placeholder="Ex.: f21c2f1e-..." />
+
+          <div class="module-grid operations-kpis">
+            <article class="module-card">
+              <h3>Ativos 7 dias</h3>
+              <p id="retention-active-7d-kpi">Sem dados.</p>
+            </article>
+            <article class="module-card">
+              <h3>Ativos 30 dias</h3>
+              <p id="retention-active-30d-kpi">Sem dados.</p>
+            </article>
+            <article class="module-card">
+              <h3>Atletas com login</h3>
+              <p id="retention-athletes-kpi">Sem dados.</p>
+            </article>
+            <article class="module-card">
+              <h3>Eventos de login</h3>
+              <p id="retention-events-kpi">Sem dados.</p>
+            </article>
+            <article class="module-card">
+              <h3>App instalada</h3>
+              <p id="retention-app-installed-kpi">Sem dados.</p>
+            </article>
           </div>
-          <div class="field">
-            <label for="audit-email">Email</label>
-            <input id="audit-email" type="email" placeholder="Ex.: atleta@email.com" />
+
+          <div id="retention-empty" class="athletes-empty" hidden>
+            <p>Sem atividade de login carregada.</p>
+            <span>Quando o tracking estiver ativo, os ultimos acessos aparecem aqui.</span>
           </div>
-          <button id="refresh-audit-athletes-btn" type="button">Atualizar lista atletas</button>
-          <button id="run-data-audit-btn" type="button">Auditar dados</button>
-          <button id="clear-data-audit-btn" type="button">Limpar</button>
-        </div>
 
-        <div class="module-grid operations-kpis">
-          <article class="module-card">
-            <h3>Onboarding Intake</h3>
-            <p id="audit-intake-kpi">Sem auditoria.</p>
-          </article>
-          <article class="module-card">
-            <h3>Onboarding Legacy</h3>
-            <p id="audit-legacy-kpi">Sem auditoria.</p>
-          </article>
-          <article class="module-card">
-            <h3>Atletas Encontrados</h3>
-            <p id="audit-athletes-kpi">Sem auditoria.</p>
-          </article>
-        </div>
+          <div class="athletes-list-wrap">
+            <table class="athletes-table">
+              <thead>
+                <tr>
+                  <th>Atleta</th>
+                  <th>Ultimo login</th>
+                  <th>Logins</th>
+                  <th>Etapa funil</th>
+                  <th>Fonte</th>
+                  <th>Ultima atividade</th>
+                </tr>
+              </thead>
+              <tbody id="retention-body"></tbody>
+            </table>
+          </div>
+        </section>
 
-        <div id="audit-issues-empty" class="athletes-empty" hidden>
-          <p>Sem alertas para os filtros usados.</p>
-          <span>Quando houver inconsistencias, aparecem aqui.</span>
-        </div>
 
-        <div class="athletes-list-wrap">
-          <table class="athletes-table">
-            <thead>
-              <tr>
-                <th>Alertas</th>
-              </tr>
-            </thead>
-            <tbody id="audit-issues-body"></tbody>
-          </table>
-        </div>
-
-        <div class="athletes-list-wrap">
-          <table class="athletes-table">
-            <thead>
-              <tr>
-                <th>Athlete ID</th>
-                <th>Assignments</th>
-                <th>Ultimo treino</th>
-                <th>Ultimo check-in</th>
-              </tr>
-            </thead>
-            <tbody id="audit-athlete-data-body"></tbody>
-          </table>
-        </div>
-
-        <div class="module-grid">
-          <article class="module-card">
-            <h3>Acompanhamento de atletas</h3>
-            <p>Resumo operacional para cargas de treino, risco e aderencia por atleta.</p>
-          </article>
-          <article class="module-card">
-            <h3>Fila de check-ins</h3>
-            <p>Painel de estados, pendencias e SLA de resposta do coach.</p>
-          </article>
-          <article class="module-card">
-            <h3>Onboarding</h3>
-            <p>Controlo de progresso de onboarding, pendencias e ativacao operacional.</p>
-          </article>
-        </div>
       </section>
 
       <section id="ai-panel" class="admin-athletes" hidden>
@@ -2332,6 +2577,7 @@
     
     let supabaseClient = null;
     let publicConfig = null;
+    let authResolved = false;
     const BLOG_ARTICLES_TABLE = 'blog_articles';
     const BLOG_ARTICLE_SELECT = 'id, slug, title, excerpt, category, content, status, published_at, created_at, updated_at, deleted_at';
     const BLOG_CATEGORY_FALLBACKS = [
@@ -2351,7 +2597,7 @@
     const aiLogsApiBase = '/.netlify/functions/admin-ai-logs';
     const blogProductionApiBase = '/.netlify/functions/admin-blog-production';
     const blogCategoriesApiBase = '/.netlify/functions/admin-blog-categories';
-    const dataAuditApiBase = '/.netlify/functions/admin-athlete-data-audit';
+
     const adminAthletesListApiBase = '/.netlify/functions/admin-athletes-list';
     const adminProgramsApiBase = '/.netlify/functions/admin-programs';
     const adminEventsApiBase = '/.netlify/functions/admin-events';
@@ -2360,6 +2606,7 @@
     const adminStrengthInstancesApiBase = '/.netlify/functions/admin-strength-instances';
     const adminStripePurchasesApiBase = '/.netlify/functions/admin-stripe-purchases';
     const adminStripeRefundApiBase = '/.netlify/functions/admin-stripe-refund';
+    const adminSyncPurchaseStatusApiBase = '/.netlify/functions/admin-sync-purchase-status';
     const adminStripeCancelApiBase = '/.netlify/functions/admin-stripe-cancel';
     const adminStripeCouponsApiBase = '/.netlify/functions/admin-stripe-coupons';
     const adminStripePricesApiBase = '/.netlify/functions/admin-stripe-prices';
@@ -2368,6 +2615,9 @@
     const adminCoachAnalyticsApiBase = '/.netlify/functions/admin-coach-analytics';
     const adminAthletesUnifiedApiBase = '/.netlify/functions/admin-athletes-unified';
     const getMyRolesApiBase = '/.netlify/functions/get-my-roles';
+    const centralLeadsApiBase = '/.netlify/functions/admin-central-leads';
+    const centralLeadEventsApiBase = '/.netlify/functions/admin-central-lead-events';
+    const adminLoginRetentionApiBase = '/.netlify/functions/admin-login-retention';
     const state = {
       user: null,
       token: null,
@@ -2389,11 +2639,11 @@
       blogDraft: null,
       blogStandalone: null,
       blogDraftApplied: false,
-      dataAudit: null,
       athletesCatalog: [],
       programs: [],
       events: [],
       programsRecurringSchemaReady: true,
+      programsClassificationSchemaReady: true,
       programsExternalIdsNormalized: false,
       editProgramOriginal: null,
       editProgramOneTimeDraft: null,
@@ -2403,7 +2653,9 @@
         status: '',
         calendar: '',
         access: '',
-        billing: ''
+        billing: '',
+        modality: '',
+        experience: ''
       },
       purchases: [],
       purchaseKpis: null,
@@ -2419,7 +2671,19 @@
       coachAnalyticsRows: [],
       coachAnalyticsMeta: null,
       assignments: [],
-      assignmentsFiltered: []
+      assignmentsFiltered: [],
+      retentionDashboard: null,
+      centralLeads: [],
+      centralLeadEventsByLeadId: {},
+      centralLeadsCountsByStage: {},
+      centralLeadsFilters: {
+        source: '',
+        leadStatus: '',
+        funnelStage: '',
+        query: '',
+        dateFrom: '',
+        dateTo: ''
+      }
     };
 
     let blogDraftAutosaveTimer = null;
@@ -2932,6 +3196,8 @@
 
     const els = {
       authGate: document.getElementById('admin-auth-gate'),
+      authLoadingIndicator: document.getElementById('auth-loading-indicator'),
+      authLoginCard: document.getElementById('auth-login-card'),
       authGateMessage: document.getElementById('auth-gate-message'),
       protectedContent: document.getElementById('protected-content'),
       gateLoginBtn: document.getElementById('gate-login-btn'),
@@ -3125,12 +3391,21 @@
       programsFilterCalendar: document.getElementById('programs-filter-calendar'),
       programsFilterAccess: document.getElementById('programs-filter-access'),
       programsFilterBilling: document.getElementById('programs-filter-billing'),
+      programsFilterModality: document.getElementById('programs-filter-modality'),
+      programsFilterExperience: document.getElementById('programs-filter-experience'),
       programsClearFiltersBtn: document.getElementById('programs-clear-filters-btn'),
       programName: document.getElementById('program-name'),
       programExternalSource: document.getElementById('program-external-source'),
       programExternalId: document.getElementById('program-external-id'),
       programCommercialDescription: document.getElementById('program-commercial-description'),
       programTechnicalDescription: document.getElementById('program-technical-description'),
+      programStrengthModalitySelect: document.getElementById('program-strength-modality-select'),
+      programStrengthModalityCustom: document.getElementById('program-strength-modality-custom'),
+      programEnduranceModalitySelect: document.getElementById('program-endurance-modality-select'),
+      programEnduranceModalityCustom: document.getElementById('program-endurance-modality-custom'),
+      programExperienceStrengthInputs: Array.from(document.querySelectorAll('input[name="program-experience-strength-levels"]')),
+      programExperienceEnduranceInputs: Array.from(document.querySelectorAll('input[name="program-experience-endurance-levels"]')),
+      programClassificationNotes: document.getElementById('program-classification-notes'),
       programImageUrl: document.getElementById('program-image-url'),
       programDurationWeeks: document.getElementById('program-duration-weeks'),
       programPriceCents: document.getElementById('program-price-cents'),
@@ -3167,6 +3442,13 @@
       editProgramExternalId: document.getElementById('edit-program-external-id'),
       editProgramCommercialDescription: document.getElementById('edit-program-commercial-description'),
       editProgramTechnicalDescription: document.getElementById('edit-program-technical-description'),
+      editProgramStrengthModalitySelect: document.getElementById('edit-program-strength-modality-select'),
+      editProgramStrengthModalityCustom: document.getElementById('edit-program-strength-modality-custom'),
+      editProgramEnduranceModalitySelect: document.getElementById('edit-program-endurance-modality-select'),
+      editProgramEnduranceModalityCustom: document.getElementById('edit-program-endurance-modality-custom'),
+      editProgramExperienceStrengthInputs: Array.from(document.querySelectorAll('input[name="edit-program-experience-strength-levels"]')),
+      editProgramExperienceEnduranceInputs: Array.from(document.querySelectorAll('input[name="edit-program-experience-endurance-levels"]')),
+      editProgramClassificationNotes: document.getElementById('edit-program-classification-notes'),
       editProgramImageUrl: document.getElementById('edit-program-image-url'),
       editProgramDurationWeeks: document.getElementById('edit-program-duration-weeks'),
       editProgramPriceCents: document.getElementById('edit-program-price-cents'),
@@ -3338,26 +3620,51 @@
       aiLogsBody: document.getElementById('ai-logs-body'),
       aiLogDetail: document.getElementById('ai-log-detail'),
       operationsMessage: document.getElementById('operations-message'),
-      auditAthleteSelect: document.getElementById('audit-athlete-select'),
-      auditIdentityId: document.getElementById('audit-identity-id'),
-      auditAthleteId: document.getElementById('audit-athlete-id'),
-      auditEmail: document.getElementById('audit-email'),
-      refreshAuditAthletesBtn: document.getElementById('refresh-audit-athletes-btn'),
-      runDataAuditBtn: document.getElementById('run-data-audit-btn'),
-      clearDataAuditBtn: document.getElementById('clear-data-audit-btn'),
-      auditIntakeKpi: document.getElementById('audit-intake-kpi'),
-      auditLegacyKpi: document.getElementById('audit-legacy-kpi'),
-      auditAthletesKpi: document.getElementById('audit-athletes-kpi'),
-      auditIssuesEmpty: document.getElementById('audit-issues-empty'),
-      auditIssuesBody: document.getElementById('audit-issues-body'),
-      auditAthleteDataBody: document.getElementById('audit-athlete-data-body'),
+      refreshRetentionDashboardBtn: document.getElementById('refresh-retention-dashboard-btn'),
+      retentionActive7dKpi: document.getElementById('retention-active-7d-kpi'),
+      retentionActive30dKpi: document.getElementById('retention-active-30d-kpi'),
+      retentionAthletesKpi: document.getElementById('retention-athletes-kpi'),
+      retentionEventsKpi: document.getElementById('retention-events-kpi'),
+      retentionAppInstalledKpi: document.getElementById('retention-app-installed-kpi'),
+      retentionEmpty: document.getElementById('retention-empty'),
+      retentionBody: document.getElementById('retention-body'),
+
       // Assign Coach Dialog
       assignCoachDialog: document.getElementById('assign-coach-dialog'),
       assignCoachDialogTitle: document.getElementById('assign-coach-dialog-title'),
       closeAssignCoachDialogBtn: document.getElementById('close-assign-coach-dialog-btn'),
       quickAssignCoachSelect: document.getElementById('quick-assign-coach-select'),
       quickAssignCoachSaveBtn: document.getElementById('quick-assign-coach-save-btn'),
-      quickAssignCoachCancelBtn: document.getElementById('quick-assign-coach-cancel-btn')
+      quickAssignCoachCancelBtn: document.getElementById('quick-assign-coach-cancel-btn'),
+      // Funil Leads (central leads)
+      tabLeadsCentral: document.getElementById('tab-leads-central'),
+      leadsCentralPanel: document.getElementById('leads-central-panel'),
+      leadsCentralMessage: document.getElementById('leads-central-message'),
+      leadsCentralBody: document.getElementById('leads-central-body'),
+      leadsCentralEmpty: document.getElementById('leads-central-empty'),
+      centralLeadsStageChips: document.getElementById('central-leads-stage-chips'),
+      centralLeadsSourceFilter: document.getElementById('central-leads-source-filter'),
+      centralLeadsStatusFilter: document.getElementById('central-leads-status-filter'),
+      centralLeadsDateFrom: document.getElementById('central-leads-date-from'),
+      centralLeadsDateTo: document.getElementById('central-leads-date-to'),
+      createCentralLeadBtn: document.getElementById('create-central-lead-btn'),
+      refreshCentralLeadsBtn: document.getElementById('refresh-central-leads-btn'),
+      clearCentralLeadsFiltersBtn: document.getElementById('clear-central-leads-filters-btn'),
+      centralLeadsQuery: document.getElementById('central-leads-query'),
+      createCentralLeadDialog: document.getElementById('create-central-lead-dialog'),
+      closeCreateCentralLeadDialogBtn: document.getElementById('close-create-central-lead-dialog-btn'),
+      cancelCreateCentralLeadBtn: document.getElementById('cancel-create-central-lead-btn'),
+      saveCentralLeadBtn: document.getElementById('save-central-lead-btn'),
+      centralLeadFullName: document.getElementById('central-lead-full-name'),
+      centralLeadEmail: document.getElementById('central-lead-email'),
+      centralLeadPhone: document.getElementById('central-lead-phone'),
+      centralLeadSource: document.getElementById('central-lead-source'),
+      centralLeadStage: document.getElementById('central-lead-stage'),
+      centralLeadNotes: document.getElementById('central-lead-notes'),
+      centralLeadDetailsDialog: document.getElementById('central-lead-details-dialog'),
+      closeCentralLeadDetailsDialogBtn: document.getElementById('close-central-lead-details-dialog-btn'),
+      centralLeadDetailsTitle: document.getElementById('central-lead-details-title'),
+      centralLeadDetailsContent: document.getElementById('central-lead-details-content')
     };
 
     const centralLeadsUiEnabled = Boolean(
@@ -3400,6 +3707,10 @@
       leads: {
         tabEl: () => els.tabLeads,
         panels: () => [els.leadsPanel]
+      },
+      leadsCentral: {
+        tabEl: () => els.tabLeadsCentral,
+        panels: () => [els.leadsCentralPanel]
       },
       ai: {
         tabEl: () => els.tabAi,
@@ -3470,7 +3781,6 @@
 
       if (activeTab === 'athletes' && state.user && state.isAdmin) {
         refreshAthletesData().catch((err) => showNotification(err.message, true));
-        refreshAuditAthletesCatalog().catch(() => {});
         refreshProgramsData().catch(() => {});
 
         // Step 5: Initialize event listeners once, always refresh dropdowns
@@ -3496,9 +3806,12 @@
         refreshLeadsData().catch((err) => showLeadsMessage(err.message, true));
       }
 
+      if (centralLeadsUiEnabled && activeTab === 'leadsCentral' && state.user && state.isAdmin) {
+        refreshCentralLeadsData().catch((err) => showCentralLeadsMessage(err.message, true));
+      }
+
       if (activeTab === 'programs' && state.user && state.isAdmin) {
         refreshProgramsData().catch((err) => showProgramsMessage(err.message, true));
-        refreshAuditAthletesCatalog().catch(() => {});
       }
 
       if (activeTab === 'calendario' && state.user && state.isAdmin) {
@@ -3518,8 +3831,7 @@
       }
 
       if (activeTab === 'operations' && state.user && state.isAdmin) {
-        refreshAuditAthletesCatalog().catch((err) => showOperationsMessage(err.message, true));
-        showOperationsMessage('Preenche pelo menos um filtro e clica em "Auditar dados".', false);
+        refreshRetentionDashboard().catch((err) => showOperationsMessage(err.message, true));
       }
     }
 
@@ -4415,20 +4727,6 @@
     }
 
     function renderAuditAthleteOptions() {
-      els.auditAthleteSelect.innerHTML = '';
-      const placeholder = document.createElement('option');
-      placeholder.value = '';
-      placeholder.textContent = state.athletesCatalog.length ? 'Seleciona um atleta' : 'Sem atletas disponiveis';
-      els.auditAthleteSelect.appendChild(placeholder);
-
-      state.athletesCatalog.forEach((athlete) => {
-        const option = document.createElement('option');
-        option.value = athlete.id;
-        option.textContent = `${athlete.name || athlete.email || athlete.id} (${athlete.email || '-'})`;
-        option.dataset.email = athlete.email || '';
-        els.auditAthleteSelect.appendChild(option);
-      });
-
       if (els.assignAthleteSelect) {
         const selectedAssignmentAthlete = (els.assignAthleteSelect.value || '').trim();
         els.assignAthleteSelect.innerHTML = '';
@@ -4458,113 +4756,80 @@
       await refreshAssignmentWorkspace();
     }
 
-    function applySelectedAthleteToAuditFilters() {
-      const selectedAthleteId = (els.auditAthleteSelect.value || '').trim();
-      els.auditAthleteId.value = selectedAthleteId;
-
-      if (!selectedAthleteId) {
-        return;
-      }
-
-      const athlete = state.athletesCatalog.find((item) => item.id === selectedAthleteId);
-      if (athlete && athlete.email) {
-        els.auditEmail.value = athlete.email;
-      }
-    }
-
-    function summarizeCoverage(coverage) {
-      const total = Number(coverage && coverage.totalFieldsTracked) || 0;
-      const filled = Number(coverage && coverage.filledFields) || 0;
-      if (!total) return '0/0 campos preenchidos';
-      return `${filled}/${total} campos preenchidos`;
-    }
-
-    function renderDataAuditResult() {
-      const data = state.dataAudit;
+    function renderRetentionDashboard() {
+      const data = state.retentionDashboard;
       if (!data) {
-        els.auditIntakeKpi.textContent = 'Sem auditoria.';
-        els.auditLegacyKpi.textContent = 'Sem auditoria.';
-        els.auditAthletesKpi.textContent = 'Sem auditoria.';
-        els.auditIssuesBody.innerHTML = '';
-        els.auditAthleteDataBody.innerHTML = '';
-        els.auditIssuesEmpty.hidden = true;
+        if (els.retentionActive7dKpi) els.retentionActive7dKpi.textContent = 'Sem dados.';
+        if (els.retentionActive30dKpi) els.retentionActive30dKpi.textContent = 'Sem dados.';
+        if (els.retentionAthletesKpi) els.retentionAthletesKpi.textContent = 'Sem dados.';
+        if (els.retentionEventsKpi) els.retentionEventsKpi.textContent = 'Sem dados.';
+        if (els.retentionAppInstalledKpi) els.retentionAppInstalledKpi.textContent = 'Sem dados.';
+        if (els.retentionBody) els.retentionBody.innerHTML = '';
+        if (els.retentionEmpty) els.retentionEmpty.hidden = true;
         return;
       }
 
-      const intakeCoverage = data.onboardingCoverage && data.onboardingCoverage.onboardingIntake
-        ? data.onboardingCoverage.onboardingIntake
-        : null;
-      const legacyCoverage = data.onboardingCoverage && data.onboardingCoverage.onboardingLegacy
-        ? data.onboardingCoverage.onboardingLegacy
-        : null;
+      const summary = data.summary && typeof data.summary === 'object' ? data.summary : {};
+      if (els.retentionActive7dKpi) els.retentionActive7dKpi.textContent = `${Number(summary.active7d || 0)} atletas`;
+      if (els.retentionActive30dKpi) els.retentionActive30dKpi.textContent = `${Number(summary.active30d || 0)} atletas`;
+      if (els.retentionAthletesKpi) els.retentionAthletesKpi.textContent = `${Number(summary.loggedInAthletes || 0)} com ultimo login`;
+      if (els.retentionEventsKpi) els.retentionEventsKpi.textContent = `${Number(summary.totalLoginEvents || 0)} eventos`;
+      if (els.retentionAppInstalledKpi) els.retentionAppInstalledKpi.textContent = `${Number(summary.appInstalledLeads || 0)} no funil`;
 
-      els.auditIntakeKpi.textContent = summarizeCoverage(intakeCoverage);
-      els.auditLegacyKpi.textContent = summarizeCoverage(legacyCoverage);
-      els.auditAthletesKpi.textContent = `${Array.isArray(data.athletes) ? data.athletes.length : 0} encontrados`;
-
-      const issues = Array.isArray(data.issues) ? data.issues : [];
-      els.auditIssuesBody.innerHTML = '';
-      if (!issues.length) {
-        els.auditIssuesEmpty.hidden = false;
-      } else {
-        els.auditIssuesEmpty.hidden = true;
-        const issueFragment = document.createDocumentFragment();
-        issues.forEach((issue) => {
-          const row = document.createElement('tr');
-          row.innerHTML = `<td>${escapeHtml(issue)}</td>`;
-          issueFragment.appendChild(row);
-        });
-        els.auditIssuesBody.appendChild(issueFragment);
+      const rows = Array.isArray(data.recent) ? data.recent : [];
+      if (els.retentionBody) {
+        els.retentionBody.innerHTML = '';
+        if (rows.length) {
+          const fragment = document.createDocumentFragment();
+          rows.forEach((item) => {
+            const row = document.createElement('tr');
+            const athleteLabel = item.name || item.email || item.identityId || item.athleteId || '-';
+            const athleteMeta = item.email && item.email !== athleteLabel ? `<br><small>${escapeHtml(item.email)}</small>` : '';
+            const activityLabel = item.lastActivityType
+              ? `${escapeHtml(item.lastActivityType)}<br><small>${escapeHtml(formatDate(item.lastActivityAt))}</small>`
+              : escapeHtml(formatDate(item.lastActivityAt));
+            row.innerHTML = `
+              <td>${escapeHtml(athleteLabel)}${athleteMeta}</td>
+              <td>${escapeHtml(formatDate(item.lastLoginAt))}</td>
+              <td>${escapeHtml(String(item.loginCount || 0))}</td>
+              <td>${escapeHtml(item.funnelStage || '-')}<br><small>${escapeHtml(item.leadStatus || '-')}</small></td>
+              <td>${escapeHtml(item.source || '-')}</td>
+              <td>${activityLabel || '-'}</td>
+            `;
+            fragment.appendChild(row);
+          });
+          els.retentionBody.appendChild(fragment);
+        }
       }
 
-      const rows = Array.isArray(data.athlete_data) ? data.athlete_data : [];
-      els.auditAthleteDataBody.innerHTML = '';
-      const athleteFragment = document.createDocumentFragment();
-      rows.forEach((item) => {
-        const latestTrainingDate = item.latestTrainingSession && item.latestTrainingSession.session_date
-          ? item.latestTrainingSession.session_date
-          : '-';
-        const latestCheckinDate = item.latestWeeklyCheckin && item.latestWeeklyCheckin.week_start
-          ? item.latestWeeklyCheckin.week_start
-          : '-';
-        const assignmentsCount = Array.isArray(item.assignments) ? item.assignments.length : 0;
-
-        const row = document.createElement('tr');
-        row.innerHTML = `
-          <td>${escapeHtml(item.athleteId || '-')}</td>
-          <td>${assignmentsCount}</td>
-          <td>${escapeHtml(latestTrainingDate)}</td>
-          <td>${escapeHtml(latestCheckinDate)}</td>
-        `;
-        athleteFragment.appendChild(row);
-      });
-      els.auditAthleteDataBody.appendChild(athleteFragment);
-    }
-
-    function buildAuditQuery() {
-      const identityId = (els.auditIdentityId.value || '').trim();
-      const athleteId = (els.auditAthleteId.value || '').trim();
-      const email = (els.auditEmail.value || '').trim().toLowerCase();
-
-      if (!identityId && !athleteId && !email) {
-        throw new Error('Preenche pelo menos identity_id, athlete_id ou email.');
+      if (els.retentionEmpty) {
+        els.retentionEmpty.hidden = rows.length > 0;
+        if (data.ready === false && data.message) {
+          els.retentionEmpty.hidden = false;
+          const text = els.retentionEmpty.querySelector('p');
+          const sub = els.retentionEmpty.querySelector('span');
+          if (text) text.textContent = 'Dashboard de retenção indisponível.';
+          if (sub) sub.textContent = data.message;
+        } else {
+          const text = els.retentionEmpty.querySelector('p');
+          const sub = els.retentionEmpty.querySelector('span');
+          if (text) text.textContent = 'Sem atividade de login carregada.';
+          if (sub) sub.textContent = 'Quando o tracking estiver ativo, os ultimos acessos aparecem aqui.';
+        }
       }
-
-      const params = new URLSearchParams();
-      if (identityId) params.set('identity_id', identityId);
-      if (athleteId) params.set('athlete_id', athleteId);
-      if (email) params.set('email', email);
-      return params.toString();
     }
 
-    async function runDataAudit() {
+    async function refreshRetentionDashboard() {
       if (!state.user) return;
-      showOperationsMessage('A correr auditoria de dados...', false);
-      const queryString = buildAuditQuery();
-      const data = await apiRequest('GET', `${dataAuditApiBase}?${queryString}`);
-      state.dataAudit = data;
-      renderDataAuditResult();
-      showOperationsMessage('Auditoria concluida.', false);
+      const data = await apiRequest('GET', `${adminLoginRetentionApiBase}?limit=50`);
+      state.retentionDashboard = data;
+      renderRetentionDashboard();
+      if (data && data.ready === false) {
+        showOperationsMessage(data.message || 'Dashboard de retenção indisponível.', true);
+        return;
+      }
+      const summary = data && data.summary ? data.summary : {};
+      showOperationsMessage(`Retenção atualizada: ${Number(summary.active7d || 0)} ativos em 7 dias.`, false);
     }
 
     // ── Admin Notifications ──────────────────────────────────────────────────
@@ -4628,15 +4893,6 @@
       if (!state.user) return;
       await apiRequest('PATCH', '/.netlify/functions/admin-notifications', { id, action });
       await loadAdminNotifications();
-    }
-
-    function clearDataAudit() {
-      state.dataAudit = null;
-      els.auditIdentityId.value = '';
-      els.auditAthleteId.value = '';
-      els.auditEmail.value = '';
-      renderDataAuditResult();
-      showOperationsMessage('Filtros e resultados limpos.', false);
     }
 
     function renderCoachOptions(selectedIdentityId) {
@@ -5752,6 +6008,7 @@
       meta_received: 'Meta recebida',
       onboarding_submitted: 'Onboarding enviado',
       plan_generated: 'Plano gerado',
+      app_installed: 'App instalada',
       coach_application: 'Aplicacao coach',
       qualified: 'Qualificada',
       converted: 'Convertida',
@@ -5764,6 +6021,7 @@
       'meta_received',
       'onboarding_submitted',
       'plan_generated',
+      'app_installed',
       'coach_application',
       'qualified',
       'converted',
@@ -5779,6 +6037,187 @@
     };
 
     const CENTRAL_LEAD_STATUS_OPTIONS = ['new', 'contacted', 'qualified', 'converted', 'disqualified'];
+
+    const CENTRAL_LEAD_SOURCE_LABELS = {
+      manual: 'Manual',
+      meta_ads: 'Meta Ads',
+      planocorrida_landing: 'Plano de Corrida (Landing)',
+      planocorrida_form: 'Plano de Corrida (Formulario)',
+      planocorrida_generated: 'Plano de Corrida (Gerado)',
+      onboarding: 'Onboarding',
+      stripe: 'Stripe',
+      coach_landing: 'Coach Landing'
+    };
+
+    function normalizeCentralLeadSourceLabel(source) {
+      return CENTRAL_LEAD_SOURCE_LABELS[source] || source || '-';
+    }
+
+    function closeCreateCentralLeadDialog() {
+      if (els.createCentralLeadDialog && els.createCentralLeadDialog.open) {
+        els.createCentralLeadDialog.close();
+      }
+    }
+
+    function resetCreateCentralLeadForm() {
+      if (els.centralLeadFullName) els.centralLeadFullName.value = '';
+      if (els.centralLeadEmail) els.centralLeadEmail.value = '';
+      if (els.centralLeadPhone) els.centralLeadPhone.value = '';
+      if (els.centralLeadSource) els.centralLeadSource.value = 'manual';
+      if (els.centralLeadStage) els.centralLeadStage.value = 'landing';
+      if (els.centralLeadNotes) els.centralLeadNotes.value = '';
+    }
+
+    function openCreateCentralLeadDialog() {
+      if (!els.createCentralLeadDialog) return;
+      resetCreateCentralLeadForm();
+      openDialog(els.createCentralLeadDialog);
+    }
+
+    function formatCentralLeadEventTypeLabel(eventType) {
+      const normalized = String(eventType || '').toLowerCase();
+      if (normalized === 'manual_create') return 'Criacao manual';
+      if (normalized === 'admin_update') return 'Atualizacao admin';
+      if (normalized === 'app_login') return 'Login app';
+      if (normalized === 'lead_create') return 'Criacao lead';
+      if (normalized === 'lead_update') return 'Atualizacao lead';
+      if (normalized === 'onboarding_submit') return 'Onboarding submetido';
+      if (normalized === 'plan_generated') return 'Plano gerado';
+      return eventType || 'Evento';
+    }
+
+    function renderCentralLeadTimeline(events, isLoading) {
+      if (isLoading) {
+        return '<div class="lead-timeline-empty">A carregar timeline...</div>';
+      }
+
+      if (!Array.isArray(events) || !events.length) {
+        return '<div class="lead-timeline-empty">Sem eventos registados para esta lead.</div>';
+      }
+
+      return `<div class="lead-timeline-list">${events.map((eventItem) => {
+        const source = normalizeCentralLeadSourceLabel(eventItem.source);
+        const stage = CENTRAL_LEAD_STAGE_LABELS[eventItem.funnelStage] || eventItem.funnelStage || '-';
+        const status = CENTRAL_LEAD_STATUS_LABELS[eventItem.leadStatus] || eventItem.leadStatus || '-';
+        const eventAt = formatDate(eventItem.eventAt);
+        const activity = eventItem.activityType || '-';
+        const actor = eventItem.actor || '-';
+        return `
+          <article class="lead-timeline-item">
+            <div class="lead-timeline-item-head">
+              <strong>${escapeHtml(formatCentralLeadEventTypeLabel(eventItem.eventType))}</strong>
+              <span>${escapeHtml(eventAt)}</span>
+            </div>
+            <div class="lead-timeline-item-meta">
+              <span>Fonte: ${escapeHtml(source)}</span>
+              <span>Etapa: ${escapeHtml(stage)}</span>
+              <span>Estado: ${escapeHtml(status)}</span>
+              <span>Atividade: ${escapeHtml(activity)}</span>
+              <span>Ator: ${escapeHtml(actor)}</span>
+            </div>
+          </article>
+        `;
+      }).join('')}</div>`;
+    }
+
+    async function fetchCentralLeadTimeline(leadId, forceRefresh = false) {
+      if (!leadId) return [];
+      if (!forceRefresh && Array.isArray(state.centralLeadEventsByLeadId[leadId])) {
+        return state.centralLeadEventsByLeadId[leadId];
+      }
+
+      const query = new URLSearchParams();
+      query.set('lead_id', leadId);
+      query.set('limit', '40');
+      const data = await apiRequest('GET', `${centralLeadEventsApiBase}?${query.toString()}`);
+      const events = Array.isArray(data && data.events) ? data.events : [];
+      state.centralLeadEventsByLeadId[leadId] = events;
+      return events;
+    }
+
+    function renderCentralLeadDetails(lead, events, isLoadingTimeline) {
+      if (!els.centralLeadDetailsContent || !lead) return;
+
+      const profile = lead.profile && typeof lead.profile === 'object' ? lead.profile : {};
+      const profileHtml = Object.keys(profile).length
+        ? `<pre class="lead-details-pre">${escapeHtml(JSON.stringify(profile, null, 2))}</pre>`
+        : '<span>-</span>';
+
+      const detailRows = [
+        ['ID', lead.id || '-'],
+        ['Nome', lead.fullName || '-'],
+        ['Email', lead.email || lead.emailNormalized || '-'],
+        ['Telefone', lead.phone || lead.phoneNormalized || '-'],
+        ['Fonte', normalizeCentralLeadSourceLabel(lead.source)],
+        ['Ultima fonte', normalizeCentralLeadSourceLabel(lead.lastSource)],
+        ['Etapa', CENTRAL_LEAD_STAGE_LABELS[lead.funnelStage] || lead.funnelStage || '-'],
+        ['Estado', CENTRAL_LEAD_STATUS_LABELS[lead.leadStatus] || lead.leadStatus || '-'],
+        ['Ultima atividade', `${lead.lastActivityType || '-'} | ${formatDate(lead.lastActivityAt)}`],
+        ['Criada em', formatDate(lead.createdAt)],
+        ['Atualizada em', formatDate(lead.updatedAt)],
+        ['Identity ID', lead.identityId || '-'],
+        ['Athlete ID', lead.athleteId || '-'],
+        ['Referencia origem', lead.sourceRefId || '-'],
+        ['Meta lead ID', lead.metaLeadId || '-']
+      ];
+
+      const html = detailRows.map(([label, value]) => (
+        `<div class="lead-details-item"><strong>${escapeHtml(label)}:</strong><span>${escapeHtml(String(value || '-'))}</span></div>`
+      )).join('');
+
+      const timelineHtml = renderCentralLeadTimeline(events, isLoadingTimeline);
+
+      els.centralLeadDetailsContent.innerHTML = `${html}<div class="lead-details-item lead-details-item-full"><strong>Timeline:</strong>${timelineHtml}</div><div class="lead-details-item lead-details-item-full"><strong>Profile JSON:</strong>${profileHtml}</div>`;
+    }
+
+    async function openCentralLeadDetails(leadId) {
+      const lead = state.centralLeads.find((item) => item.id === leadId);
+      if (!lead || !els.centralLeadDetailsDialog) return;
+      if (els.centralLeadDetailsTitle) {
+        els.centralLeadDetailsTitle.textContent = `Lead: ${lead.fullName || lead.email || lead.phone || lead.id}`;
+      }
+      renderCentralLeadDetails(lead, [], true);
+      openDialog(els.centralLeadDetailsDialog);
+
+      try {
+        const events = await fetchCentralLeadTimeline(leadId, false);
+        renderCentralLeadDetails(lead, events, false);
+      } catch (err) {
+        renderCentralLeadDetails(lead, [], false);
+        showCentralLeadsMessage(`Nao foi possivel carregar timeline: ${err.message}`, true);
+      }
+    }
+
+    function collectCreateCentralLeadPayload() {
+      const fullName = (els.centralLeadFullName && els.centralLeadFullName.value || '').trim();
+      const email = (els.centralLeadEmail && els.centralLeadEmail.value || '').trim();
+      const phone = (els.centralLeadPhone && els.centralLeadPhone.value || '').trim();
+      const source = (els.centralLeadSource && els.centralLeadSource.value || 'manual').trim() || 'manual';
+      const funnelStage = (els.centralLeadStage && els.centralLeadStage.value || 'landing').trim() || 'landing';
+      const notes = (els.centralLeadNotes && els.centralLeadNotes.value || '').trim();
+
+      if (!fullName && !email && !phone) {
+        throw new Error('Preenche pelo menos nome, email ou telefone.');
+      }
+
+      return {
+        fullName: fullName || undefined,
+        email: email || undefined,
+        phone: phone || undefined,
+        source,
+        funnelStage,
+        leadStatus: 'new',
+        notes: notes || undefined
+      };
+    }
+
+    async function createCentralLeadFromDialog() {
+      const payload = collectCreateCentralLeadPayload();
+      await apiRequest('POST', centralLeadsApiBase, payload);
+      closeCreateCentralLeadDialog();
+      await refreshCentralLeadsData();
+      showCentralLeadsMessage('Lead criada com sucesso.', false);
+    }
 
     function buildCentralLeadsQueryString() {
       const params = new URLSearchParams();
@@ -5837,6 +6276,8 @@
       state.centralLeads.forEach((lead) => {
         const row = document.createElement('tr');
         row.dataset.leadId = lead.id;
+        row.className = 'central-lead-row';
+        row.tabIndex = 0;
 
         const stageSelect = document.createElement('select');
         stageSelect.className = 'central-lead-stage-select';
@@ -5873,14 +6314,11 @@
         tdActions.appendChild(saveBtn);
 
         row.innerHTML = `
-          <td>${escapeHtml(lead.source || '-')}</td>
           <td>${escapeHtml(lead.fullName || '-')}</td>
-          <td>${escapeHtml(lead.email || lead.emailNormalized || '-')}</td>
-          <td>${escapeHtml(lead.phone || lead.phoneNormalized || '-')}</td>
-          <td>${escapeHtml(CENTRAL_LEAD_STAGE_LABELS[lead.funnelStage] || lead.funnelStage || '-')}</td>
+          <td>${escapeHtml(lead.email || lead.emailNormalized || lead.phone || lead.phoneNormalized || '-')}</td>
+          <td>${escapeHtml(normalizeCentralLeadSourceLabel(lead.source))}</td>
           <td>${escapeHtml(CENTRAL_LEAD_STATUS_LABELS[lead.leadStatus] || lead.leadStatus || '-')}</td>
           <td>${escapeHtml(lead.lastActivityType || '-')}<br><small>${escapeHtml(formatDate(lead.lastActivityAt))}</small></td>
-          <td>${formatDate(lead.createdAt)}</td>
         `;
 
         row.appendChild(tdActions);
@@ -5907,7 +6345,7 @@
       const queryString = buildCentralLeadsQueryString();
       const endpoint = queryString ? `${centralLeadsApiBase}?${queryString}` : centralLeadsApiBase;
       const data = await apiRequest('GET', endpoint);
-      state.centralLeads = Array.isArray(data.leads) ? data.leads : [];
+      state.centralLeads = Array.isArray(data && data.leads) ? data.leads : [];
       state.centralLeadsCountsByStage = data && data.countsByStage && typeof data.countsByStage === 'object'
         ? data.countsByStage
         : {};
@@ -5949,6 +6387,9 @@
         if (funnelStage !== undefined) lead.funnelStage = funnelStage;
         if (leadStatus !== undefined) lead.leadStatus = leadStatus;
       }
+
+      // Force timeline reload so the details modal reflects the fresh admin update event.
+      delete state.centralLeadEventsByLeadId[leadId];
 
       recomputeCentralLeadsCountsByStage();
       renderCentralLeads();
@@ -7185,11 +7626,370 @@
       return (state.events || []).find((eventRow) => eventRow && eventRow.id === program.eventId) || null;
     }
 
+    function normalizeProgramTaxonomyToken(value) {
+      return String(value || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '_')
+        .replace(/^_+|_+$/g, '')
+        .replace(/_+/g, '_');
+    }
+
+    function parseProgramTagList(value) {
+      const seen = new Set();
+      return String(value || '')
+        .split(/[\n,;]+/)
+        .map((item) => normalizeProgramTaxonomyToken(item))
+        .filter(Boolean)
+        .filter((item) => {
+          if (seen.has(item)) return false;
+          seen.add(item);
+          return true;
+        });
+    }
+
+    const PROGRAM_EXPERIENCE_LEVELS = ['beginner', 'intermediate', 'advanced'];
+    const PROGRAM_MODALITY_CUSTOM_VALUE = '__custom__';
+    const PROGRAM_ENDURANCE_UNSPECIFIED_VALUE = 'included_unspecified';
+    const PROGRAM_STRENGTH_UNSPECIFIED_VALUE = 'included_unspecified';
+
+    function normalizeProgramExperienceLevels(value) {
+      const list = Array.isArray(value) ? value : [value];
+      const normalized = [];
+      list.forEach((item) => {
+        const level = normalizeProgramTaxonomyToken(item);
+        if (!level) return;
+        if (!PROGRAM_EXPERIENCE_LEVELS.includes(level)) {
+          throw new Error('Os niveis devem ser beginner, intermediate ou advanced.');
+        }
+        if (!normalized.includes(level)) {
+          normalized.push(level);
+        }
+      });
+      return normalized;
+    }
+
+    function getProgramCheckedExperienceLevels(inputs) {
+      if (!Array.isArray(inputs)) return [];
+      return normalizeProgramExperienceLevels(
+        inputs
+          .filter((input) => input && input.checked)
+          .map((input) => input.value)
+      );
+    }
+
+    function setProgramCheckedExperienceLevels(inputs, levels) {
+      const normalized = normalizeProgramExperienceLevels(levels);
+      if (!Array.isArray(inputs)) return;
+      inputs.forEach((input) => {
+        if (!input) return;
+        input.checked = normalized.includes(normalizeProgramTaxonomyToken(input.value));
+      });
+    }
+
+    function formatProgramExperienceLevels(levels) {
+      const normalized = normalizeProgramExperienceLevels(levels);
+      if (!normalized.length) return 'Nao especificado';
+      if (normalized.length === PROGRAM_EXPERIENCE_LEVELS.length) return 'Adequado a todos os niveis';
+      return normalized.map((level) => formatProgramTaxonomyLabel(level)).join(', ');
+    }
+
+    function experienceLevelsInclude(levels, targetLevel) {
+      const normalizedLevels = normalizeProgramExperienceLevels(levels);
+      return normalizedLevels.includes(normalizeProgramTaxonomyToken(targetLevel));
+    }
+
+    function ensureProgramExperienceLevels(value) {
+      const normalized = normalizeProgramExperienceLevels(value);
+      if (!normalized.length) return [];
+      if (normalized.some((level) => !PROGRAM_EXPERIENCE_LEVELS.includes(level))) {
+        throw new Error('Os niveis devem ser beginner, intermediate ou advanced.');
+      }
+      return normalized;
+    }
+
+    function isStrengthModalityToken(value) {
+      const token = normalizeProgramTaxonomyToken(value);
+      return /^(strength|strength_training|gym|ginasio|musculacao|weight|resistance)/.test(token);
+    }
+
+    function getProgramClassificationView(programOrClassification) {
+      const classification = programOrClassification && programOrClassification.classification && typeof programOrClassification.classification === 'object'
+        ? programOrClassification.classification
+        : (programOrClassification && typeof programOrClassification === 'object' ? programOrClassification : null);
+
+      const components = classification && Array.isArray(classification.trainingComponents)
+        ? classification.trainingComponents.map((item) => normalizeProgramTaxonomyToken(item)).filter(Boolean)
+        : [];
+      const modalities = classification && Array.isArray(classification.modalities)
+        ? classification.modalities.map((item) => normalizeProgramTaxonomyToken(item)).filter(Boolean)
+        : [];
+      const byModalityRaw = classification && classification.experienceLevel && classification.experienceLevel.byModality && typeof classification.experienceLevel.byModality === 'object'
+        ? classification.experienceLevel.byModality
+        : {};
+      const byModality = {};
+      Object.entries(byModalityRaw).forEach(([key, level]) => {
+        const normalizedKey = normalizeProgramTaxonomyToken(key);
+        const normalizedLevels = normalizeProgramExperienceLevels(level);
+        if (normalizedKey && normalizedLevels.length) {
+          byModality[normalizedKey] = normalizedLevels;
+        }
+      });
+
+      let strengthModality = modalities.find((token) => isStrengthModalityToken(token)) || '';
+      if (!strengthModality && components.includes('strength')) {
+        strengthModality = PROGRAM_STRENGTH_UNSPECIFIED_VALUE;
+      }
+
+      let enduranceModality = modalities.find((token) => token !== strengthModality && !isStrengthModalityToken(token)) || '';
+      if (!enduranceModality && components.includes('endurance')) {
+        enduranceModality = modalities.find((token) => token !== strengthModality) || PROGRAM_ENDURANCE_UNSPECIFIED_VALUE;
+      }
+
+      const overall = classification && classification.experienceLevel
+        ? normalizeProgramTaxonomyToken(classification.experienceLevel.overall)
+        : '';
+      const overallExperience = PROGRAM_EXPERIENCE_LEVELS.includes(overall) ? overall : '';
+      const overallExperienceLevels = overallExperience ? [overallExperience] : [];
+
+      const experienceStrength = byModality.gym
+        || (strengthModality && byModality[strengthModality])
+        || overallExperienceLevels;
+      const experienceEndurance = (enduranceModality && byModality[enduranceModality])
+        || byModality.endurance
+        || overallExperienceLevels;
+
+      return {
+        classification,
+        components,
+        modalities,
+        strengthModality,
+        enduranceModality,
+        experienceStrength: ensureProgramExperienceLevels(experienceStrength),
+        experienceEndurance: ensureProgramExperienceLevels(experienceEndurance)
+      };
+    }
+
+    function getProgramSelectedModality(selectField, customField) {
+      const rawSelected = String(selectField ? selectField.value : '').trim();
+      if (!rawSelected) return '';
+      if (rawSelected === PROGRAM_MODALITY_CUSTOM_VALUE) {
+        return normalizeProgramTaxonomyToken(customField ? customField.value : '');
+      }
+      return normalizeProgramTaxonomyToken(rawSelected);
+    }
+
+    function toggleProgramCustomModalityField(selectField, customField) {
+      if (!selectField || !customField) return;
+      const isCustom = String(selectField.value || '').trim() === PROGRAM_MODALITY_CUSTOM_VALUE;
+      customField.hidden = !isCustom;
+      if (!isCustom) {
+        customField.value = '';
+      }
+    }
+
+    function setProgramModalityFieldValue(selectField, customField, value, allowComponentUnspecified = false) {
+      if (!selectField) return;
+      const normalized = normalizeProgramTaxonomyToken(value);
+      const optionValues = Array.from(selectField.options || []).map((option) => normalizeProgramTaxonomyToken(option.value));
+      if (!normalized) {
+        selectField.value = '';
+        if (customField) customField.value = '';
+        toggleProgramCustomModalityField(selectField, customField);
+        return;
+      }
+      if (allowComponentUnspecified && normalized === PROGRAM_STRENGTH_UNSPECIFIED_VALUE) {
+        selectField.value = PROGRAM_STRENGTH_UNSPECIFIED_VALUE;
+        if (customField) customField.value = '';
+        toggleProgramCustomModalityField(selectField, customField);
+        return;
+      }
+      if (optionValues.includes(normalized)) {
+        selectField.value = normalized;
+        if (customField) customField.value = '';
+        toggleProgramCustomModalityField(selectField, customField);
+        return;
+      }
+      selectField.value = PROGRAM_MODALITY_CUSTOM_VALUE;
+      if (customField) customField.value = normalized;
+      toggleProgramCustomModalityField(selectField, customField);
+    }
+
+    function collectKnownProgramModalities() {
+      const modalities = new Set();
+      (Array.isArray(state.programs) ? state.programs : []).forEach((program) => {
+        const view = getProgramClassificationView(program);
+        view.modalities.forEach((modality) => {
+          if (modality) modalities.add(modality);
+        });
+        if (view.strengthModality && view.strengthModality !== PROGRAM_STRENGTH_UNSPECIFIED_VALUE) {
+          modalities.add(view.strengthModality);
+        }
+        if (view.enduranceModality && view.enduranceModality !== PROGRAM_ENDURANCE_UNSPECIFIED_VALUE) {
+          modalities.add(view.enduranceModality);
+        }
+      });
+      return Array.from(modalities).sort((a, b) => a.localeCompare(b));
+    }
+
+    function rebuildProgramModalitySelect(selectField, customField, options, config = {}) {
+      if (!selectField) return;
+      const selectedValue = getProgramSelectedModality(selectField, customField);
+      const emptyLabel = config.emptyLabel || 'Sem componente';
+      const includeComponentUnspecified = config.includeComponentUnspecified === true;
+
+      const normalizedOptions = Array.from(new Set((options || []).map((item) => normalizeProgramTaxonomyToken(item)).filter(Boolean)));
+      const html = [`<option value="">${emptyLabel}</option>`];
+      if (includeComponentUnspecified) {
+        html.push('<option value="included_unspecified">Incluida (nao especificada)</option>');
+      }
+      normalizedOptions.forEach((optionValue) => {
+        html.push(`<option value="${optionValue}">${formatProgramTaxonomyLabel(optionValue)}</option>`);
+      });
+      html.push('<option value="__custom__">+ Criar nova modalidade</option>');
+      selectField.innerHTML = html.join('');
+
+      setProgramModalityFieldValue(selectField, customField, selectedValue, includeComponentUnspecified);
+    }
+
+    function refreshProgramClassificationSelectors() {
+      const modalities = collectKnownProgramModalities();
+      rebuildProgramModalitySelect(els.programStrengthModalitySelect, els.programStrengthModalityCustom, modalities, {
+        emptyLabel: 'Sem componente de forca',
+        includeComponentUnspecified: true
+      });
+      rebuildProgramModalitySelect(els.editProgramStrengthModalitySelect, els.editProgramStrengthModalityCustom, modalities, {
+        emptyLabel: 'Sem componente de forca',
+        includeComponentUnspecified: true
+      });
+      rebuildProgramModalitySelect(els.programEnduranceModalitySelect, els.programEnduranceModalityCustom, modalities, {
+        emptyLabel: 'Sem componente de endurance',
+        includeComponentUnspecified: true
+      });
+      rebuildProgramModalitySelect(els.editProgramEnduranceModalitySelect, els.editProgramEnduranceModalityCustom, modalities, {
+        emptyLabel: 'Sem componente de endurance',
+        includeComponentUnspecified: true
+      });
+
+      if (els.programsFilterModality) {
+        const selectedFilter = normalizeProgramTaxonomyToken(els.programsFilterModality.value || state.programsFilterInputs.modality || '');
+        const hasComponentUnspecified = (Array.isArray(state.programs) ? state.programs : []).some((program) => {
+          const view = getProgramClassificationView(program);
+          return view.strengthModality === PROGRAM_STRENGTH_UNSPECIFIED_VALUE || view.enduranceModality === PROGRAM_ENDURANCE_UNSPECIFIED_VALUE;
+        });
+        const optionsHtml = ['<option value="">Modalidade: Todas</option>'];
+        if (hasComponentUnspecified) {
+          optionsHtml.push('<option value="included_unspecified">Incluida (nao especificada)</option>');
+        }
+        modalities.forEach((modality) => {
+          optionsHtml.push(`<option value="${modality}">${formatProgramTaxonomyLabel(modality)}</option>`);
+        });
+        els.programsFilterModality.innerHTML = optionsHtml.join('');
+        if (selectedFilter && Array.from(els.programsFilterModality.options).some((option) => option.value === selectedFilter)) {
+          els.programsFilterModality.value = selectedFilter;
+          state.programsFilterInputs.modality = selectedFilter;
+        } else {
+          els.programsFilterModality.value = '';
+          if (!selectedFilter) {
+            state.programsFilterInputs.modality = '';
+          }
+        }
+      }
+    }
+
+    function collectProgramClassificationFromFields(fields) {
+      const strengthModality = getProgramSelectedModality(fields.strengthModalitySelect, fields.strengthModalityCustom);
+      const enduranceModality = getProgramSelectedModality(fields.enduranceModalitySelect, fields.enduranceModalityCustom);
+      const experienceStrength = getProgramCheckedExperienceLevels(fields.experienceStrengthInputs);
+      const experienceEndurance = getProgramCheckedExperienceLevels(fields.experienceEnduranceInputs);
+      const notes = fields.classificationNotes ? ((fields.classificationNotes.value || '').trim() || null) : null;
+
+      if (experienceStrength.length && !strengthModality) {
+        throw new Error('Define a modalidade de forca antes de escolher o nivel de ginasio recomendado.');
+      }
+      if (experienceEndurance.length && !enduranceModality) {
+        throw new Error('Define a modalidade de endurance antes de escolher o nivel recomendado.');
+      }
+
+      const trainingComponents = [];
+      const modalities = [];
+      const byModality = {};
+
+      if (strengthModality) {
+        trainingComponents.push('strength');
+        if (strengthModality !== PROGRAM_STRENGTH_UNSPECIFIED_VALUE) {
+          modalities.push(strengthModality);
+        }
+        if (experienceStrength.length) {
+          byModality[strengthModality === PROGRAM_STRENGTH_UNSPECIFIED_VALUE ? 'gym' : strengthModality] = experienceStrength;
+        }
+      }
+
+      if (enduranceModality) {
+        trainingComponents.push('endurance');
+        modalities.push(enduranceModality);
+        if (experienceEndurance.length) {
+          byModality[enduranceModality === PROGRAM_ENDURANCE_UNSPECIFIED_VALUE ? 'endurance' : enduranceModality] = experienceEndurance;
+        }
+      }
+
+      if (!trainingComponents.length && !Object.keys(byModality).length && !notes) {
+        return null;
+      }
+
+      return {
+        primaryCategory: null,
+        secondaryCategories: [],
+        trainingComponents,
+        modalities,
+        experienceLevel: {
+          overall: null,
+          byModality
+        },
+        automationTags: [],
+        notes
+      };
+    }
+
+    function formatProgramTaxonomyLabel(value) {
+      const normalized = String(value || '').trim();
+      if (!normalized) return '-';
+      return normalized
+        .split('_')
+        .filter(Boolean)
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(' ');
+    }
+
+    function formatProgramTaxonomyList(values) {
+      if (!Array.isArray(values) || !values.length) return '-';
+      return values.map((value) => formatProgramTaxonomyLabel(value)).join(', ');
+    }
+
+    function formatProgramExperienceSummary(classificationOrProgram) {
+      const view = getProgramClassificationView(classificationOrProgram);
+      const parts = [];
+      if (view.strengthModality) {
+        parts.push(`Ginasio: ${formatProgramExperienceLevels(view.experienceStrength)}`);
+      }
+      if (view.enduranceModality) {
+        const label = view.enduranceModality === PROGRAM_ENDURANCE_UNSPECIFIED_VALUE
+          ? 'Endurance'
+          : formatProgramTaxonomyLabel(view.enduranceModality);
+        parts.push(`${label}: ${formatProgramExperienceLevels(view.experienceEndurance)}`);
+      }
+      return parts.join(' | ') || '-';
+    }
+
     function applyProgramsFilters() {
       const filters = state.programsFilterInputs || {};
       const search = (filters.search || '').trim().toLowerCase();
 
       state.programsFiltered = (Array.isArray(state.programs) ? state.programs : []).filter((program) => {
+        const view = getProgramClassificationView(program);
+
         if (filters.status && (program.status || '') !== filters.status) {
           return false;
         }
@@ -7198,6 +7998,21 @@
         }
         if (filters.billing && (program.billingType || '') !== filters.billing) {
           return false;
+        }
+
+        if (filters.modality) {
+          const matchesModality = view.strengthModality === filters.modality || view.enduranceModality === filters.modality;
+          if (!matchesModality) {
+            return false;
+          }
+        }
+
+        if (filters.experience) {
+          const matchesExperience = experienceLevelsInclude(view.experienceStrength, filters.experience)
+            || experienceLevelsInclude(view.experienceEndurance, filters.experience);
+          if (!matchesExperience) {
+            return false;
+          }
         }
 
         const hasEvent = programHasEvent(program);
@@ -7220,7 +8035,14 @@
           program.externalId,
           program.externalSource,
           program.stripePriceId,
-          program.stripeProductId
+          program.stripeProductId,
+          view.components.join(' '),
+          view.modalities.join(' '),
+          view.strengthModality,
+          view.enduranceModality,
+          view.experienceStrength.join(' '),
+          view.experienceEndurance.join(' '),
+          view.classification && view.classification.notes
         ].map((value) => (value || '').toString().toLowerCase()).join(' ');
 
         return haystack.includes(search);
@@ -7262,6 +8084,10 @@
         const eventName = linkedEvent && linkedEvent.name ? linkedEvent.name : '-';
         const eventDate = formatProgramDate(linkedEvent && linkedEvent.eventDate);
         const calendarMeta = getProgramCalendarMeta(program);
+        const classification = program && program.classification && typeof program.classification === 'object'
+          ? program.classification
+          : null;
+        const view = getProgramClassificationView(classification);
         const statusBadgeClass = program.status === 'active'
           ? 'admin-tag success'
           : program.status === 'archived'
@@ -7294,6 +8120,9 @@
               <span class="detail-label">Acesso:</span>
               <span class="detail-value">${escapeHtml(getProgramAccessLabel(program.accessModel))}</span>
             </div>
+            ${view.strengthModality ? '<div class="detail-row"><span class="detail-label">Forca:</span><span class="detail-value">' + escapeHtml(view.strengthModality === PROGRAM_STRENGTH_UNSPECIFIED_VALUE ? 'Incluida (nao especificada)' : formatProgramTaxonomyLabel(view.strengthModality)) + '</span></div>' : ''}
+            ${view.enduranceModality ? '<div class="detail-row"><span class="detail-label">Endurance:</span><span class="detail-value">' + escapeHtml(view.enduranceModality === PROGRAM_ENDURANCE_UNSPECIFIED_VALUE ? 'Incluida (nao especificada)' : formatProgramTaxonomyLabel(view.enduranceModality)) + '</span></div>' : ''}
+            ${classification && classification.experienceLevel ? '<div class="detail-row"><span class="detail-label">Nivel:</span><span class="detail-value">' + escapeHtml(formatProgramExperienceSummary(classification)) + '</span></div>' : ''}
             ${eventName !== '-' ? '<div class="detail-row"><span class="detail-label">Prova:</span><span class="detail-value">' + escapeHtml(eventName) + '</span></div>' : ''}
           </div>
         `;
@@ -7420,6 +8249,13 @@
         externalId: els.programExternalId,
         commercialDescription: els.programCommercialDescription,
         technicalDescription: els.programTechnicalDescription,
+        strengthModalitySelect: els.programStrengthModalitySelect,
+        strengthModalityCustom: els.programStrengthModalityCustom,
+        enduranceModalitySelect: els.programEnduranceModalitySelect,
+        enduranceModalityCustom: els.programEnduranceModalityCustom,
+        experienceStrengthInputs: els.programExperienceStrengthInputs,
+        experienceEnduranceInputs: els.programExperienceEnduranceInputs,
+        classificationNotes: els.programClassificationNotes,
         imageUrl: els.programImageUrl,
         durationWeeks: els.programDurationWeeks,
         priceCents: els.programPriceCents,
@@ -7456,6 +8292,13 @@
         externalId: els.editProgramExternalId,
         commercialDescription: els.editProgramCommercialDescription,
         technicalDescription: els.editProgramTechnicalDescription,
+        strengthModalitySelect: els.editProgramStrengthModalitySelect,
+        strengthModalityCustom: els.editProgramStrengthModalityCustom,
+        enduranceModalitySelect: els.editProgramEnduranceModalitySelect,
+        enduranceModalityCustom: els.editProgramEnduranceModalityCustom,
+        experienceStrengthInputs: els.editProgramExperienceStrengthInputs,
+        experienceEnduranceInputs: els.editProgramExperienceEnduranceInputs,
+        classificationNotes: els.editProgramClassificationNotes,
         imageUrl: els.editProgramImageUrl,
         durationWeeks: els.editProgramDurationWeeks,
         priceCents: els.editProgramPriceCents,
@@ -7762,6 +8605,7 @@
       const commercialDescription = (fields.commercialDescription.value || '').trim() || null;
       const technicalDescription = (fields.technicalDescription.value || '').trim() || null;
       const description = technicalDescription || commercialDescription || null;
+      const classification = collectProgramClassificationFromFields(fields);
       const imageUrl = fields.imageUrl ? ((fields.imageUrl.value || '').trim() || null) : null;
       const durationWeeks = Number(fields.durationWeeks.value);
       const priceCents = parseEurosToCents(fields.priceCents.value, 'Preço') ?? 0;
@@ -7841,6 +8685,7 @@
         commercialDescription,
         technicalDescription,
         description,
+        classification,
         imageUrl,
         durationWeeks,
         priceCents,
@@ -7897,6 +8742,15 @@
       fields.externalId.value = program.externalId || '';
       fields.commercialDescription.value = program.commercialDescription || program.description || '';
       fields.technicalDescription.value = program.technicalDescription || program.description || '';
+      const classification = program && program.classification && typeof program.classification === 'object'
+        ? program.classification
+        : null;
+      const classificationView = getProgramClassificationView(classification);
+      setProgramModalityFieldValue(fields.strengthModalitySelect, fields.strengthModalityCustom, classificationView.strengthModality, true);
+      setProgramModalityFieldValue(fields.enduranceModalitySelect, fields.enduranceModalityCustom, classificationView.enduranceModality, true);
+      setProgramCheckedExperienceLevels(fields.experienceStrengthInputs, classificationView.experienceStrength);
+      setProgramCheckedExperienceLevels(fields.experienceEnduranceInputs, classificationView.experienceEndurance);
+      if (fields.classificationNotes) fields.classificationNotes.value = classification && classification.notes ? classification.notes : '';
       if (fields.imageUrl) fields.imageUrl.value = program.imageUrl || '';
       fields.durationWeeks.value = String(program.durationWeeks || '');
       fields.priceCents.value = Number.isFinite(Number(program.priceCents)) ? (Number(program.priceCents) / 100).toFixed(2) : '0.00';
@@ -8004,6 +8858,7 @@
       const data = await apiRequest('GET', adminProgramsApiBase);
       state.programs = Array.isArray(data.programs) ? data.programs : [];
       state.programsRecurringSchemaReady = data.recurringPricingSchemaReady !== false;
+      state.programsClassificationSchemaReady = data.classificationSchemaReady !== false;
       try {
         const eventsData = await apiRequest('GET', adminEventsApiBase);
         state.events = Array.isArray(eventsData.events)
@@ -8027,6 +8882,7 @@
       }
       enforceRecurringSchemaAvailability(getProgramCreateFieldRefs());
       enforceRecurringSchemaAvailability(getProgramEditFieldRefs());
+      refreshProgramClassificationSelectors();
       setAuthUI();
       applyProgramsFilters();
       renderProgramEventOptions();
@@ -8046,9 +8902,14 @@
         }
       populateFilterDropdowns();
       const filteredCount = Array.isArray(state.programsFiltered) ? state.programsFiltered.length : state.programs.length;
-      const schemaNotice = state.programsRecurringSchemaReady
-        ? ''
-        : ' Recorrencia desativada: aplica a migration-program-recurring-pricing.sql na base de dados.';
+      const schemaNotices = [];
+      if (state.programsRecurringSchemaReady === false) {
+        schemaNotices.push('Recorrencia desativada: aplica a migration-program-recurring-pricing.sql na base de dados.');
+      }
+      if (state.programsClassificationSchemaReady === false) {
+        schemaNotices.push('Classificacao desativada: aplica a migration-program-classification.sql na base de dados.');
+      }
+      const schemaNotice = schemaNotices.length ? ' ' + schemaNotices.join(' ') : '';
       showProgramsMessage(`Programas carregados: ${state.programs.length}. A mostrar ${filteredCount}.${schemaNotice}`, false);
     }
 
@@ -8165,7 +9026,7 @@
       await refreshAssignmentsList();
 
       const loaders = [];
-      if (!state.athletesCatalog.length) loaders.push(refreshAuditAthletesCatalog().catch(() => {}));
+
       if (!state.programs.length) loaders.push(refreshProgramsData().catch(() => {}));
       if (!state.coaches.length) loaders.push(loadCoaches().catch(() => {}));
       if (loaders.length) {
@@ -8500,6 +9361,8 @@
     }
 
     async function getToken() {
+      // Use cached token when available (avoids getSession() deadlock inside onAuthStateChange)
+      if (state.token) return state.token;
       const { data: { session } } = await supabaseClient.auth.getSession();
       if (!session || !session.access_token) {
         throw new Error('Nao autenticado. Faz login novamente.');
@@ -8516,7 +9379,13 @@
         throw new Error('Acesso negado. Esta conta nao tem permissao de admin.');
       }
 
-      const token = await getToken();
+      // For API requests, always get a fresh token from Supabase
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      if (!session || !session.access_token) {
+        throw new Error('Nao autenticado. Faz login novamente.');
+      }
+      state.token = session.access_token;
+      const token = session.access_token;
       const res = await fetch(url, {
         method,
         headers: {
@@ -8585,17 +9454,20 @@
       state.blogDraft = null;
       state.blogStandalone = null;
       state.blogDraftApplied = false;
-      state.dataAudit = null;
       state.athletesCatalog = [];
       state.programs = [];
       state.events = [];
+      state.programsRecurringSchemaReady = true;
+      state.programsClassificationSchemaReady = true;
       state.programsFiltered = [];
       state.programsFilterInputs = {
         search: '',
         status: '',
         calendar: '',
         access: '',
-        billing: ''
+        billing: '',
+        modality: '',
+        experience: ''
       };
       state.purchases = [];
       state.purchaseKpis = null;
@@ -8615,8 +9487,6 @@
       closeEditProgramDialog();
       renderAiPrompts();
       renderAiLogs();
-      renderAuditAthleteOptions();
-      renderDataAuditResult();
       resetAiPromptEditor();
       setAiSubtab('prompts');
       setSiteContentEditors(null);
@@ -8632,6 +9502,8 @@
       showProgramsMessage('Faz login para gerir programas.', false);
       showAiMessage('Faz login para gerir prompts e logs de IA.', false);
       showOperationsMessage('Faz login para usar a auditoria de dados.', false);
+      state.retentionDashboard = null;
+      renderRetentionDashboard();
       renderCurrentAssignmentSummary();
       resetBlogProductionPanel();
     }
@@ -8643,9 +9515,19 @@
         if (element) element.disabled = disabled;
       };
 
+      // Show/hide auth gate vs protected content
       els.authGate.hidden = viewingAllowed;
       els.protectedContent.hidden = !viewingAllowed;
       document.body.classList.toggle('auth-locked', !viewingAllowed);
+
+      // Inside the auth gate: show loading indicator until auth resolves, then show login card
+      if (authResolved) {
+        els.authLoadingIndicator.hidden = true;
+        els.authLoginCard.hidden = viewingAllowed;
+      } else {
+        els.authLoadingIndicator.hidden = false;
+        els.authLoginCard.hidden = true;
+      }
 
       if (state.user && state.isAdmin) {
         els.authStatus.textContent = `Autenticado: ${state.user.email || state.user.id}`;
@@ -8723,6 +9605,13 @@
       els.programStripePriceId.disabled = !canUseApi;
       els.programBillingType.disabled = !canUseApi;
       els.programAccessModel.disabled = !canUseApi;
+      setDisabledIfPresent(els.programStrengthModalitySelect, !canUseApi || state.programsClassificationSchemaReady === false);
+      setDisabledIfPresent(els.programStrengthModalityCustom, !canUseApi || state.programsClassificationSchemaReady === false);
+      setDisabledIfPresent(els.programEnduranceModalitySelect, !canUseApi || state.programsClassificationSchemaReady === false);
+      setDisabledIfPresent(els.programEnduranceModalityCustom, !canUseApi || state.programsClassificationSchemaReady === false);
+      (els.programExperienceStrengthInputs || []).forEach((input) => setDisabledIfPresent(input, !canUseApi || state.programsClassificationSchemaReady === false));
+      (els.programExperienceEnduranceInputs || []).forEach((input) => setDisabledIfPresent(input, !canUseApi || state.programsClassificationSchemaReady === false));
+      setDisabledIfPresent(els.programClassificationNotes, !canUseApi || state.programsClassificationSchemaReady === false);
       setDisabledIfPresent(els.programRecurringPriceMonthly, !canUseApi || state.programsRecurringSchemaReady === false);
       setDisabledIfPresent(els.programRecurringPriceQuarterly, !canUseApi || state.programsRecurringSchemaReady === false);
       setDisabledIfPresent(els.programRecurringPriceAnnual, !canUseApi || state.programsRecurringSchemaReady === false);
@@ -8742,6 +9631,8 @@
       if (els.programsFilterCalendar) els.programsFilterCalendar.disabled = !canUseApi;
       if (els.programsFilterAccess) els.programsFilterAccess.disabled = !canUseApi;
       if (els.programsFilterBilling) els.programsFilterBilling.disabled = !canUseApi;
+      if (els.programsFilterModality) els.programsFilterModality.disabled = !canUseApi;
+      if (els.programsFilterExperience) els.programsFilterExperience.disabled = !canUseApi;
       if (els.programsClearFiltersBtn) els.programsClearFiltersBtn.disabled = !canUseApi;
       if (els.saveProgramEditBtn) els.saveProgramEditBtn.disabled = !canUseApi;
       if (els.cancelProgramEditBtn) els.cancelProgramEditBtn.disabled = !canUseApi;
@@ -8758,6 +9649,13 @@
       if (els.editProgramStripePriceId) els.editProgramStripePriceId.disabled = !canUseApi;
       if (els.editProgramBillingType) els.editProgramBillingType.disabled = !canUseApi;
       if (els.editProgramAccessModel) els.editProgramAccessModel.disabled = !canUseApi;
+      setDisabledIfPresent(els.editProgramStrengthModalitySelect, !canUseApi || state.programsClassificationSchemaReady === false);
+      setDisabledIfPresent(els.editProgramStrengthModalityCustom, !canUseApi || state.programsClassificationSchemaReady === false);
+      setDisabledIfPresent(els.editProgramEnduranceModalitySelect, !canUseApi || state.programsClassificationSchemaReady === false);
+      setDisabledIfPresent(els.editProgramEnduranceModalityCustom, !canUseApi || state.programsClassificationSchemaReady === false);
+      (els.editProgramExperienceStrengthInputs || []).forEach((input) => setDisabledIfPresent(input, !canUseApi || state.programsClassificationSchemaReady === false));
+      (els.editProgramExperienceEnduranceInputs || []).forEach((input) => setDisabledIfPresent(input, !canUseApi || state.programsClassificationSchemaReady === false));
+      setDisabledIfPresent(els.editProgramClassificationNotes, !canUseApi || state.programsClassificationSchemaReady === false);
       setDisabledIfPresent(els.editProgramRecurringPriceMonthly, !canUseApi || state.programsRecurringSchemaReady === false);
       setDisabledIfPresent(els.editProgramRecurringPriceQuarterly, !canUseApi || state.programsRecurringSchemaReady === false);
       setDisabledIfPresent(els.editProgramRecurringPriceAnnual, !canUseApi || state.programsRecurringSchemaReady === false);
@@ -8793,14 +9691,7 @@
         els.aiLogsFrom,
         els.aiLogsTo,
         els.aiRefreshLogsBtn,
-        els.aiLogDetail,
-        els.auditIdentityId,
-        els.auditAthleteSelect,
-        els.auditAthleteId,
-        els.auditEmail,
-        els.refreshAuditAthletesBtn,
-        els.runDataAuditBtn,
-        els.clearDataAuditBtn
+        els.aiLogDetail
       ].forEach((element) => setDisabledIfPresent(element, !canUseApi));
 
       // Desabilitar todos os inputs/textareas dentro do form do blog
@@ -9124,9 +10015,6 @@
     // --- Auth change guard: drops duplicate concurrent events safely ---
     let _authChangeRunning = false;
     async function handleAuthChange(supabaseUser, session, eventType) {
-      // Drop duplicate concurrent calls (e.g. onAuthStateChange + checkAuthOnLoad arriving simultaneously).
-      // TOKEN_REFRESHED is handled inside _handleAuthChangeInner as a fast-path, so it is safe to drop
-      // if another event is already being processed.
       if (_authChangeRunning) return;
       _authChangeRunning = true;
       try {
@@ -9148,11 +10036,11 @@
         state.token = session && session.access_token ? session.access_token : null;
 
         // Keep admin session stable for the same user after it's already validated.
-        // Avoid re-checking roles on every token/session event to prevent accidental lockouts.
         if (sameUserAsBefore && wasAdmin) {
           console.log('[admin-auth] Token refreshed – keeping admin session');
           state.roles = Array.isArray(state.roles) && state.roles.length ? state.roles : ['admin'];
           state.isAdmin = true;
+          authResolved = true;
           showAuthGateMessage('', false);
           return;
         }
@@ -9161,13 +10049,11 @@
         state.roles = [];
         state.isAdmin = false;
 
-        showAuthGateMessage('A validar permissoes da conta...', false);
         try {
           const roles = await fetchCurrentUserRoles();
           state.roles = roles;
           state.isAdmin = roles.includes('admin');
         } catch (err) {
-          // If the user was already admin and roles just failed transiently, keep them in
           if (wasAdmin) {
             console.warn('[admin-auth] Role re-validation failed, keeping previous admin state:', err.message);
             state.isAdmin = true;
@@ -9178,6 +10064,8 @@
           }
         }
 
+        authResolved = true;
+
         if (!state.isAdmin) {
           showAuthGateMessage('Conta autenticada, mas sem permissao de admin. Pede acesso ao administrador.', true);
         } else {
@@ -9185,7 +10073,6 @@
         }
       } else {
         // Ignore transient null-session events while UI already has an authenticated user.
-        // Only force logout on explicit SIGNED_OUT or true no-session at initial load.
         const isExplicitLogout = eventType === 'SIGNED_OUT';
         const isInitialNoSession = eventType === 'INITIAL_SESSION' && !state.user;
         if (!isExplicitLogout && !isInitialNoSession) {
@@ -9196,112 +10083,19 @@
         state.token = null;
         state.roles = [];
         state.isAdmin = false;
+        authResolved = true;
         showAuthGateMessage('', false);
       }
       
       setAuthUI();
       if (state.user && state.isAdmin) {
         restoreBlogEditorDraftIfAvailable();
-        // Refresh the active tab data; blog refreshList runs in background
-        // to avoid blocking other tabs if Supabase RLS is slow.
-        if (activeTab === 'blog') {
-          try {
-            await refreshList();
-          } catch (err) {
-            showMessage(err.message, true);
-          }
-        } else {
-          refreshList().catch((err) => showMessage(err.message, true));
-        }
-        if (activeTab === 'athletes') {
-          try {
-            await refreshAthletesData();
-          } catch (err) {
-            showNotification(err.message, true);
-          }
-        }
-        if (activeTab === 'assignments') {
-          try {
-            await refreshAssignmentsTab();
-          } catch (err) {
-            showNotification(err.message, true);
-          }
-        }
-        if (activeTab === 'siteContent') {
-          try {
-            await refreshSiteContentData();
-          } catch (err) {
-            showSiteContentMessage(err.message, true);
-          }
-        }
-        if (activeTab === 'leads') {
-          try {
-            await refreshLeadsData();
-          } catch (err) {
-            showLeadsMessage(err.message, true);
-          }
-        }
-        if (centralLeadsUiEnabled && activeTab === 'leadsCentral') {
-          try {
-            await refreshCentralLeadsData();
-          } catch (err) {
-            showCentralLeadsMessage(err.message, true);
-          }
-        }
-        if (activeTab === 'programs') {
-          try {
-            await refreshProgramsData();
-          } catch (err) {
-            showProgramsMessage(err.message, true);
-          }
-        }
-        if (activeTab === 'vendas') {
-          try {
-            await refreshVendasData();
-          } catch (err) {
-            showVendasMessage(err.message, true);
-          }
-        }
-        if (activeTab === 'calendario') {
-          try {
-            await refreshCalendarioTab();
-          } catch (err) {
-            showCalendarioMessage(err.message, true);
-          }
-        }
-        if (activeTab === 'ai') {
-          try {
-            await refreshAiPromptsData();
-            if (state.activeAiSubtab === 'logs') {
-              await refreshAiLogsData();
-            }
-          } catch (err) {
-            showAiMessage(err.message, true);
-          }
-        }
-
-        // Re-run active-tab loading on next tick so initial hash/tab resolution
-        // is already applied before deciding which panel should fetch data.
-        setTimeout(() => {
-          if (!state.user || !state.isAdmin) return;
-          setActiveTab(activeTab, { updateHash: false });
-        }, 0);
+        // Blog list is always loaded in background regardless of active tab
+        refreshList().catch((err) => showMessage(err.message, true));
+        // Load data for the active tab via setActiveTab (handles all tabs uniformly)
+        setActiveTab(activeTab, { updateHash: false });
       } else {
         resetAdminDataToLoggedOutView();
-      }
-    }
-
-    // Inicializar auth state — fallback caso onAuthStateChange não dispare INITIAL_SESSION
-    // (não deve acontecer com Supabase v2, mas garante cobertura em edge cases)
-    async function checkAuthOnLoad() {
-      if (!supabaseClient) return;
-      // If onAuthStateChange already processed a session, skip to avoid double role-fetch
-      if (state.user !== null) return;
-      const { data: { session } } = await supabaseClient.auth.getSession();
-      if (session?.user) {
-        await handleAuthChange(session.user, session, 'INITIAL_SESSION');
-      } else {
-        await handleAuthChange(null, null, 'INITIAL_SESSION');
       }
     }
 
@@ -9312,6 +10106,24 @@
         await new Promise(resolve => setTimeout(resolve, 100));
         attempts++;
       }
+
+      // Safety: if onAuthStateChange never fires INITIAL_SESSION, resolve auth after timeout
+      setTimeout(async () => {
+        if (authResolved) return;
+        console.warn('[admin-auth] INITIAL_SESSION timeout – falling back to getSession()');
+        try {
+          const { data: { session } } = await supabaseClient.auth.getSession();
+          if (session?.user) {
+            await handleAuthChange(session.user, session, 'INITIAL_SESSION');
+          } else {
+            await handleAuthChange(null, null, 'INITIAL_SESSION');
+          }
+        } catch (err) {
+          console.error('[admin-auth] Fallback getSession failed:', err);
+          authResolved = true;
+          setAuthUI();
+        }
+      }, 3000);
 
       if (!window.supabase) {
         console.error('Supabase script não foi carregado');
@@ -9331,20 +10143,17 @@
           if (session?.user) {
             await handleAuthChange(session.user, session, _event);
           } else {
-            const shouldApplyLoggedOutState = _event === 'SIGNED_OUT' || (_event === 'INITIAL_SESSION' && !state.user);
-            if (shouldApplyLoggedOutState) {
-              await handleAuthChange(null, null, _event);
-            } else {
-              console.warn('[admin-auth] Ignoring auth event without session:', _event || 'unknown');
-            }
+            await handleAuthChange(null, null, _event);
           }
         } catch (err) {
-          showMessage(err.message || 'Erro ao validar sessão', true);
+          console.error('[admin-auth] Auth event error:', err);
+          // If auth never resolved, mark it now so the login card appears
+          if (!authResolved) {
+            authResolved = true;
+            setAuthUI();
+          }
         }
       });
-
-      // Check auth on page load
-      checkAuthOnLoad().catch((err) => showMessage(err.message, true));
 
       // Recover session when tab regains visibility (best effort, never force logout)
       document.addEventListener('visibilitychange', async () => {
@@ -9721,6 +10530,47 @@
       });
     }
 
+    if (els.createCentralLeadBtn) {
+      els.createCentralLeadBtn.addEventListener('click', () => {
+        openCreateCentralLeadDialog();
+      });
+    }
+
+    if (els.closeCreateCentralLeadDialogBtn) {
+      els.closeCreateCentralLeadDialogBtn.addEventListener('click', () => {
+        closeCreateCentralLeadDialog();
+      });
+    }
+
+    if (els.cancelCreateCentralLeadBtn) {
+      els.cancelCreateCentralLeadBtn.addEventListener('click', () => {
+        closeCreateCentralLeadDialog();
+      });
+    }
+
+    if (els.saveCentralLeadBtn) {
+      els.saveCentralLeadBtn.addEventListener('click', async () => {
+        const originalText = els.saveCentralLeadBtn.textContent;
+        els.saveCentralLeadBtn.disabled = true;
+        els.saveCentralLeadBtn.textContent = 'A criar...';
+
+        try {
+          await createCentralLeadFromDialog();
+        } catch (err) {
+          showCentralLeadsMessage(err.message, true);
+        } finally {
+          els.saveCentralLeadBtn.disabled = false;
+          els.saveCentralLeadBtn.textContent = originalText;
+        }
+      });
+    }
+
+    if (els.closeCentralLeadDetailsDialogBtn && els.centralLeadDetailsDialog) {
+      els.closeCentralLeadDetailsDialogBtn.addEventListener('click', () => {
+        els.centralLeadDetailsDialog.close();
+      });
+    }
+
     if (els.clearCentralLeadsFiltersBtn) {
       els.clearCentralLeadsFiltersBtn.addEventListener('click', async () => {
         clearCentralLeadsFilters();
@@ -9862,6 +10712,20 @@
       });
     }
 
+    if (els.programsFilterModality) {
+      els.programsFilterModality.addEventListener('change', (event) => {
+        state.programsFilterInputs.modality = event.target.value || '';
+        applyProgramsFilters();
+      });
+    }
+
+    if (els.programsFilterExperience) {
+      els.programsFilterExperience.addEventListener('change', (event) => {
+        state.programsFilterInputs.experience = event.target.value || '';
+        applyProgramsFilters();
+      });
+    }
+
     if (els.programsClearFiltersBtn) {
       els.programsClearFiltersBtn.addEventListener('click', () => {
         state.programsFilterInputs = {
@@ -9869,19 +10733,50 @@
           status: '',
           calendar: '',
           access: '',
-          billing: ''
+          billing: '',
+          modality: '',
+          experience: ''
         };
         if (els.programsFilterSearch) els.programsFilterSearch.value = '';
         if (els.programsFilterStatus) els.programsFilterStatus.value = '';
         if (els.programsFilterCalendar) els.programsFilterCalendar.value = '';
         if (els.programsFilterAccess) els.programsFilterAccess.value = '';
         if (els.programsFilterBilling) els.programsFilterBilling.value = '';
+        if (els.programsFilterModality) els.programsFilterModality.value = '';
+        if (els.programsFilterExperience) els.programsFilterExperience.value = '';
         applyProgramsFilters();
       });
     }
 
     const createProgramFields = getProgramCreateFieldRefs();
     const editProgramFields = getProgramEditFieldRefs();
+
+    if (els.programStrengthModalitySelect) {
+      els.programStrengthModalitySelect.addEventListener('change', () => {
+        toggleProgramCustomModalityField(els.programStrengthModalitySelect, els.programStrengthModalityCustom);
+      });
+    }
+    if (els.programEnduranceModalitySelect) {
+      els.programEnduranceModalitySelect.addEventListener('change', () => {
+        toggleProgramCustomModalityField(els.programEnduranceModalitySelect, els.programEnduranceModalityCustom);
+      });
+    }
+    if (els.editProgramStrengthModalitySelect) {
+      els.editProgramStrengthModalitySelect.addEventListener('change', () => {
+        toggleProgramCustomModalityField(els.editProgramStrengthModalitySelect, els.editProgramStrengthModalityCustom);
+      });
+    }
+    if (els.editProgramEnduranceModalitySelect) {
+      els.editProgramEnduranceModalitySelect.addEventListener('change', () => {
+        toggleProgramCustomModalityField(els.editProgramEnduranceModalitySelect, els.editProgramEnduranceModalityCustom);
+      });
+    }
+
+    refreshProgramClassificationSelectors();
+    toggleProgramCustomModalityField(els.programStrengthModalitySelect, els.programStrengthModalityCustom);
+    toggleProgramCustomModalityField(els.programEnduranceModalitySelect, els.programEnduranceModalityCustom);
+    toggleProgramCustomModalityField(els.editProgramStrengthModalitySelect, els.editProgramStrengthModalityCustom);
+    toggleProgramCustomModalityField(els.editProgramEnduranceModalitySelect, els.editProgramEnduranceModalityCustom);
 
     if (els.programBillingType) {
       els.programBillingType.addEventListener('change', () => {
@@ -10598,24 +11493,39 @@
     function renderVendasTable() {
       els.vendasBody.innerHTML = '';
       if (!state.purchases.length) {
-        els.vendasBody.innerHTML = '<tr><td colspan="12">Sem compras registadas.</td></tr>';
+        els.vendasBody.innerHTML = '<tr><td colspan="16">Sem compras registadas.</td></tr>';
         return;
       }
       const frag = document.createDocumentFragment();
       state.purchases.forEach((p) => {
         const tr = document.createElement('tr');
-        const hasPaymentIntent = p.stripePaymentIntentId && p.status === 'paid';
+        const hasPaymentIntent = Boolean(p.stripePaymentIntentId);
+        const canRefund = hasPaymentIntent && p.status === 'paid';
         const hasSubscription = p.stripeSubscriptionId && p.status === 'paid' && p.billingType === 'recurring';
         let actions = '';
-        if (hasPaymentIntent) {
+        if (canRefund) {
           actions += '<button class="btn-sm btn-danger refund-btn" data-pi="' + escapeHtml(p.stripePaymentIntentId) + '" data-email="' + escapeHtml(p.email || '') + '" data-amount="' + (p.amountCents || 0) + '">Reembolsar</button> ';
+        }
+        if (hasPaymentIntent) {
+          actions += '<button class="btn-sm btn-neutral sync-status-btn" data-pi="' + escapeHtml(p.stripePaymentIntentId) + '" title="Sincronizar estado com Stripe">⟳ Sync</button> ';
         }
         if (hasSubscription) {
           actions += '<button class="btn-sm btn-warn cancel-sub-btn" data-sub="' + escapeHtml(p.stripeSubscriptionId) + '" data-email="' + escapeHtml(p.email || '') + '">Cancelar sub</button>';
         }
+        if (p.stripeDashboardUrl) {
+          actions += ' <a class="btn-sm btn-neutral" href="' + escapeHtml(p.stripeDashboardUrl) + '" target="_blank" rel="noopener">Stripe</a>';
+        }
+        if (p.stripeRaw) {
+          actions += ' <button class="btn-sm btn-neutral stripe-details-btn" data-purchase-id="' + escapeHtml(p.id) + '">Detalhes</button>';
+        }
         if (!actions) actions = '-';
+        const stripePi = p.stripeLiveStatus || '-';
+        const stripeRefunded = Number(p.stripeAmountRefundedCents || 0) > 0
+          ? formatCurrencyCents(Number(p.stripeAmountRefundedCents || 0), p.currency || 'EUR')
+          : '-';
         tr.innerHTML =
           '<td>' + escapeHtml(p.email || '-') + '</td>' +
+          '<td>' + escapeHtml(p.customerName || '-') + '</td>' +
           '<td>' + escapeHtml(p.programName || '-') + '</td>' +
           '<td>' + escapeHtml(formatCurrencyCents(p.amountCents, p.currency)) + '</td>' +
           '<td>' + statusBadge(p.status) + '</td>' +
@@ -10624,6 +11534,9 @@
           '<td>' + escapeHtml(p.paymentMethod || '-') + '</td>' +
           '<td>' + escapeHtml(formatCheckoutChannel(p.checkoutChannel)) + '</td>' +
           '<td>' + escapeHtml(p.source || '-') + '</td>' +
+          '<td>' + escapeHtml(stripePi) + '</td>' +
+          '<td>' + escapeHtml(stripeRefunded) + '</td>' +
+          '<td>' + formatDate(p.createdAt) + '</td>' +
           '<td>' + formatDate(p.paidAt) + '</td>' +
           '<td>' + formatDate(p.expiresAt) + '</td>' +
           '<td>' + actions + '</td>';
@@ -10662,6 +11575,7 @@
       if (channel) filters.set('channel', channel);
       if (from) filters.set('from', from + 'T00:00:00Z');
       if (to) filters.set('to', to + 'T23:59:59Z');
+      filters.set('include_raw', '1');
       const qs = filters.toString();
       const data = await apiRequest('GET', adminStripePurchasesApiBase + (qs ? '?' + qs : ''));
       state.purchases = Array.isArray(data.purchases) ? data.purchases : [];
@@ -10680,6 +11594,38 @@
       await apiRequest('POST', adminStripeRefundApiBase, { payment_intent_id: paymentIntentId });
       showVendasMessage('Reembolso processado com sucesso.', false);
       await refreshVendasData();
+    }
+
+    // Sync purchase status with Stripe
+    async function syncPurchaseStatus(paymentIntentId) {
+      showVendasMessage('A sincronizar estado com Stripe...', false);
+      const result = await apiRequest('POST', adminSyncPurchaseStatusApiBase, { payment_intent_id: paymentIntentId });
+      if (result.changed) {
+        showVendasMessage('Estado atualizado: ' + result.previousStatus + ' → ' + result.newStatus, false);
+      } else {
+        showVendasMessage('Estado ja esta correto: ' + result.newStatus, false);
+      }
+      await refreshVendasData();
+    }
+
+    function showStripePurchaseDetails(purchaseId) {
+      const purchase = Array.isArray(state.purchases)
+        ? state.purchases.find((p) => String(p.id) === String(purchaseId))
+        : null;
+      if (!purchase || !purchase.stripeRaw) {
+        showVendasMessage('Detalhes Stripe indisponiveis nesta linha.', true);
+        return;
+      }
+
+      const popup = window.open('', '_blank', 'width=1000,height=760');
+      if (!popup) {
+        showVendasMessage('Popup bloqueado pelo browser. Permite popups para abrir os detalhes Stripe.', true);
+        return;
+      }
+
+      const payload = JSON.stringify(purchase.stripeRaw, null, 2);
+      popup.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Stripe Details</title></head><body style="margin:0;background:#101319;color:#f5f5f5;font-family:Consolas,monospace;"><pre style="white-space:pre-wrap;word-break:break-word;padding:16px;line-height:1.35;">' + escapeHtml(payload) + '</pre></body></html>');
+      popup.document.close();
     }
 
     // Cancel subscription action
@@ -10946,6 +11892,12 @@
         if (target.classList.contains('refund-btn')) {
           await refundPurchase(target.dataset.pi, target.dataset.email, Number(target.dataset.amount || 0));
         }
+        if (target.classList.contains('sync-status-btn')) {
+          await syncPurchaseStatus(target.dataset.pi);
+        }
+        if (target.classList.contains('stripe-details-btn')) {
+          showStripePurchaseDetails(target.dataset.purchaseId);
+        }
         if (target.classList.contains('cancel-sub-btn')) {
           await cancelSubscriptionAction(target.dataset.sub, target.dataset.email);
         }
@@ -11026,24 +11978,46 @@
     if (els.leadsCentralBody) {
       els.leadsCentralBody.addEventListener('click', async (event) => {
         const target = event.target;
-        if (!(target instanceof HTMLButtonElement)) return;
-        if (!target.classList.contains('save-central-lead-btn')) return;
 
-        const leadId = target.dataset.leadId || '';
-        if (!leadId) return;
+        if (target instanceof HTMLButtonElement && target.classList.contains('save-central-lead-btn')) {
+          const leadId = target.dataset.leadId || '';
+          if (!leadId) return;
 
-        const originalText = target.textContent;
-        target.disabled = true;
-        target.textContent = 'A guardar...';
+          const originalText = target.textContent;
+          target.disabled = true;
+          target.textContent = 'A guardar...';
 
-        try {
-          await saveCentralLeadUpdate(leadId);
-        } catch (err) {
-          showCentralLeadsMessage(err.message, true);
-        } finally {
-          target.disabled = false;
-          target.textContent = originalText;
+          try {
+            await saveCentralLeadUpdate(leadId);
+          } catch (err) {
+            showCentralLeadsMessage(err.message, true);
+          } finally {
+            target.disabled = false;
+            target.textContent = originalText;
+          }
+          return;
         }
+
+        if (!(target instanceof Element)) return;
+        if (target.closest('button,select,input,textarea,a,label')) return;
+
+        const row = target.closest('tr[data-lead-id]');
+        if (!(row instanceof HTMLTableRowElement)) return;
+        const leadId = row.dataset.leadId || '';
+        if (!leadId) return;
+        await openCentralLeadDetails(leadId);
+      });
+
+      els.leadsCentralBody.addEventListener('keydown', (event) => {
+        const target = event.target;
+        if (!(target instanceof HTMLTableRowElement)) return;
+        if (!target.dataset.leadId) return;
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        if (event.target instanceof HTMLButtonElement || event.target instanceof HTMLSelectElement) return;
+        event.preventDefault();
+        openCentralLeadDetails(target.dataset.leadId).catch((err) => {
+          showCentralLeadsMessage(err.message, true);
+        });
       });
     }
 
@@ -11181,30 +12155,15 @@
       selectAiLog(logId);
     });
 
-    els.runDataAuditBtn.addEventListener('click', async () => {
-      try {
-        await runDataAudit();
-      } catch (err) {
-        showOperationsMessage(err.message, true);
-      }
-    });
-
-    els.refreshAuditAthletesBtn.addEventListener('click', async () => {
-      try {
-        await refreshAuditAthletesCatalog();
-        showOperationsMessage(`Lista de atletas atualizada (${state.athletesCatalog.length}).`, false);
-      } catch (err) {
-        showOperationsMessage(err.message, true);
-      }
-    });
-
-    els.auditAthleteSelect.addEventListener('change', () => {
-      applySelectedAthleteToAuditFilters();
-    });
-
-    els.clearDataAuditBtn.addEventListener('click', () => {
-      clearDataAudit();
-    });
+    if (els.refreshRetentionDashboardBtn) {
+      els.refreshRetentionDashboardBtn.addEventListener('click', async () => {
+        try {
+          await refreshRetentionDashboard();
+        } catch (err) {
+          showOperationsMessage(err.message, true);
+        }
+      });
+    }
 
     // Notifications wiring
     const notifRefreshBtn = document.getElementById('notif-refresh-btn');
@@ -11264,6 +12223,7 @@
     els.tabOperations.addEventListener('click', () => {
       setActiveTab('operations');
       loadAdminNotifications();
+      refreshRetentionDashboard().catch((err) => showOperationsMessage(err.message, true));
     });
 
     setAuthUI();
@@ -11277,22 +12237,11 @@
     renderProgramsTable();
     renderProgramOptions();
     setSiteContentEditors(null);
-    showSiteContentMessage('Faz login para gerir o conteudo do site.', false);
-    showLeadsMessage('Faz login para ver as leads Meta.', false);
-    if (centralLeadsUiEnabled) {
-      showCentralLeadsMessage('Faz login para ver o funil central.', false);
-    }
-    showProgramsMessage('Faz login para gerir programas.', false);
-    showCalendarioMessage('Faz login para gerir o calendário.', false);
     wireCalendarioEvents();
-    showVendasMessage('Faz login para ver vendas e controlo Stripe.', false);
-    showAiMessage('Faz login para gerir prompts e logs de IA.', false);
-    showOperationsMessage('Faz login para usar a auditoria de dados.', false);
-    renderAuditAthleteOptions();
+    renderRetentionDashboard();
     renderCurrentAssignmentSummary();
     renderAssignmentInstances();
     setAiSubtab('prompts');
-    renderDataAuditResult();
     resetForm();
   </script>
 </body>

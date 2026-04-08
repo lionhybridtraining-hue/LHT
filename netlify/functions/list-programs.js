@@ -106,6 +106,7 @@ exports.handler = async (event) => {
             technicalDescription: String(program.technical_description || program.description || "").trim() || null,
             description: toPlainTextSummary(program.description),
             imageUrl: program.image_url || null,
+            classification: program.classification || null,
             durationWeeks: program.duration_weeks,
             priceCents: program.price_cents,
             currency: program.currency,

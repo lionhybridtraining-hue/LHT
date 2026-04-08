@@ -1,7 +1,7 @@
 const { json } = require("./_lib/http");
 const { getConfig } = require("./_lib/config");
 const { requireRole } = require("./_lib/authz");
-const { listStripePurchases, listTrainingPrograms } = require("./_lib/supabase");
+const { listStripePurchases, listTrainingPrograms, updateStripePurchaseById } = require("./_lib/supabase");
 const { getStripeClient } = require("./_lib/stripe");
 
 function resolveCheckoutChannel(purchase) {
@@ -86,6 +86,145 @@ async function enrichPaymentMethods(config, purchases) {
   }));
 }
 
+function deriveStatusFromPaymentIntent(pi, fallbackStatus = "pending") {
+  if (!pi || typeof pi !== "object") return fallbackStatus;
+  const charge = pi.latest_charge && typeof pi.latest_charge === "object" ? pi.latest_charge : null;
+  const amount = Number.isFinite(pi.amount) ? pi.amount : 0;
+  const chargeRefunded = Number.isFinite(charge && charge.amount_refunded) ? charge.amount_refunded : 0;
+  const refunded = Number.isFinite(pi.amount_refunded) ? pi.amount_refunded : chargeRefunded;
+  if (pi.status === "canceled") return "cancelled";
+  if (charge && charge.refunded === true) return "refunded";
+  if (amount > 0 && refunded >= amount) return "refunded";
+  if (pi.status === "succeeded") return "paid";
+  if (["requires_payment_method", "requires_confirmation", "requires_action", "processing"].includes(pi.status)) return "pending";
+  return fallbackStatus;
+}
+
+function resolveDetailedPaymentMethod(pi, fallback) {
+  if (!pi || typeof pi !== "object") return fallback;
+  const pm = pi.payment_method && typeof pi.payment_method === "object" ? pi.payment_method : null;
+  if (!pm) {
+    if (Array.isArray(pi.payment_method_types) && pi.payment_method_types[0]) {
+      return String(pi.payment_method_types[0]).toLowerCase();
+    }
+    return fallback;
+  }
+
+  const type = String(pm.type || "").toLowerCase();
+  if (!type) return fallback;
+  if (type === "card" && pm.card) {
+    const brand = pm.card.brand ? String(pm.card.brand).toLowerCase() : "card";
+    const last4 = pm.card.last4 ? String(pm.card.last4) : "";
+    return last4 ? `${brand} **** ${last4}` : brand;
+  }
+  return type;
+}
+
+function buildPaymentDashboardUrl(pi) {
+  if (!pi || !pi.id) return null;
+  return `https://dashboard.stripe.com/${pi.livemode ? "" : "test/"}payments/${encodeURIComponent(pi.id)}`;
+}
+
+async function enrichWithStripeLive(config, purchases, { includeRaw = false } = {}) {
+  if (!Array.isArray(purchases) || !purchases.length) return purchases;
+  let stripe = null;
+  try {
+    stripe = getStripeClient(config);
+  } catch (_) {
+    stripe = null;
+  }
+  if (!stripe) return purchases;
+
+  const cache = new Map();
+  return Promise.all(purchases.map(async (p) => {
+    const piId = p && p.stripePaymentIntentId ? p.stripePaymentIntentId : null;
+    if (!piId || p.isSynthetic) {
+      return {
+        ...p,
+        stripeLiveStatus: null,
+        stripeChargeStatus: null,
+        stripeAmountRefundedCents: 0,
+        stripeAmountReceivedCents: null,
+        stripeDashboardUrl: null,
+        stripeReceiptUrl: null,
+        stripeSyncedAt: null
+      };
+    }
+
+    let live = cache.get(piId);
+    if (!live) {
+      try {
+        const pi = await stripe.paymentIntents.retrieve(piId, {
+          expand: ["payment_method", "latest_charge", "customer"]
+        });
+        const charge = pi && pi.latest_charge && typeof pi.latest_charge === "object" ? pi.latest_charge : null;
+        live = {
+          status: deriveStatusFromPaymentIntent(pi, p.status),
+          paymentIntentStatus: pi && pi.status ? String(pi.status) : null,
+          chargeStatus: charge && charge.status ? String(charge.status) : null,
+          refundedCents: Number.isFinite(pi && pi.amount_refunded)
+            ? pi.amount_refunded
+            : (Number.isFinite(charge && charge.amount_refunded) ? charge.amount_refunded : 0),
+          amountReceivedCents: Number.isFinite(pi && pi.amount_received) ? pi.amount_received : null,
+          paymentMethod: resolveDetailedPaymentMethod(pi, p.paymentMethod),
+          dashboardUrl: buildPaymentDashboardUrl(pi),
+          receiptUrl: charge && charge.receipt_url ? String(charge.receipt_url) : null,
+          amountCents: Number.isFinite(pi && pi.amount) ? pi.amount : p.amountCents,
+          currency: pi && typeof pi.currency === "string" ? pi.currency.toUpperCase() : p.currency,
+          customerName: pi.customer && typeof pi.customer === 'object' ? (pi.customer.name || pi.customer.email || null) : null,
+          raw: includeRaw ? { paymentIntent: pi, latestCharge: charge } : null
+        };
+      } catch (_) {
+        live = null;
+      }
+      cache.set(piId, live);
+    }
+
+    if (!live) {
+      return {
+        ...p,
+        stripeLiveStatus: null,
+        stripeChargeStatus: null,
+        stripeAmountRefundedCents: 0,
+        stripeAmountReceivedCents: null,
+        stripeDashboardUrl: null,
+        stripeReceiptUrl: null,
+        stripeSyncedAt: null
+      };
+    }
+
+    if (p.id && (
+      live.status !== p.status ||
+      live.amountCents !== p.amountCents ||
+      String(live.currency || "").toUpperCase() !== String(p.currency || "").toUpperCase()
+    )) {
+      await updateStripePurchaseById(config, p.id, {
+        status: live.status,
+        amount_cents: live.amountCents,
+        currency: live.currency,
+        ...(live.status === "refunded" ? { expires_at: new Date().toISOString() } : {})
+      });
+    }
+
+    return {
+      ...p,
+      status: live.status,
+      amountCents: live.amountCents,
+      currency: live.currency,
+      paymentMethod: live.paymentMethod || p.paymentMethod,
+      stripeLiveStatus: live.paymentIntentStatus,
+      stripeChargeStatus: live.chargeStatus,
+      stripeAmountRefundedCents: live.refundedCents,
+      stripeAmountReceivedCents: live.amountReceivedCents,
+      stripeDashboardUrl: live.dashboardUrl,
+      stripeReceiptUrl: live.receiptUrl,
+      stripeRaw: live.raw,
+      customerName: live.customerName || p.customerName || null,
+      stripeSyncedAt: new Date().toISOString()
+    };
+  }));
+}
+
 exports.handler = async (event) => {
   if (event.httpMethod !== "GET") {
     return json(405, { error: "Method not allowed" });
@@ -97,8 +236,10 @@ exports.handler = async (event) => {
     if (auth.error) return auth.error;
 
     const qs = event.queryStringParameters || {};
+    const requestedStatus = String(qs.status || "").trim().toLowerCase() || null;
+    const includeRaw = String(qs.include_raw || "").trim() === "1";
     const filters = {
-      status: qs.status || undefined,
+      status: undefined,
       programId: qs.program_id || undefined,
       email: qs.email || undefined,
       source: qs.source || undefined,
@@ -124,6 +265,7 @@ exports.handler = async (event) => {
       return {
       id: p.id,
       email: p.email,
+      customerName: p.customer_name || null,
       programId: p.program_id,
       programName: (p.training_programs && p.training_programs.name) || programMap[p.program_id] || "-",
       amountCents: p.amount_cents,
@@ -145,12 +287,16 @@ exports.handler = async (event) => {
       };
     });
 
-    const mapped = await enrichPaymentMethods(config, mappedBase);
+    const mappedWithMethod = await enrichPaymentMethods(config, mappedBase);
+    const mapped = await enrichWithStripeLive(config, mappedWithMethod, { includeRaw });
 
     const channelFilter = (qs.channel || "").trim().toLowerCase();
-    const filtered = channelFilter
+    const byChannel = channelFilter
       ? mapped.filter((p) => p.checkoutChannel === channelFilter)
       : mapped;
+    const filtered = requestedStatus
+      ? byChannel.filter((p) => String(p.status || "").toLowerCase() === requestedStatus)
+      : byChannel;
 
     // KPIs
     const totalSales = filtered.length;

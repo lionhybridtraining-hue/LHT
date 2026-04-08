@@ -9,10 +9,10 @@ function mapAthlete(row) {
     identityId: row.identity_id,
     email: row.email,
     name: row.name,
-    status: row.status,
+    status: row.funnel_stage === "archived" ? "archived" : "active",
     coachIdentityId: row.coach_identity_id || null,
     createdAt: row.created_at || null,
-    updatedAt: row.updated_at || null
+    updatedAt: row.onboarding_updated_at || null
   };
 }
 

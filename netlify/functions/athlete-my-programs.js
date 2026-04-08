@@ -217,6 +217,7 @@ exports.handler = async (event) => {
               id: programMeta.id,
               name: programMeta.name,
               accessModel: programMeta.access_model,
+              classification: programMeta.classification || null,
               durationWeeks: programMeta.duration_weeks,
               billingType: programMeta.billing_type,
               presetSelection: programMeta.preset_selection || 'coach'
@@ -320,6 +321,7 @@ exports.handler = async (event) => {
                 id: programMeta.id,
                 name: programMeta.name,
                 accessModel: programMeta.access_model,
+                classification: programMeta.classification || null,
                 durationWeeks: assignment.duration_weeks || programMeta.duration_weeks,
                 billingType: programMeta.billing_type,
                 presetSelection: programMeta.preset_selection || 'coach'

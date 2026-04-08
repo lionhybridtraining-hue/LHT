@@ -297,6 +297,15 @@ body.auth-locked {
   grid-template-columns: 1fr;
 }
 
+.programs-actions-stack {
+  grid-template-columns: 1fr;
+  width: 100%;
+}
+
+.programs-actions-stack button {
+  width: 100%;
+}
+
 .field-checkbox-card {
   align-content: start;
   padding: 12px 14px;
@@ -1745,6 +1754,43 @@ details[open] .programs-create-summary {
   gap: 10px;
 }
 
+.ops-section {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.02);
+  padding: 14px;
+  margin-bottom: 14px;
+}
+
+.ops-section:last-of-type {
+  margin-bottom: 0;
+}
+
+.ops-section-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.ops-title {
+  margin: 0;
+}
+
+.ops-subtitle {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.ops-inline-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+
 .operations-toolbar button {
   align-self: end;
 }
@@ -2724,6 +2770,85 @@ details[open] .programs-create-summary {
   color: #fff4d8;
 }
 
+.central-lead-row {
+  cursor: pointer;
+}
+
+.central-lead-row:hover {
+  background: rgba(200, 154, 60, 0.08);
+}
+
+.central-lead-row:focus {
+  outline: 2px solid rgba(200, 154, 60, 0.6);
+  outline-offset: -2px;
+}
+
+.lead-details-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 10px;
+}
+
+.lead-details-item {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px;
+  display: grid;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.lead-details-item-full {
+  grid-column: 1 / -1;
+}
+
+.lead-details-pre {
+  margin: 0;
+  max-height: 220px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.lead-timeline-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.lead-timeline-item {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.lead-timeline-item-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.lead-timeline-item-meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 6px;
+  font-size: 0.84rem;
+  color: var(--muted);
+}
+
+.lead-timeline-empty {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
 /* ===== MODO ESSENCIAL ===== */
 .sc-essencial {
   display: flex;
@@ -3081,6 +3206,16 @@ details[open] .sc-ess-summary::before {
 
 .btn-sm.btn-warn:hover {
   background: rgba(200, 154, 60, 0.15);
+}
+
+.btn-sm.btn-neutral {
+  border-color: rgba(120, 120, 160, 0.4);
+  color: var(--ink-soft);
+}
+
+.btn-sm.btn-neutral:hover {
+  background: rgba(120, 120, 160, 0.12);
+  color: var(--ink);
 }
 
 /* Vendas table */

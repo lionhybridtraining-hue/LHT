@@ -350,12 +350,29 @@ window.addEventListener('load', handleScrollIndicator);
     var defaultProgramsUrl = '/programas';
     var featuredProgramId = fp && fp.id ? String(fp.id) : '';
     var featuredCatalogUrl = featuredProgramId ? `${defaultProgramsUrl}?program_id=${encodeURIComponent(featuredProgramId)}` : defaultProgramsUrl;
+    var visual = document.getElementById('fp-visual');
+    var image = document.getElementById('fp-image');
+    var imageUrl = firstDefinedValue([
+      fp && fp.imageUrl ? String(fp.imageUrl).trim() : '',
+      fp && fp.image ? String(fp.image).trim() : ''
+    ], '');
 
     var tagline = document.getElementById('fp-tagline');
     if(tagline) text(tagline, (fp && fp.tagline) || 'Catalogo rapido');
 
     var nameEl = document.getElementById('fp-name');
     if(nameEl) text(nameEl, (fp && fp.name) || 'Programa em destaque LHT');
+
+    if(visual) visual.hidden = !imageUrl;
+    if(image){
+      if(imageUrl){
+        image.src = imageUrl;
+        image.alt = ((fp && fp.name) || 'Programa em destaque LHT') + ' - imagem';
+      } else {
+        image.removeAttribute('src');
+        image.alt = '';
+      }
+    }
 
     var nextDate = document.getElementById('fp-next-date');
     var nextDateWrap = document.getElementById('fp-next-date-wrap');

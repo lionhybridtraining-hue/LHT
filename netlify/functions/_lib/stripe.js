@@ -36,7 +36,8 @@ function toStripePurchaseRecord({
   billingType,
   fallbackEmail,
   source,
-  subscription
+  subscription,
+  customerName
 }) {
   if (!session || !identityId || !programId) {
     throw new Error("session, identityId, and programId are required");
@@ -62,6 +63,9 @@ function toStripePurchaseRecord({
     email: session.customer_details && session.customer_details.email
       ? session.customer_details.email
       : fallbackEmail || null,
+    customer_name: customerName
+      || (session.customer_details && session.customer_details.name)
+      || null,
     amount_cents: Number.isFinite(session.amount_total) ? session.amount_total : 0,
     currency: typeof session.currency === "string" ? session.currency.toUpperCase() : "EUR",
     billing_type: normalizedBillingType,
@@ -78,6 +82,7 @@ function toPaymentIntentPurchaseRecord({
   programId,
   billingType,
   email,
+  customerName,
   source,
   subscriptionId,
   expiresAt
@@ -97,6 +102,7 @@ function toPaymentIntentPurchaseRecord({
     identity_id: identityId,
     program_id: programId,
     email: email || null,
+    customer_name: customerName || null,
     amount_cents: Number.isFinite(paymentIntent.amount) ? paymentIntent.amount : 0,
     currency: typeof paymentIntent.currency === "string" ? paymentIntent.currency.toUpperCase() : "EUR",
     billing_type: normalizedBillingType,

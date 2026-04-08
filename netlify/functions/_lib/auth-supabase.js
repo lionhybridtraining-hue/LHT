@@ -149,10 +149,12 @@ async function getAuthenticatedUser(event, config) {
     if (hasValidClaims) {
       const validSignature = await verifyJWTSignature(token, config);
       if (validSignature) {
+        const meta = claims.user_metadata || {};
         return {
           id: claims.sub,
           sub: claims.sub,
           email: claims.email,
+          name: meta.full_name || meta.name || null,
           aud: claims.aud,
           iat: claims.iat,
           exp: claims.exp,
@@ -166,10 +168,12 @@ async function getAuthenticatedUser(event, config) {
     if (!authUser) return null;
 
     // Retorna user com sub (UUID), email, etc
+    const fbMeta = authUser.user_metadata || (claims ? claims.user_metadata : null) || {};
     return {
       id: authUser.id,
       sub: authUser.id,
       email: authUser.email || null,
+      name: fbMeta.full_name || fbMeta.name || null,
       aud: claims ? claims.aud : null,
       iat: claims ? claims.iat : null,
       exp: claims ? claims.exp : null,

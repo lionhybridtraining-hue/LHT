@@ -8,6 +8,7 @@ create table if not exists leads_central (
     'planocorrida_form',
     'planocorrida_generated',
     'meta_ads',
+    'stripe',
     'coach_landing',
     'onboarding',
     'manual'
@@ -17,6 +18,7 @@ create table if not exists leads_central (
     'planocorrida_form',
     'planocorrida_generated',
     'meta_ads',
+    'stripe',
     'coach_landing',
     'onboarding',
     'manual'
@@ -37,6 +39,7 @@ create table if not exists leads_central (
     'meta_received',
     'onboarding_submitted',
     'plan_generated',
+    'app_installed',
     'coach_application',
     'qualified',
     'converted',

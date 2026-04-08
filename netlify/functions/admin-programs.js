@@ -12,6 +12,9 @@ const { createStripeProductAndPrice, createPriceForProduct, getStripeClient, syn
 const DEFAULT_EXTERNAL_SOURCE = "lht";
 const MAX_EXTERNAL_ID_LENGTH = 64;
 const MONTH_TOKENS_PT = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
+const PROGRAM_CLASSIFICATION_CATEGORIES = new Set(["hybrid", "endurance", "strength", "mobility", "skill", "recovery", "other"]);
+const PROGRAM_TRAINING_COMPONENTS = new Set(["strength", "endurance", "mobility", "skill", "recovery"]);
+const PROGRAM_EXPERIENCE_LEVELS = new Set(["beginner", "intermediate", "advanced"]);
 
 function normalizeExternalSource(value) {
   return String(value || DEFAULT_EXTERNAL_SOURCE).trim().toLowerCase() || DEFAULT_EXTERNAL_SOURCE;
@@ -26,6 +29,138 @@ function normalizeFreeText(value) {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .trim();
+}
+
+function slugifyProgramTag(value) {
+  const normalized = normalizeFreeText(value)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .replace(/_+/g, "_");
+  return normalized || null;
+}
+
+function normalizeStringArrayInput(value, { allowedValues = null } = {}) {
+  const list = Array.isArray(value)
+    ? value
+    : String(value || "")
+      .split(/[\n,;]+/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+
+  const result = [];
+  const seen = new Set();
+  list.forEach((item) => {
+    const normalized = slugifyProgramTag(item);
+    if (!normalized) return;
+    if (allowedValues && !allowedValues.has(normalized)) {
+      throw new Error(`Invalid classification value: ${item}`);
+    }
+    if (seen.has(normalized)) return;
+    seen.add(normalized);
+    result.push(normalized);
+  });
+  return result;
+}
+
+function normalizeExperienceLevel(value, fieldName) {
+  if (value == null || value === "") return null;
+  const normalized = slugifyProgramTag(value);
+  if (!normalized || !PROGRAM_EXPERIENCE_LEVELS.has(normalized)) {
+    throw new Error(`${fieldName} must be beginner, intermediate or advanced`);
+  }
+  return normalized;
+}
+
+function normalizeClassificationExperienceByModality(value) {
+  if (value == null || value === "") return null;
+  if (typeof value !== "object" || Array.isArray(value)) {
+    throw new Error("classification.experienceLevel.byModality must be an object");
+  }
+
+  const result = {};
+  Object.entries(value).forEach(([modalityKey, levelValue]) => {
+    const modality = slugifyProgramTag(modalityKey);
+    if (!modality) return;
+    const levelsRaw = Array.isArray(levelValue) ? levelValue : [levelValue];
+    const levels = [];
+    levelsRaw.forEach((entry) => {
+      const normalized = normalizeExperienceLevel(entry, `classification.experienceLevel.byModality.${modality}`);
+      if (normalized && !levels.includes(normalized)) {
+        levels.push(normalized);
+      }
+    });
+    if (levels.length === 1) {
+      result[modality] = levels[0];
+    } else if (levels.length > 1) {
+      result[modality] = levels;
+    }
+  });
+
+  return Object.keys(result).length ? result : null;
+}
+
+function normalizeProgramClassification(value) {
+  if (value == null || value === "") return null;
+  if (typeof value !== "object" || Array.isArray(value)) {
+    throw new Error("classification must be an object");
+  }
+
+  const primaryCategory = value.primaryCategory == null
+    ? null
+    : slugifyProgramTag(value.primaryCategory);
+  if (primaryCategory && !PROGRAM_CLASSIFICATION_CATEGORIES.has(primaryCategory)) {
+    throw new Error("classification.primaryCategory must be one of hybrid, endurance, strength, mobility, skill, recovery or other");
+  }
+
+  const secondaryCategories = normalizeStringArrayInput(value.secondaryCategories, {
+    allowedValues: PROGRAM_CLASSIFICATION_CATEGORIES
+  });
+  const trainingComponents = normalizeStringArrayInput(value.trainingComponents, {
+    allowedValues: PROGRAM_TRAINING_COMPONENTS
+  });
+  const modalities = normalizeStringArrayInput(value.modalities);
+  const automationTags = normalizeStringArrayInput(value.automationTags);
+  const overallExperienceLevel = normalizeExperienceLevel(
+    value.experienceLevel && value.experienceLevel.overall,
+    "classification.experienceLevel.overall"
+  );
+  const experienceByModality = normalizeClassificationExperienceByModality(
+    value.experienceLevel && value.experienceLevel.byModality
+  );
+  const normalizedModalities = [...modalities];
+  Object.keys(experienceByModality || {}).forEach((modality) => {
+    if (!normalizedModalities.includes(modality)) {
+      normalizedModalities.push(modality);
+    }
+  });
+
+  const notes = value.notes == null ? null : String(value.notes).trim() || null;
+  const classification = {
+    primaryCategory,
+    secondaryCategories,
+    trainingComponents,
+    modalities: normalizedModalities,
+    experienceLevel: {
+      overall: overallExperienceLevel,
+      byModality: experienceByModality || {}
+    },
+    automationTags,
+    notes
+  };
+
+  const hasValue = Boolean(
+    classification.primaryCategory
+    || classification.secondaryCategories.length
+    || classification.trainingComponents.length
+    || classification.modalities.length
+    || classification.experienceLevel.overall
+    || Object.keys(classification.experienceLevel.byModality).length
+    || classification.automationTags.length
+    || classification.notes
+  );
+
+  return hasValue ? classification : null;
 }
 
 function parseIsoDate(value, fieldName) {
@@ -216,6 +351,7 @@ function normalizeProgramPayload(payload) {
     ? paymentModelRaw
     : (billingType === "recurring" ? "recurring" : "single");
   const status = (payload.status || "draft").toString().trim().toLowerCase();
+  const classification = normalizeProgramClassification(payload.classification);
   const eventIdRaw = payload.eventId == null ? payload.event_id : payload.eventId;
   const eventId = eventIdRaw == null ? null : eventIdRaw.toString().trim() || null;
   const startDateRaw = payload.startDate == null ? payload.start_date : payload.startDate;
@@ -258,6 +394,7 @@ function normalizeProgramPayload(payload) {
     technical_description: technicalDescription,
     description,
     image_url: imageUrl,
+    classification,
     duration_weeks: durationWeeks,
     price_cents: priceCents,
     recurring_price_monthly_cents: recurringPriceMonthlyCents,
@@ -289,6 +426,7 @@ function mapProgram(row) {
     technicalDescription: row.technical_description || null,
     description: row.description,
     imageUrl: row.image_url || null,
+    classification: row.classification || null,
     durationWeeks: row.duration_weeks,
     priceCents: row.price_cents,
     recurringPriceMonthlyCents: row.recurring_price_monthly_cents == null ? null : row.recurring_price_monthly_cents,
@@ -400,9 +538,11 @@ exports.handler = async (event) => {
 
       const rows = await listTrainingPrograms(config);
       const recurringPricingSchemaReady = !(Array.isArray(rows) && rows.__legacyRecurringSchema === true);
+      const classificationSchemaReady = !(Array.isArray(rows) && rows.__legacyClassificationSchema === true);
       return json(200, {
         programs: Array.isArray(rows) ? rows.map(mapProgram) : [],
-        recurringPricingSchemaReady
+        recurringPricingSchemaReady,
+        classificationSchemaReady
       });
     }
 
@@ -531,6 +671,13 @@ exports.handler = async (event) => {
       if (dbPatch.imageUrl !== undefined) {
         dbPatch.image_url = dbPatch.imageUrl == null ? null : String(dbPatch.imageUrl).trim() || null;
         delete dbPatch.imageUrl;
+      }
+      if (dbPatch.classification !== undefined) {
+        try {
+          dbPatch.classification = normalizeProgramClassification(dbPatch.classification);
+        } catch (err) {
+          return json(400, { error: err.message || "Invalid classification" });
+        }
       }
       if (dbPatch.durationWeeks !== undefined) {
         const value = Number(dbPatch.durationWeeks);

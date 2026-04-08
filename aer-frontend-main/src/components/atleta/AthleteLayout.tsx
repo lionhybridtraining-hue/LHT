@@ -2,6 +2,11 @@ import { useEffect, useState } from "react";
 import { Outlet, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { supabase, enforceSessionMaxAge } from "@/lib/supabase";
 import { fetchAthleteProfile } from "@/services/athlete-profile";
+import {
+  hasRecordedLoginInSession,
+  markLoginRecordedInSession,
+  recordLoginEvent,
+} from "@/services/login-tracking";
 import { BottomNavProvider, useBottomNav } from "@/contexts/BottomNavContext";
 import type { Session } from "@supabase/supabase-js";
 
@@ -58,6 +63,29 @@ export default function AthleteLayout() {
     check();
     return () => { mounted = false; };
   }, [session]);
+
+  // ── Login retention tracking (once per browser session and user) ──
+  useEffect(() => {
+    const userId = session?.user?.id;
+    if (!userId) return;
+    if (hasRecordedLoginInSession(userId)) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        await recordLoginEvent();
+        if (!cancelled) {
+          markLoginRecordedInSession(userId);
+        }
+      } catch (error) {
+        console.warn("Nao foi possivel registar login para analytics:", error);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [session?.user?.id]);
 
   // ── Redirect to perfil if profile incomplete (unless already on perfil or from legacy flow) ──
   useEffect(() => {

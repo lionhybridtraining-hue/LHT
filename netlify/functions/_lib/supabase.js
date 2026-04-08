@@ -1081,7 +1081,7 @@ async function listAllAthletesForAdmin(config) {
   return supabaseRequest({
     url: config.supabaseUrl,
     serviceRoleKey: config.supabaseServiceRoleKey,
-    path: "athletes?select=id,name,email,identity_id,coach_identity_id,created_at&order=created_at.desc&limit=500"
+    path: "athletes?select=id,name,email,identity_id,coach_identity_id,created_at,funnel_stage&or=(funnel_stage.is.null,funnel_stage.neq.archived)&order=created_at.desc&limit=500"
   });
 }
 
@@ -1126,7 +1126,7 @@ async function archiveAthlete(config, athleteId) {
     serviceRoleKey: config.supabaseServiceRoleKey,
     path: `athletes?id=eq.${encodeURIComponent(athleteId)}`,
     method: "PATCH",
-    body: { status: "archived", updated_at: new Date().toISOString() },
+    body: { funnel_stage: "archived" },
     prefer: "return=representation"
   });
   return Array.isArray(rows) ? rows[0] || null : null;
@@ -1307,20 +1307,28 @@ function isMissingTrainingProgramsColumnError(err) {
   return message.includes("column training_programs.") && message.includes("does not exist");
 }
 
-function markLegacyRecurringSchema(value) {
+function markTrainingProgramsSchemaFlag(value, flagName) {
   if (!value || (typeof value !== "object" && !Array.isArray(value))) {
     return value;
   }
   try {
-    Object.defineProperty(value, "__legacyRecurringSchema", {
+    Object.defineProperty(value, flagName, {
       value: true,
       enumerable: false,
       configurable: true
     });
   } catch (_) {
-    value.__legacyRecurringSchema = true;
+    value[flagName] = true;
   }
   return value;
+}
+
+function markLegacyRecurringSchema(value) {
+  return markTrainingProgramsSchemaFlag(value, "__legacyRecurringSchema");
+}
+
+function markLegacyProgramClassificationSchema(value) {
+  return markTrainingProgramsSchemaFlag(value, "__legacyClassificationSchema");
 }
 
 function stripRecurringPricingProgramPayload(payload) {
@@ -1332,6 +1340,13 @@ function stripRecurringPricingProgramPayload(payload) {
   delete sanitized.stripe_price_id_monthly;
   delete sanitized.stripe_price_id_quarterly;
   delete sanitized.stripe_price_id_annual;
+  return sanitized;
+}
+
+function stripProgramClassificationPayload(payload) {
+  if (!payload || typeof payload !== "object") return payload;
+  const sanitized = { ...payload };
+  delete sanitized.classification;
   return sanitized;
 }
 
@@ -1349,6 +1364,17 @@ function payloadHasRecurringPricingFields(payload) {
   );
 }
 
+function payloadHasProgramClassificationFields(payload) {
+  if (!payload || typeof payload !== "object") return false;
+  return payload.classification != null;
+}
+
+function buildProgramClassificationSchemaMissingError() {
+  const error = new Error("Program classification indisponivel nesta base de dados. Executa scripts/migration-program-classification.sql primeiro.");
+  error.status = 400;
+  return error;
+}
+
 function buildRecurringSchemaMissingError() {
   const err = new Error("A base de dados ainda nao tem as colunas de recorrencia em training_programs. Aplica a migracao de recorrencia antes de usar billing recurring.");
   err.status = 409;
@@ -1358,7 +1384,7 @@ function buildRecurringSchemaMissingError() {
 
 async function listTrainingPrograms(config) {
   const eventSelect = "id,name,event_date,event_location,event_description,calendar_visible,calendar_highlight_rank,created_at,updated_at";
-  const programSelect = `id,external_source,external_id,name,commercial_description,technical_description,description,image_url,duration_weeks,price_cents,recurring_price_monthly_cents,recurring_price_quarterly_cents,recurring_price_annual_cents,currency,stripe_product_id,stripe_price_id,stripe_price_id_monthly,stripe_price_id_quarterly,stripe_price_id_annual,billing_type,status,access_model,preset_selection,default_coach_identity_id,event_id,start_date,event:training_events(${eventSelect}),created_at,updated_at`;
+  const programSelect = `id,external_source,external_id,name,commercial_description,technical_description,description,image_url,classification,duration_weeks,price_cents,recurring_price_monthly_cents,recurring_price_quarterly_cents,recurring_price_annual_cents,currency,stripe_product_id,stripe_price_id,stripe_price_id_monthly,stripe_price_id_quarterly,stripe_price_id_annual,billing_type,status,access_model,preset_selection,default_coach_identity_id,event_id,start_date,event:training_events(${eventSelect}),created_at,updated_at`;
   try {
     return await supabaseRequest({
       url: config.supabaseUrl,
@@ -1370,13 +1396,28 @@ async function listTrainingPrograms(config) {
       throw err;
     }
 
-    const legacyProgramSelect = `id,external_source,external_id,name,commercial_description,technical_description,description,image_url,duration_weeks,price_cents,currency,stripe_product_id,stripe_price_id,status,event_id,start_date,event:training_events(${eventSelect}),created_at,updated_at`;
-    const rows = await supabaseRequest({
-      url: config.supabaseUrl,
-      serviceRoleKey: config.supabaseServiceRoleKey,
-      path: `training_programs?deleted_at=is.null&select=${encodeURIComponent(legacyProgramSelect)}&order=created_at.desc`
-    });
-    return markLegacyRecurringSchema(rows);
+    const classificationFallbackSelect = `id,external_source,external_id,name,commercial_description,technical_description,description,image_url,duration_weeks,price_cents,recurring_price_monthly_cents,recurring_price_quarterly_cents,recurring_price_annual_cents,currency,stripe_product_id,stripe_price_id,stripe_price_id_monthly,stripe_price_id_quarterly,stripe_price_id_annual,billing_type,status,access_model,preset_selection,default_coach_identity_id,event_id,start_date,event:training_events(${eventSelect}),created_at,updated_at`;
+    try {
+      const rows = await supabaseRequest({
+        url: config.supabaseUrl,
+        serviceRoleKey: config.supabaseServiceRoleKey,
+        path: `training_programs?deleted_at=is.null&select=${encodeURIComponent(classificationFallbackSelect)}&order=created_at.desc`
+      });
+      return markLegacyProgramClassificationSchema(rows);
+    } catch (classificationErr) {
+      if (!isMissingTrainingProgramsColumnError(classificationErr)) {
+        throw classificationErr;
+      }
+
+      const legacyProgramSelect = `id,external_source,external_id,name,commercial_description,technical_description,description,image_url,duration_weeks,price_cents,currency,stripe_product_id,stripe_price_id,status,event_id,start_date,event:training_events(${eventSelect}),created_at,updated_at`;
+      const rows = await supabaseRequest({
+        url: config.supabaseUrl,
+        serviceRoleKey: config.supabaseServiceRoleKey,
+        path: `training_programs?deleted_at=is.null&select=${encodeURIComponent(legacyProgramSelect)}&order=created_at.desc`
+      });
+      markLegacyProgramClassificationSchema(rows);
+      return markLegacyRecurringSchema(rows);
+    }
   }
 }
 
@@ -1437,11 +1478,14 @@ async function createTrainingProgram(config, payload) {
     if (!isMissingTrainingProgramsColumnError(err)) {
       throw err;
     }
+    if (payloadHasProgramClassificationFields(payload)) {
+      throw buildProgramClassificationSchemaMissingError();
+    }
     if (payloadHasRecurringPricingFields(payload)) {
       throw buildRecurringSchemaMissingError();
     }
 
-    const fallbackPayload = stripRecurringPricingProgramPayload(payload);
+    const fallbackPayload = stripRecurringPricingProgramPayload(stripProgramClassificationPayload(payload));
     const rows = await supabaseRequest({
       url: config.supabaseUrl,
       serviceRoleKey: config.supabaseServiceRoleKey,
@@ -1469,11 +1513,14 @@ async function updateTrainingProgram(config, id, patch) {
     if (!isMissingTrainingProgramsColumnError(err)) {
       throw err;
     }
+    if (payloadHasProgramClassificationFields(patch)) {
+      throw buildProgramClassificationSchemaMissingError();
+    }
     if (payloadHasRecurringPricingFields(patch)) {
       throw buildRecurringSchemaMissingError();
     }
 
-    const fallbackPatch = stripRecurringPricingProgramPayload(patch);
+    const fallbackPatch = stripRecurringPricingProgramPayload(stripProgramClassificationPayload(patch));
     const rows = await supabaseRequest({
       url: config.supabaseUrl,
       serviceRoleKey: config.supabaseServiceRoleKey,
@@ -1488,7 +1535,7 @@ async function updateTrainingProgram(config, id, patch) {
 
 async function getTrainingProgramById(config, id) {
   const eventSelect = "id,name,event_date,event_location,event_description,calendar_visible,calendar_highlight_rank,created_at,updated_at";
-  const programSelect = `id,external_source,external_id,name,commercial_description,technical_description,description,image_url,duration_weeks,price_cents,recurring_price_monthly_cents,recurring_price_quarterly_cents,recurring_price_annual_cents,currency,status,access_model,preset_selection,default_coach_identity_id,stripe_product_id,stripe_price_id,stripe_price_id_monthly,stripe_price_id_quarterly,stripe_price_id_annual,billing_type,event_id,start_date,event:training_events(${eventSelect}),created_at,updated_at`;
+  const programSelect = `id,external_source,external_id,name,commercial_description,technical_description,description,image_url,classification,duration_weeks,price_cents,recurring_price_monthly_cents,recurring_price_quarterly_cents,recurring_price_annual_cents,currency,status,access_model,preset_selection,default_coach_identity_id,stripe_product_id,stripe_price_id,stripe_price_id_monthly,stripe_price_id_quarterly,stripe_price_id_annual,billing_type,event_id,start_date,event:training_events(${eventSelect}),created_at,updated_at`;
   try {
     const rows = await supabaseRequest({
       url: config.supabaseUrl,
@@ -1501,31 +1548,80 @@ async function getTrainingProgramById(config, id) {
       throw err;
     }
 
-    const legacyProgramSelect = `id,external_source,external_id,name,commercial_description,technical_description,description,image_url,duration_weeks,price_cents,currency,status,stripe_product_id,stripe_price_id,event_id,start_date,event:training_events(${eventSelect}),created_at,updated_at`;
-    const rows = await supabaseRequest({
-      url: config.supabaseUrl,
-      serviceRoleKey: config.supabaseServiceRoleKey,
-      path: `training_programs?id=eq.${encodeURIComponent(id)}&deleted_at=is.null&select=${encodeURIComponent(legacyProgramSelect)}&limit=1`
-    });
-    const row = Array.isArray(rows) ? rows[0] || null : null;
-    return row ? markLegacyRecurringSchema(row) : null;
+    const classificationFallbackSelect = `id,external_source,external_id,name,commercial_description,technical_description,description,image_url,duration_weeks,price_cents,recurring_price_monthly_cents,recurring_price_quarterly_cents,recurring_price_annual_cents,currency,status,access_model,preset_selection,default_coach_identity_id,stripe_product_id,stripe_price_id,stripe_price_id_monthly,stripe_price_id_quarterly,stripe_price_id_annual,billing_type,event_id,start_date,event:training_events(${eventSelect}),created_at,updated_at`;
+    try {
+      const rows = await supabaseRequest({
+        url: config.supabaseUrl,
+        serviceRoleKey: config.supabaseServiceRoleKey,
+        path: `training_programs?id=eq.${encodeURIComponent(id)}&deleted_at=is.null&select=${encodeURIComponent(classificationFallbackSelect)}&limit=1`
+      });
+      const row = Array.isArray(rows) ? rows[0] || null : null;
+      return row ? markLegacyProgramClassificationSchema(row) : null;
+    } catch (classificationErr) {
+      if (!isMissingTrainingProgramsColumnError(classificationErr)) {
+        throw classificationErr;
+      }
+
+      const legacyProgramSelect = `id,external_source,external_id,name,commercial_description,technical_description,description,image_url,duration_weeks,price_cents,currency,status,stripe_product_id,stripe_price_id,event_id,start_date,event:training_events(${eventSelect}),created_at,updated_at`;
+      const rows = await supabaseRequest({
+        url: config.supabaseUrl,
+        serviceRoleKey: config.supabaseServiceRoleKey,
+        path: `training_programs?id=eq.${encodeURIComponent(id)}&deleted_at=is.null&select=${encodeURIComponent(legacyProgramSelect)}&limit=1`
+      });
+      const row = Array.isArray(rows) ? rows[0] || null : null;
+      if (!row) return null;
+      markLegacyProgramClassificationSchema(row);
+      return markLegacyRecurringSchema(row);
+    }
   }
 }
 
 async function getTrainingProgramByExternalId(config, externalId) {
   const eventSelect = "id,name,event_date,event_location,event_description,calendar_visible,calendar_highlight_rank,created_at,updated_at";
-  const programSelect = `id,external_source,external_id,name,commercial_description,technical_description,description,image_url,duration_weeks,price_cents,recurring_price_monthly_cents,recurring_price_quarterly_cents,recurring_price_annual_cents,currency,status,access_model,preset_selection,stripe_product_id,stripe_price_id,stripe_price_id_monthly,stripe_price_id_quarterly,stripe_price_id_annual,billing_type,event_id,start_date,event:training_events(${eventSelect}),created_at,updated_at`;
-  const rows = await supabaseRequest({
-    url: config.supabaseUrl,
-    serviceRoleKey: config.supabaseServiceRoleKey,
-    path: `training_programs?external_id=eq.${encodeURIComponent(externalId)}&deleted_at=is.null&select=${encodeURIComponent(programSelect)}&limit=1`
-  });
-  return Array.isArray(rows) ? rows[0] || null : null;
+  const programSelect = `id,external_source,external_id,name,commercial_description,technical_description,description,image_url,classification,duration_weeks,price_cents,recurring_price_monthly_cents,recurring_price_quarterly_cents,recurring_price_annual_cents,currency,status,access_model,preset_selection,stripe_product_id,stripe_price_id,stripe_price_id_monthly,stripe_price_id_quarterly,stripe_price_id_annual,billing_type,event_id,start_date,event:training_events(${eventSelect}),created_at,updated_at`;
+  try {
+    const rows = await supabaseRequest({
+      url: config.supabaseUrl,
+      serviceRoleKey: config.supabaseServiceRoleKey,
+      path: `training_programs?external_id=eq.${encodeURIComponent(externalId)}&deleted_at=is.null&select=${encodeURIComponent(programSelect)}&limit=1`
+    });
+    return Array.isArray(rows) ? rows[0] || null : null;
+  } catch (err) {
+    if (!isMissingTrainingProgramsColumnError(err)) {
+      throw err;
+    }
+
+    const classificationFallbackSelect = `id,external_source,external_id,name,commercial_description,technical_description,description,image_url,duration_weeks,price_cents,recurring_price_monthly_cents,recurring_price_quarterly_cents,recurring_price_annual_cents,currency,status,access_model,preset_selection,stripe_product_id,stripe_price_id,stripe_price_id_monthly,stripe_price_id_quarterly,stripe_price_id_annual,billing_type,event_id,start_date,event:training_events(${eventSelect}),created_at,updated_at`;
+    try {
+      const rows = await supabaseRequest({
+        url: config.supabaseUrl,
+        serviceRoleKey: config.supabaseServiceRoleKey,
+        path: `training_programs?external_id=eq.${encodeURIComponent(externalId)}&deleted_at=is.null&select=${encodeURIComponent(classificationFallbackSelect)}&limit=1`
+      });
+      const row = Array.isArray(rows) ? rows[0] || null : null;
+      return row ? markLegacyProgramClassificationSchema(row) : null;
+    } catch (classificationErr) {
+      if (!isMissingTrainingProgramsColumnError(classificationErr)) {
+        throw classificationErr;
+      }
+
+      const legacyProgramSelect = `id,external_source,external_id,name,commercial_description,technical_description,description,image_url,duration_weeks,price_cents,currency,status,stripe_product_id,stripe_price_id,event_id,start_date,event:training_events(${eventSelect}),created_at,updated_at`;
+      const rows = await supabaseRequest({
+        url: config.supabaseUrl,
+        serviceRoleKey: config.supabaseServiceRoleKey,
+        path: `training_programs?external_id=eq.${encodeURIComponent(externalId)}&deleted_at=is.null&select=${encodeURIComponent(legacyProgramSelect)}&limit=1`
+      });
+      const row = Array.isArray(rows) ? rows[0] || null : null;
+      if (!row) return null;
+      markLegacyProgramClassificationSchema(row);
+      return markLegacyRecurringSchema(row);
+    }
+  }
 }
 
 async function listPublicTrainingPrograms(config) {
   const eventSelect = "id,name,event_date,event_location,event_description,calendar_visible,calendar_highlight_rank,created_at,updated_at";
-  const programSelect = `id,external_id,name,commercial_description,technical_description,description,image_url,duration_weeks,price_cents,recurring_price_monthly_cents,recurring_price_quarterly_cents,recurring_price_annual_cents,currency,billing_type,access_model,payment_model,event_id,start_date,event:training_events(${eventSelect}),created_at,updated_at`;
+  const programSelect = `id,external_id,name,commercial_description,technical_description,description,image_url,classification,duration_weeks,price_cents,recurring_price_monthly_cents,recurring_price_quarterly_cents,recurring_price_annual_cents,currency,billing_type,access_model,payment_model,event_id,start_date,event:training_events(${eventSelect}),created_at,updated_at`;
   try {
     return await supabaseRequest({
       url: config.supabaseUrl,
@@ -1537,13 +1633,28 @@ async function listPublicTrainingPrograms(config) {
       throw err;
     }
 
-    const legacyProgramSelect = `id,external_id,name,commercial_description,technical_description,description,image_url,duration_weeks,price_cents,currency,event_id,start_date,event:training_events(${eventSelect}),created_at,updated_at`;
-    const rows = await supabaseRequest({
-      url: config.supabaseUrl,
-      serviceRoleKey: config.supabaseServiceRoleKey,
-      path: `training_programs?deleted_at=is.null&status=eq.active&select=${encodeURIComponent(legacyProgramSelect)}&order=price_cents.asc,created_at.asc`
-    });
-    return markLegacyRecurringSchema(rows);
+    const classificationFallbackSelect = `id,external_id,name,commercial_description,technical_description,description,image_url,duration_weeks,price_cents,recurring_price_monthly_cents,recurring_price_quarterly_cents,recurring_price_annual_cents,currency,billing_type,access_model,payment_model,event_id,start_date,event:training_events(${eventSelect}),created_at,updated_at`;
+    try {
+      const rows = await supabaseRequest({
+        url: config.supabaseUrl,
+        serviceRoleKey: config.supabaseServiceRoleKey,
+        path: `training_programs?deleted_at=is.null&status=eq.active&select=${encodeURIComponent(classificationFallbackSelect)}&order=price_cents.asc,created_at.asc`
+      });
+      return markLegacyProgramClassificationSchema(rows);
+    } catch (classificationErr) {
+      if (!isMissingTrainingProgramsColumnError(classificationErr)) {
+        throw classificationErr;
+      }
+
+      const legacyProgramSelect = `id,external_id,name,commercial_description,technical_description,description,image_url,duration_weeks,price_cents,currency,event_id,start_date,event:training_events(${eventSelect}),created_at,updated_at`;
+      const rows = await supabaseRequest({
+        url: config.supabaseUrl,
+        serviceRoleKey: config.supabaseServiceRoleKey,
+        path: `training_programs?deleted_at=is.null&status=eq.active&select=${encodeURIComponent(legacyProgramSelect)}&order=price_cents.asc,created_at.asc`
+      });
+      markLegacyProgramClassificationSchema(rows);
+      return markLegacyRecurringSchema(rows);
+    }
   }
 }
 
@@ -1666,7 +1777,6 @@ async function upsertStripePurchaseByPaymentIntentId(config, payload) {
   if (!payload || !payload.stripe_payment_intent_id) {
     throw new Error("stripe_payment_intent_id is required for payment intent upsert");
   }
-
   const existing = await getStripePurchaseByPaymentIntentId(config, payload.stripe_payment_intent_id);
   if (existing && existing.id) {
     return updateStripePurchaseById(config, existing.id, payload);
@@ -2023,8 +2133,108 @@ async function listCentralLeads(config, {
   });
 }
 
+function isMissingCentralLeadEventsTableError(err) {
+  const message = String(err && err.message ? err.message : "").toLowerCase();
+  return message.includes("leads_central_events") && (message.includes("does not exist") || message.includes("relation"));
+}
+
+async function appendCentralLeadEvent(config, {
+  leadId,
+  source,
+  eventType,
+  activityType,
+  funnelStage,
+  leadStatus,
+  eventAt,
+  actor,
+  payload
+} = {}) {
+  if (!leadId) return null;
+  const row = {
+    lead_id: leadId,
+    source: source || null,
+    event_type: eventType || "lead_update",
+    activity_type: activityType || null,
+    funnel_stage: funnelStage || null,
+    lead_status: leadStatus || null,
+    event_at: eventAt || new Date().toISOString(),
+    actor: actor || null,
+    payload: payload && typeof payload === "object" ? payload : {}
+  };
+
+  try {
+    const rows = await supabaseRequest({
+      url: config.supabaseUrl,
+      serviceRoleKey: config.supabaseServiceRoleKey,
+      path: "leads_central_events",
+      method: "POST",
+      body: [row],
+      prefer: "return=representation"
+    });
+    return Array.isArray(rows) ? rows[0] || null : null;
+  } catch (err) {
+    if (isMissingCentralLeadEventsTableError(err)) {
+      return null;
+    }
+    throw err;
+  }
+}
+
+async function listCentralLeadEvents(config, { leadId, limit = 30 } = {}) {
+  if (!leadId) return [];
+  const clampedLimit = Number.isFinite(Number(limit))
+    ? Math.max(1, Math.min(200, Math.floor(Number(limit))))
+    : 30;
+
+  try {
+    const rows = await supabaseRequest({
+      url: config.supabaseUrl,
+      serviceRoleKey: config.supabaseServiceRoleKey,
+      path: `leads_central_events?lead_id=eq.${encodeURIComponent(leadId)}&select=id,lead_id,source,event_type,activity_type,funnel_stage,lead_status,event_at,actor,payload,created_at&order=event_at.desc,created_at.desc&limit=${clampedLimit}`
+    });
+    return Array.isArray(rows) ? rows : [];
+  } catch (err) {
+    if (isMissingCentralLeadEventsTableError(err)) {
+      return [];
+    }
+    throw err;
+  }
+}
+
+async function createCentralLead(config, payload) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: "leads_central",
+    method: "POST",
+    body: [payload],
+    prefer: "return=representation"
+  });
+  const created = Array.isArray(rows) ? rows[0] || null : null;
+  if (created && created.id) {
+    await appendCentralLeadEvent(config, {
+      leadId: created.id,
+      source: created.last_source || created.source || payload.source || null,
+      eventType: payload.last_activity_type || "manual_create",
+      activityType: payload.last_activity_type || null,
+      funnelStage: created.funnel_stage || null,
+      leadStatus: created.lead_status || null,
+      eventAt: payload.last_activity_at || created.updated_at || created.created_at,
+      actor: "admin",
+      payload: {
+        mode: "create",
+        sourceRefId: payload.source_ref_id || null,
+        fullName: payload.full_name || null,
+        email: payload.email || null,
+        phone: payload.phone || null
+      }
+    });
+  }
+  return rows;
+}
+
 async function updateCentralLead(config, id, patch) {
-  return supabaseRequest({
+  const rows = await supabaseRequest({
     url: config.supabaseUrl,
     serviceRoleKey: config.supabaseServiceRoleKey,
     path: `leads_central?id=eq.${encodeURIComponent(id)}`,
@@ -2035,6 +2245,24 @@ async function updateCentralLead(config, id, patch) {
     },
     prefer: "return=representation"
   });
+  const updated = Array.isArray(rows) ? rows[0] || null : null;
+  if (updated && updated.id) {
+    await appendCentralLeadEvent(config, {
+      leadId: updated.id,
+      source: updated.last_source || updated.source || null,
+      eventType: "admin_update",
+      activityType: "admin_patch",
+      funnelStage: updated.funnel_stage || null,
+      leadStatus: updated.lead_status || null,
+      eventAt: updated.updated_at || new Date().toISOString(),
+      actor: "admin",
+      payload: {
+        mode: "patch",
+        patch
+      }
+    });
+  }
+  return rows;
 }
 
 async function listAiPrompts(config, { feature, type } = {}) {
@@ -2714,7 +2942,7 @@ async function getStripePurchasesForIdentity(config, identityId) {
   const rows = await supabaseRequest({
     url: config.supabaseUrl,
     serviceRoleKey: config.supabaseServiceRoleKey,
-    path: `stripe_purchases?identity_id=eq.${encodeURIComponent(identityId)}&select=*,training_programs(id,name,access_model,duration_weeks,billing_type)&or=(status.eq.paid,and(status.eq.payment_failed,grace_period_ends_at.gt.${encodeURIComponent(now)}))&order=created_at.desc`
+    path: `stripe_purchases?identity_id=eq.${encodeURIComponent(identityId)}&select=*,training_programs(id,name,access_model,duration_weeks,billing_type,classification)&or=(status.eq.paid,and(status.eq.payment_failed,grace_period_ends_at.gt.${encodeURIComponent(now)}))&order=created_at.desc`
   });
   return Array.isArray(rows) ? rows : [];
 }
@@ -2732,7 +2960,7 @@ async function getActiveAssignmentsForAthlete(config, athleteId) {
   const rows = await supabaseRequest({
     url: config.supabaseUrl,
     serviceRoleKey: config.supabaseServiceRoleKey,
-    path: `program_assignments?athlete_id=eq.${encodeURIComponent(athleteId)}&status=in.(active,scheduled,paused)&select=id,athlete_id,coach_id,training_program_id,start_date,duration_weeks,computed_end_date,status,selected_preset_id,created_at,training_program:training_programs(id,name,access_model,duration_weeks,billing_type,preset_selection)&order=created_at.desc`
+    path: `program_assignments?athlete_id=eq.${encodeURIComponent(athleteId)}&status=in.(active,scheduled,paused)&select=id,athlete_id,coach_id,training_program_id,start_date,duration_weeks,computed_end_date,status,selected_preset_id,created_at,training_program:training_programs(id,name,access_model,duration_weeks,billing_type,preset_selection,classification)&order=created_at.desc`
   });
   return Array.isArray(rows) ? rows : [];
 }
@@ -3088,10 +3316,11 @@ async function upsertCentralLead(config, {
     landing_submitted: 1,
     onboarding_submitted: 2,
     plan_generated: 3,
-    coach_application: 4,
-    qualified: 5,
-    converted: 6,
-    disqualified: 7
+    app_installed: 4,
+    coach_application: 5,
+    qualified: 6,
+    converted: 7,
+    disqualified: 8
   };
   const existingRank = funnelRank[existing && existing.funnel_stage] || 0;
   const incomingRank = funnelRank[funnelStage] || 0;
@@ -3127,7 +3356,27 @@ async function upsertCentralLead(config, {
       body: row,
       prefer: 'return=representation'
     });
-    return Array.isArray(updated) ? updated[0] || null : null;
+    const updatedLead = Array.isArray(updated) ? updated[0] || null : null;
+    if (updatedLead && updatedLead.id) {
+      await appendCentralLeadEvent(config, {
+        leadId: updatedLead.id,
+        source: updatedLead.last_source || updatedLead.source || source || null,
+        eventType: lastActivityType || 'lead_update',
+        activityType: lastActivityType || null,
+        funnelStage: updatedLead.funnel_stage || null,
+        leadStatus: updatedLead.lead_status || null,
+        eventAt: now,
+        actor: source === 'manual' ? 'admin' : 'system',
+        payload: {
+          mode: 'upsert_update',
+          sourceRefId: sourceRefId || null,
+          identityId: identityId || null,
+          email: emailNorm || null,
+          phone: phoneNorm || null
+        }
+      });
+    }
+    return updatedLead;
   }
 
   const inserted = await supabaseRequest({
@@ -3137,7 +3386,27 @@ async function upsertCentralLead(config, {
     body: [{ ...row, created_at: now }],
     prefer: 'return=representation'
   });
-  return Array.isArray(inserted) ? inserted[0] || null : null;
+  const insertedLead = Array.isArray(inserted) ? inserted[0] || null : null;
+  if (insertedLead && insertedLead.id) {
+    await appendCentralLeadEvent(config, {
+      leadId: insertedLead.id,
+      source: insertedLead.last_source || insertedLead.source || source || null,
+      eventType: lastActivityType || 'lead_create',
+      activityType: lastActivityType || null,
+      funnelStage: insertedLead.funnel_stage || null,
+      leadStatus: insertedLead.lead_status || null,
+      eventAt: now,
+      actor: source === 'manual' ? 'admin' : 'system',
+      payload: {
+        mode: 'upsert_insert',
+        sourceRefId: sourceRefId || null,
+        identityId: identityId || null,
+        email: emailNorm || null,
+        phone: phoneNorm || null
+      }
+    });
+  }
+  return insertedLead;
 }
 
 // ── Payment Plans & Charges (phased payments) ─────────────────────────────
@@ -3480,6 +3749,8 @@ module.exports = {
   listMetaLeads,
   updateMetaLead,
   listCentralLeads,
+  createCentralLead,
+  listCentralLeadEvents,
   updateCentralLead,
   listAiPrompts,
   getAiPromptById,
