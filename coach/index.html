@@ -14,6 +14,7 @@
       --gold: #d4a54f;
       --gold-strong: #b88a3c;
       --gold-faint: rgba(212, 165, 79, 0.16);
+      --shell-max: 1180px;
       --line: rgba(255, 255, 255, 0.1);
       --line-strong: rgba(212, 165, 79, 0.24);
       --text: #ece7dc;
@@ -51,7 +52,7 @@
       overflow: hidden;
     }
 
-    .page-shell { width: min(1200px, 100%); margin: 0 auto; }
+    .page-shell { width: min(var(--shell-max), 100%); margin: 0 auto; }
 
     .auth-gate {
       position: fixed;
@@ -113,7 +114,7 @@
     }
 
     .top-bar-shell {
-      width: min(1200px, 100%);
+      width: min(var(--shell-max), 100%);
       margin: 0 auto;
       border: 1px solid var(--line);
       border-radius: 20px;
@@ -545,6 +546,18 @@
     .layout.full-width-mode { grid-template-columns: 1fr; }
     .layout.full-width-mode > .side-panel { display: none; }
 
+    @media (min-width: 1200px) {
+      :root { --shell-max: 1320px; }
+    }
+
+    @media (min-width: 1440px) {
+      :root { --shell-max: 1480px; }
+    }
+
+    @media (min-width: 1800px) {
+      :root { --shell-max: 1640px; }
+    }
+
     @media (max-width: 980px) {
       .layout { grid-template-columns: 1fr; }
     }
@@ -889,38 +902,36 @@
       font-family:inherit;
     }
     .str-table input:focus, .str-table select:focus { border-color:var(--gold); outline:none; }
-    .str-table input[type=number] { width:56px; }
+    .str-table input[type=number] { width:52px; }
+    .str-table input[data-field="sets"],
+    .str-table input[data-field="rest_seconds"],
+    .str-table input[data-field="rir"] { width:46px; }
+    .str-table input[data-field="tempo"] { width:56px; }
+    .str-table input[data-field="coach_notes"] { width:160px; min-width:140px; }
     .str-table .rm-input, .str-table .load-input {
-      width:60px; text-align:center; font-size:11px;
+      width:50px; text-align:center; font-size:11px;
     }
     .str-table .rm-input::placeholder, .str-table .load-input::placeholder {
       color:var(--muted); opacity:0.7;
     }
     .str-rm-wrap {
       display:flex;
-      flex-direction:column;
+      flex-direction:row;
+      align-items:center;
       gap:4px;
     }
     .str-inc-pop {
-      display:none;
-      padding:6px;
-      border:1px solid var(--line);
-      border-radius:6px;
-      background:rgba(0,0,0,0.55);
-    }
-    .str-rm-wrap.open .str-inc-pop {
-      display:block;
+      display:flex;
+      align-items:center;
+      gap:2px;
     }
     .str-inc-pop label {
-      display:block;
-      font-size:10px;
-      color:var(--gold);
-      margin-bottom:4px;
-      letter-spacing:0.04em;
-      text-transform:uppercase;
+      font-size:9px;
+      color:var(--muted);
+      white-space:nowrap;
     }
     .str-inc-pop input {
-      width:100%;
+      width:38px;
     }
 
     /* 1RM management table */
@@ -947,13 +958,14 @@
     .onerm-picker-item .ex-meta { font-size:10px; color:var(--muted); }
     .onerm-picker-item.selected .ex-meta { color:var(--bg); opacity:0.7; }
 
-    .reps-dur-cell { display:flex; align-items:center; gap:2px; }
-    .reps-dur-cell input { flex:1; min-width:0; }
-    .reps-dur-toggle { background:none; border:1px solid var(--line); border-radius:3px; color:var(--muted); cursor:pointer; font-size:9px; padding:2px 4px; line-height:1; white-space:nowrap; flex-shrink:0; }
-    .reps-dur-toggle:hover { color:var(--gold); border-color:var(--gold); }
-    .reps-range-toggle { background:none; border:1px solid var(--line); border-radius:3px; color:var(--muted); cursor:pointer; font-size:9px; padding:2px 4px; line-height:1; white-space:nowrap; flex-shrink:0; }
-    .reps-range-toggle:hover { color:var(--gold); border-color:var(--gold); }
-    .reps-range-cell { display:flex; align-items:center; gap:4px; min-width:0; flex:1; }
+    .reps-dur-cell { display:grid; grid-template-columns:1fr 44px; align-items:center; gap:4px; }
+    .reps-val-area { min-width:0; }
+    .reps-val-area > input { width:100%; min-width:0; box-sizing:border-box; }
+    .reps-btn-area { display:flex; flex-direction:column; gap:2px; align-items:stretch; }
+    .reps-dur-toggle, .reps-range-toggle { background:none; border:1px solid var(--line); border-radius:3px; color:var(--muted); cursor:pointer; font-size:9px; padding:2px 4px; line-height:1; white-space:nowrap; transition:all 0.15s ease; }
+    .reps-dur-toggle:hover, .reps-range-toggle:hover { color:var(--gold); border-color:var(--gold); }
+    .reps-dur-toggle.active, .reps-range-toggle.active { color:var(--bg); background:var(--gold); border-color:var(--gold); font-weight:700; }
+    .reps-range-cell { display:flex; align-items:center; gap:4px; min-width:0; width:100%; }
     .reps-range-cell input { width:42px !important; min-width:0; flex:0 0 auto; }
     .reps-range-cell span { color:var(--muted); font-size:11px; line-height:1; }
 
@@ -992,13 +1004,8 @@
     .ex-crud-table .ex-video-link:hover { text-decoration:underline; }
     .ex-crud-empty { padding:40px 20px; text-align:center; color:var(--muted); font-size:14px; }
 
-    .superset-A { border-left:3px solid #6fc; }
-    .superset-B { border-left:3px solid #f9c; }
-    .superset-C { border-left:3px solid #9cf; }
-    .superset-D { border-left:3px solid #fc9; }
-    .superset-E { border-left:3px solid #c9f; }
-    .superset-F { border-left:3px solid #9fc; }
-    .superset-G { border-left:3px solid #cf9; }
+    .superset-gold { border-left:3px solid var(--gold); background:rgba(212,175,55,0.06); }
+    .superset-clear { border-left:3px solid transparent; background:none; }
 
     @media (max-width: 768px) {
       #strengthSection,
@@ -1241,7 +1248,7 @@
       }
       .str-table input[type=number] { width: 60px; }
       .str-table .rm-input, .str-table .load-input { width: 64px; }
-      .reps-dur-toggle { min-height: 36px; padding: 4px 8px; font-size: 11px; }
+      .reps-dur-toggle, .reps-range-toggle { min-height: 36px; padding: 4px 6px; font-size: 11px; }
       .str-rm-btn { min-width: 36px; min-height: 36px; font-size: 14px; }
       .day-tab, .week-tab { min-height: 36px; padding: 6px 14px; }
       .str-move-btn { min-width: 32px; min-height: 32px; font-size: 14px; }
@@ -1651,7 +1658,7 @@
         </section>
 
         <!-- ── Gestão de Exercícios ── -->
-        <section class="section-card coach-tab-section" id="exercisesSection" data-coach-tab="forca" hidden>
+        <section class="section-card coach-tab-section" id="exercisesSection" data-coach-tab="forca" hidden style="display:none !important;">
           <div style="display:flex; justify-content:space-between; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:12px;">
             <h3 class="section-title" style="margin:0;">Catálogo de Exercícios</h3>
             <button class="btn btn-small btn-primary" id="newExerciseBtn">+ Novo Exercício</button>
@@ -4824,27 +4831,48 @@
     const SECTIONS = ["warm_up","plyos_speed","main","conditioning"];
     const SECTION_LABELS = {warm_up:"Warm Up",plyos_speed:"Plyos / Speed",main:"Main",conditioning:"Conditioning"};
     const METHOD_OPTIONS = ["standard","amrap","drop_set","rest_pause","cluster","myo_reps","isometric"];
-    const GROUP_LETTERS = "ABCDEFG";
+    const GROUP_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+    function getGroupLetterByIndex(index) {
+      let normalizedIndex = Number(index);
+      if (!Number.isInteger(normalizedIndex) || normalizedIndex < 0) normalizedIndex = 0;
+      let label = "";
+      do {
+        label = GROUP_LETTERS[normalizedIndex % GROUP_LETTERS.length] + label;
+        normalizedIndex = Math.floor(normalizedIndex / GROUP_LETTERS.length) - 1;
+      } while (normalizedIndex >= 0);
+      return label;
+    }
+
+    function getGroupLetterIndex(label) {
+      const normalized = String(label || "").trim().toUpperCase();
+      if (!normalized || /[^A-Z]/.test(normalized)) return -1;
+      let index = 0;
+      for (let i = 0; i < normalized.length; i++) {
+        index = index * GROUP_LETTERS.length + (GROUP_LETTERS.indexOf(normalized[i]) + 1);
+      }
+      return index - 1;
+    }
 
     // Compute order labels for a sorted list of exercises in a section.
     // Returns array of {label, groupLetter, index} parallel to exercises.
     // e.g. [{label:"A-",...}, {label:"B1-",...}, {label:"B2-",...}, {label:"C-",...}]
     function computeOrderLabels(exercises) {
       const labels = [];
-      let letterIdx = 0; // index into GROUP_LETTERS
+      let letterIdx = 0;
       let i = 0;
       while (i < exercises.length) {
         const pe = exercises[i];
         const ss = pe.superset_group || "";
         if (!ss) {
           // Isolated exercise
-          const letter = GROUP_LETTERS[letterIdx] || GROUP_LETTERS[GROUP_LETTERS.length - 1];
+          const letter = getGroupLetterByIndex(letterIdx);
           labels.push({ label: letter + "-", groupLetter: letter, index: 0 });
           letterIdx++;
           i++;
         } else {
           // Superset group: collect all consecutive exercises with same superset_group
-          const letter = GROUP_LETTERS[letterIdx] || GROUP_LETTERS[GROUP_LETTERS.length - 1];
+          const letter = getGroupLetterByIndex(letterIdx);
           let n = 1;
           while (i < exercises.length && exercises[i].superset_group === ss) {
             labels.push({ label: letter + n + "-", groupLetter: letter, index: n });
@@ -4867,26 +4895,18 @@
       const prev = allLabels[exIndex - 1];
       const prevLetter = prev.groupLetter;
       const prevIdx = prev.index; // 0 = isolated, 1+ = superset position
-      const nextLetterChar = GROUP_LETTERS[GROUP_LETTERS.indexOf(prevLetter) + 1] || "";
+      const nextLetterChar = getGroupLetterByIndex(getGroupLetterIndex(prevLetter) + 1);
 
       if (prevIdx === 0) {
         // Previous was isolated (e.g. "A-") → next must be new group
-        const opts = [];
-        if (nextLetterChar) {
-          opts.push(nextLetterChar + "-");
-          opts.push(nextLetterChar + "1-");
-        }
+        const opts = [nextLetterChar + "-", nextLetterChar + "1-"];
         return opts;
       } else if (prevIdx === 1) {
         // Previous was superset start (e.g. "A1-") → must continue
         return [prevLetter + "2-"];
       } else {
         // Previous was superset continuation (e.g. "A2-", "A3-"...) → can continue or start new
-        const opts = [prevLetter + (prevIdx + 1) + "-"];
-        if (nextLetterChar) {
-          opts.push(nextLetterChar + "-");
-          opts.push(nextLetterChar + "1-");
-        }
+        const opts = [prevLetter + (prevIdx + 1) + "-", nextLetterChar + "-", nextLetterChar + "1-"];
         return opts;
       }
     }
@@ -4894,7 +4914,7 @@
     // Parse a label like "A-", "B2-" back into {letter, index}
     // index=0 means isolated, index>=1 means superset position
     function parseOrderLabel(label) {
-      const m = label.match(/^([A-G])(\d*)-$/);
+      const m = label.match(/^([A-Z]+)(\d*)-$/);
       if (!m) return null;
       return { letter: m[1], index: m[2] ? parseInt(m[2], 10) : 0 };
     }
@@ -5209,6 +5229,7 @@
     const warmupPresetPreview = document.getElementById("warmupPresetPreview");
     let addExerciseTargetSection = "";
     let isCreatingFromPicker = false; // Track if we're creating an exercise from the picker modal
+    let exCrudOpenFromPlan = false;
     const pendingExerciseAddKeys = new Set();
     const repsRangeModeByKey = {};
 
@@ -5305,7 +5326,8 @@
         valueControl = `<input type="number" value="${rx.reps || ""}" data-field="reps" data-peid="${peId}" data-week="${week}" min="0" />`;
       }
 
-      return `<div class="reps-dur-cell">${valueControl}<button type="button" class="reps-dur-toggle" data-peid="${peId}" data-week="${week}" title="Alternar reps/duração">${isDur ? "seg" : "rep"}</button>${isDur ? "" : `<button type="button" class="reps-range-toggle" data-peid="${peId}" data-week="${week}" title="Alternar reps fixas/intervalo">${hasRange ? "rng" : "min-max"}</button>`}</div>`;
+      const rangeToggleHidden = isDur ? ' style="visibility:hidden;pointer-events:none"' : '';
+      return `<div class="reps-dur-cell"><div class="reps-val-area">${valueControl}</div><div class="reps-btn-area"><button type="button" class="reps-dur-toggle${isDur ? " active" : ""}" data-peid="${peId}" data-week="${week}" title="Alternar duração (seg)">seg</button><button type="button" class="reps-range-toggle${hasRange ? " active" : ""}" data-peid="${peId}" data-week="${week}" title="Alternar reps min/max"${rangeToggleHidden}>min max</button></div></div>`;
     }
 
     function resolveLoad(rx, pe, oneRm, loadRound, week) {
@@ -6475,7 +6497,7 @@
         if (lbl.index > 0) card.classList.add("superset-" + lbl.groupLetter);
 
         const exMetaTags = [];
-        if (pe.weight_per_side) exMetaTags.push("peso/lado");
+        if (pe.weight_per_side) exMetaTags.push("kg/lado");
         if (pe.each_side) exMetaTags.push("cada lado");
         const exMetaHtml = exMetaTags.length > 0
           ? `<div class="str-ex-flags">${exMetaTags.map((tag) => `<span class="str-ex-flag">${tag}</span>`).join("")}</div>`
@@ -6522,7 +6544,7 @@
             buildField("Rest", `<input type="number" value="${rx.rest_seconds || ""}" data-field="rest_seconds" data-peid="${pe.id}" data-week="${week}" min="0" placeholder="s" />`),
             buildField("RIR", `<input type="number" value="${rx.rir != null ? rx.rir : ""}" data-field="rir" data-peid="${pe.id}" data-week="${week}" min="0" max="10" />`),
             buildField("Tempo", `<input value="${rx.tempo || ""}" data-field="tempo" data-peid="${pe.id}" data-week="${week}" placeholder="3-1-X-0" />`),
-            buildField("%RM", `<div class="str-rm-wrap"><input type="number" value="${rmOverrideVal}" data-field="rm_percent_override" data-peid="${pe.id}" data-week="${week}" placeholder="${effectiveAutoRmDisplay}" step="0.1" min="0" max="100" class="rm-input str-rm-trigger" /><div class="str-inc-pop"><label>+%/sem</label><input type="number" value="${incPercentVal}" data-field="rm_percent_increase_per_week" data-peid="${pe.id}" placeholder="%" step="0.1" min="0" max="20" /></div></div>`),
+            buildField("%RM", `<div class="str-rm-wrap"><input type="number" value="${rmOverrideVal}" data-field="rm_percent_override" data-peid="${pe.id}" data-week="${week}" placeholder="${effectiveAutoRmDisplay}" step="0.1" min="0" max="100" class="rm-input" /><div class="str-inc-pop"><label>+%/sem</label><input type="number" value="${incPercentVal}" data-field="rm_percent_increase_per_week" data-peid="${pe.id}" placeholder="%" step="0.1" min="0" max="20" /></div></div>`),
             buildField("Load", `<input type="number" value="${loadOverrideVal}" data-field="load_override_kg" data-peid="${pe.id}" data-week="${week}" placeholder="${loadPlaceholder}" step="0.5" min="0" class="load-input" />`),
             buildField("Notes", `<input value="${rx.coach_notes || ""}" data-field="coach_notes" data-peid="${pe.id}" data-week="${week}" placeholder="Notas..." />`, true)
           ].join("");
@@ -6561,13 +6583,13 @@
       if (section === "warm_up" || section === "conditioning") {
         cols = [
           {label:"Ordem"}, {label:"Exercício"}, {label:"Sets"}, {label:"Reps/Dur"}, {label:"Rest"},
-          {label:"", cls:"str-col-secondary"}, {label:""}
+          {label:"Notes", cls:"str-col-secondary"}, {label:""}
         ];
       } else if (section === "plyos_speed") {
         cols = [
           {label:"Ordem"}, {label:"Exercício"}, {label:"Sets"}, {label:"Reps/Dur"}, {label:"Rest"},
           {label:"GCT"}, {label:"M.Load"},
-          {label:"", cls:"str-col-secondary"}, {label:""}
+          {label:"Notes", cls:"str-col-secondary"}, {label:""}
         ];
       } else if (section === "main") {
         cols = [
@@ -6606,7 +6628,7 @@
         const exId = pe.exercise ? pe.exercise.id : pe.exercise_id;
         const oneRm = strOneRms[exId];
         const exMetaTags = [];
-        if (pe.weight_per_side) exMetaTags.push("peso/lado");
+        if (pe.weight_per_side) exMetaTags.push("kg/lado");
         if (pe.each_side) exMetaTags.push("cada lado");
         const exMetaHtml = exMetaTags.length > 0
           ? `<div class="str-ex-flags">${exMetaTags.map((tag) => `<span class="str-ex-flag">${tag}</span>`).join("")}</div>`
@@ -6616,7 +6638,7 @@
         row.setAttribute("data-peid", pe.id);
         row.setAttribute("data-section", section);
         const lbl = orderLabels[ei] || { label: "?-", groupLetter: "?", index: 0 };
-        if (lbl.index > 0) row.className = "superset-" + lbl.groupLetter;
+        { const _gi = getGroupLetterIndex(lbl.groupLetter); row.className = _gi % 2 === 0 ? "superset-gold" : "superset-clear"; }
         // Build order dropdown: current label + valid alternatives
         const validOpts = getValidOrderOptions(exercises, ei);
         const allOpts = [lbl.label];
@@ -6632,7 +6654,7 @@
             <td><input type="number" value="${rx.sets||''}" data-field="sets" data-peid="${pe.id}" data-week="${week}" min="1" /></td>
             <td>${buildRepsDurControl(rx, pe.id, week)}</td>
             <td><input type="number" value="${rx.rest_seconds||''}" data-field="rest_seconds" data-peid="${pe.id}" data-week="${week}" min="0" placeholder="s" /></td>
-            <td class="str-col-secondary"></td>
+            <td class="str-col-secondary"><input value="${rx.coach_notes||''}" data-field="coach_notes" data-peid="${pe.id}" data-week="${week}" placeholder="Notas..." /></td>
             <td><button class="str-rm-btn" data-rmpe="${pe.id}" title="Remover">✕</button></td>
             ${expandBtn}
           `;
@@ -6655,7 +6677,7 @@
               <option value="medium" ${pe.plyo_mechanical_load==="medium"?"selected":""}>Medium</option>
               <option value="low" ${pe.plyo_mechanical_load==="low"?"selected":""}>Low</option>
             </select></td>
-            <td class="str-col-secondary"></td>
+            <td class="str-col-secondary"><input value="${rx.coach_notes||''}" data-field="coach_notes" data-peid="${pe.id}" data-week="${week}" placeholder="Notas..." /></td>
             <td><button class="str-rm-btn" data-rmpe="${pe.id}" title="Remover">✕</button></td>
             ${expandBtn}
           `;
@@ -6679,10 +6701,10 @@
             <td>${buildRepsDurControl(rx, pe.id, week)}</td>
             <td><input type="number" value="${rx.rest_seconds||''}" data-field="rest_seconds" data-peid="${pe.id}" data-week="${week}" min="0" placeholder="s" /></td>
             <td><input type="number" value="${rx.rir!=null?rx.rir:''}" data-field="rir" data-peid="${pe.id}" data-week="${week}" min="0" max="10" /></td>
-            <td class="str-col-secondary"><input value="${rx.tempo||''}" data-field="tempo" data-peid="${pe.id}" data-week="${week}" placeholder="3-1-X-0" style="width:72px;" /></td>
-            <td class="str-col-secondary"><div class="str-rm-wrap"><input type="number" value="${rmOverrideVal}" data-field="rm_percent_override" data-peid="${pe.id}" data-week="${week}" placeholder="${effectiveAutoRmDisplay}" step="0.1" min="0" max="100" style="width:56px;" class="rm-input str-rm-trigger" /><div class="str-inc-pop"><label>+%/sem</label><input type="number" value="${incPercentVal}" data-field="rm_percent_increase_per_week" data-peid="${pe.id}" placeholder="%" step="0.1" min="0" max="20" /></div></div></td>
-            <td><input type="number" value="${loadOverrideVal}" data-field="load_override_kg" data-peid="${pe.id}" data-week="${week}" placeholder="${loadPlaceholder}" step="0.5" min="0" style="width:56px;" class="load-input" /></td>
-            <td class="str-col-secondary"><input value="${rx.coach_notes||''}" data-field="coach_notes" data-peid="${pe.id}" data-week="${week}" style="width:80px;" /></td>
+            <td class="str-col-secondary"><input value="${rx.tempo||''}" data-field="tempo" data-peid="${pe.id}" data-week="${week}" placeholder="3-1-X-0" /></td>
+            <td class="str-col-secondary"><div class="str-rm-wrap"><input type="number" value="${rmOverrideVal}" data-field="rm_percent_override" data-peid="${pe.id}" data-week="${week}" placeholder="${effectiveAutoRmDisplay}" step="0.1" min="0" max="100" class="rm-input" /><div class="str-inc-pop"><label>+%/sem</label><input type="number" value="${incPercentVal}" data-field="rm_percent_increase_per_week" data-peid="${pe.id}" placeholder="%" step="0.1" min="0" max="20" /></div></div></td>
+            <td><input type="number" value="${loadOverrideVal}" data-field="load_override_kg" data-peid="${pe.id}" data-week="${week}" placeholder="${loadPlaceholder}" step="0.5" min="0" class="load-input" /></td>
+            <td class="str-col-secondary"><input value="${rx.coach_notes||''}" data-field="coach_notes" data-peid="${pe.id}" data-week="${week}" /></td>
             <td class="str-col-secondary"></td>
             <td><button class="str-rm-btn" data-rmpe="${pe.id}" title="Remover">✕</button></td>
             ${expandBtn}
@@ -6708,7 +6730,7 @@
           const totalCols = row.children.length;
           detailRow.innerHTML = `<td colspan="${totalCols}"><div class="str-detail-grid">
             <div class="str-detail-field"><label>Tempo</label><input value="${rx.tempo||''}" data-field="tempo" data-peid="${pe.id}" data-week="${week}" placeholder="3-1-X-0" /></div>
-            <div class="str-detail-field"><label>%RM</label><div class="str-rm-wrap"><input type="number" value="${rmOv}" data-field="rm_percent_override" data-peid="${pe.id}" data-week="${week}" placeholder="${effectiveAutoRmD}" step="0.1" min="0" max="100" class="rm-input str-rm-trigger" /><div class="str-inc-pop"><label>+%/sem</label><input type="number" value="${incPercentVal2}" data-field="rm_percent_increase_per_week" data-peid="${pe.id}" placeholder="%" step="0.1" min="0" max="20" /></div></div></div>
+            <div class="str-detail-field"><label>%RM</label><div class="str-rm-wrap"><input type="number" value="${rmOv}" data-field="rm_percent_override" data-peid="${pe.id}" data-week="${week}" placeholder="${effectiveAutoRmD}" step="0.1" min="0" max="100" class="rm-input" /><div class="str-inc-pop"><label>+%/sem</label><input type="number" value="${incPercentVal2}" data-field="rm_percent_increase_per_week" data-peid="${pe.id}" placeholder="%" step="0.1" min="0" max="20" /></div></div></div>
             <div class="str-detail-field"><label>Notes</label><input value="${rx.coach_notes||''}" data-field="coach_notes" data-peid="${pe.id}" data-week="${week}" placeholder="Notas..." /></div>
           </div></td>`;
           tbody.appendChild(detailRow);
@@ -6722,6 +6744,7 @@
       table.addEventListener("change", handleTableChange);
       table.addEventListener("input", handleTableInput);
       table.addEventListener("click", handleTableClick);
+      table.addEventListener("keydown", handleTableKeydown);
       table.addEventListener("dragstart", handleTableDragStart);
       table.addEventListener("dragover", handleTableDragOver);
       table.addEventListener("dragleave", handleTableDragLeave);
@@ -6924,7 +6947,34 @@
               };
             });
           }
-          if (rxList.length > 0) body.prescriptions = rxList;
+          if (rxList.length > 0) {
+            // Ensure all rows share the same key set for Supabase bulk upsert
+            body.prescriptions = rxList.map((rx) => {
+              const full = (strCurrentPlan.prescriptions || []).find(
+                (p) => p.plan_exercise_id === rx.plan_exercise_id && p.week_number === rx.week_number
+              );
+              const base = {
+                id: null,
+                plan_exercise_id: rx.plan_exercise_id,
+                week_number: rx.week_number,
+                prescription_type: "reps",
+                sets: 1,
+                reps: null,
+                reps_min: null,
+                reps_max: null,
+                duration_seconds: null,
+                rest_seconds: null,
+                rir: null,
+                tempo: null,
+                gct: null,
+                method: "standard",
+                rm_percent_override: null,
+                load_override_kg: null,
+                coach_notes: null
+              };
+              return { ...base, ...(full || {}), ...rx };
+            });
+          }
           if (pnList.length > 0) body.phase_notes = pnList;
           const data = await apiRequest("PUT", "/.netlify/functions/strength-plan", body);
           strCurrentPlan = data;
@@ -7178,22 +7228,10 @@
     }
 
     async function handleTableClick(e) {
-      const rmTrigger = e.target.closest(".str-rm-trigger");
-      if (rmTrigger) {
-        const wrap = rmTrigger.closest(".str-rm-wrap");
-        if (wrap) {
-          document.querySelectorAll(".str-rm-wrap.open").forEach((item) => {
-            if (item !== wrap) item.classList.remove("open");
-          });
-          wrap.classList.toggle("open");
-        }
-        return;
-      }
-
       const editExerciseBtn = e.target.closest("[data-edit-exid]");
       if (editExerciseBtn) {
         const exerciseId = editExerciseBtn.getAttribute("data-edit-exid");
-        if (exerciseId) openExerciseCrudModal(exerciseId);
+        if (exerciseId) openExerciseCrudModal(exerciseId, {}, { fromPlan: true });
         return;
       }
 
@@ -7213,6 +7251,7 @@
       if (toggle) {
         const peId = toggle.getAttribute("data-peid");
         const week = parseInt(toggle.getAttribute("data-week"), 10);
+        const modeKey = getRxModeKey(peId, week);
         const rx = getPrescription(peId, week) || {};
         const isDur = rx.prescription_type === "duration";
         const newType = isDur ? "reps" : "duration";
@@ -7222,6 +7261,7 @@
           queuePrescriptionChange(peId, week, "reps_min", null);
           queuePrescriptionChange(peId, week, "reps_max", null);
         } else {
+          repsRangeModeByKey[modeKey] = false;
           queuePrescriptionChange(peId, week, "duration_seconds", null);
         }
         queuePrescriptionChange(peId, week, "prescription_type", newType);
@@ -7271,10 +7311,81 @@
       } catch (e) { console.error("Remove exercise failed", e); }
     }
 
-    document.addEventListener("click", (event) => {
-      if (event.target.closest(".str-rm-wrap")) return;
-      document.querySelectorAll(".str-rm-wrap.open").forEach((item) => item.classList.remove("open"));
-    });
+    function isVisibleTableField(el) {
+      if (!el) return false;
+      if (el.disabled) return false;
+      if (el.closest(".hidden")) return false;
+      return !!(el.offsetParent || el.getClientRects().length);
+    }
+
+    function getTableFocusableInputs(table) {
+      const rows = [...table.querySelectorAll("tbody tr:not(.str-row-detail)")];
+      const selector = 'input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled])';
+      const focusables = [];
+      for (const row of rows) {
+        for (const cell of [...row.children]) {
+          const cellFields = [...cell.querySelectorAll(selector)].filter(isVisibleTableField);
+          focusables.push(...cellFields);
+        }
+      }
+      return focusables;
+    }
+
+    function focusAndSelectInput(el) {
+      if (!el) return;
+      el.focus();
+      if (el.tagName === "INPUT") {
+        try { el.select(); } catch (_) {}
+      }
+    }
+
+    function handleTableKeydown(e) {
+      const target = e.target;
+      if (!(target instanceof HTMLElement)) return;
+      const table = target.closest(".str-table");
+      if (!table) return;
+
+      const isEnter = e.key === "Enter";
+      const isTab = e.key === "Tab";
+      if (!isEnter && !isTab) return;
+
+      const td = target.closest("td");
+      const tr = target.closest("tr");
+      if (!td || !tr || tr.classList.contains("str-row-detail")) return;
+
+      if (isTab) {
+        const focusables = getTableFocusableInputs(table);
+        const idx = focusables.indexOf(target);
+        if (idx === -1) return;
+        const nextIdx = idx + (e.shiftKey ? -1 : 1);
+        if (nextIdx < 0 || nextIdx >= focusables.length) return;
+        e.preventDefault();
+        focusAndSelectInput(focusables[nextIdx]);
+        return;
+      }
+
+      const rows = [...table.querySelectorAll("tbody tr:not(.str-row-detail)")];
+      const rowIndex = rows.indexOf(tr);
+      if (rowIndex === -1) return;
+      const cellIndex = [...tr.children].indexOf(td);
+      if (cellIndex === -1) return;
+
+      const currentCellFocusables = [...td.querySelectorAll('input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled])')]
+        .filter(isVisibleTableField);
+      const currentSubIndex = Math.max(0, currentCellFocusables.indexOf(target));
+      const targetRowIndex = rowIndex + (e.shiftKey ? -1 : 1);
+      if (targetRowIndex < 0 || targetRowIndex >= rows.length) return;
+
+      const targetCell = rows[targetRowIndex].children[cellIndex];
+      if (!targetCell) return;
+      const targetCellFocusables = [...targetCell.querySelectorAll('input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled])')]
+        .filter(isVisibleTableField);
+      if (!targetCellFocusables.length) return;
+
+      e.preventDefault();
+      const targetSubIndex = Math.min(currentSubIndex, targetCellFocusables.length - 1);
+      focusAndSelectInput(targetCellFocusables[targetSubIndex]);
+    }
 
     // ── Add exercise modal ──
     function openAddExerciseModal(section) {
@@ -7452,7 +7563,7 @@
       const list = document.getElementById("exercisePickerList");
       list.innerHTML = filtered.slice(0, 50).map((e) => {
         const tags = [];
-        if (e.default_weight_per_side) tags.push("peso/lado");
+        if (e.default_weight_per_side) tags.push("kg/lado");
         if (e.default_each_side) tags.push("cada lado");
         const tagsHtml = tags.length > 0
           ? `<div class="exercise-pick-flags">${tags.map((tag) => `<span class="exercise-pick-flag">${tag}</span>`).join("")}</div>`
@@ -8209,7 +8320,7 @@
 
       let html = `<div style="max-height:70vh; overflow-y:auto; border:1px solid var(--line); border-radius:var(--radius-md);">
         <table class="ex-crud-table"><thead><tr>
-          <th>Nome</th><th>Categoria</th><th>Subcategoria</th><th>Vídeo</th><th>Peso/lado</th><th>Cada lado</th><th>Tempo</th><th></th>
+          <th>Nome</th><th>Categoria</th><th>Subcategoria</th><th>Vídeo</th><th>Kg/lado</th><th>Cada lado</th><th>Tempo</th><th></th>
         </tr></thead><tbody>`;
       for (const ex of filtered) {
         const videoCell = ex.video_url
@@ -8237,10 +8348,44 @@
       sel.innerHTML = '<option value="">—</option>' + subcats.map(s => `<option value="${escapeHtml(s)}"${s === currentValue ? ' selected' : ''}>${escapeHtml(s)}</option>`).join("");
     }
 
-    function openExerciseCrudModal(exerciseId, defaults = {}) {
+    function chooseExerciseEditScope() {
+      const raw = window.prompt(
+        "Onde queres aplicar as alterações deste exercício?\n\n1 - Apenas no plano atual\n2 - Catálogo + plano atual\n\n(Outro valor = cancelar)",
+        "2"
+      );
+      const choice = String(raw || "").trim();
+      if (choice === "1") return "plan_only";
+      if (choice === "2") return "catalog_and_plan";
+      return "cancel";
+    }
+
+    function applyExerciseDefaultsToCurrentPlan(exerciseId, defaults) {
+      if (!strCurrentPlan || !exerciseId) return 0;
+      const eachSide = !!defaults.default_each_side;
+      const weightPerSide = !!defaults.default_weight_per_side;
+      let changed = 0;
+
+      (strCurrentPlan.exercises || []).forEach((pe) => {
+        if (pe.exercise_id !== exerciseId) return;
+        if (pe.each_side !== eachSide) {
+          queueExerciseChange(pe.id, "each_side", eachSide);
+          changed++;
+        }
+        if (pe.weight_per_side !== weightPerSide) {
+          queueExerciseChange(pe.id, "weight_per_side", weightPerSide);
+          changed++;
+        }
+      });
+
+      if (changed > 0) renderDayView();
+      return changed;
+    }
+
+    function openExerciseCrudModal(exerciseId, defaults = {}, options = {}) {
       const modal = document.getElementById("exerciseCrudModal");
       const form = document.getElementById("exerciseCrudForm");
       form.reset();
+      exCrudOpenFromPlan = !!options.fromPlan;
       document.getElementById("exCrudEditId").value = "";
       document.getElementById("exCrudModalTitle").textContent = "Novo Exercício";
       document.getElementById("exCrudSaveBtn").textContent = "Criar";
@@ -8275,6 +8420,7 @@
     document.getElementById("exCrudCancelBtn").addEventListener("click", () => {
       document.getElementById("exerciseCrudModal").classList.add("hidden");
       isCreatingFromPicker = false; // Reset the flag
+      exCrudOpenFromPlan = false;
     });
 
     document.getElementById("exCrudCategory").addEventListener("change", () => {
@@ -8312,6 +8458,12 @@
       };
       if (!payload.name) return;
 
+      let editScope = "catalog_only";
+      if (editId && exCrudOpenFromPlan) {
+        editScope = chooseExerciseEditScope();
+        if (editScope === "cancel") return;
+      }
+
       const btn = document.getElementById("exCrudSaveBtn");
       const createFromPickerBtn = document.getElementById("createExerciseFromPickerBtn");
       btn.disabled = true;
@@ -8320,16 +8472,23 @@
       try {
         let savedExercise = null;
         if (editId) {
-          const result = await apiRequest("PATCH", "/.netlify/functions/exercises", { id: editId, ...payload });
-          // Update in-memory catalog without a full reload
-          savedExercise = (result && result.exercise) ? result.exercise : (result && result.id ? result : null);
-          if (savedExercise) {
-            const idx = strExercises.findIndex(ex => ex.id === editId);
-            if (idx !== -1) strExercises[idx] = savedExercise;
+          if (editScope === "plan_only") {
+            applyExerciseDefaultsToCurrentPlan(editId, payload);
           } else {
-            // Fallback: merge payload fields into the cached object
-            const cached = strExercises.find(ex => ex.id === editId);
-            if (cached) Object.assign(cached, payload);
+            const result = await apiRequest("PATCH", "/.netlify/functions/exercises", { id: editId, ...payload });
+            // Update in-memory catalog without a full reload
+            savedExercise = (result && result.exercise) ? result.exercise : (result && result.id ? result : null);
+            if (savedExercise) {
+              const idx = strExercises.findIndex(ex => ex.id === editId);
+              if (idx !== -1) strExercises[idx] = savedExercise;
+            } else {
+              // Fallback: merge payload fields into the cached object
+              const cached = strExercises.find(ex => ex.id === editId);
+              if (cached) Object.assign(cached, payload);
+            }
+            if (editScope === "catalog_and_plan") {
+              applyExerciseDefaultsToCurrentPlan(editId, payload);
+            }
           }
         } else {
           const result = await apiRequest("POST", "/.netlify/functions/exercises", payload);
@@ -8354,7 +8513,13 @@
         } else {
           document.getElementById("exerciseCrudModal").classList.add("hidden");
           isCreatingFromPicker = false;
+          exCrudOpenFromPlan = false;
           renderExerciseCrudList();
+          if (editId && editScope === "plan_only") {
+            showResult("Exercício atualizado apenas no plano atual (catálogo inalterado).", "success");
+          } else if (editId && editScope === "catalog_and_plan") {
+            showResult("Exercício atualizado no catálogo e no plano atual.", "success");
+          }
         }
       } catch (err) {
         alert("Erro ao guardar exercício: " + (err.message || ""));
