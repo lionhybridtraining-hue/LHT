@@ -522,7 +522,7 @@ create table if not exists training_programs (
   description text,
   image_url text,
   classification jsonb,
-  duration_weeks integer not null check (duration_weeks > 0),
+  duration_weeks integer check (duration_weeks is null or duration_weeks > 0),
   price_cents integer not null default 0,
   recurring_price_monthly_cents integer check (recurring_price_monthly_cents is null or recurring_price_monthly_cents >= 0),
   recurring_price_quarterly_cents integer check (recurring_price_quarterly_cents is null or recurring_price_quarterly_cents >= 0),

@@ -14,7 +14,9 @@
   let paymentElement = null;
   let checkoutProgram = null;
   let checkoutClientSecret = '';
+  let checkoutIntentType = 'payment';
   let checkoutPaymentIntentId = '';
+  let checkoutSetupIntentId = '';
   let checkoutSubscriptionId = '';
   let checkoutBusy = false;
   let checkoutNoPaymentRedirectUrl = '';
@@ -153,16 +155,149 @@
     );
   }
 
+  function getProgramPaymentLabel(program){
+    var paymentModel = String(program && program.paymentModel ? program.paymentModel : '').trim().toLowerCase();
+    var billingType = String(program && program.billingType ? program.billingType : '').trim().toLowerCase();
+    if(paymentModel === 'phased') return 'Pagamento faseado';
+    if(paymentModel === 'recurring' || billingType === 'recurring') return 'Subscrição';
+    return 'Pagamento único';
+  }
+
+  function isProgramRecurring(program){
+    var paymentModel = String(program && program.paymentModel ? program.paymentModel : '').trim().toLowerCase();
+    var billingType = String(program && program.billingType ? program.billingType : '').trim().toLowerCase();
+    return paymentModel === 'recurring' || billingType === 'recurring';
+  }
+
+  function getProgramFollowupLabel(program){
+    var accessModel = String(program && program.accessModel ? program.accessModel : '').trim().toLowerCase();
+    if(accessModel === 'coached_recurring') return 'Acompanhamento individualizado';
+    if(accessModel === 'coached_one_time') return 'Acompanhamento em grupo';
+    return '';
+  }
+
+  function shouldShowProgramAvailability(program){
+    var availabilityLabel = formatProgramAvailability(program && program.startDate ? program.startDate : '');
+    var followupLabel = getProgramFollowupLabel(program);
+    return !(availabilityLabel === 'Acesso imediato' && followupLabel === 'Acompanhamento individualizado');
+  }
+
+  function formatExperienceLevelLabel(level){
+    var normalized = String(level || '').trim().toLowerCase();
+    if(normalized === 'beginner') return 'Iniciante';
+    if(normalized === 'intermediate') return 'Intermédio';
+    if(normalized === 'advanced') return 'Avançado';
+    return '';
+  }
+
+  function formatModalityLabel(value){
+    var normalized = String(value || '').trim().toLowerCase();
+    if(!normalized) return '';
+    if(normalized === 'included_unspecified') return '';
+    if(normalized === 'gym' || normalized === 'ginasio' || normalized === 'strength') return 'Força';
+    if(normalized === 'running' || normalized === 'corrida') return 'Corrida';
+    if(normalized === 'trail') return 'Trail';
+    if(normalized === 'cycling' || normalized === 'ciclismo') return 'Ciclismo';
+    if(normalized === 'swim' || normalized === 'natacao') return 'Natação';
+    if(normalized === 'endurance') return 'Endurance';
+    return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+  }
+
+  function getClassificationView(program){
+    var classification = program && program.classification && typeof program.classification === 'object'
+      ? program.classification
+      : null;
+    var experience = classification && classification.experienceLevel && classification.experienceLevel.byModality
+      && typeof classification.experienceLevel.byModality === 'object'
+      ? classification.experienceLevel.byModality
+      : {};
+    var tokens = [];
+    Object.keys(experience).forEach(function(token){
+      if(token && !tokens.includes(token)) tokens.push(token);
+    });
+    if(Array.isArray(classification && classification.modalities)){
+      classification.modalities.forEach(function(token){
+        var normalized = String(token || '').trim();
+        if(normalized && !tokens.includes(normalized)) tokens.push(normalized);
+      });
+    }
+    var strengthToken = tokens.find(function(token){
+      var t = String(token || '').trim().toLowerCase();
+      return t === 'gym' || t === 'ginasio' || t === 'strength';
+    }) || (Array.isArray(classification && classification.trainingComponents)
+      && classification.trainingComponents.includes('strength') ? 'strength' : '');
+    var enduranceToken = tokens.find(function(token){
+      var t = String(token || '').trim().toLowerCase();
+      return t === 'running' || t === 'corrida' || t === 'trail' || t === 'cycling' || t === 'ciclismo' || t === 'swim' || t === 'natacao' || t === 'endurance';
+    }) || (Array.isArray(classification && classification.trainingComponents)
+      && classification.trainingComponents.includes('endurance') ? 'endurance' : '');
+
+    return {
+      strengthToken: strengthToken,
+      enduranceToken: enduranceToken,
+      experienceByModality: experience
+    };
+  }
+
+  function getProgramModalityLabel(program){
+    var view = getClassificationView(program);
+    var strengthLabel = formatModalityLabel(view.strengthToken);
+    var enduranceLabel = formatModalityLabel(view.enduranceToken);
+    if(strengthLabel && enduranceLabel) return strengthLabel + ' + ' + enduranceLabel;
+    return strengthLabel || enduranceLabel || '';
+  }
+
+  function formatExperienceLevels(value){
+    var values = Array.isArray(value) ? value : [value];
+    var labels = values
+      .map(function(level){ return formatExperienceLevelLabel(level); })
+      .filter(Boolean);
+    return labels.join(', ');
+  }
+
+  function buildProgramExperienceHtml(program){
+    var view = getClassificationView(program);
+    var lines = [];
+
+    var strengthLevels = formatExperienceLevels(view.experienceByModality && (view.experienceByModality.gym || view.experienceByModality.ginasio || view.experienceByModality.strength));
+    if(strengthLevels){
+      lines.push('Força - ' + strengthLevels);
+    }
+
+    var enduranceValue = view.experienceByModality && (
+      view.experienceByModality.running
+      || view.experienceByModality.corrida
+      || view.experienceByModality.trail
+      || view.experienceByModality.cycling
+      || view.experienceByModality.ciclismo
+      || view.experienceByModality.swim
+      || view.experienceByModality.natacao
+      || view.experienceByModality.endurance
+    );
+    var enduranceLevels = formatExperienceLevels(enduranceValue);
+    if(enduranceLevels){
+      lines.push('Corrida - ' + enduranceLevels);
+    }
+
+    if(!lines.length) return '';
+    return ''
+      + '<div class="program-detail-experience">'
+      + '<p><strong>Experiência de treino recomendada:</strong></p>'
+      + lines.map(function(line){ return '<p>' + escapeHtml(line) + '</p>'; }).join('')
+      + '</div>';
+  }
+
   function formatProgramAvailability(value){
     var normalized = String(value || '').trim();
     if(!normalized) return 'Acesso imediato';
     if(!/^\d{4}-\d{2}-\d{2}$/.test(normalized)) return normalized;
     try {
-      return new Intl.DateTimeFormat('pt-PT', {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric'
-      }).format(new Date(normalized + 'T00:00:00'));
+      var date = new Date(normalized + 'T00:00:00');
+      var day = date.getDate();
+      var month = new Intl.DateTimeFormat('pt-PT', { month: 'short' }).format(date)
+        .replace('.', '')
+        .replace(/^[a-z]/, function(match){ return match.toUpperCase(); });
+      return 'Início: ' + day + '/' + month;
     } catch(_err){
       return normalized;
     }
@@ -508,24 +643,27 @@
       throw new Error('Checkout modal indisponivel na pagina.');
     }
 
-    checkoutProgram = program;
+    checkoutProgram = Object.assign({}, program || {}, checkoutData && checkoutData.program ? checkoutData.program : {});
     checkoutClientSecret = checkoutData.clientSecret || '';
+    checkoutIntentType = checkoutData.intentType || 'payment';
     checkoutPaymentIntentId = checkoutData.paymentIntentId || '';
+    checkoutSetupIntentId = checkoutData.setupIntentId || '';
     checkoutSubscriptionId = checkoutData.subscriptionId || '';
     checkoutNoPaymentRedirectUrl = '';
     appliedCoupon = null;
     selectedInterval = '';
 
-    nodes.billingLabel.textContent = program.billingType === 'recurring' ? 'Subscricao' : 'Pagamento unico';
-    nodes.name.textContent = program.name;
-    nodes.price.textContent = formatPrice(program.priceCents, program.currency);
+    nodes.billingLabel.textContent = getProgramPaymentLabel(checkoutProgram);
+    nodes.name.textContent = checkoutProgram.name;
+    nodes.price.textContent = formatPrice(checkoutProgram.priceCents, checkoutProgram.currency);
     if(nodes.summary){
-      nodes.summary.textContent = programCommercialDescription(program);
+      nodes.summary.textContent = programCommercialDescription(checkoutProgram);
     }
     setCheckoutError('');
     if(nodes.processing) nodes.processing.hidden = true;
 
-    buildIntervalOptions(program);
+    buildIntervalOptions(checkoutProgram);
+    updateDisplayedPrice();
 
     if(nodes.couponRow) nodes.couponRow.hidden = false;
     if(nodes.pe) nodes.pe.style.display = '';
@@ -545,7 +683,9 @@
     destroyPaymentElement();
     checkoutProgram = null;
     checkoutClientSecret = '';
+    checkoutIntentType = 'payment';
     checkoutPaymentIntentId = '';
+    checkoutSetupIntentId = '';
     checkoutSubscriptionId = '';
     checkoutNoPaymentRedirectUrl = '';
     appliedCoupon = null;
@@ -562,7 +702,9 @@
   }
 
   async function handleCheckoutSubmit(){
+  checkoutIntentType = refreshedCheckout.intentType || 'payment';
     if(checkoutNoPaymentRedirectUrl){
+  checkoutSetupIntentId = refreshedCheckout.setupIntentId || checkoutSetupIntentId;
       window.location.href = checkoutNoPaymentRedirectUrl;
       return;
     }
@@ -578,46 +720,59 @@
       var stripe = initStripe();
       var returnUrl = window.location.origin + '/onboarding?program_id=' + encodeURIComponent(checkoutProgram.id) + '&payment_intent=' + encodeURIComponent(checkoutPaymentIntentId || '');
 
-      var result = await stripe.confirmPayment({
-        elements: stripeElements,
-        confirmParams: {
-          return_url: returnUrl,
-          payment_method_data: {
-            billing_details: {
-              email: (currentUser && currentUser.email) ? currentUser.email : undefined
-            }
+      var confirmParams = {
+        return_url: returnUrl,
+        payment_method_data: {
+          billing_details: {
+            email: (currentUser && currentUser.email) ? currentUser.email : undefined
           }
-        },
-        redirect: 'if_required'
-      });
+        }
+      };
+      var result = checkoutIntentType === 'setup'
+        ? await stripe.confirmSetup({
+          elements: stripeElements,
+          confirmParams: {
+            return_url: returnUrl,
+            payment_method_data: confirmParams.payment_method_data
+          },
+          redirect: 'if_required'
+        })
+        : await stripe.confirmPayment({
+          elements: stripeElements,
+          confirmParams: confirmParams,
+          redirect: 'if_required'
+        });
 
       if(result.error){
         throw new Error(result.error.message || 'Nao foi possivel confirmar o pagamento.');
       }
 
-      var pi = result.paymentIntent;
-      if(!pi){
+      var confirmedIntent = checkoutIntentType === 'setup' ? result.setupIntent : result.paymentIntent;
+      if(!confirmedIntent){
         throw new Error('Pagamento sem resposta valida do Stripe.');
       }
 
-      var redirectUrl = window.location.origin + '/onboarding?program_id=' + encodeURIComponent(checkoutProgram.id) + '&payment_intent=' + encodeURIComponent(pi.id || checkoutPaymentIntentId || '');
+      var redirectUrl = window.location.origin + '/onboarding?program_id=' + encodeURIComponent(checkoutProgram.id);
+      if(checkoutIntentType !== 'setup'){
+        redirectUrl += '&payment_intent=' + encodeURIComponent(confirmedIntent.id || checkoutPaymentIntentId || '');
+      }
 
-      if(pi.status === 'succeeded'){
+      if(confirmedIntent.status === 'succeeded'){
         window.location.href = redirectUrl;
         return;
       }
 
-      if(pi.status === 'processing'){
+      if(confirmedIntent.status === 'processing'){
         if(nodes.processing) nodes.processing.hidden = false;
         if(nodes.submit) nodes.submit.hidden = true;
         return;
       }
 
-      if(pi.status === 'requires_payment_method'){
+      if(confirmedIntent.status === 'requires_payment_method'){
         throw new Error('O metodo de pagamento foi recusado. Tenta com outro cartao ou metodo.');
       }
 
-      if(pi.status === 'requires_action'){
+      if(confirmedIntent.status === 'requires_action'){
         // Delayed payment methods (Multibanco, etc.) – voucher was shown inline
         if(nodes.processing){
           nodes.processing.textContent = 'Referências geradas. Consulta o teu email para os detalhes de pagamento. O acesso será ativado automaticamente após o pagamento.';
@@ -627,7 +782,7 @@
         return;
       }
 
-      throw new Error('Estado de pagamento inesperado: ' + pi.status);
+      throw new Error('Estado de pagamento inesperado: ' + confirmedIntent.status);
     } catch (err) {
       setCheckoutError(err.message || 'Nao foi possivel concluir o pagamento.');
     } finally {
@@ -761,7 +916,7 @@
 
       var eyebrow = document.createElement('div');
       eyebrow.className = 'eyebrow';
-      eyebrow.textContent = program.billingType === 'recurring' ? 'Subscricao' : 'Pagamento unico';
+      eyebrow.textContent = getProgramPaymentLabel(program);
       card.appendChild(eyebrow);
 
       var title = document.createElement('h2');
@@ -775,8 +930,22 @@
 
       var meta = document.createElement('div');
       meta.className = 'meta';
-      meta.innerHTML = '<span>' + escapeHtml(formatProgramPriceSummary(program)) + '</span><span>' + program.durationWeeks + ' semanas</span><span>' + escapeHtml(formatProgramAvailability(program.startDate)) + '</span>';
+      meta.innerHTML = [
+        '<span>' + escapeHtml(formatProgramPriceSummary(program)) + '</span>',
+        !isProgramRecurring(program) && program.durationWeeks ? '<span>' + escapeHtml(program.durationWeeks + ' semanas') + '</span>' : '',
+        shouldShowProgramAvailability(program) ? '<span>' + escapeHtml(formatProgramAvailability(program.startDate)) + '</span>' : ''
+      ].filter(Boolean).join('');
       card.appendChild(meta);
+
+      var labels = [];
+      var followupLabel = getProgramFollowupLabel(program);
+      if(followupLabel) labels.push(followupLabel);
+      if(labels.length){
+        var contextMeta = document.createElement('div');
+        contextMeta.className = 'meta';
+        contextMeta.innerHTML = labels.map(function(item){ return '<span>' + escapeHtml(item) + '</span>'; }).join('');
+        card.appendChild(contextMeta);
+      }
 
       var actions = document.createElement('div');
       actions.className = 'actions';
@@ -811,12 +980,16 @@
 
       var detailMeta = document.createElement('div');
       detailMeta.className = 'meta';
-      detailMeta.innerHTML = '<span>' + escapeHtml(formatProgramPriceSummary(selectedProgram)) + '</span><span>' + selectedProgram.durationWeeks + ' semanas</span><span>' + escapeHtml(formatProgramAvailability(selectedProgram.startDate)) + '</span>';
+      detailMeta.innerHTML = [
+        '<span>' + escapeHtml(formatProgramPriceSummary(selectedProgram)) + '</span>',
+        !isProgramRecurring(selectedProgram) && selectedProgram.durationWeeks ? '<span>' + escapeHtml(selectedProgram.durationWeeks + ' semanas') + '</span>' : '',
+        shouldShowProgramAvailability(selectedProgram) ? '<span>' + escapeHtml(formatProgramAvailability(selectedProgram.startDate)) + '</span>' : ''
+      ].filter(Boolean).join('');
       detail.appendChild(detailMeta);
 
       var detailCopy = document.createElement('div');
       detailCopy.className = 'program-detail-copy';
-      detailCopy.innerHTML = programTechnicalDescription(selectedProgram);
+      detailCopy.innerHTML = programTechnicalDescription(selectedProgram) + buildProgramExperienceHtml(selectedProgram);
       detail.appendChild(detailCopy);
 
       var detailActions = document.createElement('div');
@@ -974,7 +1147,7 @@
         window.location.href = '/onboarding?program_id=' + encodeURIComponent((payload.program && payload.program.id) ? payload.program.id : program.id);
         return;
       }
-      openCheckoutModal(payload.program || program, payload);
+      openCheckoutModal(program, payload);
     } catch (err) {
       errorMessage = err.message || 'Nao foi possivel iniciar checkout.';
       render();

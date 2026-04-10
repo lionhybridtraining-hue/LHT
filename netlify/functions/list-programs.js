@@ -113,6 +113,7 @@ exports.handler = async (event) => {
             billingType: program.billing_type || "one_time",
             accessModel: program.access_model || "coached_one_time",
             paymentModel: program.payment_model || (program.billing_type === "recurring" ? "recurring" : "single"),
+            highlighted: program.highlighted === true,
             prices,
             startDate,
             immediateAccess: !startDate,

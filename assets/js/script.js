@@ -44,6 +44,9 @@ window.addEventListener('load', handleScrollIndicator);
   const HOME_PROGRAMS_CACHE_KEY = 'lht_home_programs_cache_v2';
   const HOME_PROGRAMS_ENDPOINT = '/.netlify/functions/list-programs';
   const HOME_PROGRAMS_LIMIT = 4;
+  const HOME_PROGRAMS_DESKTOP_VISIBLE_COUNT = 2;
+  const HOME_PROGRAMS_AUTONUDGE_DELAY_MS = 1100;
+  const HOME_PROGRAMS_AUTONUDGE_RETURN_DELAY_MS = 850;
 
   function syncAnchorTarget(node, href){
     if(!node || !href) return;
@@ -139,14 +142,35 @@ window.addEventListener('load', handleScrollIndicator);
     if(!normalized) return 'Acesso imediato';
     if(!/^\d{4}-\d{2}-\d{2}$/.test(normalized)) return normalized;
     try {
-      return new Intl.DateTimeFormat('pt-PT', {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric'
-      }).format(new Date(normalized + 'T00:00:00'));
+      var date = new Date(normalized + 'T00:00:00');
+      var day = date.getDate();
+      var month = new Intl.DateTimeFormat('pt-PT', { month: 'short' }).format(date)
+        .replace('.', '')
+        .replace(/^[a-z]/, function(match){ return match.toUpperCase(); });
+      return 'Início: ' + day + '/' + month;
     } catch(_err){
       return normalized;
     }
+  }
+
+  function getProgramPaymentLabel(program){
+    var paymentModel = String(program && program.paymentModel ? program.paymentModel : '').trim().toLowerCase();
+    var billingType = String(program && program.billingType ? program.billingType : '').trim().toLowerCase();
+    if(paymentModel === 'phased') return 'Pagamento faseado';
+    if(paymentModel === 'recurring' || billingType === 'recurring') return 'Subscrição';
+    return 'Pagamento único';
+  }
+
+  function shouldShowProgramAvailability(program){
+    var availabilityLabel = formatProgramAvailability(program && program.startDate ? program.startDate : '');
+    var followupLabel = String(program && program.followupLabel ? program.followupLabel : '').trim();
+    return !(availabilityLabel === 'Acesso imediato' && followupLabel === 'Acompanhamento individualizado');
+  }
+
+  function isProgramRecurring(program){
+    var paymentModel = String(program && program.paymentModel ? program.paymentModel : '').trim().toLowerCase();
+    var billingType = String(program && program.billingType ? program.billingType : '').trim().toLowerCase();
+    return paymentModel === 'recurring' || billingType === 'recurring';
   }
 
   function pathName(){
@@ -357,9 +381,6 @@ window.addEventListener('load', handleScrollIndicator);
       fp && fp.image ? String(fp.image).trim() : ''
     ], '');
 
-    var tagline = document.getElementById('fp-tagline');
-    if(tagline) text(tagline, (fp && fp.tagline) || 'Catalogo rapido');
-
     var nameEl = document.getElementById('fp-name');
     if(nameEl) text(nameEl, (fp && fp.name) || 'Programa em destaque LHT');
 
@@ -377,6 +398,7 @@ window.addEventListener('load', handleScrollIndicator);
     var nextDate = document.getElementById('fp-next-date');
     var nextDateWrap = document.getElementById('fp-next-date-wrap');
     var nextDateValue = fp ? formatProgramAvailability(fp && fp.startDate ? fp.startDate : '') : '';
+    if(fp && !shouldShowProgramAvailability(fp)) nextDateValue = '';
     if(nextDate && nextDateValue) text(nextDate, nextDateValue);
     if(nextDateWrap) nextDateWrap.hidden = !nextDateValue;
 
@@ -396,10 +418,13 @@ window.addEventListener('load', handleScrollIndicator);
 
     var followup = document.getElementById('fp-followup');
     if(followup){
-      text(followup, firstDefinedValue([
-        fp && fp.followupLabel ? fp.followupLabel : '',
-        'Progressao guiada'
-      ], 'Progressao guiada'));
+      var followupLabel = firstDefinedValue([
+        fp && fp.followupLabel ? fp.followupLabel : ''
+      ], '');
+      followup.hidden = !followupLabel;
+      if(followupLabel){
+        text(followup, followupLabel);
+      }
     }
 
     var features = document.getElementById('fp-features');
@@ -476,7 +501,7 @@ window.addEventListener('load', handleScrollIndicator);
 
     var eyebrow = document.createElement('p');
     eyebrow.className = 'program-quick-eyebrow';
-    text(eyebrow, program && program.billingType === 'recurring' ? 'Subscricao' : 'Pagamento unico');
+    text(eyebrow, getProgramPaymentLabel(program));
 
     var title = document.createElement('h4');
     text(title, program && program.name ? program.name : 'Programa LHT');
@@ -489,8 +514,8 @@ window.addEventListener('load', handleScrollIndicator);
     meta.className = 'program-quick-meta';
     [
       formatProgramPrice(program && program.priceCents, program && program.currency),
-      program && program.durationWeeks ? `${program.durationWeeks} semanas` : '',
-      formatProgramAvailability(program && program.startDate ? program.startDate : '')
+      program && program.durationWeeks && !isProgramRecurring(program) ? `${program.durationWeeks} semanas` : '',
+      shouldShowProgramAvailability(program) ? formatProgramAvailability(program && program.startDate ? program.startDate : '') : ''
     ].filter(Boolean).slice(0, 3).forEach(function(item){
       var chip = document.createElement('span');
       text(chip, item);
@@ -510,8 +535,144 @@ window.addEventListener('load', handleScrollIndicator);
     if(meta.childNodes.length){
       card.appendChild(meta);
     }
-    card.appendChild(cta);
     return card;
+  }
+
+  function updateRailNav(rail, prevBtn, nextBtn, navRow){
+    var hasOverflow = rail.scrollHeight > rail.clientHeight + 4;
+    if(navRow) navRow.hidden = !hasOverflow;
+    if(!hasOverflow) return;
+    var atTop = rail.scrollTop <= 2;
+    var atBottom = rail.scrollTop + rail.clientHeight >= rail.scrollHeight - 2;
+    if(prevBtn) prevBtn.disabled = atTop;
+    if(nextBtn) nextBtn.disabled = atBottom;
+  }
+
+  function syncRailViewportHeight(rail){
+    if(!rail) return;
+    if(window.innerWidth <= 900){
+      rail.style.removeProperty('--programs-quick-rail-height');
+      return;
+    }
+
+    var cards = Array.from(rail.querySelectorAll('.program-quick-card'));
+    if(!cards.length){
+      rail.style.removeProperty('--programs-quick-rail-height');
+      return;
+    }
+
+    var visibleCards = cards.slice(0, HOME_PROGRAMS_DESKTOP_VISIBLE_COUNT);
+    var gap = 12;
+    var height = visibleCards.reduce(function(total, card){
+      return total + card.offsetHeight;
+    }, 0);
+    if(visibleCards.length > 1){
+      height += gap * (visibleCards.length - 1);
+    }
+
+    rail.style.setProperty('--programs-quick-rail-height', height + 'px');
+  }
+
+  function shouldAutoNudgeRail(rail){
+    if(!rail || rail.dataset.autoNudgeDone === '1' || rail.dataset.userInteracted === '1') return false;
+    if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return false;
+    if(window.innerWidth <= 900){
+      return rail.scrollWidth > rail.clientWidth + 4;
+    }
+    return rail.scrollHeight > rail.clientHeight + 4;
+  }
+
+  function autoNudgeRail(rail){
+    if(!shouldAutoNudgeRail(rail)) return;
+    rail.dataset.autoNudgeDone = '1';
+
+    window.setTimeout(function(){
+      if(rail.dataset.userInteracted === '1') return;
+
+      var card = rail.querySelector('.program-quick-card');
+      var step = card
+        ? (window.innerWidth <= 900 ? card.offsetWidth + 16 : card.offsetHeight + 12)
+        : (window.innerWidth <= 900 ? 220 : 180);
+      var travel = Math.max(48, Math.round(step * 0.6));
+
+      if(window.innerWidth <= 900){
+        rail.scrollBy({ left: travel, behavior: 'smooth' });
+        window.setTimeout(function(){
+          if(rail.dataset.userInteracted === '1') return;
+          rail.scrollTo({ left: 0, behavior: 'smooth' });
+        }, HOME_PROGRAMS_AUTONUDGE_RETURN_DELAY_MS);
+        return;
+      }
+
+      rail.scrollBy({ top: travel, behavior: 'smooth' });
+      window.setTimeout(function(){
+        if(rail.dataset.userInteracted === '1') return;
+        rail.scrollTo({ top: 0, behavior: 'smooth' });
+      }, HOME_PROGRAMS_AUTONUDGE_RETURN_DELAY_MS);
+    }, HOME_PROGRAMS_AUTONUDGE_DELAY_MS);
+  }
+
+  function scheduleAutoNudgeRail(rail){
+    if(!rail || rail.dataset.autoNudgeScheduled === '1') return;
+    rail.dataset.autoNudgeScheduled = '1';
+
+    if(typeof window.IntersectionObserver !== 'function'){
+      autoNudgeRail(rail);
+      return;
+    }
+
+    var observer = new IntersectionObserver(function(entries){
+      var entry = entries && entries[0];
+      if(!entry || !entry.isIntersecting) return;
+      observer.disconnect();
+      autoNudgeRail(rail);
+    }, {
+      threshold: 0.45
+    });
+
+    observer.observe(rail);
+  }
+
+  function bindRailNav(rail){
+    if(!rail) return;
+    var navRow = document.getElementById('rail-nav-row');
+    var prevBtn = document.getElementById('rail-nav-prev');
+    var nextBtn = document.getElementById('rail-nav-next');
+    if(!navRow || !prevBtn || !nextBtn) return;
+
+    if(!rail.dataset.navBound){
+      rail.dataset.navBound = '1';
+      var getStep = function(){
+        var card = rail.querySelector('.program-quick-card');
+        return card ? (card.offsetHeight + 12) : 180;
+      };
+      prevBtn.addEventListener('click', function(){
+        rail.scrollBy({ top: -getStep(), behavior: 'smooth' });
+      });
+      nextBtn.addEventListener('click', function(){
+        rail.scrollBy({ top: getStep(), behavior: 'smooth' });
+      });
+      rail.addEventListener('scroll', function(){
+        updateRailNav(rail, prevBtn, nextBtn, navRow);
+      }, { passive: true });
+      ['pointerdown', 'wheel', 'touchstart'].forEach(function(eventName){
+        rail.addEventListener(eventName, function(){
+          rail.dataset.userInteracted = '1';
+        }, { passive: true });
+      });
+      window.addEventListener('resize', function(){
+        syncRailViewportHeight(rail);
+        updateRailNav(rail, prevBtn, nextBtn, navRow);
+      });
+    }
+
+    requestAnimationFrame(function(){
+      requestAnimationFrame(function(){
+        syncRailViewportHeight(rail);
+        updateRailNav(rail, prevBtn, nextBtn, navRow);
+        scheduleAutoNudgeRail(rail);
+      });
+    });
   }
 
   function bindHomePrograms(programs, featuredProgramId){
@@ -545,6 +706,7 @@ window.addEventListener('load', handleScrollIndicator);
     items.forEach(function(program){
       rail.appendChild(createQuickProgramCard(program));
     });
+    bindRailNav(rail);
   }
 
   async function fetchHomePrograms(featuredProgramId){

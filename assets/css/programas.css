@@ -472,10 +472,12 @@ body.checkout-open {
 
 .checkout-modal {
   position: relative;
-  width: min(460px, 100%);
+  width: min(540px, 100%);
+  max-height: calc(100vh - 40px);
   display: grid;
   gap: 18px;
   padding: 28px;
+  overflow-y: auto;
   border-radius: 24px;
   border: 1px solid rgba(212, 165, 79, 0.28);
   background:
@@ -537,6 +539,7 @@ body.checkout-open {
 .checkout-payment-element {
   min-height: 52px;
   padding: 14px 13px;
+  overflow: hidden;
   border-radius: 14px;
   border: 1px solid rgba(255, 255, 255, 0.13);
   background: rgba(0, 0, 0, 0.28);
@@ -739,15 +742,74 @@ body.checkout-open {
 
 @media (max-width: 560px) {
   .checkout-overlay {
-    padding: 14px;
+    place-items: start center;
+    padding: 10px;
   }
 
   .checkout-modal {
     border-radius: 20px;
-    padding: 22px;
+    width: min(100%, 420px);
+    max-height: calc(100vh - 20px);
+    gap: 14px;
+    padding: 18px;
   }
 
   .checkout-summary h3 {
-    font-size: 26px;
+    font-size: 24px;
+  }
+
+  .checkout-summary {
+    gap: 4px;
+    padding-right: 28px;
+  }
+
+  .checkout-interval-options {
+    flex-direction: column;
+  }
+
+  .checkout-interval-options label {
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    text-align: left;
+    gap: 6px 12px;
+    padding: 10px 12px;
+  }
+
+  .checkout-coupon-row {
+    flex-direction: column;
+  }
+
+  .checkout-coupon-apply {
+    width: 100%;
+  }
+
+  .checkout-processing,
+  .checkout-error,
+  .checkout-footer {
+    font-size: 12px;
+  }
+
+  .checkout-submit {
+    min-height: 48px;
+  }
+}
+
+@media (max-width: 380px) {
+  .checkout-overlay {
+    padding: 8px;
+  }
+
+  .checkout-modal {
+    padding: 16px;
+  }
+
+  .checkout-summary h3 {
+    font-size: 22px;
+  }
+
+  .checkout-price,
+  .checkout-program-summary,
+  .checkout-interval-legend {
+    font-size: 12px;
   }
 }

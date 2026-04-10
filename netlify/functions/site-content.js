@@ -35,15 +35,78 @@ function deriveFeatureItems(featured) {
   const durationWeeks = featured && Number.isFinite(Number(featured.duration_weeks))
     ? Number(featured.duration_weeks)
     : null;
+  const billingType = normalizeText(featured && featured.billing_type).toLowerCase();
+  const paymentModel = normalizeText(featured && featured.payment_model).toLowerCase();
+  const isRecurring = paymentModel === "recurring" || billingType === "recurring";
 
   if (eventName) items.push(`Evento associado: ${eventName}.`);
-  if (durationWeeks && durationWeeks > 0) items.push(`Plano com ${durationWeeks} semanas.`);
+  if (!isRecurring && durationWeeks && durationWeeks > 0) items.push(`Plano com ${durationWeeks} semanas.`);
 
   return items.slice(0, 3);
 }
 
 function deriveFeaturedProgram(programs) {
   if (!Array.isArray(programs) || programs.length === 0) return null;
+
+  const manuallyHighlighted = programs
+    .filter((program) => program && program.highlighted === true)
+    .sort((a, b) => {
+      const createdA = Date.parse(a && a.created_at ? a.created_at : "") || 0;
+      const createdB = Date.parse(b && b.created_at ? b.created_at : "") || 0;
+      return createdA - createdB;
+    });
+
+  if (manuallyHighlighted.length) {
+    const featured = manuallyHighlighted[0];
+    const relatedEvent = featured && featured.event && typeof featured.event === "object" ? featured.event : null;
+    const billingType = featured && featured.billing_type ? String(featured.billing_type) : "one_time";
+    const accessModel = featured && featured.access_model ? String(featured.access_model) : "coached_one_time";
+    const paymentModel = featured && featured.payment_model ? String(featured.payment_model) : (billingType === "recurring" ? "recurring" : "single");
+    const priceCents = featured && featured.price_cents != null ? Number(featured.price_cents) : null;
+    const currency = featured && featured.currency ? String(featured.currency) : "EUR";
+    const startDate = featured && featured.start_date ? String(featured.start_date) : null;
+    const hasScheduledStart = Boolean(startDate);
+
+    const followupLabel = accessModel === "coached_recurring"
+      ? "Acompanhamento individualizado"
+      : accessModel === "coached_one_time"
+        ? "Acompanhamento em grupo"
+        : "";
+    const paymentLabel = paymentModel === "phased"
+      ? "Pagamento faseado"
+      : billingType === "recurring" ? "Subscrição" : "Pagamento único";
+    const availabilityLabel = hasScheduledStart ? "Acesso calendarizado" : "Acesso imediato";
+
+    return {
+      id: featured && featured.id ? String(featured.id) : null,
+      name: featured && featured.name ? String(featured.name) : null,
+      description: normalizeText(featured && (featured.commercial_description || featured.description)) || null,
+      imageUrl: normalizeText(featured && featured.image_url) || null,
+      durationWeeks: featured && featured.duration_weeks != null ? Number(featured.duration_weeks) : null,
+      priceCents,
+      currency,
+      priceLabel: formatPriceLabel(priceCents, currency),
+      billingType,
+      tagline: paymentLabel,
+      subtitle: normalizeText(featured && (featured.commercial_description || featured.description)) || null,
+      followupLabel,
+      paymentLabel,
+      availabilityLabel,
+      accessModel,
+      paymentModel,
+      startDate,
+      immediateAccess: !hasScheduledStart,
+      eventDate: relatedEvent && relatedEvent.event_date ? String(relatedEvent.event_date) : null,
+      eventName: relatedEvent && relatedEvent.name ? String(relatedEvent.name) : null,
+      eventLocation: relatedEvent && relatedEvent.event_location ? String(relatedEvent.event_location) : null,
+      eventDescription: relatedEvent && relatedEvent.event_description ? String(relatedEvent.event_description) : null,
+      features: deriveFeatureItems(featured),
+      calendarHighlightRank: relatedEvent && relatedEvent.calendar_highlight_rank != null
+        ? Number(relatedEvent.calendar_highlight_rank)
+        : null,
+      ctaUrl: featured && featured.id ? "/programas?program_id=" + encodeURIComponent(String(featured.id)) : null
+    };
+  }
 
   const highlighted = programs
     .filter((program) => {
@@ -76,19 +139,19 @@ function deriveFeaturedProgram(programs) {
 
   // Labels desacopladas: cada uma derivada de um eixo isolado
   const followupLabel = accessModel === "coached_recurring"
-    ? "Acompanhamento continuo"
+    ? "Acompanhamento individualizado"
     : accessModel === "coached_one_time"
-      ? "Acompanhamento por programa"
-      : "Self-service";
+      ? "Acompanhamento em grupo"
+      : "";
   const paymentLabel = paymentModel === "phased"
     ? "Pagamento faseado"
-    : billingType === "recurring" ? "Subscricao" : "Pagamento unico";
+    : billingType === "recurring" ? "Subscrição" : "Pagamento único";
   const availabilityLabel = hasScheduledStart ? "Acesso calendarizado" : "Acesso imediato";
 
   return {
     id: featured && featured.id ? String(featured.id) : null,
     name: featured && featured.name ? String(featured.name) : null,
-    description: normalizeText(featured && featured.description) || null,
+    description: normalizeText(featured && (featured.commercial_description || featured.description)) || null,
     imageUrl: normalizeText(featured && featured.image_url) || null,
     durationWeeks: featured && featured.duration_weeks != null ? Number(featured.duration_weeks) : null,
     priceCents,
@@ -96,7 +159,7 @@ function deriveFeaturedProgram(programs) {
     priceLabel: formatPriceLabel(priceCents, currency),
     billingType,
     tagline: paymentLabel,
-    subtitle: normalizeText(featured && featured.description) || null,
+    subtitle: normalizeText(featured && (featured.commercial_description || featured.description)) || null,
     followupLabel,
     paymentLabel,
     availabilityLabel,

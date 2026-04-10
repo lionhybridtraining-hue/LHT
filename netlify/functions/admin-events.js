@@ -55,7 +55,10 @@ function calculateProgramStartDate(eventDate, durationWeeks) {
   const weeks = Number(durationWeeks);
   if (!Number.isInteger(weeks) || weeks <= 0) return null;
   const date = new Date(`${eventDate}T00:00:00Z`);
-  date.setUTCDate(date.getUTCDate() - (weeks * 7));
+  const weekday = date.getUTCDay(); // 0=Sunday, 1=Monday, ...
+  const shiftToMonday = (weekday + 6) % 7;
+  date.setUTCDate(date.getUTCDate() - shiftToMonday);
+  date.setUTCDate(date.getUTCDate() - ((weeks - 1) * 7));
   return date.toISOString().slice(0, 10);
 }
 

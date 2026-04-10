@@ -160,7 +160,10 @@ exports.handler = async (event) => {
       }
       normalized.status = normalized.start_date > new Date().toISOString().slice(0, 10) ? "scheduled" : "active";
       if (normalized.duration_weeks == null) {
-        normalized.duration_weeks = Number(program.duration_weeks);
+        normalized.duration_weeks = program.duration_weeks == null ? null : Number(program.duration_weeks);
+      }
+      if (normalized.duration_weeks == null) {
+        throw new Error("Assignment duration_weeks is required when the program has no default duration");
       }
       if (!Number.isInteger(normalized.duration_weeks) || normalized.duration_weeks <= 0) {
         throw new Error("Program duration_weeks must be a positive integer");

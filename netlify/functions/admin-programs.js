@@ -187,7 +187,10 @@ function calculateProgramStartDate(eventDate, durationWeeks) {
   if (!normalizedEventDate || !Number.isInteger(weeks) || weeks <= 0) return null;
 
   const date = new Date(`${normalizedEventDate}T00:00:00Z`);
-  date.setUTCDate(date.getUTCDate() - (weeks * 7));
+  const weekday = date.getUTCDay(); // 0=Sunday, 1=Monday, ...
+  const shiftToMonday = (weekday + 6) % 7;
+  date.setUTCDate(date.getUTCDate() - shiftToMonday);
+  date.setUTCDate(date.getUTCDate() - ((weeks - 1) * 7));
   return date.toISOString().slice(0, 10);
 }
 
@@ -318,7 +321,10 @@ function normalizeProgramPayload(payload) {
   const description = technicalDescription || commercialDescription || (legacyDescriptionRaw == null ? null : legacyDescriptionRaw.toString().trim() || null);
   const imageUrlRaw = payload.imageUrl == null ? payload.image_url : payload.imageUrl;
   const imageUrl = imageUrlRaw == null ? null : imageUrlRaw.toString().trim() || null;
-  const durationWeeks = Number(payload.durationWeeks);
+  const durationWeeksRaw = payload.durationWeeks == null ? payload.duration_weeks : payload.durationWeeks;
+  const durationWeeks = durationWeeksRaw == null || durationWeeksRaw === ""
+    ? null
+    : Number(durationWeeksRaw);
   const priceCents = Number(payload.priceCents ?? 0);
   const recurringPriceMonthlyCents = normalizeOptionalCents(
     payload.recurringPriceMonthlyCents == null ? payload.recurring_price_monthly_cents : payload.recurringPriceMonthlyCents,
@@ -347,9 +353,11 @@ function normalizeProgramPayload(payload) {
   const billingType = (payload.billingType || "one_time").toString().trim().toLowerCase() || "one_time";
   const accessModel = (payload.accessModel || "coached_one_time").toString().trim().toLowerCase() || "coached_one_time";
   const paymentModelRaw = (payload.paymentModel || payload.payment_model || "").toString().trim().toLowerCase();
-  const paymentModel = paymentModelRaw && ["single", "recurring", "phased"].includes(paymentModelRaw)
+  let paymentModel = paymentModelRaw && ["single", "recurring", "phased"].includes(paymentModelRaw)
     ? paymentModelRaw
     : (billingType === "recurring" ? "recurring" : "single");
+  if (billingType === "recurring") paymentModel = "recurring";
+  const highlighted = payload.highlighted === true || payload.highlighted === "true";
   const status = (payload.status || "draft").toString().trim().toLowerCase();
   const classification = normalizeProgramClassification(payload.classification);
   const eventIdRaw = payload.eventId == null ? payload.event_id : payload.eventId;
@@ -358,7 +366,9 @@ function normalizeProgramPayload(payload) {
   const startDate = parseIsoDate(startDateRaw, "startDate");
 
   if (!name) throw new Error("name is required");
-  if (!Number.isInteger(durationWeeks) || durationWeeks <= 0) throw new Error("durationWeeks must be a positive integer");
+  if (durationWeeks != null && (!Number.isInteger(durationWeeks) || durationWeeks <= 0)) {
+    throw new Error("durationWeeks must be null or a positive integer");
+  }
   if (!Number.isInteger(priceCents) || priceCents < 0) throw new Error("priceCents must be a non-negative integer");
   if (!["one_time", "recurring"].includes(billingType)) throw new Error("billingType must be one_time or recurring");
   if (!["self_serve", "coached_one_time", "coached_recurring"].includes(accessModel)) {
@@ -409,6 +419,7 @@ function normalizeProgramPayload(payload) {
     billing_type: billingType,
     access_model: accessModel,
     payment_model: paymentModel,
+    highlighted,
     status,
     event_id: eventId,
     start_date: startDate,
@@ -463,6 +474,7 @@ function mapProgram(row) {
     billingType: row.billing_type || "one_time",
     accessModel: row.access_model || "coached_one_time",
     paymentModel: row.payment_model || (row.billing_type === "recurring" ? "recurring" : "single"),
+    highlighted: row.highlighted === true,
     status: row.status,
     eventId: row.event_id || null,
     startDate: row.start_date || null,
@@ -472,6 +484,16 @@ function mapProgram(row) {
     createdAt: row.created_at || null,
     updatedAt: row.updated_at || null
   };
+}
+
+async function clearHighlightedPrograms(config, keepProgramId = null) {
+  const rows = await listTrainingPrograms(config);
+  const programs = Array.isArray(rows) ? rows : [];
+  for (const program of programs) {
+    if (!program || program.highlighted !== true) continue;
+    if (keepProgramId && program.id === keepProgramId) continue;
+    await updateTrainingProgram(config, program.id, { highlighted: false });
+  }
 }
 
 exports.handler = async (event) => {
@@ -572,6 +594,10 @@ exports.handler = async (event) => {
       const payload = parseJsonBody(event);
       let normalized = normalizeProgramPayload(payload);
       let relatedEvent = null;
+
+      if (normalized.highlighted === true) {
+        await clearHighlightedPrograms(config, null);
+      }
 
       if (normalized.event_id) {
         relatedEvent = await getTrainingEventById(config, normalized.event_id);
@@ -703,11 +729,16 @@ exports.handler = async (event) => {
         }
       }
       if (dbPatch.durationWeeks !== undefined) {
-        const value = Number(dbPatch.durationWeeks);
-        if (!Number.isInteger(value) || value <= 0) {
-          return json(400, { error: "durationWeeks must be a positive integer" });
+        const raw = dbPatch.durationWeeks;
+        if (raw == null || (typeof raw === "string" && !raw.trim())) {
+          dbPatch.duration_weeks = null;
+        } else {
+          const value = Number(raw);
+          if (!Number.isInteger(value) || value <= 0) {
+            return json(400, { error: "durationWeeks must be a positive integer" });
+          }
+          dbPatch.duration_weeks = value;
         }
-        dbPatch.duration_weeks = value;
         delete dbPatch.durationWeeks;
       }
       if (dbPatch.priceCents !== undefined) {
@@ -796,6 +827,9 @@ exports.handler = async (event) => {
         dbPatch.payment_model = value || null;
         delete dbPatch.paymentModel;
       }
+      if (dbPatch.highlighted !== undefined) {
+        dbPatch.highlighted = dbPatch.highlighted === true || dbPatch.highlighted === "true";
+      }
       if (dbPatch.eventId !== undefined) {
         dbPatch.event_id = dbPatch.eventId == null ? null : String(dbPatch.eventId).trim() || null;
         delete dbPatch.eventId;
@@ -832,6 +866,10 @@ exports.handler = async (event) => {
       }
       if (dbPatch.payment_model === "phased" && dbPatch.billing_type === "recurring") {
         return json(400, { error: "paymentModel phased is not compatible with billingType recurring" });
+      }
+
+      if (dbPatch.billing_type === "recurring") {
+        dbPatch.payment_model = "recurring";
       }
 
       if (dbPatch.billing_type === "recurring") {
@@ -903,6 +941,10 @@ exports.handler = async (event) => {
           }
           dbPatch.start_date = calculateProgramStartDate(resolvedEvent.event_date, resolvedDurationWeeks);
         }
+      }
+
+      if (dbPatch.highlighted === true) {
+        await clearHighlightedPrograms(config, id);
       }
 
       const updated = await updateTrainingProgram(config, id, dbPatch);

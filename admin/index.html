@@ -1090,7 +1090,7 @@
               </div>
               <div class="field">
                 <label for="program-duration-weeks">Duracao (semanas)</label>
-                <input id="program-duration-weeks" type="number" min="1" value="8" />
+                <input id="program-duration-weeks" type="number" min="1" />
               </div>
               <div class="field">
                 <label for="program-status">Estado</label>
@@ -1123,6 +1123,15 @@
                   <option value="one_time">one_time</option>
                   <option value="recurring">recurring</option>
                 </select>
+              </div>
+              <div class="field">
+                <label for="program-payment-model">Modelo de pagamento</label>
+                <select id="program-payment-model">
+                  <option value="single">single</option>
+                  <option value="phased">phased</option>
+                  <option value="recurring">recurring</option>
+                </select>
+                <small class="field-hint">No billing recurring, este campo fica forçado para recurring.</small>
               </div>
               <div id="program-recurring-pricing-fields" class="field field-wide recurring-pricing-fields" hidden>
                 <label>Precos recorrentes (euros)</label>
@@ -1193,6 +1202,13 @@
                   <option value="">Nenhum (self-serve)</option>
                 </select>
                 <small class="field-hint">Coach atribuido automaticamente ao atleta quando compra este programa.</small>
+              </div>
+              <div class="field field-wide field-checkbox-card">
+                <label class="checkbox-line" for="program-highlighted">
+                  <input type="checkbox" id="program-highlighted" />
+                  <span>Destacar na homepage</span>
+                </label>
+                <small class="field-hint">Apenas um programa pode estar destacado de cada vez.</small>
               </div>
             </div>
           </div>
@@ -1410,6 +1426,7 @@
                   <div class="field">
                     <label for="edit-program-duration-weeks">Duracao (semanas)</label>
                     <input id="edit-program-duration-weeks" type="number" min="1" />
+                    <small id="edit-program-duration-weeks-hint" class="field-hint" hidden>Desativado para billing recurring.</small>
                   </div>
                   <div id="edit-program-price-one-time-field" class="field" hidden>
                     <label for="edit-program-price-cents">Preco (euros)</label>
@@ -1425,6 +1442,15 @@
                       <option value="one_time">one_time</option>
                       <option value="recurring">recurring</option>
                     </select>
+                  </div>
+                  <div class="field">
+                    <label for="edit-program-payment-model">Modelo de pagamento</label>
+                    <select id="edit-program-payment-model">
+                      <option value="single">single</option>
+                      <option value="phased">phased</option>
+                      <option value="recurring">recurring</option>
+                    </select>
+                    <small class="field-hint">No billing recurring, este campo fica forçado para recurring.</small>
                   </div>
                   <div id="edit-program-recurring-pricing-fields" class="field field-wide recurring-pricing-fields" hidden>
                     <label>Precos recorrentes (euros)</label>
@@ -1495,6 +1521,13 @@
                       <option value="active">active</option>
                       <option value="archived">archived</option>
                     </select>
+                  </div>
+                  <div class="field field-wide field-checkbox-card">
+                    <label class="checkbox-line" for="edit-program-highlighted">
+                      <input type="checkbox" id="edit-program-highlighted" />
+                      <span>Destacar na homepage</span>
+                    </label>
+                    <small class="field-hint">Se ativado, remove o destaque dos restantes programas.</small>
                   </div>
                 </div>
               </div>
@@ -1568,6 +1601,7 @@
                     <label for="edit-program-start-date">Data de início</label>
                     <input id="edit-program-start-date" type="date" />
                     <small class="field-hint">Auto-calculada se prova selecionada. Deixar vazio = acesso imediato.</small>
+                    <small id="edit-program-start-date-feedback" class="field-hint" hidden></small>
                   </div>
                 </div>
               </div>
@@ -3420,7 +3454,9 @@
       programStripePriceIdQuarterly: document.getElementById('program-stripe-price-id-quarterly'),
       programStripePriceIdAnnual: document.getElementById('program-stripe-price-id-annual'),
       programBillingType: document.getElementById('program-billing-type'),
+      programPaymentModel: document.getElementById('program-payment-model'),
       programAccessModel: document.getElementById('program-access-model'),
+      programHighlighted: document.getElementById('program-highlighted'),
       programDefaultCoach: document.getElementById('program-default-coach'),
       programStatus: document.getElementById('program-status'),
       programEventId: document.getElementById('program-event-id'),
@@ -3436,6 +3472,7 @@
       editProgramDialog: document.getElementById('edit-program-dialog'),
       closeEditProgramDialogBtn: document.getElementById('close-edit-program-dialog-btn'),
       editProgramMessage: document.getElementById('edit-program-message'),
+      editProgramStartDateFeedback: document.getElementById('edit-program-start-date-feedback'),
       editProgramId: document.getElementById('edit-program-id'),
       editProgramName: document.getElementById('edit-program-name'),
       editProgramExternalSource: document.getElementById('edit-program-external-source'),
@@ -3451,6 +3488,7 @@
       editProgramClassificationNotes: document.getElementById('edit-program-classification-notes'),
       editProgramImageUrl: document.getElementById('edit-program-image-url'),
       editProgramDurationWeeks: document.getElementById('edit-program-duration-weeks'),
+      editProgramDurationWeeksHint: document.getElementById('edit-program-duration-weeks-hint'),
       editProgramPriceCents: document.getElementById('edit-program-price-cents'),
       editProgramPriceOneTimeField: document.getElementById('edit-program-price-one-time-field'),
       editProgramCurrency: document.getElementById('edit-program-currency'),
@@ -3467,7 +3505,9 @@
       editProgramStripePriceIdQuarterly: document.getElementById('edit-program-stripe-price-id-quarterly'),
       editProgramStripePriceIdAnnual: document.getElementById('edit-program-stripe-price-id-annual'),
       editProgramBillingType: document.getElementById('edit-program-billing-type'),
+      editProgramPaymentModel: document.getElementById('edit-program-payment-model'),
       editProgramAccessModel: document.getElementById('edit-program-access-model'),
+      editProgramHighlighted: document.getElementById('edit-program-highlighted'),
       editProgramDefaultCoach: document.getElementById('edit-program-default-coach'),
       editProgramStatus: document.getElementById('edit-program-status'),
       editProgramEventId: document.getElementById('edit-program-event-id'),
@@ -5299,8 +5339,18 @@
       els.editProgramMessage.classList.toggle('success', !isError && Boolean(text));
     }
 
+    function showEditProgramStartDateFeedback(text, isError) {
+      if (!els.editProgramStartDateFeedback) return;
+      const hasText = Boolean(String(text || '').trim());
+      els.editProgramStartDateFeedback.hidden = !hasText;
+      els.editProgramStartDateFeedback.textContent = hasText ? String(text) : '';
+      els.editProgramStartDateFeedback.classList.toggle('error', Boolean(isError));
+      els.editProgramStartDateFeedback.classList.toggle('success', !isError && hasText);
+    }
+
     function closeEditProgramDialog() {
       showEditProgramMessage('', false);
+      showEditProgramStartDateFeedback('', false);
       state.editProgramOriginal = null;
       state.editProgramOneTimeDraft = null;
       closeDialog(els.editProgramDialog);
@@ -7550,7 +7600,10 @@
         try {
           const date = new Date(`${eventDate}T00:00:00Z`);
           if (isNaN(date.getTime())) return null;
-          date.setUTCDate(date.getUTCDate() - (durationWeeks * 7));
+          const weekday = date.getUTCDay();
+          const shiftToMonday = (weekday + 6) % 7;
+          date.setUTCDate(date.getUTCDate() - shiftToMonday);
+          date.setUTCDate(date.getUTCDate() - ((durationWeeks - 1) * 7));
           return date.toISOString().slice(0, 10);
         } catch (err) {
           console.warn('🚨 FALLBACK [calculateStartDateFromEvent]:', err);
@@ -7568,23 +7621,37 @@
       
         const selectedEventId = (eventSelectEl.value || '').trim();
         if (!selectedEventId) {
+          if (isEditForm) {
+            showEditProgramStartDateFeedback('Sem prova associada: mantém-se acesso imediato ou data manual.', false);
+          }
           return;
         }
       
         const selectedEvent = (Array.isArray(state.events) ? state.events : []).find(e => e && e.id === selectedEventId);
         if (!selectedEvent || !selectedEvent.eventDate) {
+          if (isEditForm) {
+            showEditProgramStartDateFeedback('Não foi possível calcular a data de início para esta prova.', true);
+          }
           return;
         }
       
         const duration = Number(durationField.value);
         if (!Number.isInteger(duration) || duration <= 0) {
           console.warn('🚨 FALLBACK [onProgramEventIdChanged]: durationWeeks invalid');
+          if (isEditForm) {
+            showEditProgramStartDateFeedback('Define uma duração válida para calcular a data de início.', true);
+          }
           return;
         }
       
         const calculated = calculateStartDateFromEvent(selectedEvent.eventDate, duration);
         if (calculated) {
           startDateField.value = calculated;
+          if (isEditForm) {
+            showEditProgramStartDateFeedback(`Data calculada automaticamente: ${formatProgramDate(calculated)} (segunda-feira).`, false);
+          }
+        } else if (isEditForm) {
+          showEditProgramStartDateFeedback('Não foi possível calcular a data de início automaticamente.', true);
         }
       }
 
@@ -8269,7 +8336,9 @@
         stripePriceIdQuarterly: els.programStripePriceIdQuarterly,
         stripePriceIdAnnual: els.programStripePriceIdAnnual,
         billingType: els.programBillingType,
+        paymentModel: els.programPaymentModel,
         accessModel: els.programAccessModel,
+        highlighted: els.programHighlighted,
         status: els.programStatus,
         eventId: els.programEventId,
           startDate: els.programStartDate,
@@ -8301,6 +8370,7 @@
         classificationNotes: els.editProgramClassificationNotes,
         imageUrl: els.editProgramImageUrl,
         durationWeeks: els.editProgramDurationWeeks,
+        durationWeeksHint: els.editProgramDurationWeeksHint,
         priceCents: els.editProgramPriceCents,
         recurringPriceMonthly: els.editProgramRecurringPriceMonthly,
         recurringPriceQuarterly: els.editProgramRecurringPriceQuarterly,
@@ -8312,7 +8382,9 @@
         stripePriceIdQuarterly: els.editProgramStripePriceIdQuarterly,
         stripePriceIdAnnual: els.editProgramStripePriceIdAnnual,
         billingType: els.editProgramBillingType,
+        paymentModel: els.editProgramPaymentModel,
         accessModel: els.editProgramAccessModel,
+        highlighted: els.editProgramHighlighted,
         status: els.editProgramStatus,
         eventId: els.editProgramEventId,
           startDate: els.editProgramStartDate,
@@ -8331,8 +8403,34 @@
       if (!fields || !fields.billingType || !fields.recurringPricingFields) return;
       const isRecurring = String(fields.billingType.value || '').trim() === 'recurring';
       const oneTimeRaw = fields.priceCents ? String(fields.priceCents.value || '').trim() : '';
+
+      if (fields.paymentModel) {
+        if (isRecurring) {
+          fields.paymentModel.value = 'recurring';
+          fields.paymentModel.disabled = true;
+        } else {
+          fields.paymentModel.disabled = false;
+          if (fields.paymentModel.value === 'recurring') {
+            fields.paymentModel.value = 'single';
+          }
+        }
+      }
+
+      if (fields.accessModel && !isRecurring && String(fields.accessModel.value || '').trim() === 'coached_recurring') {
+        fields.accessModel.value = 'coached_one_time';
+      }
+
       fields.recurringPricingFields.hidden = !isRecurring;
       fields.recurringPricingFields.style.display = isRecurring ? '' : 'none';
+
+      if (fields.durationWeeks) {
+        fields.durationWeeks.disabled = isRecurring;
+        fields.durationWeeks.readOnly = isRecurring;
+        fields.durationWeeks.setAttribute('aria-disabled', isRecurring ? 'true' : 'false');
+      }
+      if (fields.durationWeeksHint) {
+        fields.durationWeeksHint.hidden = !isRecurring;
+      }
 
       if (fields.name === els.editProgramName) {
         syncEditProgramPriceFieldVisibility();
@@ -8608,7 +8706,8 @@
       const description = technicalDescription || commercialDescription || null;
       const classification = collectProgramClassificationFromFields(fields);
       const imageUrl = fields.imageUrl ? ((fields.imageUrl.value || '').trim() || null) : null;
-      const durationWeeks = Number(fields.durationWeeks.value);
+      const durationWeeksRaw = fields.durationWeeks ? String(fields.durationWeeks.value || '').trim() : '';
+      const durationWeeks = durationWeeksRaw === '' ? null : Number(durationWeeksRaw);
       const priceCents = parseEurosToCents(fields.priceCents.value, 'Preço') ?? 0;
       let recurringPriceMonthlyCents = parseEurosToCents(
         fields.recurringPriceMonthly ? fields.recurringPriceMonthly.value : '',
@@ -8637,7 +8736,12 @@
         ? (fields.stripePriceIdAnnual.value || '').trim() || null
         : null;
       const billingType = (fields.billingType.value || 'one_time').trim();
+      const paymentModelRaw = (fields.paymentModel && fields.paymentModel.value ? fields.paymentModel.value : '').trim();
+      const paymentModel = billingType === 'recurring'
+        ? 'recurring'
+        : (paymentModelRaw || 'single');
       const accessModel = (fields.accessModel.value || 'coached_one_time').trim();
+      const highlighted = Boolean(fields.highlighted && fields.highlighted.checked);
       const status = (fields.status.value || 'draft').trim();
       const eventId = fields.eventId ? ((fields.eventId.value || '').trim() || null) : null;
       const eventName = getFieldValue(fields.eventName).trim() || null;
@@ -8653,7 +8757,7 @@
         : null;
 
       if (!name) throw new Error('Nome do programa e obrigatorio.');
-      if (!Number.isInteger(durationWeeks) || durationWeeks <= 0) {
+      if (durationWeeks != null && (!Number.isInteger(durationWeeks) || durationWeeks <= 0)) {
         throw new Error('Duracao deve ser um inteiro positivo.');
       }
       if (!Number.isInteger(priceCents) || priceCents < 0) {
@@ -8680,6 +8784,12 @@
       if (accessModel === 'coached_recurring' && billingType !== 'recurring') {
         throw new Error('coached_recurring exige billing recurring.');
       }
+      if (paymentModel === 'recurring' && billingType !== 'recurring') {
+        throw new Error('paymentModel recurring exige billing recurring.');
+      }
+      if (paymentModel === 'phased' && billingType === 'recurring') {
+        throw new Error('paymentModel phased nao e compativel com billing recurring.');
+      }
 
       const payload = {
         name,
@@ -8702,7 +8812,9 @@
         stripePriceIdQuarterly: billingType === 'recurring' ? stripePriceIdQuarterly : null,
         stripePriceIdAnnual: billingType === 'recurring' ? stripePriceIdAnnual : null,
         billingType,
+        paymentModel,
         accessModel,
+        highlighted,
         status,
         eventId,
         eventName,
@@ -8784,7 +8896,11 @@
       if (fields.stripePriceIdQuarterly) fields.stripePriceIdQuarterly.value = program.stripePriceIdQuarterly || '';
       if (fields.stripePriceIdAnnual) fields.stripePriceIdAnnual.value = program.stripePriceIdAnnual || '';
       fields.billingType.value = program.billingType || 'one_time';
+      if (fields.paymentModel) {
+        fields.paymentModel.value = program.paymentModel || (fields.billingType.value === 'recurring' ? 'recurring' : 'single');
+      }
       fields.accessModel.value = program.accessModel || 'coached_one_time';
+      if (fields.highlighted) fields.highlighted.checked = program.highlighted === true;
       fields.status.value = program.status || 'draft';
       if (fields.eventId) fields.eventId.value = program.eventId || '';
         if (fields.startDate) fields.startDate.value = program.startDate || '';
@@ -8807,7 +8923,14 @@
       if (!program || !program.id) return;
       populateProgramEditForm(program);
       showEditProgramMessage('', false);
+      onProgramEventIdChanged(els.editProgramEventId);
       openDialog(els.editProgramDialog);
+      // Ensure coaches are loaded for the default coach selector
+      if (!state.coaches.length) {
+        loadCoaches().catch(() => {});
+      } else {
+        renderCoachOptions();
+      }
       window.requestAnimationFrame(() => {
         if (els.editProgramName) {
           els.editProgramName.focus();
@@ -8900,7 +9023,10 @@
           try {
             const date = new Date(`${eventDate}T00:00:00Z`);
             if (isNaN(date.getTime())) return null;
-            date.setUTCDate(date.getUTCDate() - (durationWeeks * 7));
+            const weekday = date.getUTCDay();
+            const shiftToMonday = (weekday + 6) % 7;
+            date.setUTCDate(date.getUTCDate() - shiftToMonday);
+            date.setUTCDate(date.getUTCDate() - ((durationWeeks - 1) * 7));
             return date.toISOString().slice(0, 10);
           } catch (err) {
             console.warn('🚨 FALLBACK [calculateStartDateFromEvent]:', err);
@@ -10673,6 +10799,12 @@
     els.toggleCreateProgramBtn.addEventListener('click', () => {
       if (els.programsCreateDetails) {
         els.programsCreateDetails.open = !els.programsCreateDetails.open;
+        // Ensure coaches are loaded when opening the create program form
+        if (els.programsCreateDetails.open && !state.coaches.length) {
+          loadCoaches().catch(() => {});
+        } else if (els.programsCreateDetails.open && state.coaches.length) {
+          renderCoachOptions();
+        }
       }
     });
 
@@ -10790,8 +10922,18 @@
         syncRecurringPricingVisibility(createProgramFields);
       });
     }
+    if (els.programPaymentModel) {
+      els.programPaymentModel.addEventListener('change', () => {
+        syncRecurringPricingVisibility(createProgramFields);
+      });
+    }
     if (els.editProgramBillingType) {
       els.editProgramBillingType.addEventListener('change', () => {
+        syncRecurringPricingVisibility(editProgramFields);
+      });
+    }
+    if (els.editProgramPaymentModel) {
+      els.editProgramPaymentModel.addEventListener('change', () => {
         syncRecurringPricingVisibility(editProgramFields);
       });
     }
@@ -10803,6 +10945,11 @@
     if (els.editProgramRecurringPriceMonthly) {
       els.editProgramRecurringPriceMonthly.addEventListener('input', () => {
         syncRecurringPricingVisibility(editProgramFields);
+      });
+    }
+    if (els.editProgramDurationWeeks) {
+      els.editProgramDurationWeeks.addEventListener('input', () => {
+        onProgramEventIdChanged(els.editProgramEventId);
       });
     }
 

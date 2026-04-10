@@ -221,7 +221,10 @@ exports.handler = async (event) => {
     };
 
     let paymentIntent = null;
+    let setupIntent = null;
     let subscriptionId = null;
+    let clientSecret = "";
+    let intentType = "payment";
 
     if (program.billing_type === "recurring") {
       const customer = await getOrCreateCustomer(stripe, {
@@ -235,11 +238,10 @@ exports.handler = async (event) => {
         items: [{ price: priceId }],
         payment_behavior: "default_incomplete",
         payment_settings: {
-          save_default_payment_method: "on_subscription",
-          payment_method_types: ["card", "sepa_debit"]
+          save_default_payment_method: "on_subscription"
         },
         metadata,
-        expand: ["latest_invoice.payment_intent"]
+        expand: ["latest_invoice.payment_intent", "latest_invoice.confirmation_secret", "pending_setup_intent"]
       };
 
       if (promo && promo.promotion && promo.promotion.type === "coupon") {
@@ -250,26 +252,55 @@ exports.handler = async (event) => {
       }
 
       const subscription = await stripe.subscriptions.create(subParams);
-
-      subscriptionId = subscription.id;
-      paymentIntent = subscription.latest_invoice && subscription.latest_invoice.payment_intent
-        ? subscription.latest_invoice.payment_intent
+      const latestInvoice = subscription && subscription.latest_invoice && typeof subscription.latest_invoice === "object"
+        ? subscription.latest_invoice
         : null;
 
-      if (!paymentIntent) {
-        return json(500, { error: "Nao foi possivel iniciar o pagamento da subscricao" });
-      }
+      subscriptionId = subscription.id;
+      paymentIntent = latestInvoice && latestInvoice.payment_intent
+        ? latestInvoice.payment_intent
+        : null;
+      setupIntent = subscription && subscription.pending_setup_intent
+        ? subscription.pending_setup_intent
+        : null;
 
       if (typeof paymentIntent === "string") {
         paymentIntent = await stripe.paymentIntents.retrieve(paymentIntent);
       }
 
-      await stripe.paymentIntents.update(paymentIntent.id, {
-        metadata: {
-          ...metadata,
-          subscription_id: subscriptionId
+      if (paymentIntent && paymentIntent.client_secret) {
+        clientSecret = paymentIntent.client_secret;
+      } else if (latestInvoice && latestInvoice.confirmation_secret && latestInvoice.confirmation_secret.client_secret) {
+        clientSecret = latestInvoice.confirmation_secret.client_secret;
+      } else if (setupIntent) {
+        if (typeof setupIntent === "string") {
+          setupIntent = await stripe.setupIntents.retrieve(setupIntent);
         }
-      });
+        if (setupIntent && setupIntent.client_secret) {
+          clientSecret = setupIntent.client_secret;
+          intentType = "setup";
+        }
+      }
+
+      if (!clientSecret) {
+        console.error("create-payment-intent: subscription created without client secret", {
+          subscriptionId,
+          hasLatestInvoice: Boolean(latestInvoice),
+          hasPaymentIntent: Boolean(paymentIntent),
+          hasConfirmationSecret: Boolean(latestInvoice && latestInvoice.confirmation_secret && latestInvoice.confirmation_secret.client_secret),
+          hasPendingSetupIntent: Boolean(setupIntent)
+        });
+        return json(500, { error: "Nao foi possivel iniciar o pagamento da subscricao" });
+      }
+
+      if (paymentIntent && paymentIntent.id) {
+        await stripe.paymentIntents.update(paymentIntent.id, {
+          metadata: {
+            ...metadata,
+            subscription_id: subscriptionId
+          }
+        });
+      }
     } else {
       // Create/resolve Stripe Customer for one-time payments too
       const customer = await getOrCreateCustomer(stripe, {
@@ -354,6 +385,11 @@ exports.handler = async (event) => {
       paymentIntent = await stripe.paymentIntents.create(piParams, {
         idempotencyKey: `pi_${auth.user.sub}_${program.id}_${Date.now()}`
       });
+      clientSecret = paymentIntent.client_secret || "";
+    }
+
+    if (!clientSecret && paymentIntent && paymentIntent.client_secret) {
+      clientSecret = paymentIntent.client_secret;
     }
 
     if (config.metaCapiAccessToken && config.metaDatasetId) {
@@ -361,7 +397,11 @@ exports.handler = async (event) => {
         await sendCAPIEvent(config, {
           event_name: "InitiateCheckout",
           event_time: Math.floor(Date.now() / 1000),
-          event_id: `checkout_pi_${paymentIntent.id}`,
+          event_id: paymentIntent && paymentIntent.id
+            ? `checkout_pi_${paymentIntent.id}`
+            : setupIntent && setupIntent.id
+              ? `checkout_si_${setupIntent.id}`
+              : `checkout_sub_${subscriptionId || program.id}`,
           action_source: "website",
           event_source_url: body.event_source_url || `${config.siteUrl}/programas.html`,
           user_data: buildUserData({
@@ -372,7 +412,7 @@ exports.handler = async (event) => {
             clientUserAgent: event.headers["user-agent"] || undefined
           }),
           custom_data: {
-            value: (paymentIntent.amount || 0) / 100,
+            value: ((paymentIntent && paymentIntent.amount) || price.unit_amount || 0) / 100,
             currency: String(price.currency || "EUR").toUpperCase(),
             content_ids: [program.external_id || program.id],
             content_type: "product",
@@ -386,20 +426,23 @@ exports.handler = async (event) => {
 
     return json(200, {
       ok: true,
-      clientSecret: paymentIntent.client_secret,
-      paymentIntentId: paymentIntent.id,
+      clientSecret,
+      intentType,
+      paymentIntentId: paymentIntent && paymentIntent.id ? paymentIntent.id : null,
+      setupIntentId: setupIntent && setupIntent.id ? setupIntent.id : null,
       subscriptionId,
       program: {
         id: program.id,
         externalId: program.external_id || null,
         name: program.name,
         billingType: program.billing_type,
-        priceCents: paymentIntent.amount || price.unit_amount,
+        priceCents: (paymentIntent && paymentIntent.amount) || price.unit_amount,
         originalPriceCents: price.unit_amount,
         currency: String(price.currency || program.currency || "EUR").toUpperCase()
       }
     });
   } catch (error) {
+    console.error("create-payment-intent failed:", error);
     return json(500, { error: normalizeStripeError(error) });
   }
 };

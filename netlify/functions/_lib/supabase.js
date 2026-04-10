@@ -1350,6 +1350,13 @@ function stripProgramClassificationPayload(payload) {
   return sanitized;
 }
 
+function stripProgramHighlightedPayload(payload) {
+  if (!payload || typeof payload !== "object") return payload;
+  const sanitized = { ...payload };
+  delete sanitized.highlighted;
+  return sanitized;
+}
+
 function payloadHasRecurringPricingFields(payload) {
   if (!payload || typeof payload !== "object") return false;
   const billingType = String(payload.billing_type || "").trim().toLowerCase();
@@ -1369,6 +1376,11 @@ function payloadHasProgramClassificationFields(payload) {
   return payload.classification != null;
 }
 
+function payloadHasProgramHighlightedFields(payload) {
+  if (!payload || typeof payload !== "object") return false;
+  return payload.highlighted != null;
+}
+
 function buildProgramClassificationSchemaMissingError() {
   const error = new Error("Program classification indisponivel nesta base de dados. Executa scripts/migration-program-classification.sql primeiro.");
   error.status = 400;
@@ -1384,7 +1396,7 @@ function buildRecurringSchemaMissingError() {
 
 async function listTrainingPrograms(config) {
   const eventSelect = "id,name,event_date,event_location,event_description,calendar_visible,calendar_highlight_rank,created_at,updated_at";
-  const programSelect = `id,external_source,external_id,name,commercial_description,technical_description,description,image_url,classification,duration_weeks,price_cents,recurring_price_monthly_cents,recurring_price_quarterly_cents,recurring_price_annual_cents,currency,stripe_product_id,stripe_price_id,stripe_price_id_monthly,stripe_price_id_quarterly,stripe_price_id_annual,billing_type,status,access_model,preset_selection,default_coach_identity_id,event_id,start_date,event:training_events(${eventSelect}),created_at,updated_at`;
+  const programSelect = `id,external_source,external_id,name,commercial_description,technical_description,description,image_url,classification,duration_weeks,price_cents,recurring_price_monthly_cents,recurring_price_quarterly_cents,recurring_price_annual_cents,currency,stripe_product_id,stripe_price_id,stripe_price_id_monthly,stripe_price_id_quarterly,stripe_price_id_annual,billing_type,status,access_model,payment_model,highlighted,preset_selection,default_coach_identity_id,event_id,start_date,event:training_events(${eventSelect}),created_at,updated_at`;
   try {
     return await supabaseRequest({
       url: config.supabaseUrl,
@@ -1396,7 +1408,7 @@ async function listTrainingPrograms(config) {
       throw err;
     }
 
-    const classificationFallbackSelect = `id,external_source,external_id,name,commercial_description,technical_description,description,image_url,duration_weeks,price_cents,recurring_price_monthly_cents,recurring_price_quarterly_cents,recurring_price_annual_cents,currency,stripe_product_id,stripe_price_id,stripe_price_id_monthly,stripe_price_id_quarterly,stripe_price_id_annual,billing_type,status,access_model,preset_selection,default_coach_identity_id,event_id,start_date,event:training_events(${eventSelect}),created_at,updated_at`;
+    const classificationFallbackSelect = `id,external_source,external_id,name,commercial_description,technical_description,description,image_url,duration_weeks,price_cents,recurring_price_monthly_cents,recurring_price_quarterly_cents,recurring_price_annual_cents,currency,stripe_product_id,stripe_price_id,stripe_price_id_monthly,stripe_price_id_quarterly,stripe_price_id_annual,billing_type,status,access_model,payment_model,highlighted,preset_selection,default_coach_identity_id,event_id,start_date,event:training_events(${eventSelect}),created_at,updated_at`;
     try {
       const rows = await supabaseRequest({
         url: config.supabaseUrl,
@@ -1485,7 +1497,10 @@ async function createTrainingProgram(config, payload) {
       throw buildRecurringSchemaMissingError();
     }
 
-    const fallbackPayload = stripRecurringPricingProgramPayload(stripProgramClassificationPayload(payload));
+    if (payloadHasProgramHighlightedFields(payload)) {
+      // Backward compatibility when highlighted column is not available.
+    }
+    const fallbackPayload = stripProgramHighlightedPayload(stripRecurringPricingProgramPayload(stripProgramClassificationPayload(payload)));
     const rows = await supabaseRequest({
       url: config.supabaseUrl,
       serviceRoleKey: config.supabaseServiceRoleKey,
@@ -1520,7 +1535,10 @@ async function updateTrainingProgram(config, id, patch) {
       throw buildRecurringSchemaMissingError();
     }
 
-    const fallbackPatch = stripRecurringPricingProgramPayload(stripProgramClassificationPayload(patch));
+    if (payloadHasProgramHighlightedFields(patch)) {
+      // Backward compatibility when highlighted column is not available.
+    }
+    const fallbackPatch = stripProgramHighlightedPayload(stripRecurringPricingProgramPayload(stripProgramClassificationPayload(patch)));
     const rows = await supabaseRequest({
       url: config.supabaseUrl,
       serviceRoleKey: config.supabaseServiceRoleKey,
@@ -1535,7 +1553,7 @@ async function updateTrainingProgram(config, id, patch) {
 
 async function getTrainingProgramById(config, id) {
   const eventSelect = "id,name,event_date,event_location,event_description,calendar_visible,calendar_highlight_rank,created_at,updated_at";
-  const programSelect = `id,external_source,external_id,name,commercial_description,technical_description,description,image_url,classification,duration_weeks,price_cents,recurring_price_monthly_cents,recurring_price_quarterly_cents,recurring_price_annual_cents,currency,status,access_model,preset_selection,default_coach_identity_id,stripe_product_id,stripe_price_id,stripe_price_id_monthly,stripe_price_id_quarterly,stripe_price_id_annual,billing_type,event_id,start_date,event:training_events(${eventSelect}),created_at,updated_at`;
+  const programSelect = `id,external_source,external_id,name,commercial_description,technical_description,description,image_url,classification,duration_weeks,price_cents,recurring_price_monthly_cents,recurring_price_quarterly_cents,recurring_price_annual_cents,currency,status,access_model,payment_model,highlighted,preset_selection,default_coach_identity_id,stripe_product_id,stripe_price_id,stripe_price_id_monthly,stripe_price_id_quarterly,stripe_price_id_annual,billing_type,event_id,start_date,event:training_events(${eventSelect}),created_at,updated_at`;
   try {
     const rows = await supabaseRequest({
       url: config.supabaseUrl,
@@ -1548,7 +1566,7 @@ async function getTrainingProgramById(config, id) {
       throw err;
     }
 
-    const classificationFallbackSelect = `id,external_source,external_id,name,commercial_description,technical_description,description,image_url,duration_weeks,price_cents,recurring_price_monthly_cents,recurring_price_quarterly_cents,recurring_price_annual_cents,currency,status,access_model,preset_selection,default_coach_identity_id,stripe_product_id,stripe_price_id,stripe_price_id_monthly,stripe_price_id_quarterly,stripe_price_id_annual,billing_type,event_id,start_date,event:training_events(${eventSelect}),created_at,updated_at`;
+    const classificationFallbackSelect = `id,external_source,external_id,name,commercial_description,technical_description,description,image_url,duration_weeks,price_cents,recurring_price_monthly_cents,recurring_price_quarterly_cents,recurring_price_annual_cents,currency,status,access_model,payment_model,highlighted,preset_selection,default_coach_identity_id,stripe_product_id,stripe_price_id,stripe_price_id_monthly,stripe_price_id_quarterly,stripe_price_id_annual,billing_type,event_id,start_date,event:training_events(${eventSelect}),created_at,updated_at`;
     try {
       const rows = await supabaseRequest({
         url: config.supabaseUrl,
@@ -1578,7 +1596,7 @@ async function getTrainingProgramById(config, id) {
 
 async function getTrainingProgramByExternalId(config, externalId) {
   const eventSelect = "id,name,event_date,event_location,event_description,calendar_visible,calendar_highlight_rank,created_at,updated_at";
-  const programSelect = `id,external_source,external_id,name,commercial_description,technical_description,description,image_url,classification,duration_weeks,price_cents,recurring_price_monthly_cents,recurring_price_quarterly_cents,recurring_price_annual_cents,currency,status,access_model,preset_selection,stripe_product_id,stripe_price_id,stripe_price_id_monthly,stripe_price_id_quarterly,stripe_price_id_annual,billing_type,event_id,start_date,event:training_events(${eventSelect}),created_at,updated_at`;
+  const programSelect = `id,external_source,external_id,name,commercial_description,technical_description,description,image_url,classification,duration_weeks,price_cents,recurring_price_monthly_cents,recurring_price_quarterly_cents,recurring_price_annual_cents,currency,status,access_model,payment_model,highlighted,preset_selection,stripe_product_id,stripe_price_id,stripe_price_id_monthly,stripe_price_id_quarterly,stripe_price_id_annual,billing_type,event_id,start_date,event:training_events(${eventSelect}),created_at,updated_at`;
   try {
     const rows = await supabaseRequest({
       url: config.supabaseUrl,
@@ -1591,7 +1609,7 @@ async function getTrainingProgramByExternalId(config, externalId) {
       throw err;
     }
 
-    const classificationFallbackSelect = `id,external_source,external_id,name,commercial_description,technical_description,description,image_url,duration_weeks,price_cents,recurring_price_monthly_cents,recurring_price_quarterly_cents,recurring_price_annual_cents,currency,status,access_model,preset_selection,stripe_product_id,stripe_price_id,stripe_price_id_monthly,stripe_price_id_quarterly,stripe_price_id_annual,billing_type,event_id,start_date,event:training_events(${eventSelect}),created_at,updated_at`;
+    const classificationFallbackSelect = `id,external_source,external_id,name,commercial_description,technical_description,description,image_url,duration_weeks,price_cents,recurring_price_monthly_cents,recurring_price_quarterly_cents,recurring_price_annual_cents,currency,status,access_model,payment_model,highlighted,preset_selection,stripe_product_id,stripe_price_id,stripe_price_id_monthly,stripe_price_id_quarterly,stripe_price_id_annual,billing_type,event_id,start_date,event:training_events(${eventSelect}),created_at,updated_at`;
     try {
       const rows = await supabaseRequest({
         url: config.supabaseUrl,
@@ -1621,7 +1639,7 @@ async function getTrainingProgramByExternalId(config, externalId) {
 
 async function listPublicTrainingPrograms(config) {
   const eventSelect = "id,name,event_date,event_location,event_description,calendar_visible,calendar_highlight_rank,created_at,updated_at";
-  const programSelect = `id,external_id,name,commercial_description,technical_description,description,image_url,classification,duration_weeks,price_cents,recurring_price_monthly_cents,recurring_price_quarterly_cents,recurring_price_annual_cents,currency,billing_type,access_model,payment_model,event_id,start_date,event:training_events(${eventSelect}),created_at,updated_at`;
+  const programSelect = `id,external_id,name,commercial_description,technical_description,description,image_url,classification,duration_weeks,price_cents,recurring_price_monthly_cents,recurring_price_quarterly_cents,recurring_price_annual_cents,currency,billing_type,access_model,payment_model,highlighted,event_id,start_date,event:training_events(${eventSelect}),created_at,updated_at`;
   try {
     return await supabaseRequest({
       url: config.supabaseUrl,
@@ -1633,7 +1651,7 @@ async function listPublicTrainingPrograms(config) {
       throw err;
     }
 
-    const classificationFallbackSelect = `id,external_id,name,commercial_description,technical_description,description,image_url,duration_weeks,price_cents,recurring_price_monthly_cents,recurring_price_quarterly_cents,recurring_price_annual_cents,currency,billing_type,access_model,payment_model,event_id,start_date,event:training_events(${eventSelect}),created_at,updated_at`;
+    const classificationFallbackSelect = `id,external_id,name,commercial_description,technical_description,description,image_url,duration_weeks,price_cents,recurring_price_monthly_cents,recurring_price_quarterly_cents,recurring_price_annual_cents,currency,billing_type,access_model,payment_model,highlighted,event_id,start_date,event:training_events(${eventSelect}),created_at,updated_at`;
     try {
       const rows = await supabaseRequest({
         url: config.supabaseUrl,
