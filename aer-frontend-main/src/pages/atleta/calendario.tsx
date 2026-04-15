@@ -220,7 +220,6 @@ function CalendarioContent({ session: _session }: { session: AthleteOutletContex
               presetSelection,
               selectedPresetId,
               selectedVariantId,
-              selectedVariantId,
               needsPresetSelection,
             });
             continue;
