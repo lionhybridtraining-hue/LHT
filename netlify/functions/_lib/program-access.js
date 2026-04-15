@@ -2,7 +2,11 @@ const {
   getTrainingProgramById,
   getTrainingProgramByExternalId,
   getActiveStripePurchaseForIdentity,
-  getActiveLikeProgramAssignment
+  getActiveLikeProgramAssignment,
+  getPaymentPlanById,
+  getPaymentPlanByStripePurchaseId,
+  getLatestPaymentPlanForIdentityProgram,
+  getPaymentPlanCharges
 } = require("./supabase");
 
 function normalizeValue(value) {
@@ -78,6 +82,48 @@ async function getProgramAssociationAccess(
       ? getActiveLikeProgramAssignment(config, athleteId, program.id)
       : Promise.resolve(null)
   ]);
+
+  const paymentModel = typeof program.payment_model === "string"
+    ? program.payment_model.trim().toLowerCase()
+    : "single";
+
+  if (paymentModel === "phased" && identityId) {
+    let phasedPlan = null;
+    if (purchase && purchase.payment_plan_id) {
+      phasedPlan = await getPaymentPlanById(config, purchase.payment_plan_id);
+    }
+    if (!phasedPlan && purchase && purchase.id) {
+      phasedPlan = await getPaymentPlanByStripePurchaseId(config, purchase.id);
+    }
+    if (!phasedPlan) {
+      phasedPlan = await getLatestPaymentPlanForIdentityProgram(config, {
+        identityId,
+        programId: program.id
+      });
+    }
+
+    if (phasedPlan) {
+      const charges = await getPaymentPlanCharges(config, phasedPlan.id);
+      const now = new Date();
+      const blocked = Array.isArray(charges) && charges.some((charge) => {
+        if (!charge || charge.status !== "overdue") return false;
+        if (!charge.grace_period_ends_at) return true;
+        return new Date(charge.grace_period_ends_at) < now;
+      });
+
+      if (blocked) {
+        return {
+          hasAccess: false,
+          reason: "phased_payment_overdue",
+          via: null,
+          program,
+          purchase,
+          assignment,
+          paymentPlan: phasedPlan
+        };
+      }
+    }
+  }
 
   if (purchase) {
     return {

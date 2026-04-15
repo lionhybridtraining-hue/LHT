@@ -6,6 +6,7 @@ import {
   fetchWeeklySessions,
   fetchAthleteWeeklyPlan,
   generateWeeklyPlan,
+  rescheduleWeeklyPlanRow,
   type SchedulePreset,
   type WeeklySession,
   type WeeklyPlanRow,
@@ -14,6 +15,11 @@ import {
   fetchMyPrograms,
   type MyProgram,
 } from "@/services/athlete-my-programs";
+import {
+  fetchVariantsForProgram,
+  type ProgramVariant,
+} from "@/services/variant-service";
+import { VariantPicker } from "@/components/atleta/VariantPicker";
 
 const DAY_LABELS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
 
@@ -49,6 +55,7 @@ interface CalendarProgram {
   startDate: string | null;
   presetSelection: "coach" | "athlete";
   selectedPresetId: string | null;
+  selectedVariantId: string | null;
   needsPresetSelection: boolean;
 }
 
@@ -153,13 +160,29 @@ function CalendarioContent({ session: _session }: { session: AthleteOutletContex
   const [plan, setPlan] = useState<WeeklyPlanRow[]>([]);
   const [presets, setPresets] = useState<SchedulePreset[]>([]);
   const [sessions, setSessions] = useState<WeeklySession[]>([]);
+  const [variants, setVariants] = useState<ProgramVariant[]>([]);
   const [selectedWeek, setSelectedWeek] = useState(1);
   const [selectedDay, setSelectedDay] = useState(0);
   const [viewMode, setViewMode] = useState<CalendarViewMode>("week");
   const [generating, setGenerating] = useState(false);
   const [planLoading, setPlanLoading] = useState(false);
+  const [pendingPresetId, setPendingPresetId] = useState<string | null>(null);
+  const [pendingVariantId, setPendingVariantId] = useState<string | null>(null);
+  const [runVolumeConfig, setRunVolumeConfig] = useState({
+    initialWeeklyVolumeKm: "30",
+    weeklyProgressionPct: "5",
+    periodizationType: "undulating" as "linear" | "undulating" | "block",
+  });
+  const [runVolumeConfigError, setRunVolumeConfigError] = useState<string | null>(null);
+  const [movingRow, setMovingRow] = useState<WeeklyPlanRow | null>(null);
+  const [moveTargetDay, setMoveTargetDay] = useState(0);
+  const [movingBusy, setMovingBusy] = useState(false);
 
   const hasPlan = plan.length > 0;
+  const hasRunningSessions = useMemo(
+    () => sessions.some((s) => s.session_type === "running"),
+    [sessions]
+  );
 
   // ── Step 1: Load all active programs/instances ──
   useEffect(() => {
@@ -183,6 +206,7 @@ function CalendarioContent({ session: _session }: { session: AthleteOutletContex
           const assignmentId = assignmentIdFromInstance || assignmentIdFromSource;
           const presetSelection = p.presetSelection || "athlete";
           const selectedPresetId = p.selectedPresetId || null;
+          const selectedVariantId = p.selectedVariantId || null;
           const needsPresetSelection = p.needsPresetSelection || false;
 
           if (p.instance && (p.instance.status === "active" || p.instance.status === "paused")) {
@@ -195,6 +219,8 @@ function CalendarioContent({ session: _session }: { session: AthleteOutletContex
               startDate: p.instance.startDate || null,
               presetSelection,
               selectedPresetId,
+              selectedVariantId,
+              selectedVariantId,
               needsPresetSelection,
             });
             continue;
@@ -211,6 +237,7 @@ function CalendarioContent({ session: _session }: { session: AthleteOutletContex
               startDate: p.purchase?.paidAt || null,
               presetSelection,
               selectedPresetId,
+              selectedVariantId,
               needsPresetSelection,
             });
             continue;
@@ -230,6 +257,7 @@ function CalendarioContent({ session: _session }: { session: AthleteOutletContex
               startDate: inst.start_date || null,
               presetSelection: "athlete",
               selectedPresetId: null,
+              selectedVariantId: null,
               needsPresetSelection: false,
             });
           }
@@ -264,6 +292,8 @@ function CalendarioContent({ session: _session }: { session: AthleteOutletContex
       setPlan([]);
       setPresets([]);
       setSessions([]);
+      setVariants([]);
+      setMovingRow(null);
 
       try {
         const planData = await fetchAthleteWeeklyPlan(
@@ -285,14 +315,16 @@ function CalendarioContent({ session: _session }: { session: AthleteOutletContex
           setSelectedDay(0);
           setViewMode("week");
         } else if (selectedProgram.programId) {
-          // No plan: load presets for setup
-          const [presetsData, sessionsData] = await Promise.all([
+          // No plan: load presets, sessions, and variants for setup
+          const [presetsData, sessionsData, variantsData] = await Promise.all([
             fetchSchedulePresets(selectedProgram.programId),
             fetchWeeklySessions(selectedProgram.programId),
+            fetchVariantsForProgram(selectedProgram.programId).catch(() => ({ variants: [] })),
           ]);
           if (!mounted) return;
           setPresets(presetsData.presets || []);
           setSessions(sessionsData.sessions || []);
+          setVariants(variantsData.variants || []);
         }
       } catch (err) {
         if (!mounted) return;
@@ -330,12 +362,31 @@ function CalendarioContent({ session: _session }: { session: AthleteOutletContex
 
   const selectedDayRows = selectedBundle?.days[selectedDay] || [];
 
+  const occupiedMoveDays = useMemo(() => {
+    if (!movingRow || !selectedBundle) return new Set<number>();
+    const occupied = new Set<number>();
+    selectedBundle.rows.forEach((row) => {
+      if (row.id === movingRow.id) return;
+      if (row.time_slot !== movingRow.time_slot) return;
+      occupied.add(row.day_of_week);
+    });
+    return occupied;
+  }, [movingRow, selectedBundle]);
+
   // Program progress stats
   const totalRows = plan.length;
   const completedRows = plan.filter((r) => r.status === "completed").length;
 
   const handleGeneratePlan = useCallback(
-    async (presetId: string) => {
+    async (
+      presetId: string,
+      runningConfig?: {
+        initialWeeklyVolumeKm: number;
+        weeklyProgressionPct: number;
+        periodizationType: "linear" | "undulating" | "block";
+      },
+      variantId?: string
+    ) => {
       if (!selectedProgram?.assignmentId) {
         setError("Nenhum assignment encontrado para gerar calendário.");
         return;
@@ -343,7 +394,10 @@ function CalendarioContent({ session: _session }: { session: AthleteOutletContex
       setGenerating(true);
       setError(null);
       try {
-        await generateWeeklyPlan(selectedProgram.assignmentId, presetId);
+        await generateWeeklyPlan(selectedProgram.assignmentId, presetId, {
+          ...(runningConfig || {}),
+          variantId,
+        });
         const planData = await fetchAthleteWeeklyPlan(
           selectedProgram.assignmentId,
           undefined,
@@ -353,6 +407,7 @@ function CalendarioContent({ session: _session }: { session: AthleteOutletContex
         setPlan(rows);
         setPresets([]);
         setSessions([]);
+        setVariants([]);
         if (rows.length > 0) {
           const firstWeek = [...new Set(rows.map((r) => r.week_number))].sort((a, b) => a - b)[0] || 1;
           setSelectedWeek(firstWeek);
@@ -367,6 +422,107 @@ function CalendarioContent({ session: _session }: { session: AthleteOutletContex
     },
     [selectedProgram]
   );
+
+  const handleOpenPresetGeneration = useCallback(
+    (presetId: string) => {
+      setPendingVariantId(null);
+      if (!hasRunningSessions) {
+        void handleGeneratePlan(presetId);
+        return;
+      }
+      setRunVolumeConfigError(null);
+      setPendingPresetId(presetId);
+    },
+    [hasRunningSessions, handleGeneratePlan]
+  );
+
+  const handleVariantSelect = useCallback(
+    (variant: ProgramVariant) => {
+      // Variant provides running config from running_config_preset — no manual input needed
+      // Still need a preset for schedule layout; use the program's default preset
+      const defaultPreset = presets.find((p) => p.is_default) || presets[0];
+      if (!defaultPreset) {
+        setError("Nenhum preset de calendário disponível. O coach precisa configurar os horários primeiro.");
+        return;
+      }
+
+      // If variant has running_config_preset, generate directly (no running config modal needed)
+      if (variant.running_config_preset?.initial_weekly_volume_km != null) {
+        void handleGeneratePlan(defaultPreset.id, undefined, variant.id);
+      } else if (hasRunningSessions) {
+        // Variant without running config + running sessions → need manual config
+        setPendingPresetId(defaultPreset.id);
+        setPendingVariantId(variant.id);
+      } else {
+        void handleGeneratePlan(defaultPreset.id, undefined, variant.id);
+      }
+    },
+    [presets, hasRunningSessions, handleGeneratePlan]
+  );
+
+  const handleConfirmRunningConfig = useCallback(async () => {
+    if (!pendingPresetId) return;
+
+    const initialWeeklyVolumeKm = Number(runVolumeConfig.initialWeeklyVolumeKm);
+    const weeklyProgressionPct = Number(runVolumeConfig.weeklyProgressionPct);
+    const periodizationType = runVolumeConfig.periodizationType;
+
+    if (!Number.isFinite(initialWeeklyVolumeKm) || initialWeeklyVolumeKm < 5 || initialWeeklyVolumeKm > 300) {
+      setRunVolumeConfigError("Volume inicial inválido (5-300 km).");
+      return;
+    }
+    if (!Number.isFinite(weeklyProgressionPct) || weeklyProgressionPct < -5 || weeklyProgressionPct > 20) {
+      setRunVolumeConfigError("Progressão semanal inválida (-5 a 20%).");
+      return;
+    }
+    if (!["linear", "undulating", "block"].includes(periodizationType)) {
+      setRunVolumeConfigError("Periodização inválida.");
+      return;
+    }
+
+    const presetId = pendingPresetId;
+    const variantId = pendingVariantId;
+    setPendingPresetId(null);
+    setPendingVariantId(null);
+    setRunVolumeConfigError(null);
+    await handleGeneratePlan(presetId, {
+      initialWeeklyVolumeKm,
+      weeklyProgressionPct,
+      periodizationType,
+    }, variantId || undefined);
+  }, [handleGeneratePlan, pendingPresetId, pendingVariantId, runVolumeConfig]);
+
+  const handleOpenMoveModal = useCallback((row: WeeklyPlanRow) => {
+    setMoveTargetDay(row.day_of_week);
+    setMovingRow(row);
+  }, []);
+
+  const handleConfirmMove = useCallback(async () => {
+    if (!movingRow || !selectedProgram) return;
+    if (moveTargetDay === movingRow.day_of_week) {
+      setMovingRow(null);
+      return;
+    }
+
+    setMovingBusy(true);
+    setError(null);
+    try {
+      await rescheduleWeeklyPlanRow(movingRow.id, moveTargetDay);
+      const planData = await fetchAthleteWeeklyPlan(
+        selectedProgram.assignmentId || undefined,
+        undefined,
+        selectedProgram.instanceId || undefined
+      );
+      const rows = planData.plan || [];
+      setPlan(rows);
+      setSelectedDay(moveTargetDay);
+      setMovingRow(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao mover sessão.");
+    } finally {
+      setMovingBusy(false);
+    }
+  }, [moveTargetDay, movingRow, selectedProgram]);
 
   // ── Loading states ──
   if (loading) {
@@ -469,7 +625,17 @@ function CalendarioContent({ session: _session }: { session: AthleteOutletContex
           </div>
         )}
 
-        {!planLoading && !hasPlan && presets.length > 0 && selectedProgram?.presetSelection !== "coach" && (
+        {!planLoading && !hasPlan && variants.length > 0 && selectedProgram?.presetSelection !== "coach" && (
+          <div className="mt-6">
+            <VariantPicker
+              variants={variants}
+              onSelect={handleVariantSelect}
+              generating={generating}
+            />
+          </div>
+        )}
+
+        {!planLoading && !hasPlan && presets.length > 0 && variants.length === 0 && selectedProgram?.presetSelection !== "coach" && (
           <div className="mt-6">
             <h2 className="mb-3 text-lg font-semibold text-[#f7f1e8]">
               Escolhe o teu calendário
@@ -483,7 +649,7 @@ function CalendarioContent({ session: _session }: { session: AthleteOutletContex
                   key={preset.id}
                   preset={preset}
                   sessions={sessions}
-                  onSelect={() => handleGeneratePlan(preset.id)}
+                  onSelect={() => handleOpenPresetGeneration(preset.id)}
                   generating={generating}
                 />
               ))}
@@ -571,6 +737,7 @@ function CalendarioContent({ session: _session }: { session: AthleteOutletContex
                 rows={selectedDayRows}
                 onBackToWeek={() => setViewMode("week")}
                 onOpenStrength={(row) => handleSessionTap(row, navigate)}
+                onMoveSession={handleOpenMoveModal}
               />
             )}
 
@@ -580,6 +747,144 @@ function CalendarioContent({ session: _session }: { session: AthleteOutletContex
               </div>
             )}
 
+          </div>
+        )}
+
+        {pendingPresetId && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4">
+            <div className="w-full max-w-sm rounded-xl border border-[#30363d] bg-[#161b22] p-4">
+              <h3 className="text-base font-semibold text-[#f7f1e8]">Configurar Volume de Corrida</h3>
+              <p className="mt-1 text-xs text-[#8f99a8]">
+                Este preset inclui sessões de corrida. Define os parâmetros antes de gerar o calendário.
+              </p>
+
+              <div className="mt-4 space-y-3">
+                <label className="block text-xs text-[#8f99a8]">
+                  Volume semanal inicial (km)
+                  <input
+                    type="number"
+                    min={5}
+                    max={300}
+                    step={0.5}
+                    value={runVolumeConfig.initialWeeklyVolumeKm}
+                    onChange={(e) => setRunVolumeConfig((prev) => ({ ...prev, initialWeeklyVolumeKm: e.target.value }))}
+                    className="mt-1 w-full rounded-md border border-[#30363d] bg-[#0d1117] px-2 py-1.5 text-sm text-[#c9d1d9]"
+                  />
+                </label>
+
+                <label className="block text-xs text-[#8f99a8]">
+                  Progressão semanal (%)
+                  <input
+                    type="number"
+                    min={-5}
+                    max={20}
+                    step={0.5}
+                    value={runVolumeConfig.weeklyProgressionPct}
+                    onChange={(e) => setRunVolumeConfig((prev) => ({ ...prev, weeklyProgressionPct: e.target.value }))}
+                    className="mt-1 w-full rounded-md border border-[#30363d] bg-[#0d1117] px-2 py-1.5 text-sm text-[#c9d1d9]"
+                  />
+                </label>
+
+                <label className="block text-xs text-[#8f99a8]">
+                  Periodização
+                  <select
+                    value={runVolumeConfig.periodizationType}
+                    onChange={(e) => setRunVolumeConfig((prev) => ({
+                      ...prev,
+                      periodizationType: e.target.value as "linear" | "undulating" | "block",
+                    }))}
+                    className="mt-1 w-full rounded-md border border-[#30363d] bg-[#0d1117] px-2 py-1.5 text-sm text-[#c9d1d9]"
+                  >
+                    <option value="undulating">Ondulatória</option>
+                    <option value="linear">Linear</option>
+                    <option value="block">Blocos</option>
+                  </select>
+                </label>
+              </div>
+
+              {runVolumeConfigError && (
+                <div className="mt-3 rounded border border-[#7c1f1f] bg-[#2a1111] px-3 py-2 text-xs text-[#ffd4d4]">
+                  {runVolumeConfigError}
+                </div>
+              )}
+
+              <div className="mt-4 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPendingPresetId(null);
+                    setRunVolumeConfigError(null);
+                  }}
+                  className="rounded-md border border-[#30363d] px-3 py-1.5 text-xs text-[#c9d1d9]"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  disabled={generating}
+                  onClick={() => void handleConfirmRunningConfig()}
+                  className="rounded-md border border-[#d4a54f] bg-[#d4a54f]/20 px-3 py-1.5 text-xs font-semibold text-[#d4a54f] disabled:opacity-50"
+                >
+                  {generating ? "A gerar..." : "Gerar calendário"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {movingRow && selectedBundle && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4">
+            <div className="w-full max-w-sm rounded-xl border border-[#30363d] bg-[#161b22] p-4">
+              <h3 className="text-base font-semibold text-[#f7f1e8]">Mover treino</h3>
+              <p className="mt-1 text-xs text-[#8f99a8]">
+                Escolhe o novo dia para <span className="font-medium text-[#c9d1d9]">{movingRow.session_label}</span>.
+              </p>
+              <p className="mt-1 text-[11px] text-[#5f6b7a]">
+                Slot {movingRow.time_slot}. Dias com sessão no mesmo slot estão bloqueados.
+              </p>
+
+              <div className="mt-4 grid grid-cols-4 gap-2">
+                {DAY_LABELS.map((label, idx) => {
+                  const blocked = occupiedMoveDays.has(idx);
+                  const current = idx === movingRow.day_of_week;
+                  const selected = idx === moveTargetDay;
+                  return (
+                    <button
+                      key={`${label}-${idx}`}
+                      type="button"
+                      disabled={blocked || current || movingBusy}
+                      onClick={() => setMoveTargetDay(idx)}
+                      className={`rounded-md border px-2 py-1.5 text-xs transition ${
+                        selected
+                          ? "border-[#d4a54f] bg-[#d4a54f]/20 text-[#d4a54f]"
+                          : "border-[#30363d] bg-[#0d1117] text-[#c9d1d9]"
+                      } disabled:cursor-not-allowed disabled:opacity-35`}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="mt-4 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setMovingRow(null)}
+                  disabled={movingBusy}
+                  className="rounded-md border border-[#30363d] px-3 py-1.5 text-xs text-[#c9d1d9]"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleConfirmMove()}
+                  disabled={movingBusy || moveTargetDay === movingRow.day_of_week}
+                  className="rounded-md border border-[#d4a54f] bg-[#d4a54f]/20 px-3 py-1.5 text-xs font-semibold text-[#d4a54f] disabled:opacity-50"
+                >
+                  {movingBusy ? "A mover..." : "Confirmar"}
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>
@@ -848,12 +1153,14 @@ function DayView({
   rows,
   onBackToWeek,
   onOpenStrength,
+  onMoveSession,
 }: {
   bundle: WeekBundle;
   selectedDay: number;
   rows: WeeklyPlanRow[];
   onBackToWeek: () => void;
   onOpenStrength: (row: WeeklyPlanRow) => void;
+  onMoveSession: (row: WeeklyPlanRow) => void;
 }) {
   const dayDate = formatDatePt(getDateForDay(bundle.weekStartDate, selectedDay));
 
@@ -877,7 +1184,7 @@ function DayView({
       <div className="max-h-[58vh] space-y-2 overflow-y-auto pr-1">
         {rows.length > 0 ? (
           rows.map((row) => (
-            <DaySessionCard key={row.id} row={row} onOpenStrength={onOpenStrength} />
+            <DaySessionCard key={row.id} row={row} onOpenStrength={onOpenStrength} onMoveSession={onMoveSession} />
           ))
         ) : (
           <div className="rounded-xl border border-[#30363d] bg-[#161b22] p-4 text-sm text-[#8f99a8]">
@@ -901,7 +1208,11 @@ function SummaryMetricCard({ label, value, helper }: { label: string; value: str
 
 function WeeklySessionBadge({ row }: { row: WeeklyPlanRow }) {
   const theme = SESSION_THEME[row.session_type] || SESSION_THEME.other;
-  const statusIcon = row.status === "completed" ? "✓" : row.status === "skipped" ? "✕" : "•";
+  const statusIcon = row.status === "completed"
+    ? "✓"
+    : row.status === "skipped"
+      ? (row.is_optional ? "◦" : "✕")
+      : "•";
 
   return (
     <div className={`rounded-md border px-1 py-1 text-[9px] leading-tight ${theme.badge}`}>
@@ -913,17 +1224,33 @@ function WeeklySessionBadge({ row }: { row: WeeklyPlanRow }) {
   );
 }
 
-function DaySessionCard({ row, onOpenStrength }: { row: WeeklyPlanRow; onOpenStrength: (row: WeeklyPlanRow) => void }) {
+function DaySessionCard({
+  row,
+  onOpenStrength,
+  onMoveSession,
+}: {
+  row: WeeklyPlanRow;
+  onOpenStrength: (row: WeeklyPlanRow) => void;
+  onMoveSession: (row: WeeklyPlanRow) => void;
+}) {
   const theme = SESSION_THEME[row.session_type] || SESSION_THEME.other;
   const canStartStrength = row.session_type === "strength" && !!row.strength_instance_id;
+  const canMove = row.status === "planned";
 
   return (
-    <article className="rounded-xl border border-[#30363d] bg-[#161b22] p-3">
+    <article className={`rounded-xl border bg-[#161b22] p-3 ${row.is_optional ? "border-dashed border-[#6b7280]" : "border-[#30363d]"}`}>
       <div className="mb-2 flex items-center justify-between gap-2">
         <h4 className="text-sm font-semibold text-[#f7f1e8]">{row.session_label}</h4>
-        <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${theme.chip}`}>
-          {row.session_type}
-        </span>
+        <div className="flex items-center gap-1.5">
+          {row.is_optional && (
+            <span className="rounded-full border border-[#6b7280] bg-[#374151]/30 px-2 py-0.5 text-[10px] font-semibold text-[#c9d1d9]">
+              opcional
+            </span>
+          )}
+          <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${theme.chip}`}>
+            {row.session_type}
+          </span>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-2 text-[11px] text-[#8f99a8]">
@@ -943,6 +1270,15 @@ function DaySessionCard({ row, onOpenStrength }: { row: WeeklyPlanRow; onOpenStr
           className="mt-3 w-full rounded-lg border border-blue-600 bg-blue-600/15 px-3 py-2 text-xs font-semibold text-blue-100 transition hover:bg-blue-600/25"
         >
           Iniciar treino de força
+        </button>
+      )}
+
+      {canMove && (
+        <button
+          onClick={() => onMoveSession(row)}
+          className="mt-2 w-full rounded-lg border border-[#d4a54f] bg-[#d4a54f]/10 px-3 py-2 text-xs font-semibold text-[#d4a54f] transition hover:bg-[#d4a54f]/20"
+        >
+          Mover para outro dia
         </button>
       )}
     </article>

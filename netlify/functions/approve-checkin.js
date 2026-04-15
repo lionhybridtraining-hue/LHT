@@ -2,7 +2,7 @@ const { parseJsonBody, json } = require("./_lib/http");
 const { getConfig } = require("./_lib/config");
 const { getWeeklyCheckinById, updateWeeklyCheckin, verifyCoachOwnsAthlete, getAthleteById } = require("./_lib/supabase");
 const { requireAuthenticatedUser } = require("./_lib/authz");
-const { sendEmail, buildCheckinApprovedEmail } = require("./_lib/email");
+const { sendTemplatedEmail, buildCheckinApprovedEmail } = require("./_lib/email");
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
@@ -61,14 +61,29 @@ exports.handler = async (event) => {
     // Fire-and-forget is unreliable in serverless: the process exits before the promise resolves.
     const athlete = await getAthleteById(config, checkin.athlete_id);
     if (athlete && athlete.email) {
-      const { subject, html } = buildCheckinApprovedEmail({
+      const fallbackTemplate = buildCheckinApprovedEmail({
         athleteName: athlete.name || "",
         weekStart: checkin.week_start || ""
       });
       console.log(`[approve-checkin] Sending email to ${athlete.email} for checkin ${checkin.id}`);
-      const emailResult = await sendEmail(config, { to: athlete.email, subject, html });
-      if (emailResult) {
-        console.log(`[approve-checkin] Email sent successfully, id: ${emailResult.id}`);
+      const sendResult = await sendTemplatedEmail(config, {
+        to: athlete.email,
+        templateCode: "checkin_approved",
+        subjectTemplate: fallbackTemplate.subject,
+        htmlTemplate: fallbackTemplate.html,
+        context: {
+          athleteName: athlete.name || "Atleta",
+          weekStart: checkin.week_start || ""
+        },
+        athleteId: checkin.athlete_id,
+        isTest: false,
+        triggerSource: "approve_checkin",
+        triggerRef: checkin.id,
+        actorIdentityId: auth.user.sub,
+        channelType: "transactional"
+      });
+      if (sendResult.result) {
+        console.log(`[approve-checkin] Email sent successfully, id: ${sendResult.result.id}`);
       } else {
         console.warn("[approve-checkin] Email not sent (no result — check RESEND_API_KEY and EMAIL_FROM).");
       }

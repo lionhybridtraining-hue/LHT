@@ -30,7 +30,11 @@ const {
   getPaymentChargeByStripePI,
   updatePaymentCharge,
   getPaymentPlanCharges,
-  updatePaymentPlan
+  updatePaymentPlan,
+  createPaymentPlan,
+  createPaymentCharges,
+  updateStripePurchaseById,
+  getPaymentPlanByStripePurchaseId
 } = require("./_lib/supabase");
 const { sendCAPIEvent, buildUserData } = require("./_lib/meta-capi");
 
@@ -68,6 +72,139 @@ function buildGaItems(program) {
     item_id: program.external_id || program.id,
     item_name: program.name
   }];
+}
+
+function parsePositiveInt(value, fallback) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return fallback;
+  const intValue = Math.floor(numeric);
+  return intValue > 0 ? intValue : fallback;
+}
+
+function computeDueDate(startDate, frequency, index) {
+  const date = new Date(`${startDate}T00:00:00Z`);
+  if (frequency === "weekly") {
+    date.setUTCDate(date.getUTCDate() + index * 7);
+  } else if (frequency === "biweekly") {
+    date.setUTCDate(date.getUTCDate() + index * 14);
+  } else {
+    date.setUTCMonth(date.getUTCMonth() + index);
+  }
+  return date.toISOString().slice(0, 10);
+}
+
+function buildPhasedPlanConfig({ paymentIntent, purchase, program }) {
+  const metadata = paymentIntent && paymentIntent.metadata ? paymentIntent.metadata : {};
+  const totalAmountCents = parsePositiveInt(metadata.phased_total_amount_cents, purchase.amount_cents || 0);
+  const totalInstallments = Math.max(2, parsePositiveInt(metadata.phased_total_installments, parsePositiveInt(process.env.PHASED_DEFAULT_INSTALLMENTS, 3)));
+  const frequencyRaw = (metadata.phased_frequency || process.env.PHASED_DEFAULT_FREQUENCY || "monthly").toString().trim().toLowerCase();
+  const frequency = ["weekly", "biweekly", "monthly"].includes(frequencyRaw) ? frequencyRaw : "monthly";
+  const gracePeriodDays = parsePositiveInt(metadata.phased_grace_period_days, parsePositiveInt(process.env.PHASED_DEFAULT_GRACE_DAYS, 7));
+  const maxRetryAttempts = parsePositiveInt(metadata.phased_max_retry_attempts, parsePositiveInt(process.env.PHASED_DEFAULT_MAX_RETRIES, 3));
+  const firstChargeAmount = parsePositiveInt(metadata.phased_first_charge_cents, purchase.amount_cents || 0);
+  const currency = (purchase.currency || program.currency || "EUR").toUpperCase();
+
+  return {
+    totalAmountCents,
+    totalInstallments,
+    frequency,
+    gracePeriodDays,
+    maxRetryAttempts,
+    firstChargeAmount,
+    currency
+  };
+}
+
+function buildPhasedCharges({ planId, startDate, config, paymentIntentId }) {
+  const charges = [];
+  const remainingInstallments = Math.max(1, config.totalInstallments - 1);
+  const remainingAmount = Math.max(0, config.totalAmountCents - config.firstChargeAmount);
+  const recurringPerCharge = remainingInstallments > 0 ? Math.floor(remainingAmount / remainingInstallments) : 0;
+  const remainder = remainingAmount - recurringPerCharge * remainingInstallments;
+
+  charges.push({
+    payment_plan_id: planId,
+    charge_number: 1,
+    charge_label: `Parcela 1/${config.totalInstallments}`,
+    amount_cents: config.firstChargeAmount,
+    currency: config.currency,
+    due_date: startDate,
+    status: "paid",
+    stripe_payment_intent_id: paymentIntentId || null,
+    paid_at: new Date().toISOString(),
+    retry_count: 0
+  });
+
+  for (let idx = 1; idx < config.totalInstallments; idx += 1) {
+    const chargeAmount = idx === 1 ? recurringPerCharge + remainder : recurringPerCharge;
+    charges.push({
+      payment_plan_id: planId,
+      charge_number: idx + 1,
+      charge_label: `Parcela ${idx + 1}/${config.totalInstallments}`,
+      amount_cents: chargeAmount,
+      currency: config.currency,
+      due_date: computeDueDate(startDate, config.frequency, idx),
+      status: "pending",
+      retry_count: 0
+    });
+  }
+
+  return charges;
+}
+
+async function ensurePhasedPlanForPurchase(config, { paymentIntent, purchase, program, assignmentId }) {
+  const paymentModel = typeof program.payment_model === "string"
+    ? program.payment_model.trim().toLowerCase()
+    : "single";
+  if (paymentModel !== "phased") {
+    return { created: false, reason: "not_phased", plan: null };
+  }
+  if (!purchase || !purchase.id) {
+    return { created: false, reason: "missing_purchase", plan: null };
+  }
+
+  if (purchase.payment_plan_id) {
+    return { created: false, reason: "already_linked", plan: { id: purchase.payment_plan_id } };
+  }
+
+  const existingByPurchase = await getPaymentPlanByStripePurchaseId(config, purchase.id);
+  if (existingByPurchase) {
+    if (!purchase.payment_plan_id) {
+      await updateStripePurchaseById(config, purchase.id, { payment_plan_id: existingByPurchase.id });
+    }
+    return { created: false, reason: "already_exists", plan: existingByPurchase };
+  }
+
+  const phasedConfig = buildPhasedPlanConfig({ paymentIntent, purchase, program });
+  const today = new Date().toISOString().slice(0, 10);
+  const endDate = computeDueDate(today, phasedConfig.frequency, phasedConfig.totalInstallments - 1);
+
+  const plan = await createPaymentPlan(config, {
+    identity_id: purchase.identity_id,
+    program_id: program.id,
+    program_assignment_id: assignmentId || null,
+    stripe_purchase_id: purchase.id,
+    total_amount_cents: phasedConfig.totalAmountCents,
+    currency: phasedConfig.currency,
+    total_installments: phasedConfig.totalInstallments,
+    start_date: today,
+    end_date: endDate,
+    frequency: phasedConfig.frequency,
+    grace_period_days: phasedConfig.gracePeriodDays,
+    max_retry_attempts: phasedConfig.maxRetryAttempts,
+    status: "active"
+  });
+
+  const charges = buildPhasedCharges({
+    planId: plan.id,
+    startDate: today,
+    config: phasedConfig,
+    paymentIntentId: paymentIntent && paymentIntent.id ? paymentIntent.id : null
+  });
+  await createPaymentCharges(config, charges);
+  await updateStripePurchaseById(config, purchase.id, { payment_plan_id: plan.id });
+
+  return { created: true, reason: "created", plan };
 }
 
 function derivePurchaseStatusFromPaymentIntent(paymentIntent, fallbackStatus = "pending") {
@@ -139,7 +276,9 @@ async function handleCheckoutCompleted(config, stripe, session) {
     programId: program.id,
     billingType: program.billing_type,
     fallbackEmail: session.customer_details && session.customer_details.email,
-    source: "stripe",
+    source: (program.payment_model || "").toString().trim().toLowerCase() === "phased"
+      ? "stripe_phased"
+      : "stripe",
     subscription
   });
 
@@ -198,12 +337,31 @@ async function handleCheckoutCompleted(config, stripe, session) {
     });
   }
 
+  let phasedPlan = null;
+  if (record && record.id) {
+    let sessionPaymentIntent = null;
+    if (typeof session.payment_intent === "string" && session.payment_intent) {
+      try {
+        sessionPaymentIntent = await stripe.paymentIntents.retrieve(session.payment_intent);
+      } catch (_) {
+        sessionPaymentIntent = null;
+      }
+    }
+    phasedPlan = await ensurePhasedPlanForPurchase(config, {
+      paymentIntent: sessionPaymentIntent,
+      purchase: record,
+      program,
+      assignmentId: autoAssignment && autoAssignment.assignment ? autoAssignment.assignment.id : null
+    });
+  }
+
   return {
     persisted: true,
     record,
     program,
     autoAssignment,
-    autoInstance
+    autoInstance,
+    phasedPlan
   };
 }
 
@@ -390,7 +548,9 @@ async function handlePaymentIntentSucceeded(config, stripe, paymentIntent) {
     billingType: metadata.billing_type || program.billing_type,
     email: metadata.email || null,
     customerName,
-    source: "stripe_elements",
+    source: (program.payment_model || "").toString().trim().toLowerCase() === "phased"
+      ? "stripe_elements_phased"
+      : "stripe_elements",
     subscriptionId,
     expiresAt
   });
@@ -422,12 +582,23 @@ async function handlePaymentIntentSucceeded(config, stripe, paymentIntent) {
     });
   }
 
+  let phasedPlan = null;
+  if (record && record.id) {
+    phasedPlan = await ensurePhasedPlanForPurchase(config, {
+      paymentIntent,
+      purchase: record,
+      program,
+      assignmentId: autoAssignment && autoAssignment.assignment ? autoAssignment.assignment.id : null
+    });
+  }
+
   return {
     persisted: true,
     record,
     program,
     autoAssignment,
-    autoInstance
+    autoInstance,
+    phasedPlan
   };
 }
 

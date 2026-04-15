@@ -1,4 +1,52 @@
 const { randomBytes } = require("crypto");
+const { calculatePaces } = require("./running-engine");
+
+const SESSION_TYPE_TO_VDOT_REF = {
+  easy: "easy",
+  threshold: "threshold",
+  interval: "interval",
+  long: "marathon",
+  tempo: "threshold",
+  repetition: "repetition",
+  recovery: "recovery",
+  test: "threshold",
+  mobility: "recovery",
+  other: "easy",
+};
+
+function round1(value) {
+  return Math.round(Number(value) * 10) / 10;
+}
+
+function resolveVdotRefPaceSecPerKm(paces, ref) {
+  if (ref === "recovery") return paces.easySlowSecPerKm;
+  if (ref === "easy") return paces.easyFastSecPerKm;
+  if (ref === "marathon") return paces.marathonSecPerKm;
+  if (ref === "threshold") return paces.thresholdSecPerKm;
+  if (ref === "interval") return paces.intervalSecPerKm;
+  if (ref === "repetition") return paces.rrSecPerKm;
+  return paces.easyFastSecPerKm;
+}
+
+function buildResolvedPaceTarget(paces, prescription, fallbackRef) {
+  const resolvedRef = (prescription && prescription.ref) || fallbackRef || "easy";
+  const basePace = resolveVdotRefPaceSecPerKm(paces, resolvedRef);
+  const offset = Number(prescription && prescription.offset_sec_per_km);
+  const range = Math.abs(Number(prescription && prescription.range_sec));
+  const offsetSec = Number.isFinite(offset) ? offset : 0;
+  const rangeSec = Number.isFinite(range) ? range : 0;
+  const center = basePace + offsetSec;
+
+  return {
+    mode: "vdot_reference",
+    ref: resolvedRef,
+    target_sec_per_km: round1(center),
+    min_sec_per_km: round1(Math.max(120, center - rangeSec)),
+    max_sec_per_km: round1(center + rangeSec),
+    offset_sec_per_km: round1(offsetSec),
+    range_sec: round1(rangeSec),
+  };
+}
 
 async function supabaseRequest({ url, serviceRoleKey, path, method = "GET", body, prefer }) {
   const response = await fetch(`${url}/rest/v1/${path}`, {
@@ -1956,6 +2004,12 @@ async function setAssignmentPreset(config, assignmentId, presetId) {
   });
 }
 
+async function setAssignmentVariant(config, assignmentId, variantId) {
+  return updateProgramAssignment(config, assignmentId, {
+    selected_variant_id: variantId
+  });
+}
+
 async function listSiteMetadata(config) {
   return supabaseRequest({
     url: config.supabaseUrl,
@@ -3134,6 +3188,107 @@ async function deleteProgramSchedulePreset(config, presetId) {
 }
 
 // ═══════════════════════════════════════════════════════════
+// Program Variants (Multi-Variant Architecture)
+// ═══════════════════════════════════════════════════════════
+
+async function getVariantsForProgram(config, trainingProgramId) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `program_variants?training_program_id=eq.${encodeURIComponent(trainingProgramId)}&order=duration_weeks.asc,experience_level.asc,weekly_frequency.asc`
+  });
+  return Array.isArray(rows) ? rows : [];
+}
+
+async function filterVariants(config, { trainingProgramId, experienceLevel, weeklyFrequency, durationWeeks } = {}) {
+  let path = `program_variants?training_program_id=eq.${encodeURIComponent(trainingProgramId)}`;
+  if (experienceLevel) {
+    path += `&experience_level=eq.${encodeURIComponent(experienceLevel)}`;
+  }
+  if (weeklyFrequency != null) {
+    path += `&weekly_frequency=eq.${encodeURIComponent(weeklyFrequency)}`;
+  }
+  if (durationWeeks != null) {
+    path += `&duration_weeks=eq.${encodeURIComponent(durationWeeks)}`;
+  }
+  path += '&order=duration_weeks.asc,experience_level.asc,weekly_frequency.asc';
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path
+  });
+  return Array.isArray(rows) ? rows : [];
+}
+
+async function getVariantById(config, variantId) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `program_variants?id=eq.${encodeURIComponent(variantId)}&select=*,strength_plans(id,name),running_plan_templates(id,name)`
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function createVariant(config, payload) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: 'program_variants',
+    method: 'POST',
+    body: [payload],
+    prefer: 'return=representation'
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function createVariantsBatch(config, payloads) {
+  if (!Array.isArray(payloads) || !payloads.length) return [];
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: 'program_variants',
+    method: 'POST',
+    body: payloads,
+    prefer: 'return=representation'
+  });
+  return Array.isArray(rows) ? rows : [];
+}
+
+async function updateVariant(config, variantId, patch) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `program_variants?id=eq.${encodeURIComponent(variantId)}`,
+    method: 'PATCH',
+    body: patch,
+    prefer: 'return=representation'
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function deleteVariant(config, variantId) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `program_variants?id=eq.${encodeURIComponent(variantId)}`,
+    method: 'DELETE'
+  });
+  return Array.isArray(rows) ? rows.length : 0;
+}
+
+async function setDefaultVariant(config, programId, variantId) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `training_programs?id=eq.${encodeURIComponent(programId)}`,
+    method: 'PATCH',
+    body: { default_variant_id: variantId },
+    prefer: 'return=representation'
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+// ═══════════════════════════════════════════════════════════
 // Program Schedule Slots
 // ═══════════════════════════════════════════════════════════
 
@@ -3223,11 +3378,30 @@ async function updateAthleteWeeklyPlanRow(config, rowId, patch) {
   return Array.isArray(rows) ? rows[0] || null : null;
 }
 
+async function getAthleteWeeklyPlanRowById(config, rowId) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `athlete_weekly_plan?id=eq.${encodeURIComponent(rowId)}&select=*`
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
 async function deleteAthleteWeeklyPlan(config, programAssignmentId) {
   const rows = await supabaseRequest({
     url: config.supabaseUrl,
     serviceRoleKey: config.supabaseServiceRoleKey,
     path: `athlete_weekly_plan?program_assignment_id=eq.${encodeURIComponent(programAssignmentId)}`,
+    method: 'DELETE'
+  });
+  return Array.isArray(rows) ? rows.length : 0;
+}
+
+async function deleteAthleteWeeklyPlanFromWeek(config, programAssignmentId, fromWeek) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `athlete_weekly_plan?program_assignment_id=eq.${encodeURIComponent(programAssignmentId)}&week_number=gte.${encodeURIComponent(fromWeek)}`,
     method: 'DELETE'
   });
   return Array.isArray(rows) ? rows.length : 0;
@@ -3463,6 +3637,26 @@ async function getPaymentPlanById(config, planId) {
   return Array.isArray(rows) ? rows[0] || null : null;
 }
 
+async function getPaymentPlanByStripePurchaseId(config, stripePurchaseId) {
+  if (!stripePurchaseId) return null;
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `payment_plans?stripe_purchase_id=eq.${encodeURIComponent(stripePurchaseId)}&select=*&order=created_at.desc&limit=1`
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function getLatestPaymentPlanForIdentityProgram(config, { identityId, programId } = {}) {
+  if (!identityId || !programId) return null;
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `payment_plans?identity_id=eq.${encodeURIComponent(identityId)}&program_id=eq.${encodeURIComponent(programId)}&status=in.("active","paused","completed")&select=*&order=created_at.desc&limit=1`
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
 async function updatePaymentPlan(config, planId, patch) {
   const rows = await supabaseRequest({
     url: config.supabaseUrl,
@@ -3653,6 +3847,768 @@ async function listExpiredGracePeriodPurchases(config) {
   return Array.isArray(rows) ? rows : [];
 }
 
+// ═══════════════════════════════════════════════════════════════
+// Running Plan Management
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * List all running plan templates
+ */
+async function listRunningPlanTemplates(config, filters = {}) {
+  let path = 'running_plan_templates?select=*';
+  if (filters.status) path += `&status=eq.${encodeURIComponent(filters.status)}`;
+  if (filters.trainingProgramId) path += `&training_program_id=eq.${encodeURIComponent(filters.trainingProgramId)}`;
+  path += '&order=created_at.desc';
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path
+  });
+  return Array.isArray(rows) ? rows : [];
+}
+
+/**
+ * Get a single running plan template by ID
+ */
+async function getRunningPlanTemplateById(config, templateId) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `running_plan_templates?id=eq.${encodeURIComponent(templateId)}`
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+/**
+ * Create a new running plan template
+ */
+async function createRunningPlanTemplate(config, template) {
+  const payload = {
+    ...template,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  };
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: 'running_plan_templates',
+    method: 'POST',
+    body: [payload],
+    prefer: 'return=representation'
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+/**
+ * Update a running plan template
+ */
+async function updateRunningPlanTemplate(config, templateId, patch) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `running_plan_templates?id=eq.${encodeURIComponent(templateId)}`,
+    method: 'PATCH',
+    body: { ...patch, updated_at: new Date().toISOString() },
+    prefer: 'return=representation'
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+/**
+ * Create a running plan instance for an athlete
+ */
+async function createRunningPlanInstance(config, instance) {
+  const payload = {
+    ...instance,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  };
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: 'running_plan_instances',
+    method: 'POST',
+    body: [payload],
+    prefer: 'return=representation'
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+/**
+ * Get active running plan instance for an athlete
+ */
+async function getActiveRunningPlanInstance(config, athleteId) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `running_plan_instances?athlete_id=eq.${encodeURIComponent(athleteId)}&status=in.(active,paused)&order=created_at.desc&limit=1`
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+/**
+ * Get a single running plan instance by ID
+ */
+async function getRunningPlanInstanceById(config, instanceId) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `running_plan_instances?id=eq.${encodeURIComponent(instanceId)}`
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+/**
+ * List running plan instances for a plan template
+ */
+async function listRunningPlanInstancesByTemplate(config, planTemplateId) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `running_plan_instances?plan_template_id=eq.${encodeURIComponent(planTemplateId)}&order=created_at.desc`
+  });
+  return Array.isArray(rows) ? rows : [];
+}
+
+/**
+ * Update a running plan instance (status, VDOT, etc.)
+ */
+async function updateRunningPlanInstance(config, instanceId, patch) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `running_plan_instances?id=eq.${encodeURIComponent(instanceId)}`,
+    method: 'PATCH',
+    body: { ...patch, updated_at: new Date().toISOString() },
+    prefer: 'return=representation'
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+/**
+ * List running workout instances for a plan instance
+ */
+async function listRunningWorkoutInstances(config, planInstanceId, filters = {}) {
+  let path = `running_workout_instances?running_plan_instance_id=eq.${encodeURIComponent(planInstanceId)}`;
+  if (filters.status) path += `&status=eq.${encodeURIComponent(filters.status)}`;
+  if (filters.weekNumber) path += `&week_number=eq.${encodeURIComponent(filters.weekNumber)}`;
+  path += '&order=week_number,session_key';
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path
+  });
+  return Array.isArray(rows) ? rows : [];
+}
+
+/**
+ * Batch insert running workout instances
+ */
+async function insertRunningWorkoutInstances(config, workouts) {
+  if (!workouts.length) return [];
+  const payload = workouts.map(w => ({
+    ...w,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  }));
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: 'running_workout_instances',
+    method: 'POST',
+    body: payload,
+    prefer: 'return=representation'
+  });
+  return Array.isArray(rows) ? rows : [];
+}
+
+/**
+ * Update a running workout instance
+ */
+async function updateRunningWorkoutInstance(config, workoutInstanceId, patch) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `running_workout_instances?id=eq.${encodeURIComponent(workoutInstanceId)}`,
+    method: 'PATCH',
+    body: { ...patch, updated_at: new Date().toISOString() },
+    prefer: 'return=representation'
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+/**
+ * Insert a VDOT history record for an athlete
+ */
+async function insertRunningVdotHistory(config, vdotRecord) {
+  const payload = {
+    ...vdotRecord,
+    created_at: new Date().toISOString()
+  };
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: 'athlete_running_vdot_history',
+    method: 'POST',
+    body: [payload],
+    prefer: 'return=representation'
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+/**
+ * Get current VDOT for an athlete (is_current = true)
+ */
+async function getCurrentRunningVdot(config, athleteId) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `athlete_running_vdot_history?athlete_id=eq.${encodeURIComponent(athleteId)}&is_current=eq.true&order=measured_at.desc&limit=1`
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+/**
+ * List VDOT history for an athlete
+ */
+async function listRunningVdotHistory(config, athleteId, limit = 10) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `athlete_running_vdot_history?athlete_id=eq.${encodeURIComponent(athleteId)}&order=measured_at.desc&limit=${limit}`
+  });
+  return Array.isArray(rows) ? rows : [];
+}
+
+/**
+ * Set a new VDOT as current and mark previous as historical
+ * Transaction-like: first unset old is_current, then set new one
+ */
+async function setCurrentRunningVdot(config, athleteId, vdotRecord) {
+  // Step 1: Unset old current VDOT
+  const oldCurrent = await getCurrentRunningVdot(config, athleteId);
+  if (oldCurrent) {
+    await supabaseRequest({
+      url: config.supabaseUrl,
+      serviceRoleKey: config.supabaseServiceRoleKey,
+      path: `athlete_running_vdot_history?id=eq.${encodeURIComponent(oldCurrent.id)}`,
+      method: 'PATCH',
+      body: { is_current: false }
+    });
+  }
+
+  // Step 2: Insert new VDOT with is_current = true
+  return insertRunningVdotHistory(config, { ...vdotRecord, is_current: true });
+}
+
+/**
+ * Recalculate future running workout instances when VDOT changes
+ * Updates all planned (status='planned') workouts after a certain date
+ */
+async function updateFutureRunningWorkoutsByVdot(config, planInstanceId, newPaces) {
+  // Fetch all planned workouts for this instance
+  const planneds = await listRunningWorkoutInstances(config, planInstanceId, { status: 'planned' });
+  
+  if (!planneds.length) return 0;
+
+  // Update each one with new resolved_targets
+  let updated = 0;
+  for (const workout of planneds) {
+    try {
+      const paces = calculatePaces(newPaces.vdot);
+      const storedTargets = workout.resolved_targets && typeof workout.resolved_targets === 'object'
+        ? workout.resolved_targets
+        : {};
+      const storedPrescription = storedTargets.prescription && typeof storedTargets.prescription === 'object'
+        ? storedTargets.prescription
+        : null;
+      const fallbackRef = SESSION_TYPE_TO_VDOT_REF[workout.session_type] || 'easy';
+      const paceTarget = buildResolvedPaceTarget(paces, storedPrescription, fallbackRef);
+
+      await updateRunningWorkoutInstance(config, workout.id, {
+        vdot_used: newPaces.vdot,
+        threshold_pace_sec_per_km_used: newPaces.thresholdSecPerKm,
+        resolved_targets: {
+          pace_target: paceTarget,
+          paces,
+          prescription: {
+            mode: 'vdot_reference',
+            ref: paceTarget.ref,
+            offset_sec_per_km: paceTarget.offset_sec_per_km,
+            range_sec: paceTarget.range_sec,
+          },
+        },
+        recalculated_at: new Date().toISOString()
+      });
+      updated++;
+    } catch (err) {
+      console.error(`Failed to update running workout ${workout.id}:`, err.message);
+    }
+  }
+
+  return updated;
+}
+
+// ─── Running Workout Templates ──────────────────────────────
+
+/**
+ * List running workout templates (optionally filtered by coach)
+ */
+async function listRunningWorkoutTemplates(config, filters = {}) {
+  let path = 'running_workout_templates?order=name';
+  if (filters.coachId) path += `&coach_id=eq.${encodeURIComponent(filters.coachId)}`;
+  if (filters.sessionType) path += `&session_type=eq.${encodeURIComponent(filters.sessionType)}`;
+  if (filters.isLibrary !== undefined) path += `&is_library=eq.${filters.isLibrary}`;
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path
+  });
+  return Array.isArray(rows) ? rows : [];
+}
+
+/**
+ * Get a single running workout template by ID
+ */
+async function getRunningWorkoutTemplateById(config, templateId) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `running_workout_templates?id=eq.${encodeURIComponent(templateId)}`
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+/**
+ * Create a running workout template
+ */
+async function createRunningWorkoutTemplate(config, template) {
+  const payload = {
+    ...template,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  };
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: 'running_workout_templates',
+    method: 'POST',
+    body: [payload],
+    prefer: 'return=representation'
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+/**
+ * Update a running workout template
+ */
+async function updateRunningWorkoutTemplate(config, templateId, patch) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `running_workout_templates?id=eq.${encodeURIComponent(templateId)}`,
+    method: 'PATCH',
+    body: { ...patch, updated_at: new Date().toISOString() },
+    prefer: 'return=representation'
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+// ─── Running Workout Template Steps ─────────────────────────
+
+/**
+ * List steps for a workout template (ordered)
+ */
+async function listRunningWorkoutTemplateSteps(config, workoutTemplateId) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `running_workout_template_steps?workout_template_id=eq.${encodeURIComponent(workoutTemplateId)}&order=step_order`
+  });
+  return Array.isArray(rows) ? rows : [];
+}
+
+/**
+ * Upsert steps for a workout template (batch replace pattern)
+ */
+async function upsertRunningWorkoutTemplateSteps(config, steps) {
+  if (!steps.length) return [];
+  return supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: 'running_workout_template_steps?on_conflict=workout_template_id,step_order',
+    method: 'POST',
+    body: steps,
+    prefer: 'return=representation,resolution=merge-duplicates'
+  });
+}
+
+/**
+ * Delete all steps for a workout template
+ */
+async function deleteRunningWorkoutTemplateSteps(config, workoutTemplateId) {
+  return supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `running_workout_template_steps?workout_template_id=eq.${encodeURIComponent(workoutTemplateId)}`,
+    method: 'DELETE'
+  });
+}
+
+// ─── Running Plan Template Sessions ─────────────────────────
+
+/**
+ * List sessions for a plan template (weekly structure)
+ */
+async function listRunningPlanTemplateSessions(config, planTemplateId) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `running_plan_template_sessions?plan_template_id=eq.${encodeURIComponent(planTemplateId)}&order=week_number,session_order,session_key`
+  });
+  return Array.isArray(rows) ? rows : [];
+}
+
+/**
+ * Upsert sessions for a plan template
+ */
+async function upsertRunningPlanTemplateSessions(config, sessions) {
+  if (!sessions.length) return [];
+  return supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: 'running_plan_template_sessions?on_conflict=plan_template_id,week_number,session_key',
+    method: 'POST',
+    body: sessions,
+    prefer: 'return=representation,resolution=merge-duplicates'
+  });
+}
+
+/**
+ * Delete all sessions for a plan template
+ */
+async function deleteRunningPlanTemplateSessions(config, planTemplateId) {
+  return supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `running_plan_template_sessions?plan_template_id=eq.${encodeURIComponent(planTemplateId)}`,
+    method: 'DELETE'
+  });
+}
+
+/**
+ * Delete specific sessions from a plan template by IDs
+ */
+async function deleteRunningPlanTemplateSessionsByIds(config, sessionIds) {
+  if (!sessionIds.length) return;
+  return supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `running_plan_template_sessions?id=in.(${sessionIds.join(',')})`,
+    method: 'DELETE'
+  });
+}
+
+/**
+ * Get running workout instances with linked training sessions (completed ones)
+ */
+async function listRunningWorkoutInstancesWithSessions(config, planInstanceId) {
+  const workouts = await listRunningWorkoutInstances(config, planInstanceId);
+  
+  // Enrich with session data if completed_training_session_id exists
+  for (const w of workouts) {
+    if (w.completed_training_session_id) {
+      const sessions = await supabaseRequest({
+        url: config.supabaseUrl,
+        serviceRoleKey: config.supabaseServiceRoleKey,
+        path: `training_sessions?id=eq.${encodeURIComponent(w.completed_training_session_id)}&select=id,title,sport_type,distance_km,avg_pace,tss,intensity_factor,session_date`
+      });
+      w.completed_session = Array.isArray(sessions) ? sessions[0] || null : null;
+    }
+  }
+
+  return workouts;
+}
+
+function normalizeEmailTemplateCode(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9_]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+}
+
+function mapEmailTemplateRow(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    code: row.code,
+    name: row.name,
+    description: row.description || "",
+    channel_type: row.channel_type || "transactional",
+    subject_template: row.subject_template || "",
+    html_template: row.html_template || "",
+    is_active: row.is_active !== false,
+    created_by: row.created_by || null,
+    updated_by: row.updated_by || null,
+    created_at: row.created_at || null,
+    updated_at: row.updated_at || null,
+    deleted_at: row.deleted_at || null
+  };
+}
+
+async function listEmailTemplates(config, { includeInactive = true, includeDeleted = false } = {}) {
+  const filters = [
+    "select=id,code,name,description,channel_type,subject_template,html_template,is_active,created_by,updated_by,created_at,updated_at,deleted_at",
+    "order=code.asc"
+  ];
+  if (!includeDeleted) {
+    filters.push("deleted_at=is.null");
+  }
+  if (!includeInactive) {
+    filters.push("is_active=eq.true");
+  }
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `email_templates?${filters.join("&")}`
+  });
+  return Array.isArray(rows) ? rows.map(mapEmailTemplateRow).filter(Boolean) : [];
+}
+
+async function getEmailTemplateById(config, templateId) {
+  if (!templateId) return null;
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `email_templates?id=eq.${encodeURIComponent(templateId)}&deleted_at=is.null&limit=1`
+  });
+  return Array.isArray(rows) ? mapEmailTemplateRow(rows[0] || null) : null;
+}
+
+async function getEmailTemplateByCode(config, code) {
+  const normalizedCode = normalizeEmailTemplateCode(code);
+  if (!normalizedCode) return null;
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `email_templates?code=eq.${encodeURIComponent(normalizedCode)}&deleted_at=is.null&limit=1`
+  });
+  return Array.isArray(rows) ? mapEmailTemplateRow(rows[0] || null) : null;
+}
+
+async function getMaxEmailTemplateVersion(config, templateId) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `email_template_versions?template_id=eq.${encodeURIComponent(templateId)}&select=version_number&order=version_number.desc&limit=1`
+  });
+  const row = Array.isArray(rows) ? rows[0] : null;
+  return row && Number.isInteger(row.version_number) ? row.version_number : 0;
+}
+
+async function listEmailTemplateVersions(config, templateId) {
+  if (!templateId) return [];
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `email_template_versions?template_id=eq.${encodeURIComponent(templateId)}&select=id,template_id,version_number,subject_template,html_template,change_note,created_by,created_at&order=version_number.desc,created_at.desc`
+  });
+  return Array.isArray(rows) ? rows : [];
+}
+
+async function createEmailTemplate(config, payload) {
+  const normalizedCode = normalizeEmailTemplateCode(payload && payload.code);
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: "email_templates",
+    method: "POST",
+    body: [
+      {
+        code: normalizedCode,
+        name: String(payload && payload.name ? payload.name : "").trim(),
+        description: String(payload && payload.description ? payload.description : "").trim() || null,
+        channel_type: payload && payload.channel_type === "marketing" ? "marketing" : "transactional",
+        subject_template: String(payload && payload.subject_template ? payload.subject_template : "").trim(),
+        html_template: String(payload && payload.html_template ? payload.html_template : "").trim(),
+        is_active: payload && payload.is_active !== false,
+        created_by: payload && payload.created_by ? payload.created_by : null,
+        updated_by: payload && payload.updated_by ? payload.updated_by : null
+      }
+    ],
+    prefer: "return=representation"
+  });
+
+  const created = Array.isArray(rows) ? rows[0] || null : null;
+  if (!created) return null;
+
+  await createEmailTemplateVersion(config, {
+    template_id: created.id,
+    subject_template: created.subject_template,
+    html_template: created.html_template,
+    change_note: "Initial version",
+    created_by: payload && payload.created_by ? payload.created_by : null
+  });
+
+  return mapEmailTemplateRow(created);
+}
+
+async function createEmailTemplateVersion(config, payload) {
+  const templateId = payload && payload.template_id ? String(payload.template_id).trim() : "";
+  if (!templateId) throw new Error("template_id is required");
+  const currentMax = await getMaxEmailTemplateVersion(config, templateId);
+  const nextVersion = currentMax + 1;
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: "email_template_versions",
+    method: "POST",
+    body: [
+      {
+        template_id: templateId,
+        version_number: nextVersion,
+        subject_template: String(payload && payload.subject_template ? payload.subject_template : "").trim(),
+        html_template: String(payload && payload.html_template ? payload.html_template : "").trim(),
+        change_note: String(payload && payload.change_note ? payload.change_note : "").trim() || null,
+        created_by: payload && payload.created_by ? payload.created_by : null
+      }
+    ],
+    prefer: "return=representation"
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function updateEmailTemplate(config, templateId, patch, { versionChangeNote } = {}) {
+  const baseTemplate = await getEmailTemplateById(config, templateId);
+  if (!baseTemplate) return null;
+
+  const body = {};
+  if (patch && patch.code !== undefined) {
+    body.code = normalizeEmailTemplateCode(patch.code);
+  }
+  if (patch && patch.name !== undefined) {
+    body.name = String(patch.name || "").trim();
+  }
+  if (patch && patch.description !== undefined) {
+    body.description = String(patch.description || "").trim() || null;
+  }
+  if (patch && patch.channel_type !== undefined) {
+    body.channel_type = patch.channel_type === "marketing" ? "marketing" : "transactional";
+  }
+  if (patch && patch.subject_template !== undefined) {
+    body.subject_template = String(patch.subject_template || "").trim();
+  }
+  if (patch && patch.html_template !== undefined) {
+    body.html_template = String(patch.html_template || "").trim();
+  }
+  if (patch && patch.is_active !== undefined) {
+    body.is_active = patch.is_active !== false;
+  }
+  if (patch && patch.updated_by !== undefined) {
+    body.updated_by = patch.updated_by || null;
+  }
+
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `email_templates?id=eq.${encodeURIComponent(templateId)}&deleted_at=is.null`,
+    method: "PATCH",
+    body,
+    prefer: "return=representation"
+  });
+  const updated = Array.isArray(rows) ? rows[0] || null : null;
+  if (!updated) return null;
+
+  const versionNeedsBump =
+    (body.subject_template !== undefined && body.subject_template !== baseTemplate.subject_template) ||
+    (body.html_template !== undefined && body.html_template !== baseTemplate.html_template);
+
+  if (versionNeedsBump) {
+    await createEmailTemplateVersion(config, {
+      template_id: templateId,
+      subject_template: updated.subject_template,
+      html_template: updated.html_template,
+      change_note: String(versionChangeNote || "").trim() || "Template update",
+      created_by: patch && patch.updated_by ? patch.updated_by : null
+    });
+  }
+
+  return mapEmailTemplateRow(updated);
+}
+
+async function softDeleteEmailTemplate(config, templateId, actorIdentityId = "") {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `email_templates?id=eq.${encodeURIComponent(templateId)}&deleted_at=is.null`,
+    method: "PATCH",
+    body: {
+      deleted_at: new Date().toISOString(),
+      is_active: false,
+      updated_by: actorIdentityId || null
+    },
+    prefer: "return=representation"
+  });
+  return Array.isArray(rows) ? mapEmailTemplateRow(rows[0] || null) : null;
+}
+
+async function createEmailSendLog(config, payload) {
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: "email_send_logs",
+    method: "POST",
+    body: [payload],
+    prefer: "return=representation"
+  });
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function listEmailSendLogs(config, filters = {}) {
+  const query = [
+    "select=id,template_id,template_code,template_name,template_version_number,channel_type,recipient_email,recipient_athlete_id,subject_rendered,is_test,status,provider,provider_message_id,provider_error,trigger_source,trigger_ref,actor_identity_id,attempted_at,sent_at,created_at",
+    "order=created_at.desc"
+  ];
+
+  if (filters.templateId) {
+    query.push(`template_id=eq.${encodeURIComponent(filters.templateId)}`);
+  }
+  if (filters.status) {
+    query.push(`status=eq.${encodeURIComponent(filters.status)}`);
+  }
+  if (filters.channelType) {
+    query.push(`channel_type=eq.${encodeURIComponent(filters.channelType)}`);
+  }
+  if (filters.athleteId) {
+    query.push(`recipient_athlete_id=eq.${encodeURIComponent(filters.athleteId)}`);
+  }
+  if (filters.isTest === true) {
+    query.push("is_test=eq.true");
+  }
+  if (filters.isTest === false) {
+    query.push("is_test=eq.false");
+  }
+  if (filters.from) {
+    query.push(`created_at=gte.${encodeURIComponent(filters.from)}`);
+  }
+  if (filters.to) {
+    query.push(`created_at=lte.${encodeURIComponent(filters.to)}`);
+  }
+  if (Number.isInteger(filters.limit) && filters.limit > 0) {
+    query.push(`limit=${filters.limit}`);
+  }
+  if (Number.isInteger(filters.offset) && filters.offset >= 0) {
+    query.push(`offset=${filters.offset}`);
+  }
+
+  return supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `email_send_logs?${query.join("&")}`
+  });
+}
+
 module.exports = {
   insertTrainingSessions,
   upsertTrainingSessionsBySource,
@@ -3712,6 +4668,7 @@ module.exports = {
   getLatestCancellableProgramAssignment,
   updateProgramAssignment,
   setAssignmentPreset,
+  setAssignmentVariant,
   listAssignmentHistory,
   listAllAthletesForAdmin,
   listActiveAssignmentsWithPrograms,
@@ -3731,6 +4688,8 @@ module.exports = {
   listExpiredGracePeriodPurchases,
   createPaymentPlan,
   getPaymentPlanById,
+  getPaymentPlanByStripePurchaseId,
+  getLatestPaymentPlanForIdentityProgram,
   updatePaymentPlan,
   listPaymentPlans,
   createPaymentCharges,
@@ -3868,15 +4827,66 @@ module.exports = {
   listProgramScheduleSlots,
   upsertProgramScheduleSlots,
   deleteProgramScheduleSlots,
+  // Program Variants (Multi-Variant Architecture)
+  getVariantsForProgram,
+  filterVariants,
+  getVariantById,
+  createVariant,
+  createVariantsBatch,
+  updateVariant,
+  deleteVariant,
+  setDefaultVariant,
   listAthleteWeeklyPlan,
   insertAthleteWeeklyPlanRows,
   upsertAthleteWeeklyPlanRows,
   updateAthleteWeeklyPlanRow,
+  getAthleteWeeklyPlanRowById,
   deleteAthleteWeeklyPlan,
+  deleteAthleteWeeklyPlanFromWeek,
   markWeeklyPlanSlotCompleted,
   findPlannedRunningSlotsForDate,
   markRunningPlanSlotCompleted,
+  // Running Plan Management
+  listRunningPlanTemplates,
+  getRunningPlanTemplateById,
+  createRunningPlanTemplate,
+  updateRunningPlanTemplate,
+  listRunningWorkoutTemplates,
+  getRunningWorkoutTemplateById,
+  createRunningWorkoutTemplate,
+  updateRunningWorkoutTemplate,
+  listRunningWorkoutTemplateSteps,
+  upsertRunningWorkoutTemplateSteps,
+  deleteRunningWorkoutTemplateSteps,
+  listRunningPlanTemplateSessions,
+  upsertRunningPlanTemplateSessions,
+  deleteRunningPlanTemplateSessions,
+  deleteRunningPlanTemplateSessionsByIds,
+  createRunningPlanInstance,
+  getActiveRunningPlanInstance,
+  getRunningPlanInstanceById,
+  listRunningPlanInstancesByTemplate,
+  updateRunningPlanInstance,
+  listRunningWorkoutInstances,
+  insertRunningWorkoutInstances,
+  updateRunningWorkoutInstance,
+  insertRunningVdotHistory,
+  getCurrentRunningVdot,
+  listRunningVdotHistory,
+  setCurrentRunningVdot,
+  updateFutureRunningWorkoutsByVdot,
+  listRunningWorkoutInstancesWithSessions,
   upsertCentralLead,
+  listEmailTemplates,
+  getEmailTemplateById,
+  getEmailTemplateByCode,
+  listEmailTemplateVersions,
+  createEmailTemplate,
+  createEmailTemplateVersion,
+  updateEmailTemplate,
+  softDeleteEmailTemplate,
+  createEmailSendLog,
+  listEmailSendLogs,
   createAdminNotification,
   listAdminNotifications,
   markAdminNotificationRead,

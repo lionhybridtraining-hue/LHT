@@ -1310,6 +1310,7 @@
           <button class="coach-tab-btn" type="button" data-coach-tab="zonas">Zonas</button>
           <button class="coach-tab-btn" type="button" data-coach-tab="planeamento">Planeamento</button>
           <button class="coach-tab-btn" type="button" data-coach-tab="forca">Força</button>
+          <button class="coach-tab-btn" type="button" data-coach-tab="corrida">Corrida</button>
           <button class="coach-tab-btn" type="button" data-coach-tab="operacoes">Operações</button>
         </div>
       </div>
@@ -1680,6 +1681,160 @@
           <div id="exCrudList"></div>
         </section>
 
+        <!-- ═══════════ CORRIDA — Plan Templates ═══════════ -->
+        <section class="section-card coach-tab-section" id="runPlanSection" data-coach-tab="corrida" hidden>
+          <div style="display:flex; justify-content:space-between; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:10px;">
+            <h3 class="section-title" style="margin:0;">Planos de Corrida</h3>
+            <div id="runPlanTopBar" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+              <select id="runPlanProgramFilter" style="min-width:170px;">
+                <option value="">Todos programas</option>
+              </select>
+              <select id="runPlanStatusFilter" style="min-width:150px;">
+                <option value="">Todos estados</option>
+                <option value="draft">Draft</option>
+                <option value="active">Active</option>
+                <option value="archived">Archived</option>
+              </select>
+              <select id="runPlanDurationFilter" style="min-width:150px;">
+                <option value="">Todas durações</option>
+              </select>
+              <input id="runPlanSearchFilter" type="search" placeholder="Pesquisar plano..." style="min-width:180px;" />
+              <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; width:100%;">
+                <select id="runPlanSelect" style="flex:1; min-width:260px;">
+                  <option value="">— Selecionar plano —</option>
+                </select>
+                <button class="btn btn-small" id="newRunPlanBtn">+ Novo Plano</button>
+              </div>
+            </div>
+          </div>
+
+          <div id="runNoPlan" class="microcopy">Nenhum plano selecionado.</div>
+
+          <!-- Plan header -->
+          <div id="runPlanHeader" hidden style="margin-bottom:12px;">
+            <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:8px;">
+              <span id="runPlanName" style="font-weight:600;"></span>
+              <span id="runPlanStatus" class="status-badge"></span>
+              <span id="runPlanWeeks" class="microcopy"></span>
+              <button class="btn btn-small btn-ghost" id="editRunPlanMetaBtn" title="Editar plano">✏</button>
+              <button class="btn btn-small" id="activateRunPlanBtn" hidden>Ativar</button>
+              <button class="btn btn-small btn-ghost" id="archiveRunPlanBtn" hidden>Arquivar</button>
+              <button class="btn btn-small" id="assignRunPlanBtn" hidden>Criar Instância</button>
+            </div>
+
+            <!-- Active instances for this running plan -->
+            <div id="runPlanInstances" hidden style="margin-bottom:8px; padding:8px 12px; border:1px solid var(--line); border-radius:var(--radius-md); background:var(--surface-2);">
+              <span class="microcopy" style="font-weight:600;">Instâncias ativas:</span>
+              <div id="runInstancesList" style="margin-top:4px;"></div>
+            </div>
+
+            <!-- VDOT panel for selected athlete -->
+            <div id="runVdotPanel" hidden style="margin-bottom:8px; padding:8px 12px; border:1px solid var(--line); border-radius:var(--radius-md); background:var(--surface-2);">
+              <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
+                <span class="microcopy" style="font-weight:600;">VDOT do Atleta</span>
+                <button class="btn btn-small btn-ghost" id="refreshVdotBtn" type="button" title="Atualizar">↻</button>
+              </div>
+              <div id="runVdotMeta" class="microcopy" style="margin-top:4px;">Seleciona atleta para ver VDOT.</div>
+              <div id="runVdotMetrics" style="margin-top:8px; display:grid; grid-template-columns:repeat(auto-fit,minmax(80px,1fr)); gap:8px;">
+                <div class="vol-metric"><span class="vol-label">VDOT</span><span id="rvVdot" class="vol-value">—</span></div>
+                <div class="vol-metric"><span class="vol-label">Threshold</span><span id="rvThreshold" class="vol-value">—</span></div>
+                <div class="vol-metric"><span class="vol-label">Fonte</span><span id="rvSource" class="vol-value">—</span></div>
+              </div>
+              <div style="margin-top:8px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                <label class="microcopy">Definir VDOT:</label>
+                <input id="runVdotInput" type="number" step="0.1" min="20" max="85" placeholder="Ex: 45.0" style="width:80px; padding:4px 6px; border-radius:6px; border:1px solid var(--line); background:var(--surface-1); color:var(--text);" />
+                <select id="runVdotSource" style="padding:4px 6px; border-radius:6px; border:1px solid var(--line); background:var(--surface-1); color:var(--text);">
+                  <option value="coach_set">Coach (manual)</option>
+                  <option value="race_result">Resultado prova</option>
+                  <option value="time_trial">Time trial</option>
+                </select>
+                <button class="btn btn-small btn-primary" id="setVdotBtn">Definir</button>
+              </div>
+              <!-- Race calculator mini-form -->
+              <div id="runVdotCalc" style="margin-top:8px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                <label class="microcopy">Calcular VDOT:</label>
+                <select id="runCalcDistance" style="padding:4px 6px; border-radius:6px; border:1px solid var(--line); background:var(--surface-1); color:var(--text);">
+                  <option value="1.5">1500m</option>
+                  <option value="3">3K</option>
+                  <option value="5">5K</option>
+                  <option value="10">10K</option>
+                  <option value="21.0975">Meia Maratona</option>
+                  <option value="42.195">Maratona</option>
+                </select>
+                <input id="runCalcTime" type="text" placeholder="mm:ss ou hh:mm:ss" style="width:100px; padding:4px 6px; border-radius:6px; border:1px solid var(--line); background:var(--surface-1); color:var(--text);" />
+                <button class="btn btn-small btn-ghost" id="calcVdotBtn">Calcular</button>
+                <span id="runCalcResult" class="microcopy"></span>
+              </div>
+              <!-- VDOT History -->
+              <div id="runVdotHistory" style="margin-top:8px;"></div>
+            </div>
+
+            <!-- Week × Session grid -->
+            <div id="runSessionsGrid" style="margin-top:12px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
+                <span class="microcopy" style="font-weight:600;">Sessões semanais</span>
+                <div style="display:flex; gap:4px;">
+                  <button class="btn btn-small btn-ghost" id="addRunSessionBtn">+ Sessão</button>
+                </div>
+              </div>
+              <div id="runSessionsWeekTabs" style="display:flex; gap:4px; flex-wrap:wrap; margin-bottom:8px;"></div>
+              <div id="runSessionsTableWrap" style="overflow-x:auto;"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ═══════════ CORRIDA — Workout Templates Library ═══════════ -->
+        <section class="section-card coach-tab-section" id="runWorkoutsSection" data-coach-tab="corrida" hidden>
+          <div style="display:flex; justify-content:space-between; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:10px;">
+            <h3 class="section-title" style="margin:0;">Biblioteca de Treinos</h3>
+            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+              <select id="runWktTypeFilter" style="padding:4px 8px; border-radius:6px; border:1px solid var(--line); background:var(--surface-1); color:var(--text);">
+                <option value="">Todos tipos</option>
+                <option value="easy">Easy</option>
+                <option value="threshold">Threshold</option>
+                <option value="interval">Interval</option>
+                <option value="long">Long</option>
+                <option value="tempo">Tempo</option>
+                <option value="repetition">Repetition</option>
+                <option value="recovery">Recovery</option>
+                <option value="test">Test</option>
+                <option value="mobility">Mobility</option>
+                <option value="other">Other</option>
+              </select>
+              <button class="btn btn-small" id="newRunWorkoutBtn">+ Novo Treino</button>
+            </div>
+          </div>
+          <div id="runWorkoutsList"></div>
+
+          <!-- Workout Step Editor (shown when editing a workout) -->
+          <div id="runStepEditor" hidden style="margin-top:16px; padding:12px; border:1px solid var(--line); border-radius:var(--radius-md); background:var(--surface-2);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+              <span id="runStepEditorTitle" style="font-weight:600;"></span>
+              <div style="display:flex; gap:4px;">
+                <select id="runStepVolumeMode" style="padding:4px 6px; border-radius:6px; border:1px solid var(--line); background:var(--surface-1); color:var(--text); margin-right:6px;">
+                  <option value="automatic">Modo automático (% do treino)</option>
+                  <option value="manual">Modo manual (duração/distância)</option>
+                </select>
+                <span id="runStepSaveStatus" class="save-status idle" style="align-self:center; margin-right:6px;"></span>
+                <button class="btn btn-small" id="addRunStepBtn">+ Step</button>
+                <button class="btn btn-small btn-primary" id="saveRunStepsBtn">💾 Guardar Steps</button>
+                <button class="btn btn-small btn-ghost" id="closeRunStepEditorBtn">Fechar</button>
+              </div>
+            </div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px;">
+              <span class="microcopy" style="padding:2px 6px; border:1px solid var(--line); border-radius:6px;">Tipo</span>
+              <span class="microcopy" style="padding:2px 6px; border:1px solid var(--line); border-radius:6px;">Target</span>
+              <span class="microcopy" style="padding:2px 6px; border:1px solid var(--line); border-radius:6px;">Dur(s)</span>
+              <span class="microcopy" style="padding:2px 6px; border:1px solid var(--line); border-radius:6px;">Dist(m)</span>
+              <span class="microcopy" style="padding:2px 6px; border:1px solid var(--line); border-radius:6px;">VDOT Ref</span>
+              <span class="microcopy" style="padding:2px 6px; border:1px solid var(--line); border-radius:6px;">Offset s/km</span>
+              <span class="microcopy" style="padding:2px 6px; border:1px solid var(--line); border-radius:6px;">Range ± s/km</span>
+              <span class="microcopy" style="padding:2px 6px; border:1px solid var(--line); border-radius:6px;">Instrução</span>
+            </div>
+            <div id="runStepsList"></div>
+          </div>
+        </section>
+
         <!-- ═══════════ INSTANCES SECTION ═══════════ -->
         <section class="section-card coach-tab-section" data-coach-tab="planeamento" hidden style="padding:24px 0;">
           <h2 style="margin-bottom:16px; color:#c9d1d9;">Instâncias de Força</h2>
@@ -1807,6 +1962,184 @@
             <div id="coach-calendar-grid" style="min-height:68px;"></div>
           </div>
         </section>
+
+        <!-- ═══════════ VARIANTES DO PROGRAMA ═══════════ -->
+        <section class="section-card coach-tab-section" data-coach-tab="planeamento" hidden style="padding:24px 0;">
+          <h2 style="margin-bottom:16px; color:#c9d1d9;">Variantes do Programa</h2>
+          <p style="color:#8b949e; font-size:0.85rem; margin-bottom:16px;">
+            Cada variante é uma combinação de duração × nível × frequência com planos de força e/ou corrida associados.
+            O atleta escolhe a variante no calendário.
+          </p>
+
+          <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px; flex-wrap:wrap;">
+            <label style="color:#8b949e; font-size:0.85rem;">Programa:</label>
+            <select id="var-program-select" style="padding:6px 10px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9; min-width:240px;">
+              <option value="">Seleciona um programa...</option>
+            </select>
+            <button id="var-create-btn" class="btn btn-small" type="button" disabled>+ Nova Variante</button>
+            <button id="var-batch-btn" class="btn btn-small btn-ghost" type="button" disabled>Gerar Batch</button>
+            <span id="var-count-label" style="margin-left:auto; font-size:0.8rem; color:#8b949e;"></span>
+          </div>
+
+          <div style="overflow-x:auto;">
+            <table style="width:100%; min-width:800px; border-collapse:collapse;">
+              <thead>
+                <tr style="border-bottom:1px solid #30363d;">
+                  <th style="padding:8px; text-align:left; color:#8b949e;">Duração</th>
+                  <th style="padding:8px; text-align:left; color:#8b949e;">Nível</th>
+                  <th style="padding:8px; text-align:left; color:#8b949e;">Freq.</th>
+                  <th style="padding:8px; text-align:left; color:#8b949e;">Plano Força</th>
+                  <th style="padding:8px; text-align:left; color:#8b949e;">Template Corrida</th>
+                  <th style="padding:8px; text-align:left; color:#8b949e;">Config</th>
+                  <th style="padding:8px; text-align:center; color:#8b949e;">Default</th>
+                  <th style="padding:8px; text-align:right; color:#8b949e;">Ações</th>
+                </tr>
+              </thead>
+              <tbody id="var-table-body">
+                <tr><td colspan="8" style="padding:16px; color:#8b949e;">Seleciona um programa para ver as variantes.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Variant Create/Edit Modal -->
+        <div id="variantModal" class="modal-backdrop hidden" role="dialog" aria-modal="true">
+          <div class="modal" style="max-width:560px; max-height:85vh; overflow-y:auto;">
+            <h3 id="variantModalTitle">Criar Variante</h3>
+            <form id="variantForm">
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                <div class="field">
+                  <label for="varDurationWeeks">Duração (semanas)</label>
+                  <input id="varDurationWeeks" type="number" min="1" max="52" required style="width:100%; padding:6px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9;" />
+                </div>
+                <div class="field">
+                  <label for="varExperienceLevel">Nível</label>
+                  <select id="varExperienceLevel" required style="width:100%; padding:6px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9;">
+                    <option value="beginner">Iniciante</option>
+                    <option value="intermediate">Intermédio</option>
+                    <option value="advanced">Avançado</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="varWeeklyFrequency">Frequência semanal</label>
+                  <select id="varWeeklyFrequency" required style="width:100%; padding:6px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9;">
+                    <option value="1">1×/sem</option>
+                    <option value="2">2×/sem</option>
+                    <option value="3">3×/sem</option>
+                    <option value="4">4×/sem</option>
+                    <option value="5">5×/sem</option>
+                    <option value="6">6×/sem</option>
+                    <option value="7">7×/sem</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label style="visibility:hidden;">Espaço</label>
+                </div>
+                <div class="field">
+                  <label for="varStrengthPlan">Plano de Força</label>
+                  <select id="varStrengthPlan" style="width:100%; padding:6px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9;">
+                    <option value="">— Nenhum —</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="varRunningTemplate">Template de Corrida</label>
+                  <select id="varRunningTemplate" style="width:100%; padding:6px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9;">
+                    <option value="">— Nenhum —</option>
+                  </select>
+                </div>
+              </div>
+              <details style="margin-top:12px;">
+                <summary style="color:var(--text-soft); cursor:pointer; font-size:0.9rem;">Config corrida (opcional)</summary>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:8px;">
+                  <div class="field">
+                    <label for="varInitialVolume">Volume semanal inicial (km)</label>
+                    <input id="varInitialVolume" type="number" step="0.1" min="0" style="width:100%; padding:6px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9;" />
+                  </div>
+                  <div class="field">
+                    <label for="varProgressionPct">Progressão (%/sem)</label>
+                    <input id="varProgressionPct" type="number" step="0.1" min="0" style="width:100%; padding:6px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9;" />
+                  </div>
+                  <div class="field" style="grid-column: span 2;">
+                    <label for="varPeriodization">Tipo periodização</label>
+                    <select id="varPeriodization" style="width:100%; padding:6px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9;">
+                      <option value="">— Nenhum —</option>
+                      <option value="linear">Linear</option>
+                      <option value="undulating">Ondulante</option>
+                      <option value="block">Blocos</option>
+                    </select>
+                  </div>
+                </div>
+              </details>
+              <div id="variantFormError" style="color:var(--error); font-size:0.85rem; margin-top:8px;" hidden></div>
+              <div class="modal-actions" style="margin-top:16px; display:flex; gap:8px;">
+                <button class="btn btn-primary" type="submit" id="varSubmitBtn">Criar</button>
+                <button class="btn btn-secondary" type="button" id="varCancelBtn">Cancelar</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- Variant Batch Modal -->
+        <div id="variantBatchModal" class="modal-backdrop hidden" role="dialog" aria-modal="true">
+          <div class="modal" style="max-width:640px; max-height:85vh; overflow-y:auto;">
+            <h3>Gerar Variantes em Batch</h3>
+            <p style="color:#8b949e; margin-bottom:12px;">
+              Gera combinações cartesianas de duração × nível × frequência. Associa o mesmo plano de força e/ou corrida a todas.
+            </p>
+            <form id="variantBatchForm">
+              <div style="display:grid; grid-template-columns:1fr; gap:14px;">
+                <div class="field">
+                  <label style="display:block; margin-bottom:6px;">Durações (semanas)</label>
+                  <div id="batchDurations" style="display:flex; gap:12px; flex-wrap:wrap;">
+                    <label style="color:#c9d1d9; display:flex; align-items:center; gap:4px; cursor:pointer;"><input type="checkbox" value="4"> 4S</label>
+                    <label style="color:#c9d1d9; display:flex; align-items:center; gap:4px; cursor:pointer;"><input type="checkbox" value="6"> 6S</label>
+                    <label style="color:#c9d1d9; display:flex; align-items:center; gap:4px; cursor:pointer;"><input type="checkbox" value="8" checked> 8S</label>
+                    <label style="color:#c9d1d9; display:flex; align-items:center; gap:4px; cursor:pointer;"><input type="checkbox" value="10"> 10S</label>
+                    <label style="color:#c9d1d9; display:flex; align-items:center; gap:4px; cursor:pointer;"><input type="checkbox" value="12"> 12S</label>
+                    <label style="color:#c9d1d9; display:flex; align-items:center; gap:4px; cursor:pointer;"><input type="checkbox" value="16"> 16S</label>
+                  </div>
+                </div>
+                <div class="field">
+                  <label style="display:block; margin-bottom:6px;">Níveis</label>
+                  <div id="batchLevels" style="display:flex; gap:12px; flex-wrap:wrap;">
+                    <label style="color:#c9d1d9; display:flex; align-items:center; gap:4px; cursor:pointer;"><input type="checkbox" value="beginner" checked> Iniciante</label>
+                    <label style="color:#c9d1d9; display:flex; align-items:center; gap:4px; cursor:pointer;"><input type="checkbox" value="intermediate" checked> Intermédio</label>
+                    <label style="color:#c9d1d9; display:flex; align-items:center; gap:4px; cursor:pointer;"><input type="checkbox" value="advanced" checked> Avançado</label>
+                  </div>
+                </div>
+                <div class="field">
+                  <label style="display:block; margin-bottom:6px;">Frequências semanais</label>
+                  <div id="batchFrequencies" style="display:flex; gap:12px; flex-wrap:wrap;">
+                    <label style="color:#c9d1d9; display:flex; align-items:center; gap:4px; cursor:pointer;"><input type="checkbox" value="3" checked> 3×</label>
+                    <label style="color:#c9d1d9; display:flex; align-items:center; gap:4px; cursor:pointer;"><input type="checkbox" value="4" checked> 4×</label>
+                    <label style="color:#c9d1d9; display:flex; align-items:center; gap:4px; cursor:pointer;"><input type="checkbox" value="5" checked> 5×</label>
+                    <label style="color:#c9d1d9; display:flex; align-items:center; gap:4px; cursor:pointer;"><input type="checkbox" value="6"> 6×</label>
+                  </div>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                  <div class="field">
+                    <label for="batchStrengthPlan">Plano Força (todos)</label>
+                    <select id="batchStrengthPlan" style="width:100%; padding:6px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9;">
+                      <option value="">— Nenhum —</option>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label for="batchRunningTemplate">Template Corrida (todos)</label>
+                    <select id="batchRunningTemplate" style="width:100%; padding:6px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9;">
+                      <option value="">— Nenhum —</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div id="batchPreview" style="margin-top:12px; color:#8b949e; font-size:0.85rem;"></div>
+              <div id="batchFormError" style="color:var(--error); font-size:0.85rem; margin-top:8px;" hidden></div>
+              <div class="modal-actions" style="margin-top:16px; display:flex; gap:8px;">
+                <button class="btn btn-primary" type="submit" id="batchSubmitBtn">Gerar Variantes</button>
+                <button class="btn btn-secondary" type="button" id="batchCancelBtn">Cancelar</button>
+              </div>
+            </form>
+          </div>
+        </div>
 
         <!-- ═══════════ SCHEDULE / CALENDÁRIO SECTION ═══════════ -->
         <section class="section-card coach-tab-section" data-coach-tab="planeamento" hidden style="padding:24px 0;">
@@ -3523,6 +3856,11 @@
           title: "Modela, atribui e monitoriza",
           description: "Gere planos, exercícios e instâncias de força; acompanha execução por atleta e ajusta o treino quando necessário."
         },
+        corrida: {
+          eyebrow: "Treino de Corrida",
+          title: "Planos, treinos e VDOT",
+          description: "Cria planos de corrida baseados em VDOT, gere a biblioteca de treinos estruturados e atribui instâncias aos atletas."
+        },
         operacoes: {
           eyebrow: "Operações Semanais",
           title: "Importação e ciclo de check-ins",
@@ -3553,7 +3891,7 @@
       if (panelHeader) panelHeader.hidden = false;
 
       // Grouped operational tabs use full width (hide sidebar)
-      document.querySelector(".layout").classList.toggle("full-width-mode", tabName === "forca" || tabName === "planeamento" || tabName === "dashboard");
+      document.querySelector(".layout").classList.toggle("full-width-mode", tabName === "forca" || tabName === "corrida" || tabName === "planeamento" || tabName === "dashboard");
 
       // Load data when switching to grouped Força tab
       if (tabName === "forca") {
@@ -3566,6 +3904,7 @@
       if (tabName === "planeamento") {
         refreshCoachAssignmentsTab().catch((err) => showResult(err.message, true));
         initScheduleTab().catch((err) => showResult(err.message, true));
+        initVariantsTab().catch((err) => showResult(err.message, true));
       }
 
       if (tabName === "dashboard") {
@@ -3574,6 +3913,11 @@
 
       if (tabName === "zonas" && selectedAthleteId) {
         loadTrainingZonesForAthlete(selectedAthleteId);
+      }
+
+      if (tabName === "corrida") {
+        loadRunPlanTemplates().catch((err) => showResult(err.message, true));
+        loadRunWorkoutTemplates().catch((err) => showResult(err.message, true));
       }
     }
 
@@ -9216,8 +9560,8 @@
             if (selectedPresetId && result.assignment && result.assignment.id) {
               try {
                 await apiRequest("POST", "/.netlify/functions/athlete-weekly-plan", {
-                  assignmentId: result.assignment.id,
-                  presetId: selectedPresetId
+                  assignment_id: result.assignment.id,
+                  preset_id: selectedPresetId
                 });
                 msg += " Calendário gerado com preset selecionado.";
               } catch (calErr) {
@@ -9460,7 +9804,7 @@
       await loadInlineCalendarView();
     }
 
-    async function ensureStrengthSession(planId, dayNumber, plan, dayAlias) {
+    async function ensureStrengthSession(planId, dayNumber, plan, dayAlias, isOptional) {
       // Match by deterministic key prefix (plan slice + day)
       const keyPrefix = `str_${String(planId).slice(0, 8)}_d${dayNumber}`;
       const existing = schedSessions.find((s) =>
@@ -9472,7 +9816,7 @@
         : `${plan ? plan.name : "Plano"} — Dia ${dayNumber}`;
 
       if (existing) {
-        if (existing.session_label !== label) {
+        if (existing.session_label !== label || existing.is_optional !== (isOptional === true)) {
           try {
             await apiRequest("PUT", "/.netlify/functions/admin-program-sessions", {
               training_program_id: schedSelectedProgramId,
@@ -9484,10 +9828,11 @@
                 strength_plan_id: planId,
                 strength_day_number: dayNumber,
                 sort_priority: Number(existing.sort_priority || 0),
-                is_optional: existing.is_optional === true
+                is_optional: isOptional === true
               }]
             });
             existing.session_label = label;
+            existing.is_optional = isOptional === true;
           } catch (_) {
             // Non-blocking: keep existing label if rename fails.
           }
@@ -9506,7 +9851,7 @@
           strength_plan_id: planId,
           strength_day_number: dayNumber,
           sort_priority: schedSessions.length + 1,
-          is_optional: false
+          is_optional: isOptional === true
         }]
       });
 
@@ -9514,6 +9859,98 @@
       if (!created || !created.id) throw new Error("Falha ao criar sessão de força");
       schedSessions.push(created);
       return created.id;
+    }
+
+    function buildRunningSessionKeyPrefix(planTemplateId, sessionType, workoutTemplateId) {
+      const planSlice = String(planTemplateId || '').slice(0, 8);
+      const workoutSlice = workoutTemplateId ? String(workoutTemplateId).slice(0, 8) : '';
+      return workoutSlice
+        ? `run_${planSlice}_${workoutSlice}`
+        : `run_${planSlice}_${sessionType}`;
+    }
+
+    async function ensureRunningSession(planTemplateId, sessionType, sessionLabel, workoutTemplateId, isOptional) {
+      const normalizedLabel = getReadableRunningLabel(sessionType, sessionLabel);
+      const keyPrefix = buildRunningSessionKeyPrefix(planTemplateId, sessionType, workoutTemplateId);
+      const existing = schedSessions.find((s) =>
+        s.session_type === "running"
+        && s.session_key.startsWith(keyPrefix)
+        && s.running_plan_template_id === planTemplateId
+      );
+
+      if (existing) {
+        // Keep legacy rows compatible: if existing label is S1/S2 style, rename to readable session name.
+        const existingLabel = (existing.session_label || "").toString().trim();
+        if ((normalizedLabel && existingLabel !== normalizedLabel) || existing.is_optional !== (isOptional === true)) {
+          try {
+            await apiRequest("PUT", "/.netlify/functions/admin-program-sessions", {
+              training_program_id: schedSelectedProgramId,
+              sessions: [{
+                id: existing.id,
+                session_key: existing.session_key,
+                session_type: existing.session_type || "running",
+                session_label: normalizedLabel,
+                running_session_type: existing.running_session_type || sessionType || null,
+                running_plan_template_id: existing.running_plan_template_id || planTemplateId || null,
+                sort_priority: Number(existing.sort_priority || 0),
+                is_optional: isOptional === true
+              }]
+            });
+            existing.session_label = normalizedLabel;
+            existing.is_optional = isOptional === true;
+          } catch (_) {
+            // Non-blocking: keep existing label if rename fails.
+          }
+        }
+        return existing.id;
+      }
+
+      const key = keyPrefix + "_" + Date.now().toString(36).slice(-4);
+
+      const response = await apiRequest("PUT", "/.netlify/functions/admin-program-sessions", {
+        training_program_id: schedSelectedProgramId,
+        sessions: [{
+          session_key: key,
+          session_type: "running",
+          session_label: normalizedLabel,
+          running_session_type: sessionType,
+          running_plan_template_id: planTemplateId,
+          sort_priority: schedSessions.length + 1,
+          is_optional: isOptional === true
+        }]
+      });
+
+      const created = response && Array.isArray(response.sessions) ? response.sessions[0] : null;
+      if (!created || !created.id) throw new Error("Falha ao criar sessão de corrida");
+      schedSessions.push(created);
+      return created.id;
+    }
+
+    function getReadableRunningLabel(sessionType, rawLabel) {
+      const fallback = runSessionTypeLabel(sessionType || "running");
+      const text = (rawLabel || "").toString().trim();
+      if (!text) return fallback;
+      // Normalize template shorthand labels (S1, S2, S3...) to readable names.
+      if (/^s\d+$/i.test(text)) return fallback;
+      return text;
+    }
+
+    function getRunningQuickSummary({ sessionType, durationEstimateMin, weeklyVolumePct } = {}) {
+      const parts = [];
+      const typeLabel = runSessionTypeLabel(sessionType || "running");
+      if (typeLabel) parts.push(typeLabel);
+
+      const minutes = Number(durationEstimateMin);
+      if (Number.isFinite(minutes) && minutes > 0) {
+        parts.push(`${Math.round(minutes)} min`);
+      }
+
+      const pct = Number(weeklyVolumePct);
+      if (Number.isFinite(pct) && pct > 0) {
+        parts.push(`${Math.round(pct * 10) / 10}% volume`);
+      }
+
+      return parts.join(" · ");
     }
 
     async function savePresetSlots(preset, slots) {
@@ -9628,12 +10065,14 @@
           return;
         }
 
-        const [plansData, sessionsData] = await Promise.all([
+        const [plansData, sessionsData, runPlansData] = await Promise.all([
           apiRequest("GET", `/.netlify/functions/strength-plan?trainingProgramId=${schedSelectedProgramId}`),
-          apiRequest("GET", `/.netlify/functions/admin-program-sessions?trainingProgramId=${schedSelectedProgramId}`)
+          apiRequest("GET", `/.netlify/functions/admin-program-sessions?trainingProgramId=${schedSelectedProgramId}`),
+          apiRequest("GET", `/.netlify/functions/running-plan?trainingProgramId=${schedSelectedProgramId}`)
         ]);
 
         const plans = plansData && Array.isArray(plansData.plans) ? plansData.plans : [];
+        const runningPlanTemplates = runPlansData && Array.isArray(runPlansData.templates) ? runPlansData.templates : [];
         const selectedProgram = (schedPrograms || []).find((p) => p.id === schedSelectedProgramId) || null;
         const selectedProgramDuration = Number(selectedProgram && (selectedProgram.durationWeeks != null
           ? selectedProgram.durationWeeks
@@ -9644,27 +10083,112 @@
         schedSessions = sessionsData.sessions || [];
         const currentSlots = schedCurrentPreset.slots || [];
 
-        if (!plans.length) {
-          schedInlineCalendarView.innerHTML = '<p style="color:#8b949e; font-size:0.85rem;">Sem planos de força associados a este programa.</p>';
+        // Load running plan session details for drag chips (grouped by template)
+        const runningTemplateCatalog = await Promise.all(
+          runningPlanTemplates.map(async (rpt) => {
+            try {
+              const rptData = await apiRequest("GET", `/.netlify/functions/running-plan?id=${rpt.id}`);
+              const rptSessions = Array.isArray(rptData && rptData.sessions) ? rptData.sessions : [];
+
+              // Group by workout/session identity to avoid repeated chips across weeks.
+              const seen = new Map();
+              const sessions = [];
+              for (const rs of rptSessions) {
+                const dedupeKey = rs.workout_template_id || `${rs.session_type || "other"}::${rs.session_key || ""}`;
+                const weekNumber = Number(rs.week_number) || null;
+                if (seen.has(dedupeKey)) {
+                  const existingChip = seen.get(dedupeKey);
+                  if (existingChip && Number.isInteger(weekNumber) && !existingChip.weeks.includes(weekNumber)) {
+                    existingChip.weeks.push(weekNumber);
+                    existingChip.weeks.sort((a, b) => a - b);
+                  }
+                  continue;
+                }
+                const readableLabel = getReadableRunningLabel(rs.session_type, rs.session_label || rs.session_key);
+                const chip = {
+                  planTemplateId: rpt.id,
+                  planTemplateName: rpt.name,
+                  weekNumber,
+                  weeks: Number.isInteger(weekNumber) ? [weekNumber] : [],
+                  sessionType: rs.session_type,
+                  sessionLabel: readableLabel,
+                  workoutTemplateId: rs.workout_template_id || null,
+                  weeklyVolumePct: Number(rs?.progression_rule?.weekly_volume_pct),
+                };
+                sessions.push(chip);
+                seen.set(dedupeKey, chip);
+              }
+
+              return {
+                id: rpt.id,
+                name: rpt.name || `Plano ${String(rpt.id || "").slice(0, 8)}`,
+                status: rpt.status || 'draft',
+                totalWeeks: Number(rpt.total_weeks) || 0,
+                trainingProgramId: rpt.training_program_id || null,
+                trainingProgramName: selectedProgram && selectedProgram.name ? selectedProgram.name : 'Programa',
+                sessions,
+              };
+            } catch (_) {
+              return null;
+            }
+          })
+        );
+
+        const runningTemplatesForDrag = (runningTemplateCatalog || [])
+          .filter((tpl) => !!tpl && Array.isArray(tpl.sessions) && tpl.sessions.length > 0);
+
+        if (!plans.length && !runningTemplatesForDrag.length) {
+          schedInlineCalendarView.innerHTML = '<p style="color:#8b949e; font-size:0.85rem;">Sem planos de força ou corrida associados a este programa.</p>';
           return;
         }
 
         await Promise.all(plans.map((plan) => loadPlanDetail(plan.id)));
 
         const optionsHtml = plans.map((pl) => `<option value="${pl.id}">${escapeHtml(pl.name || pl.id)}</option>`).join("");
-        schedInlineCalendarView.innerHTML = `
-          <div style="display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap;">
-            <div style="min-width:220px; max-width:280px; flex:0 0 auto;">
+        const strengthSectionHtml = plans.length ? `
               <div style="margin-bottom:10px;">
                 <label style="display:block; font-size:0.8rem; color:#8b949e; margin-bottom:4px;">Plano de força:</label>
                 <select id="sched-inline-plan-select" style="padding:6px 10px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9; width:100%;">
                   ${optionsHtml}
                 </select>
               </div>
+              <label style="display:flex; align-items:center; gap:6px; margin-bottom:8px; color:#8b949e; font-size:0.78rem; cursor:pointer;">
+                <input id="sched-inline-strength-optional" type="checkbox" />
+                Criar sessões de força como opcionais
+              </label>
               <div id="sched-inline-plan-meta" style="font-size:0.72rem; color:#8b949e; margin-bottom:8px;"></div>
-              <div style="font-size:0.72rem; color:#8b949e; margin-bottom:8px;">Duração do calendário: ${calendarWeeks} semana(s) do programa.</div>
-              <div style="font-size:0.75rem; color:#8b949e; margin-bottom:8px;">Arrasta um dia para o calendário:</div>
-              <div id="sched-drag-chips" style="display:grid; gap:6px;"></div>
+              <div style="font-size:0.75rem; color:#8b949e; margin-bottom:8px;">Arrasta um dia de força:</div>
+              <div id="sched-drag-chips" style="display:grid; gap:6px;"></div>` : '';
+
+          const runningSectionHtml = runningTemplatesForDrag.length ? `
+              <div style="margin-top:14px; padding-top:10px; border-top:1px solid #30363d;">
+                <label style="display:block; font-size:0.8rem; color:#8b949e; margin-bottom:4px;">Filtros corrida:</label>
+                <select id="sched-running-program-filter" style="padding:6px 10px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9; width:100%; margin-bottom:6px;"></select>
+                <select id="sched-running-status-filter" style="padding:6px 10px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9; width:100%; margin-bottom:6px;">
+                  <option value="">Todos estados</option>
+                  <option value="draft">Draft</option>
+                  <option value="active">Active</option>
+                  <option value="archived">Archived</option>
+                </select>
+                <select id="sched-running-duration-filter" style="padding:6px 10px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9; width:100%; margin-bottom:6px;"></select>
+                <input id="sched-running-search-filter" type="search" placeholder="Pesquisar plano..." style="padding:6px 10px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9; width:100%; margin-bottom:6px;" />
+                <label style="display:flex; align-items:center; gap:6px; margin-bottom:8px; color:#8b949e; font-size:0.78rem; cursor:pointer;">
+                  <input id="sched-inline-running-optional" type="checkbox" />
+                  Criar sessões de corrida como opcionais
+                </label>
+                <label style="display:block; font-size:0.8rem; color:#8b949e; margin:8px 0 4px;">Plano de corrida:</label>
+                <select id="sched-inline-running-plan-select" style="padding:6px 10px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9; width:100%; margin-bottom:6px;"></select>
+                <div id="sched-running-plan-meta" style="font-size:0.72rem; color:#8b949e; margin-bottom:8px;"></div>
+                <div style="font-size:0.75rem; color:#8b949e; margin-bottom:8px;">Arrasta uma sessão de corrida:</div>
+                <div id="sched-running-chips" style="display:grid; gap:6px;"></div>
+              </div>` : '';
+
+        schedInlineCalendarView.innerHTML = `
+          <div style="display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap;">
+            <div style="min-width:220px; max-width:280px; flex:0 0 auto;">
+              ${strengthSectionHtml}
+              ${runningSectionHtml}
+              <div style="font-size:0.72rem; color:#8b949e; margin-top:8px;">Duração do calendário: ${calendarWeeks} semana(s) do programa.</div>
             </div>
             <div style="flex:1; min-width:0; overflow-x:auto;">
               <div id="sched-inline-plan-grid"></div>
@@ -9673,16 +10197,221 @@
         `;
 
         const planSelect = document.getElementById("sched-inline-plan-select");
-  const planMeta = document.getElementById("sched-inline-plan-meta");
+        const planMeta = document.getElementById("sched-inline-plan-meta");
         const chipContainer = document.getElementById("sched-drag-chips");
         const gridContainer = document.getElementById("sched-inline-plan-grid");
+        const runningPlanSelect = document.getElementById("sched-inline-running-plan-select");
+        const runningPlanMeta = document.getElementById("sched-running-plan-meta");
+        const runChipContainer = document.getElementById("sched-running-chips");
+        const runningProgramFilter = document.getElementById("sched-running-program-filter");
+        const runningStatusFilter = document.getElementById("sched-running-status-filter");
+        const runningDurationFilter = document.getElementById("sched-running-duration-filter");
+        const runningSearchFilter = document.getElementById("sched-running-search-filter");
+        const strengthOptionalToggle = document.getElementById("sched-inline-strength-optional");
+        const runningOptionalToggle = document.getElementById("sched-inline-running-optional");
 
         let localSlots = currentSlots.map((s) => ({ ...s }));
         let currentDayMap = {};
         let currentDayLabelMap = {};
+        const runningCalendarFilters = {
+          programId: selectedProgram && selectedProgram.id ? selectedProgram.id : '',
+          status: '',
+          durationWeeks: '',
+          search: '',
+        };
+
+        function getFilteredRunningTemplates() {
+          const statusFilter = runningCalendarFilters.status;
+          const durationFilter = Number(runningCalendarFilters.durationWeeks);
+          const searchFilter = String(runningCalendarFilters.search || '').trim().toLowerCase();
+          const programFilter = runningCalendarFilters.programId;
+          return runningTemplatesForDrag.filter((tpl) => {
+            if (programFilter && tpl.trainingProgramId !== programFilter) return false;
+            if (statusFilter && String(tpl.status || '') !== statusFilter) return false;
+            if (Number.isFinite(durationFilter) && durationFilter > 0 && Number(tpl.totalWeeks) !== durationFilter) return false;
+            if (searchFilter && !String(tpl.name || '').toLowerCase().includes(searchFilter)) return false;
+            return true;
+          });
+        }
+
+        function renderRunningProgramFilterOptions() {
+          if (!runningProgramFilter) return;
+          const values = [];
+          const seen = new Set();
+          runningTemplatesForDrag.forEach((tpl) => {
+            const key = String(tpl.trainingProgramId || '');
+            if (!key || seen.has(key)) return;
+            seen.add(key);
+            values.push({ id: key, label: tpl.trainingProgramName || 'Programa' });
+          });
+          runningProgramFilter.innerHTML = '<option value="">Todos programas</option>';
+          values.forEach((item) => {
+            const opt = document.createElement('option');
+            opt.value = item.id;
+            opt.textContent = item.label;
+            runningProgramFilter.appendChild(opt);
+          });
+          const hasCurrent = values.some((item) => item.id === runningCalendarFilters.programId);
+          runningProgramFilter.value = hasCurrent ? runningCalendarFilters.programId : '';
+          runningCalendarFilters.programId = runningProgramFilter.value;
+        }
+
+        function renderRunningDurationFilterOptions() {
+          if (!runningDurationFilter) return;
+          const values = [...new Set(runningTemplatesForDrag
+            .map((tpl) => Number(tpl.totalWeeks))
+            .filter((v) => Number.isFinite(v) && v > 0)
+          )].sort((a, b) => a - b);
+          runningDurationFilter.innerHTML = '<option value="">Todas durações</option>';
+          values.forEach((weeks) => {
+            const opt = document.createElement('option');
+            opt.value = String(weeks);
+            opt.textContent = `${weeks} semanas`;
+            runningDurationFilter.appendChild(opt);
+          });
+          const current = Number(runningCalendarFilters.durationWeeks);
+          runningDurationFilter.value = values.includes(current) ? String(current) : '';
+          runningCalendarFilters.durationWeeks = runningDurationFilter.value;
+        }
+
+        function renderRunningPlanSelectOptions() {
+          if (!runningPlanSelect) return;
+          const filtered = getFilteredRunningTemplates();
+          const previous = runningPlanSelect.value;
+          runningPlanSelect.innerHTML = filtered.map((tpl) => `<option value="${tpl.id}">${escapeHtml(tpl.name)}</option>`).join('');
+          if (!filtered.length) {
+            runningPlanSelect.innerHTML = '<option value="">Sem planos</option>';
+            runningPlanSelect.value = '';
+            return;
+          }
+          const hasPrevious = filtered.some((tpl) => tpl.id === previous);
+          runningPlanSelect.value = hasPrevious ? previous : filtered[0].id;
+        }
+
+        function applyRunningCalendarFilters() {
+          renderRunningPlanSelectOptions();
+          renderRunningPlanMeta();
+          renderRunningDragChips();
+        }
 
         function getSelectedPlan() {
-          return plans.find((pl) => pl.id === planSelect.value) || plans[0];
+          if (!planSelect) return plans[0] || null;
+          return plans.find((pl) => pl.id === planSelect.value) || plans[0] || null;
+        }
+
+        function getSelectedRunningTemplate() {
+          const filtered = getFilteredRunningTemplates();
+          if (!filtered.length) return null;
+          if (!runningPlanSelect) return filtered[0] || null;
+          return filtered.find((tpl) => tpl.id === runningPlanSelect.value) || filtered[0] || null;
+        }
+
+        function getSlotSession(slot) {
+          if (!slot) return null;
+          return schedSessions.find((session) => session.id === slot.session_id) || null;
+        }
+
+        function getStrengthEligibleWeeks(plan, dayNumber, startWeek) {
+          if (!plan || !dayNumber) return [];
+          const totalPlanWeeks = Math.min(calendarWeeks, getPlanDurationWeeks(plan));
+          const detail = _schedPlanDetailCache[plan.id] || null;
+          const weekMap = detail && detail.daySetMap ? detail.daySetMap[dayNumber] || {} : {};
+          const knownWeeks = Object.keys(weekMap).map(Number).filter((week) => Number.isInteger(week) && week > startWeek && week <= totalPlanWeeks);
+          if (knownWeeks.length) {
+            return knownWeeks.sort((a, b) => a - b);
+          }
+
+          const hasStructuredDay = !!(detail && detail.dayMap && Array.isArray(detail.dayMap[dayNumber]) && detail.dayMap[dayNumber].length);
+          if (!hasStructuredDay) return [];
+
+          const fallbackWeeks = [];
+          for (let week = startWeek + 1; week <= totalPlanWeeks; week += 1) {
+            fallbackWeeks.push(week);
+          }
+          return fallbackWeeks;
+        }
+
+        function getRunningEligibleWeeks(planTemplateId, workoutTemplateId, startWeek) {
+          if (!planTemplateId || !workoutTemplateId) return [];
+          const template = runningTemplatesForDrag.find((tpl) => tpl.id === planTemplateId);
+          if (!template || !Array.isArray(template.sessions)) return [];
+          const weeks = new Set();
+          template.sessions.forEach((session) => {
+            if (session.workoutTemplateId !== workoutTemplateId) return;
+            const sourceWeeks = Array.isArray(session.weeks) && session.weeks.length
+              ? session.weeks
+              : [session.weekNumber];
+            sourceWeeks.forEach((sourceWeek) => {
+              const week = Number(sourceWeek);
+              if (!Number.isInteger(week) || week <= startWeek || week > calendarWeeks) return;
+              weeks.add(week);
+            });
+          });
+          return Array.from(weeks).sort((a, b) => a - b);
+        }
+
+        function getSkippedWeeks(startWeek, eligibleWeeks) {
+          if (!eligibleWeeks.length) return [];
+          const lastWeek = Math.max(...eligibleWeeks);
+          const eligibleSet = new Set(eligibleWeeks);
+          const skipped = [];
+          for (let week = startWeek + 1; week <= lastWeek; week += 1) {
+            if (!eligibleSet.has(week)) skipped.push(week);
+          }
+          return skipped;
+        }
+
+        function isSameStrengthCellTarget(session, planId, dayNumber) {
+          if (!session) return false;
+          return session.session_type === 'strength'
+            && session.strength_plan_id === planId
+            && Number(session.strength_day_number) === Number(dayNumber);
+        }
+
+        function isSameRunningCellTarget(session, planTemplateId, sessionType, workoutTemplateId) {
+          if (!session || session.session_type !== 'running') return false;
+          if (session.running_plan_template_id !== planTemplateId) return false;
+          const keyPrefix = buildRunningSessionKeyPrefix(planTemplateId, sessionType, workoutTemplateId);
+          return String(session.session_key || '').startsWith(keyPrefix);
+        }
+
+        function collectConflictWeeks(dayIdx, weeksToApply, isSameTarget) {
+          return weeksToApply
+            .map((week) => {
+              const existingSlot = localSlots.find((slot) => slot.day_of_week === dayIdx && Number(slot.week_number || 0) === week);
+              const existingSession = getSlotSession(existingSlot);
+              if (!existingSlot || !existingSession || isSameTarget(existingSession)) return null;
+              return {
+                week,
+                existingLabel: existingSession.session_label || existingSession.session_key || 'Sessão',
+              };
+            })
+            .filter(Boolean);
+        }
+
+        function formatWeekList(weeks) {
+          return weeks.map((week) => `W${week}`).join(', ');
+        }
+
+        function buildDropConfirmationMessage(label, appliedWeeks, eligibleWeeks, skippedWeeks, conflictWeeks) {
+          const lines = [`Aplicar "${label}" ao calendário?`, ''];
+          lines.push(`Semanas a aplicar: ${formatWeekList(appliedWeeks)}`);
+          if (eligibleWeeks.length) {
+            lines.push(`Repetição automática por match: ${formatWeekList(eligibleWeeks)}`);
+          } else {
+            lines.push('Sem match futuro: aplica apenas nesta semana.');
+          }
+          if (skippedWeeks.length) {
+            lines.push(`Sem match e ignoradas: ${formatWeekList(skippedWeeks)}`);
+          }
+          if (conflictWeeks.length) {
+            lines.push('');
+            lines.push('Conflitos a substituir:');
+            conflictWeeks.forEach((entry) => {
+              lines.push(`- W${entry.week}: ${entry.existingLabel}`);
+            });
+          }
+          return lines.join('\n');
         }
 
         function renderPlanMeta() {
@@ -9690,6 +10419,54 @@
           if (!planMeta || !plan) return;
           const planWeeks = getPlanDurationWeeks(plan);
           planMeta.textContent = `Plano selecionado: ${planWeeks} semana(s). O drag pode preencher no máximo esse bloco dentro das ${calendarWeeks} semanas do programa.`;
+        }
+
+        function renderRunningPlanMeta() {
+          if (!runningPlanMeta) return;
+          const tpl = getSelectedRunningTemplate();
+          if (!tpl) {
+            runningPlanMeta.textContent = "";
+            return;
+          }
+          runningPlanMeta.textContent = `Plano selecionado: ${tpl.sessions.length} sessão(ões) arrastáveis.`;
+        }
+
+        function renderRunningDragChips() {
+          if (!runChipContainer) return;
+          const tpl = getSelectedRunningTemplate();
+          const chips = tpl && Array.isArray(tpl.sessions) ? tpl.sessions : [];
+
+          if (!chips.length) {
+            runChipContainer.innerHTML = '<p style="color:#8b949e; font-size:0.75rem;">Sem sessões de corrida disponíveis neste plano.</p>';
+            return;
+          }
+
+          runChipContainer.innerHTML = chips.map((chip, idx) => {
+            const quickSummary = getRunningQuickSummary({
+              sessionType: chip.sessionType,
+              weeklyVolumePct: chip.weeklyVolumePct,
+            });
+            return '<div draggable="true" data-running-chip="' + idx + '" style="padding:8px 10px; background:#2d4a22; border:1px solid #30363d; border-radius:6px; color:#c9d1d9; cursor:grab; user-select:none;">'
+              + '<div style="font-size:0.8rem; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' + escapeHtml(chip.sessionLabel) + '</div>'
+              + '<div style="font-size:0.65rem; color:#8b949e; margin-top:2px;">' + escapeHtml(quickSummary || (chip.sessionType || "running")) + '</div>'
+              + '</div>';
+          }).join("");
+
+          runChipContainer.querySelectorAll("[data-running-chip]").forEach((el) => {
+            const chipIdx = Number(el.dataset.runningChip);
+            const chip = chips[chipIdx];
+            if (!chip) return;
+            el.addEventListener("dragstart", (ev) => {
+              ev.dataTransfer.setData("text/plain", JSON.stringify({
+                type: "running-session",
+                planTemplateId: chip.planTemplateId,
+                sessionType: chip.sessionType,
+                sessionLabel: chip.sessionLabel,
+                workoutTemplateId: chip.workoutTemplateId,
+              }));
+              ev.dataTransfer.effectAllowed = "copy";
+            });
+          });
         }
 
         function getDayAlias(dayNumber) {
@@ -9764,16 +10541,128 @@
           const setCount = detail && detail.daySetMap && detail.daySetMap[dayNum]
             ? Number(detail.daySetMap[dayNum][weekNumber] || 0)
             : 0;
-          const summary = names.length > 0
-            ? names.slice(0, 2).map((n) => escapeHtml(n)).join(", ") + (names.length > 2 ? "…" : "")
-            : "";
+
+          let summary = "";
+          let fullNames = "";
+          if (sess.session_type === "strength") {
+            summary = names.length > 0
+              ? names.slice(0, 2).map((n) => escapeHtml(n)).join(", ") + (names.length > 2 ? "…" : "")
+              : "";
+            fullNames = names.map((n) => escapeHtml(n)).join(", ");
+          }
+
+          if (sess.session_type === "running") {
+            summary = getRunningQuickSummary({
+              sessionType: sess.running_session_type || sess.session_type,
+              durationEstimateMin: sess.duration_estimate_min,
+            });
+            fullNames = summary;
+          }
+
+          const readableSessionLabel = sess.session_type === "running"
+            ? getReadableRunningLabel(sess.running_session_type || sess.session_type, sess.session_label)
+            : sess.session_label;
           return {
-            label: sess.session_label,
+            label: readableSessionLabel || sess.session_key || "Sessão",
             names: summary,
             setsText: setCount > 0 ? `${setCount} séries` : "",
             bg,
-            fullNames: names.map((n) => escapeHtml(n)).join(", ")
+            fullNames,
+            isRunning: sess.session_type === 'running',
+            runningTemplateId: sess.running_plan_template_id || null,
+            runningSessionType: sess.running_session_type || sess.session_type || null,
           };
+        }
+
+        function setExclusiveSlot(dayIdx, weekNum, sessionId) {
+          const normalizedWeek = Number(weekNum) || 1;
+          // Enforce one slot per (week, day): replacing any existing entries in that cell.
+          localSlots = localSlots.filter((slot) => {
+            return !(slot.day_of_week === dayIdx && Number(slot.week_number || 0) === normalizedWeek);
+          });
+          localSlots.push({ day_of_week: dayIdx, week_number: normalizedWeek, session_id: sessionId, time_slot: 1, sort_order: 0 });
+        }
+
+        async function openRunningStepsEditorFromCalendar(sessionId, weekNumber) {
+          const sess = schedSessions.find((ss) => ss.id === sessionId);
+          if (!sess || sess.session_type !== 'running') {
+            showResult('Sessão de corrida não encontrada.', true);
+            return;
+          }
+
+          const planTemplateId = sess.running_plan_template_id;
+          if (!planTemplateId) {
+            showResult('Esta sessão não está ligada a um plano de corrida.', true);
+            return;
+          }
+
+          try {
+            setCoachTab('corrida');
+            await loadRunWorkoutTemplates();
+            await loadRunPlan(planTemplateId);
+            runSelectedWeek = Number(weekNumber) || runSelectedWeek;
+
+            const templateData = await apiRequest('GET', `/.netlify/functions/running-plan?id=${planTemplateId}`);
+            const templateSessions = Array.isArray(templateData && templateData.sessions) ? templateData.sessions : [];
+            const readableLabel = getReadableRunningLabel(
+              sess.running_session_type || sess.session_type,
+              sess.session_label
+            );
+
+            // Try strict match by week + type/label first, then relax to template-wide candidates.
+            let candidates = templateSessions.filter((ts) => {
+              const sameWeek = Number(ts.week_number) === Number(weekNumber);
+              const sameType = String(ts.session_type || '') === String(sess.running_session_type || sess.session_type || '');
+              const sameLabel = getReadableRunningLabel(ts.session_type, ts.session_label) === readableLabel;
+              return sameWeek && (sameType || sameLabel) && !!ts.workout_template_id;
+            });
+
+            if (!candidates.length) {
+              candidates = templateSessions.filter((ts) => {
+                const sameType = String(ts.session_type || '') === String(sess.running_session_type || sess.session_type || '');
+                const sameLabel = getReadableRunningLabel(ts.session_type, ts.session_label) === readableLabel;
+                return (sameType || sameLabel) && !!ts.workout_template_id;
+              });
+            }
+
+            // Deduplicate by workout template
+            const byWorkout = new Map();
+            candidates.forEach((row) => {
+              if (!row.workout_template_id) return;
+              if (!byWorkout.has(row.workout_template_id)) byWorkout.set(row.workout_template_id, row);
+            });
+            const uniqueCandidates = Array.from(byWorkout.values());
+
+            if (!uniqueCandidates.length) {
+              showResult('Não encontrei workout template associado para esta sessão.', true);
+              return;
+            }
+
+            let selectedWorkoutTemplateId = uniqueCandidates[0].workout_template_id;
+            if (uniqueCandidates.length > 1) {
+              const picker = await openRunFormModal({
+                title: 'Escolher treino para editar steps',
+                fields: [{
+                  name: 'workout_template_id',
+                  label: 'Treino',
+                  type: 'select',
+                  required: true,
+                  value: String(selectedWorkoutTemplateId),
+                  options: uniqueCandidates.map((row) => ({
+                    value: row.workout_template_id,
+                    label: `W${row.week_number} · ${getReadableRunningLabel(row.session_type, row.session_label)} · ${runSessionTypeLabel(row.session_type)}`,
+                  })),
+                }],
+                confirmText: 'Editar Steps',
+              });
+              if (!picker) return;
+              selectedWorkoutTemplateId = picker.workout_template_id;
+            }
+
+            await editRunWorkout(selectedWorkoutTemplateId);
+          } catch (err) {
+            showResult('Erro ao abrir editor de steps: ' + (err.message || 'erro'), true);
+          }
         }
 
         function renderCalendarGrid() {
@@ -9791,9 +10680,12 @@
               const slotHtml = cellSlots.map((s) => {
                 const info = getDaySummary(s.session_id, week);
                 const tooltip = info.fullNames || escapeHtml(info.label);
-                return '<div style="background:' + info.bg + '; border-radius:4px; padding:4px 6px; font-size:0.65rem; color:#c9d1d9; margin-bottom:2px; overflow:hidden;" title="' + tooltip + '">'
+                return '<div draggable="true" data-move-session="' + s.session_id + '" data-move-day="' + dayIdx + '" data-move-week="' + week + '" style="background:' + info.bg + '; border-radius:4px; padding:4px 6px; font-size:0.65rem; color:#c9d1d9; margin-bottom:2px; overflow:hidden; cursor:grab;" title="' + tooltip + '">'
                   + '<div style="display:flex; align-items:center; gap:3px;">'
                   + '<span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:600;">' + escapeHtml(info.label) + '</span>'
+                  + (info.isRunning
+                    ? '<button data-edit-running-session="' + s.session_id + '" data-edit-running-week="' + week + '" style="cursor:pointer; color:#58a6ff; background:transparent; border:0; font-size:0.7rem; padding:0 2px;" title="Editar steps">✎</button>'
+                    : '')
                   + '<span data-remove-slot="' + s.session_id + '" data-remove-day="' + dayIdx + '" data-remove-week="' + week + '" style="cursor:pointer; color:#f85149; font-size:0.7rem; flex-shrink:0;" title="Remover">&times;</span>'
                   + '</div>'
                   + (info.setsText ? '<div style="font-size:0.6rem; color:#d2a85a; margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">' + escapeHtml(info.setsText) + '</div>' : '')
@@ -9816,7 +10708,6 @@
           gridContainer.querySelectorAll(".sched-drop-cell").forEach((zone) => {
             zone.addEventListener("dragover", (ev) => {
               ev.preventDefault();
-              ev.dataTransfer.dropEffect = "copy";
               zone.style.borderColor = "#58a6ff";
             });
             zone.addEventListener("dragleave", () => {
@@ -9829,32 +10720,86 @@
               if (!raw) return;
               try {
                 const payload = JSON.parse(raw);
-                if (payload.type !== "strength-day") return;
                 const dayIdx = Number(zone.dataset.day);
                 const weekNum = Number(zone.dataset.week);
-                const plan = plans.find((p) => p.id === payload.planId);
 
-                const planWeeks = getPlanDurationWeeks(plan);
-                const endWeek = Math.min(calendarWeeks, weekNum + planWeeks - 1);
-                let weeksToFill = [weekNum];
-                if (endWeek > weekNum) {
-                  const fillAll = confirm(
-                    "Aplicar Dia " + payload.day
-                    + " neste dia da semana para as semanas " + weekNum + "–" + endWeek
-                    + " (" + (endWeek - weekNum + 1) + " semanas do plano)?"
+                if (payload.type === "move-session") {
+                  const srcDay = Number(payload.srcDay);
+                  const srcWeek = Number(payload.srcWeek);
+                  const sessionId = payload.sessionId;
+                  // Skip if dropping on same cell
+                  if (srcDay === dayIdx && srcWeek === weekNum) return;
+                  // Remove from source cell
+                  localSlots = localSlots.filter((slot) => {
+                    return !(slot.day_of_week === srcDay && Number(slot.week_number || 0) === srcWeek && slot.session_id === sessionId);
+                  });
+                  // Place in target cell (exclusive)
+                  setExclusiveSlot(dayIdx, weekNum, sessionId);
+                  await savePresetSlots(schedCurrentPreset, localSlots);
+                  renderCalendarGrid();
+                  return;
+                } else if (payload.type === "strength-day") {
+                  const plan = plans.find((p) => p.id === payload.planId);
+                  const eligibleWeeks = getStrengthEligibleWeeks(plan, payload.day, weekNum);
+                  const weeksToFill = [weekNum, ...eligibleWeeks];
+                  const skippedWeeks = getSkippedWeeks(weekNum, eligibleWeeks);
+                  const conflictWeeks = collectConflictWeeks(
+                    dayIdx,
+                    weeksToFill,
+                    (session) => isSameStrengthCellTarget(session, payload.planId, payload.day)
                   );
-                  if (fillAll) {
-                    weeksToFill = Array.from({ length: endWeek - weekNum + 1 }, (_, i) => weekNum + i);
+                  if (eligibleWeeks.length || conflictWeeks.length) {
+                    const shouldApply = confirm(buildDropConfirmationMessage(
+                      getDayAlias(payload.day) || `Dia ${payload.day}`,
+                      weeksToFill,
+                      eligibleWeeks,
+                      skippedWeeks,
+                      conflictWeeks
+                    ));
+                    if (!shouldApply) return;
                   }
-                }
-
-                const dayAlias = getDayAlias(payload.day);
-                const sessionId = await ensureStrengthSession(payload.planId, payload.day, plan, dayAlias);
-                for (const w of weeksToFill) {
-                  const alreadyExists = localSlots.some((s) => s.day_of_week === dayIdx && Number(s.week_number || 0) === w && s.session_id === sessionId);
-                  if (!alreadyExists) {
-                    localSlots.push({ day_of_week: dayIdx, week_number: w, session_id: sessionId, time_slot: 1, sort_order: 0 });
+                  const dayAlias = getDayAlias(payload.day);
+                  const sessionId = await ensureStrengthSession(
+                    payload.planId,
+                    payload.day,
+                    plan,
+                    dayAlias,
+                    Boolean(strengthOptionalToggle && strengthOptionalToggle.checked)
+                  );
+                  for (const w of weeksToFill) {
+                    setExclusiveSlot(dayIdx, w, sessionId);
                   }
+                } else if (payload.type === "running-session") {
+                  const eligibleWeeks = getRunningEligibleWeeks(payload.planTemplateId, payload.workoutTemplateId, weekNum);
+                  const weeksToFill = [weekNum, ...eligibleWeeks];
+                  const skippedWeeks = getSkippedWeeks(weekNum, eligibleWeeks);
+                  const conflictWeeks = collectConflictWeeks(
+                    dayIdx,
+                    weeksToFill,
+                    (session) => isSameRunningCellTarget(session, payload.planTemplateId, payload.sessionType, payload.workoutTemplateId)
+                  );
+                  if (eligibleWeeks.length || conflictWeeks.length) {
+                    const shouldApply = confirm(buildDropConfirmationMessage(
+                      payload.sessionLabel,
+                      weeksToFill,
+                      eligibleWeeks,
+                      skippedWeeks,
+                      conflictWeeks
+                    ));
+                    if (!shouldApply) return;
+                  }
+                  const sessionId = await ensureRunningSession(
+                    payload.planTemplateId,
+                    payload.sessionType,
+                    payload.sessionLabel,
+                    payload.workoutTemplateId,
+                    Boolean(runningOptionalToggle && runningOptionalToggle.checked)
+                  );
+                  for (const w of weeksToFill) {
+                    setExclusiveSlot(dayIdx, w, sessionId);
+                  }
+                } else {
+                  return;
                 }
 
                 await savePresetSlots(schedCurrentPreset, localSlots);
@@ -9862,6 +10807,25 @@
               } catch (err) {
                 showResult("Erro ao colocar sessão: " + (err.message || "erro"), true);
               }
+            });
+          });
+
+          // Wire drag from calendar cells (move sessions)
+          gridContainer.querySelectorAll('[data-move-session]').forEach((card) => {
+            card.addEventListener('dragstart', (ev) => {
+              ev.stopPropagation();
+              const movePayload = JSON.stringify({
+                type: 'move-session',
+                sessionId: card.dataset.moveSession,
+                srcDay: Number(card.dataset.moveDay),
+                srcWeek: Number(card.dataset.moveWeek),
+              });
+              ev.dataTransfer.setData('text/plain', movePayload);
+              ev.dataTransfer.effectAllowed = 'move';
+              card.style.opacity = '0.4';
+            });
+            card.addEventListener('dragend', () => {
+              card.style.opacity = '1';
             });
           });
 
@@ -9879,16 +10843,67 @@
               renderCalendarGrid();
             });
           });
+
+          // Wire running step editor action directly from applied calendar slots
+          gridContainer.querySelectorAll('[data-edit-running-session]').forEach((btn) => {
+            btn.addEventListener('click', async (ev) => {
+              ev.stopPropagation();
+              const sessionId = btn.getAttribute('data-edit-running-session') || '';
+              const weekNum = Number(btn.getAttribute('data-edit-running-week') || 0);
+              if (!sessionId) return;
+              await openRunningStepsEditorFromCalendar(sessionId, weekNum || runSelectedWeek || 1);
+            });
+          });
         }
 
-        planSelect.addEventListener("change", async () => {
-          renderPlanMeta();
-          await renderDragChips();
-          renderCalendarGrid();
-        });
+        if (planSelect) {
+          planSelect.addEventListener("change", async () => {
+            renderPlanMeta();
+            await renderDragChips();
+            renderCalendarGrid();
+          });
+        }
+
+        if (runningPlanSelect) {
+          runningPlanSelect.addEventListener("change", () => {
+            renderRunningPlanMeta();
+            renderRunningDragChips();
+          });
+        }
+
+        if (runningProgramFilter) {
+          runningProgramFilter.addEventListener('change', (event) => {
+            runningCalendarFilters.programId = event.target.value || '';
+            applyRunningCalendarFilters();
+          });
+        }
+
+        if (runningStatusFilter) {
+          runningStatusFilter.addEventListener('change', (event) => {
+            runningCalendarFilters.status = event.target.value || '';
+            applyRunningCalendarFilters();
+          });
+        }
+
+        if (runningDurationFilter) {
+          runningDurationFilter.addEventListener('change', (event) => {
+            runningCalendarFilters.durationWeeks = event.target.value || '';
+            applyRunningCalendarFilters();
+          });
+        }
+
+        if (runningSearchFilter) {
+          runningSearchFilter.addEventListener('input', (event) => {
+            runningCalendarFilters.search = event.target.value || '';
+            applyRunningCalendarFilters();
+          });
+        }
 
         renderPlanMeta();
-        await renderDragChips();
+        if (plans.length) await renderDragChips();
+        renderRunningProgramFilterOptions();
+        renderRunningDurationFilterOptions();
+        applyRunningCalendarFilters();
         renderCalendarGrid();
       } catch (err) {
         schedInlineCalendarView.innerHTML = '<p style="color:#f85149; font-size:0.85rem;">Erro ao carregar vista calendário: ' + escapeHtml(err.message || "erro") + '</p>';
@@ -9912,8 +10927,13 @@
         triggerBtn.disabled = true;
         triggerBtn.textContent = "...";
 
-        const data = await apiRequest("GET", `/.netlify/functions/admin-program-schedule?trainingProgramId=${programId}&includeSlots=1`);
-        const presets = data.presets || [];
+        const [schedData, sessionsData] = await Promise.all([
+          apiRequest("GET", `/.netlify/functions/admin-program-schedule?trainingProgramId=${programId}&includeSlots=1`),
+          apiRequest("GET", `/.netlify/functions/admin-program-sessions?trainingProgramId=${programId}`)
+        ]);
+        const presets = schedData.presets || [];
+        const programSessions = sessionsData.sessions || [];
+        const hasRunningSessions = programSessions.some(s => s.session_type === "running" && s.running_plan_template_id);
 
         triggerBtn.disabled = false;
         triggerBtn.textContent = "Calendário";
@@ -9951,6 +10971,28 @@
               <label style="display:block; font-size:0.8rem; color:#8b949e; margin-bottom:4px;">A partir da semana:</label>
               <input id="cal-gen-from-week" type="number" min="1" value="1" style="width:80px; padding:6px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9;">
             </div>
+            ${hasRunningSessions ? `
+            <div style="margin-bottom:12px; padding:12px; border:1px solid #2d4a22; border-radius:8px; background:#0d1117;">
+              <div style="font-size:0.8rem; color:#3fb950; font-weight:600; margin-bottom:8px;">🏃 Volume de corrida</div>
+              <div style="margin-bottom:8px;">
+                <label style="display:block; font-size:0.75rem; color:#8b949e; margin-bottom:3px;">Volume semanal inicial (km):</label>
+                <input id="cal-gen-run-volume" type="number" min="5" max="300" step="0.5" value="30"
+                  style="width:100%; padding:6px; border-radius:6px; border:1px solid #30363d; background:#161b22; color:#c9d1d9;">
+              </div>
+              <div style="margin-bottom:8px;">
+                <label style="display:block; font-size:0.75rem; color:#8b949e; margin-bottom:3px;">Progressão semanal (%):</label>
+                <input id="cal-gen-run-progression" type="number" min="-5" max="20" step="0.5" value="5"
+                  style="width:100%; padding:6px; border-radius:6px; border:1px solid #30363d; background:#161b22; color:#c9d1d9;">
+              </div>
+              <div>
+                <label style="display:block; font-size:0.75rem; color:#8b949e; margin-bottom:3px;">Periodização:</label>
+                <select id="cal-gen-run-periodization" style="width:100%; padding:6px; border-radius:6px; border:1px solid #30363d; background:#161b22; color:#c9d1d9;">
+                  <option value="undulating">Ondulatória</option>
+                  <option value="linear">Linear</option>
+                  <option value="block">Blocos</option>
+                </select>
+              </div>
+            </div>` : ''}
             <div style="display:flex; gap:8px;">
               <button id="cal-gen-confirm-btn" class="btn btn-primary">Gerar</button>
               <button id="cal-gen-cancel-btn" class="btn btn-secondary">Cancelar</button>
@@ -9991,10 +11033,45 @@
             if (fw > 0) payload.from_week = fw;
           }
 
+          // Running volume config (only if fields exist)
+          const runVolInput = document.getElementById("cal-gen-run-volume");
+          if (runVolInput) {
+            const parsedInitialVol = parseFloat(runVolInput.value);
+            const parsedProgression = parseFloat(document.getElementById("cal-gen-run-progression").value);
+            const selectedPeriodization = String(document.getElementById("cal-gen-run-periodization").value || "").trim().toLowerCase();
+
+            if (!Number.isFinite(parsedInitialVol) || parsedInitialVol < 5 || parsedInitialVol > 300) {
+              showResult("Volume inicial inválido (5-300 km).", true);
+              confirmBtn.disabled = false;
+              confirmBtn.textContent = "Gerar";
+              return;
+            }
+            if (!Number.isFinite(parsedProgression) || parsedProgression < -5 || parsedProgression > 20) {
+              showResult("Progressão semanal inválida (-5 a 20%).", true);
+              confirmBtn.disabled = false;
+              confirmBtn.textContent = "Gerar";
+              return;
+            }
+            if (!["linear", "undulating", "block"].includes(selectedPeriodization)) {
+              showResult("Periodização inválida. Usa linear, undulating ou block.", true);
+              confirmBtn.disabled = false;
+              confirmBtn.textContent = "Gerar";
+              return;
+            }
+
+            payload.initial_weekly_volume_km = parsedInitialVol;
+            payload.weekly_progression_pct = parsedProgression;
+            payload.periodization_type = selectedPeriodization;
+          }
+
           try {
             const result = await apiRequest("POST", "/.netlify/functions/athlete-weekly-plan", payload);
             backdrop.remove();
-            showResult(`Calendário gerado: ${result.generated} sessões para ${result.totalWeeks} semanas (${result.presetName}).`, false);
+            let msg = `Calendário gerado: ${result.generated} sessões para ${result.totalWeeks} semanas (${result.presetName}).`;
+            if (result.runningInstancesCreated > 0) {
+              msg += ` ${result.runningInstancesCreated} plano(s) de corrida provisionado(s).`;
+            }
+            showResult(msg, false);
           } catch (err) {
             showResult("Erro ao gerar calendário: " + err.message, true);
             confirmBtn.disabled = false;
@@ -10005,6 +11082,2241 @@
         triggerBtn.disabled = false;
         triggerBtn.textContent = "Calendário";
         showResult("Erro: " + err.message, true);
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  CORRIDA — Running Plan Module
+    // ═══════════════════════════════════════════════════════════════
+
+    // ── State ─────────────────────────────────────────────────────
+    let runPlans = [];
+    let runCurrentPlan = null;       // { template, sessions }
+    let runWorkouts = [];            // workout template catalog
+    let runCurrentWorkout = null;    // workout template being edited (with steps)
+    let runSelectedWeek = 1;
+    let runAthleteVdot = null;       // current VDOT for selected athlete
+    let runStepSaveTimer = null;
+    let runStepSaveInFlight = false;
+    let runStepSaveQueued = false;
+    let runDragSessionId = null;
+    let runDraggedWorkoutId = null;
+    let runStepVolumeMode = 'automatic';
+    const runPlanFilters = {
+      status: '',
+      programId: '',
+      durationWeeks: '',
+      search: ''
+    };
+
+    const RUN_SESSION_TYPES = [
+      { value: 'easy',       label: 'Easy',       color: '#3fb950' },
+      { value: 'threshold',  label: 'Threshold',  color: '#d29922' },
+      { value: 'interval',   label: 'Interval',   color: '#f85149' },
+      { value: 'long',       label: 'Long Run',   color: '#58a6ff' },
+      { value: 'tempo',      label: 'Tempo',      color: '#bc8cff' },
+      { value: 'repetition', label: 'Repetition', color: '#ff7b72' },
+      { value: 'recovery',   label: 'Recovery',   color: '#8b949e' },
+      { value: 'test',       label: 'Test',       color: '#f0883e' },
+      { value: 'mobility',   label: 'Mobility',   color: '#56d364' },
+      { value: 'other',      label: 'Other',      color: '#484f58' }
+    ];
+
+    const RUN_STEP_TYPES = [
+      { value: 'warmup',   label: 'Aquecimento' },
+      { value: 'steady',   label: 'Contínuo' },
+      { value: 'interval', label: 'Intervalo' },
+      { value: 'recovery', label: 'Recuperação' },
+      { value: 'cooldown', label: 'Retorno à calma' },
+      { value: 'repeat',   label: 'Repetir bloco' },
+      { value: 'note',     label: 'Nota' }
+    ];
+    const RUN_VDOT_REFS = [
+      { value: 'recovery', label: 'Recovery' },
+      { value: 'easy', label: 'Easy' },
+      { value: 'marathon', label: 'Marathon' },
+      { value: 'threshold', label: 'Threshold' },
+      { value: 'interval', label: 'Interval' },
+      { value: 'repetition', label: 'Repetition' },
+    ];
+
+    function runSessionTypeLabel(type) {
+      const t = RUN_SESSION_TYPES.find(s => s.value === type);
+      return t ? t.label : type;
+    }
+    function runSessionTypeColor(type) {
+      const t = RUN_SESSION_TYPES.find(s => s.value === type);
+      return t ? t.color : '#484f58';
+    }
+    function runStepTypeLabel(type) {
+      const t = RUN_STEP_TYPES.find(s => s.value === type);
+      return t ? t.label : type;
+    }
+
+    function runSessionSort(a, b) {
+      const ao = Number(a.session_order) || 999999;
+      const bo = Number(b.session_order) || 999999;
+      if (ao !== bo) return ao - bo;
+      return String(a.session_key || '').localeCompare(String(b.session_key || ''));
+    }
+
+    function formatPace(secPerKm) {
+      if (!secPerKm || secPerKm <= 0) return '—';
+      const m = Math.floor(secPerKm / 60);
+      const s = Math.round(secPerKm % 60);
+      return `${m}:${String(s).padStart(2, '0')} /km`;
+    }
+
+    function formatSecondsToHms(totalSeconds) {
+      if (totalSeconds == null || totalSeconds === '' || Number(totalSeconds) <= 0) return '';
+      const seconds = Math.floor(Number(totalSeconds));
+      const h = Math.floor(seconds / 3600);
+      const m = Math.floor((seconds % 3600) / 60);
+      const s = seconds % 60;
+      return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+
+    function parseHmsToSeconds(value) {
+      const raw = (value || '').trim();
+      if (!raw) return null;
+      const parts = raw.split(':').map((p) => p.trim());
+      if (parts.length !== 3 || parts.some((p) => p === '' || !/^\d+$/.test(p))) {
+        return NaN;
+      }
+      const [h, m, s] = parts.map(Number);
+      if (m > 59 || s > 59) return NaN;
+      return (h * 3600) + (m * 60) + s;
+    }
+
+    function runEscapeHtml(value) {
+      return String(value == null ? '' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function openRunFormModal({
+      title,
+      description = '',
+      fields = [],
+      confirmText = 'Guardar',
+      closeOnBackdrop = false,
+      warnOnDirtyClose = true,
+    }) {
+      return new Promise((resolve) => {
+        const fieldHtml = fields.map((f) => {
+          const id = `runModalField_${f.name}`;
+          const label = `<label for="${id}" class="microcopy" style="display:block; margin-bottom:4px;">${runEscapeHtml(f.label || f.name)}</label>`;
+          const hint = f.hint ? `<div class="microcopy" style="margin-top:4px; opacity:.8;">${runEscapeHtml(f.hint)}</div>` : '';
+          const required = f.required ? ' required' : '';
+
+          if (f.type === 'select') {
+            const options = (f.options || []).map((opt) => {
+              const selected = String(opt.value) === String(f.value ?? '') ? ' selected' : '';
+              return `<option value="${runEscapeHtml(opt.value)}"${selected}>${runEscapeHtml(opt.label)}</option>`;
+            }).join('');
+            return `<div style="margin-bottom:10px;">${label}<select id="${id}" name="${runEscapeHtml(f.name)}" style="width:100%;"${required}>${options}</select>${hint}</div>`;
+          }
+
+          if (f.type === 'textarea') {
+            return `<div style="margin-bottom:10px;">${label}<textarea id="${id}" name="${runEscapeHtml(f.name)}" rows="3" style="width:100%;">${runEscapeHtml(f.value || '')}</textarea>${hint}</div>`;
+          }
+
+          const type = f.type || 'text';
+          const min = f.min != null ? ` min="${runEscapeHtml(f.min)}"` : '';
+          const max = f.max != null ? ` max="${runEscapeHtml(f.max)}"` : '';
+          const step = f.step != null ? ` step="${runEscapeHtml(f.step)}"` : '';
+          return `<div style="margin-bottom:10px;">${label}<input id="${id}" name="${runEscapeHtml(f.name)}" type="${runEscapeHtml(type)}" value="${runEscapeHtml(f.value || '')}" style="width:100%;"${required}${min}${max}${step} />${hint}</div>`;
+        }).join('');
+
+        const modal = document.createElement('div');
+        modal.className = 'modal-backdrop';
+        modal.innerHTML = `
+          <div class="modal" style="width:min(560px, 100%);">
+            <h3>${runEscapeHtml(title)}</h3>
+            ${description ? `<p>${runEscapeHtml(description)}</p>` : ''}
+            <form id="runModalForm">${fieldHtml}
+              <div class="modal-actions">
+                <button type="submit" class="btn btn-primary">${runEscapeHtml(confirmText)}</button>
+                <button type="button" class="btn btn-secondary" id="runModalCancel">Cancelar</button>
+              </div>
+            </form>
+          </div>
+        `;
+
+        const hasUnsavedChanges = () => {
+          return fields.some((f) => {
+            const el = modal.querySelector(`[name="${CSS.escape(f.name)}"]`);
+            if (!el) return false;
+            const initial = String(f.value ?? '');
+            return String(el.value ?? '') !== initial;
+          });
+        };
+
+        const close = (value, reason = 'submit') => {
+          if (value === null && warnOnDirtyClose && hasUnsavedChanges()) {
+            const shouldDiscard = window.confirm('Tens alterações por guardar. Queres descartar?');
+            if (!shouldDiscard) return;
+          }
+          modal.remove();
+          resolve(value);
+        };
+
+        modal.querySelector('#runModalCancel')?.addEventListener('click', () => close(null, 'cancel'));
+        modal.addEventListener('click', (e) => {
+          if (closeOnBackdrop && e.target === modal) close(null, 'backdrop');
+        });
+        modal.querySelector('#runModalForm')?.addEventListener('submit', (e) => {
+          e.preventDefault();
+          const values = {};
+          for (const f of fields) {
+            const el = modal.querySelector(`[name="${CSS.escape(f.name)}"]`);
+            values[f.name] = el ? el.value : '';
+          }
+          close(values, 'submit');
+        });
+
+        document.body.appendChild(modal);
+        const first = modal.querySelector('input, select, textarea');
+        if (first) first.focus();
+      });
+    }
+
+    async function openRunConfirmModal(title, description, confirmText = 'Confirmar') {
+      const result = await openRunFormModal({ title, description, fields: [], confirmText });
+      return !!result;
+    }
+
+    function setRunStepSaveStatus(state, text) {
+      const el = document.getElementById("runStepSaveStatus");
+      if (!el) return;
+      el.className = "save-status " + state;
+      el.textContent = text || "";
+    }
+
+    function scheduleRunStepAutosave() {
+      if (!runCurrentWorkout) return;
+      if (runStepSaveTimer) clearTimeout(runStepSaveTimer);
+      setRunStepSaveStatus("pending", "Alterações pendentes");
+      runStepSaveTimer = setTimeout(async () => {
+        runStepSaveTimer = null;
+        if (runStepSaveInFlight) {
+          runStepSaveQueued = true;
+          return;
+        }
+        await saveRunSteps({ silent: true });
+      }, 1200);
+    }
+
+    // ── Plan Templates CRUD ──────────────────────────────────────
+
+    async function loadRunPlanTemplates() {
+      try {
+        await loadProgramOptions();
+        const data = await apiRequest("GET", "/.netlify/functions/running-plan");
+        runPlans = data.templates || [];
+        renderRunPlanProgramFilter();
+        renderRunPlanDurationFilter();
+        renderRunPlanSelect();
+      } catch (err) {
+        showResult("Erro ao carregar planos de corrida: " + err.message, true);
+      }
+    }
+
+    function renderRunPlanProgramFilter() {
+      const sel = document.getElementById("runPlanProgramFilter");
+      if (!sel) return;
+      const currentValue = runPlanFilters.programId || '';
+      sel.innerHTML = '<option value="">Todos programas</option>';
+      strPrograms.forEach((p) => {
+        const opt = document.createElement("option");
+        opt.value = p.id;
+        opt.textContent = p.name;
+        sel.appendChild(opt);
+      });
+      sel.value = strPrograms.some((p) => p.id === currentValue) ? currentValue : '';
+      runPlanFilters.programId = sel.value;
+    }
+
+    function renderRunPlanDurationFilter() {
+      const sel = document.getElementById("runPlanDurationFilter");
+      if (!sel) return;
+      const currentValue = runPlanFilters.durationWeeks || '';
+      const durationValues = [...new Set(
+        runPlans
+          .map((p) => Number(p.total_weeks))
+          .filter((w) => Number.isFinite(w) && w > 0)
+      )].sort((a, b) => a - b);
+      sel.innerHTML = '<option value="">Todas durações</option>';
+      durationValues.forEach((weeks) => {
+        const opt = document.createElement("option");
+        opt.value = String(weeks);
+        opt.textContent = `${weeks} semanas`;
+        sel.appendChild(opt);
+      });
+      sel.value = durationValues.includes(Number(currentValue)) ? String(currentValue) : '';
+      runPlanFilters.durationWeeks = sel.value;
+    }
+
+    function getFilteredRunPlans() {
+      const statusFilter = runPlanFilters.status;
+      const programFilter = runPlanFilters.programId;
+      const durationFilter = Number(runPlanFilters.durationWeeks);
+      const searchFilter = runPlanFilters.search.trim().toLowerCase();
+      return runPlans.filter((p) => {
+        if (statusFilter && p.status !== statusFilter) return false;
+        if (programFilter && p.training_program_id !== programFilter) return false;
+        if (Number.isFinite(durationFilter) && durationFilter > 0 && Number(p.total_weeks) !== durationFilter) return false;
+        if (searchFilter && !String(p.name || '').toLowerCase().includes(searchFilter)) return false;
+        return true;
+      });
+    }
+
+    function renderRunPlanSelect() {
+      const sel = document.getElementById("runPlanSelect");
+      const filteredPlans = getFilteredRunPlans();
+      sel.innerHTML = '<option value="">— Selecionar plano —</option>';
+      filteredPlans.forEach(p => {
+        const opt = document.createElement("option");
+        opt.value = p.id;
+        opt.textContent = `${p.name} (${p.status}) — ${p.total_weeks}w`;
+        sel.appendChild(opt);
+      });
+      if (runCurrentPlan && runCurrentPlan.template) {
+        const hasCurrent = filteredPlans.some((p) => p.id === runCurrentPlan.template.id);
+        sel.value = hasCurrent ? runCurrentPlan.template.id : "";
+      }
+    }
+
+    function applyRunPlanFilters() {
+      const filteredPlans = getFilteredRunPlans();
+      if (runCurrentPlan?.template && !filteredPlans.some((p) => p.id === runCurrentPlan.template.id)) {
+        loadRunPlan("");
+      }
+      renderRunPlanSelect();
+    }
+
+    async function loadRunPlan(planId) {
+      if (!planId) {
+        runCurrentPlan = null;
+        document.getElementById("runNoPlan").hidden = false;
+        document.getElementById("runPlanHeader").hidden = true;
+        return;
+      }
+      try {
+        const data = await apiRequest("GET", `/.netlify/functions/running-plan?id=${planId}`);
+        runCurrentPlan = { template: data.template, sessions: data.sessions || [] };
+        renderRunPlanHeader();
+        renderRunSessionsGrid();
+        if (selectedAthleteId) loadAthleteVdot(selectedAthleteId);
+      } catch (err) {
+        showResult("Erro ao carregar plano: " + err.message, true);
+      }
+    }
+
+    function renderRunPlanHeader() {
+      const t = runCurrentPlan?.template;
+      document.getElementById("runNoPlan").hidden = !!t;
+      document.getElementById("runPlanHeader").hidden = !t;
+      if (!t) return;
+
+      document.getElementById("runPlanName").textContent = t.name;
+      document.getElementById("runPlanWeeks").textContent = `${t.total_weeks} semanas`;
+
+      const badge = document.getElementById("runPlanStatus");
+      badge.textContent = t.status;
+      badge.className = "status-badge status-" + t.status;
+
+      document.getElementById("activateRunPlanBtn").hidden = t.status !== "draft";
+      document.getElementById("archiveRunPlanBtn").hidden = t.status === "archived";
+      document.getElementById("assignRunPlanBtn").hidden = t.status !== "active" || !selectedAthleteId;
+
+      // Show VDOT panel if athlete selected
+      document.getElementById("runVdotPanel").hidden = !selectedAthleteId;
+
+      // Load instances
+      loadRunPlanInstances();
+    }
+
+    async function createRunPlan() {
+      await loadProgramOptions();
+      if (!strPrograms.length) {
+        return showResult("Sem programas disponíveis. Cria/ativa um programa primeiro.", true);
+      }
+      const form = await openRunFormModal({
+        title: 'Novo Plano de Corrida',
+        fields: [
+          { name: 'name', label: 'Nome', type: 'text', required: true },
+          { name: 'total_weeks', label: 'Semanas (4-52)', type: 'number', value: 12, min: 4, max: 52, required: true },
+          {
+            name: 'training_program_id',
+            label: 'Programa',
+            type: 'select',
+            required: true,
+            options: strPrograms.map((p) => ({
+              value: p.id,
+              label: p.name + (p.status && p.status !== 'active' ? ` (${p.status})` : ''),
+            })),
+          },
+          {
+            name: 'default_volume_distribution_mode',
+            label: 'Distribuição de volume semanal',
+            type: 'select',
+            value: 'automatic',
+            options: [
+              { value: 'automatic', label: 'Automática (% por sessão obrigatório)' },
+              { value: 'manual', label: 'Manual (distância/duração por step)' },
+            ],
+          },
+        ],
+        confirmText: 'Criar',
+      });
+      if (!form) return;
+
+      const name = (form.name || '').trim();
+      const weeks = parseInt(form.total_weeks, 10);
+      const trainingProgramId = form.training_program_id;
+      const defaultVolumeDistributionMode = String(form.default_volume_distribution_mode || '').trim().toLowerCase();
+      if (!name) return showResult('Nome é obrigatório.', true);
+      if (!weeks || weeks < 4 || weeks > 52) return showResult('Número de semanas inválido.', true);
+      if (!trainingProgramId) return showResult('Programa é obrigatório.', true);
+      if (!['automatic', 'manual'].includes(defaultVolumeDistributionMode)) {
+        return showResult('Modo de distribuição inválido.', true);
+      }
+
+      try {
+        const data = await apiRequest("POST", "/.netlify/functions/running-plan", {
+          name,
+          total_weeks: weeks,
+          training_program_id: trainingProgramId,
+          default_volume_distribution_mode: defaultVolumeDistributionMode,
+        });
+        showResult("Plano criado: " + data.template.name, false);
+        await loadRunPlanTemplates();
+        await loadRunPlan(data.template.id);
+        document.getElementById("runPlanSelect").value = data.template.id;
+      } catch (err) {
+        showResult("Erro ao criar plano: " + err.message, true);
+      }
+    }
+
+    async function editRunPlanMeta() {
+      const t = runCurrentPlan?.template;
+      if (!t) return;
+      await loadProgramOptions();
+      if (!strPrograms.length) {
+        return showResult("Sem programas disponíveis. Cria/ativa um programa primeiro.", true);
+      }
+      const form = await openRunFormModal({
+        title: 'Editar Plano de Corrida',
+        fields: [
+          { name: 'name', label: 'Nome', type: 'text', value: t.name, required: true },
+          {
+            name: 'training_program_id',
+            label: 'Programa',
+            type: 'select',
+            required: true,
+            value: t.training_program_id || '',
+            options: strPrograms.map((p) => ({
+              value: p.id,
+              label: p.name + (p.status && p.status !== 'active' ? ` (${p.status})` : ''),
+            })),
+          },
+          {
+            name: 'default_volume_distribution_mode',
+            label: 'Distribuição de volume semanal',
+            type: 'select',
+            required: true,
+            value: ['automatic', 'manual'].includes(String(t.default_volume_distribution_mode || '').trim().toLowerCase())
+              ? String(t.default_volume_distribution_mode).trim().toLowerCase()
+              : 'automatic',
+            options: [
+              { value: 'automatic', label: 'Automática (% por sessão obrigatório)' },
+              { value: 'manual', label: 'Manual (distância/duração por step)' },
+            ],
+          },
+          { name: 'objective', label: 'Objetivo', type: 'textarea', value: t.objective || '' },
+        ],
+        confirmText: 'Guardar',
+      });
+      if (!form) return;
+      const name = (form.name || '').trim();
+      const trainingProgramId = (form.training_program_id || '').trim();
+      const defaultVolumeDistributionMode = String(form.default_volume_distribution_mode || '').trim().toLowerCase();
+      if (!name) return showResult('Nome é obrigatório.', true);
+      if (!trainingProgramId) return showResult('Programa é obrigatório.', true);
+      if (!['automatic', 'manual'].includes(defaultVolumeDistributionMode)) {
+        return showResult('Modo de distribuição inválido.', true);
+      }
+      const obj = form.objective || '';
+      try {
+        const data = await apiRequest("PUT", "/.netlify/functions/running-plan", {
+          id: t.id,
+          name,
+          training_program_id: trainingProgramId,
+          default_volume_distribution_mode: defaultVolumeDistributionMode,
+          objective: obj || null
+        });
+        runCurrentPlan.template = data.template;
+        renderRunPlanHeader();
+        await loadRunPlanTemplates();
+        showResult("Plano atualizado.", false);
+      } catch (err) {
+        showResult("Erro: " + err.message, true);
+      }
+    }
+
+    async function updateRunPlanStatus(status) {
+      const t = runCurrentPlan?.template;
+      if (!t) return;
+      try {
+        const data = await apiRequest("PUT", "/.netlify/functions/running-plan", {
+          id: t.id, status
+        });
+        runCurrentPlan.template = data.template;
+        renderRunPlanHeader();
+        await loadRunPlanTemplates();
+        showResult(`Plano ${status}.`, false);
+      } catch (err) {
+        showResult("Erro: " + err.message, true);
+      }
+    }
+
+    // ── Plan Instance Management ─────────────────────────────────
+
+    async function loadRunPlanInstances() {
+      const t = runCurrentPlan?.template;
+      if (!t) return;
+      const panel = document.getElementById("runPlanInstances");
+      const list = document.getElementById("runInstancesList");
+      try {
+        const data = await apiRequest("GET", `/.netlify/functions/coach-running-instances?plan_template_id=${t.id}`);
+        const instances = data.instances || (data.instance ? [data.instance] : []);
+        if (instances.length === 0) {
+          panel.hidden = true;
+          return;
+        }
+        panel.hidden = false;
+        list.innerHTML = instances.map(inst => `
+          <div style="display:flex; gap:8px; align-items:center; padding:4px 0; border-bottom:1px solid var(--line);">
+            <span class="status-badge status-${inst.status}">${inst.status}</span>
+            <span class="microcopy">VDOT: ${inst.current_vdot ?? '—'}</span>
+            <span class="microcopy">Início: ${inst.start_date || '—'}</span>
+            <button class="btn btn-small btn-ghost" onclick="viewRunInstance('${inst.id}')">Ver</button>
+            ${inst.status === 'active' ? `<button class="btn btn-small btn-ghost" onclick="pauseRunInstance('${inst.id}')">Pausar</button>` : ''}
+            ${inst.status === 'paused' ? `<button class="btn btn-small btn-ghost" onclick="resumeRunInstance('${inst.id}')">Retomar</button>` : ''}
+          </div>
+        `).join('');
+      } catch (err) {
+        panel.hidden = true;
+      }
+    }
+
+    async function assignRunPlan() {
+      const t = runCurrentPlan?.template;
+      if (!t || !selectedAthleteId) return showResult("Seleciona um atleta e um plano ativo.", true);
+      const form = await openRunFormModal({
+        title: 'Criar Instância de Corrida',
+        fields: [
+          { name: 'start_date', label: 'Data de início', type: 'date', value: new Date().toISOString().split('T')[0], required: true },
+          { name: 'initial_weekly_volume_km', label: 'Volume inicial (km/semana)', type: 'number', value: 30, min: 5, max: 300, step: 0.1, required: true },
+          { name: 'weekly_progression_pct', label: 'Progressão semanal (%)', type: 'number', value: 5, min: -5, max: 20, step: 0.1, required: true },
+          {
+            name: 'periodization_type',
+            label: 'Modelo de progressão',
+            type: 'select',
+            required: true,
+            value: 'undulating',
+            options: [
+              { value: 'linear', label: 'Linear (percentual fixo)' },
+              { value: 'undulating', label: 'Ondulatória' },
+              { value: 'block', label: 'Bloco' },
+            ],
+          },
+        ],
+        confirmText: 'Criar Instância',
+      });
+      if (!form) return;
+      const startDate = form.start_date;
+      const initialWeeklyVolumeKm = parseFloat(form.initial_weekly_volume_km);
+      const weeklyProgressionPct = parseFloat(form.weekly_progression_pct);
+      const periodizationType = String(form.periodization_type || '').trim().toLowerCase();
+      if (!startDate) return showResult('Data de início é obrigatória.', true);
+      if (!Number.isFinite(initialWeeklyVolumeKm) || initialWeeklyVolumeKm < 5 || initialWeeklyVolumeKm > 300) {
+        return showResult('Volume inicial inválido (5-300).', true);
+      }
+      if (!Number.isFinite(weeklyProgressionPct) || weeklyProgressionPct < -5 || weeklyProgressionPct > 20) {
+        return showResult('Progressão semanal inválida (-5 a 20).', true);
+      }
+      if (!['linear', 'undulating', 'block'].includes(periodizationType)) {
+        return showResult('Modelo de progressão inválido.', true);
+      }
+      try {
+        await apiRequest("POST", "/.netlify/functions/running-plan", {
+          action: "assign",
+          plan_template_id: t.id,
+          athlete_id: selectedAthleteId,
+          start_date: startDate,
+          initial_weekly_volume_km: initialWeeklyVolumeKm,
+          weekly_progression_pct: weeklyProgressionPct,
+          periodization_type: periodizationType,
+        });
+        showResult("Instância criada com sucesso.", false);
+        loadRunPlanInstances();
+      } catch (err) {
+        showResult("Erro ao atribuir: " + err.message, true);
+      }
+    }
+
+    async function viewRunInstance(instanceId) {
+      try {
+        const data = await apiRequest("GET", `/.netlify/functions/coach-running-instances?instanceId=${instanceId}`);
+        const inst = data.instance;
+        const workouts = data.workouts || [];
+        let html = `<div style="padding:12px; border:1px solid var(--line); border-radius:var(--radius-md); background:var(--surface-2); margin-top:8px;">`;
+        html += `<h4>Instância — ${inst.status} | VDOT: ${inst.current_vdot ?? '—'} | Início: ${inst.start_date}</h4>`;
+        html += `<p class="microcopy">${workouts.length} workouts provisionados</p>`;
+
+        // Group by week
+        const byWeek = {};
+        workouts.forEach(w => {
+          if (!byWeek[w.week_number]) byWeek[w.week_number] = [];
+          byWeek[w.week_number].push(w);
+        });
+
+        for (const [week, wks] of Object.entries(byWeek).sort((a, b) => a[0] - b[0])) {
+          html += `<div style="margin-top:8px;"><strong>Semana ${week}</strong></div>`;
+          html += '<div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:6px; margin-top:4px;">';
+          wks.forEach(w => {
+            const color = runSessionTypeColor(w.session_type);
+            const paces = w.resolved_targets || {};
+            html += `<div style="padding:6px 8px; border-left:3px solid ${color}; background:var(--surface-1); border-radius:4px;">
+              <div style="font-weight:600; font-size:0.85rem;">${w.session_key}</div>
+              <div class="microcopy">${runSessionTypeLabel(w.session_type)} — ${w.status}</div>
+              ${paces.thresholdSecPerKm ? `<div class="microcopy">T: ${formatPace(paces.thresholdSecPerKm)}</div>` : ''}
+            </div>`;
+          });
+          html += '</div>';
+        }
+        html += `<div style="margin-top:8px;">
+          <button class="btn btn-small" onclick="provisionRunWorkouts('${instanceId}')">Provisionar Workouts</button>
+          ${inst.status === 'active' ? `<button class="btn btn-small btn-ghost" onclick="pauseRunInstance('${instanceId}')">Pausar</button>` : ''}
+          ${inst.status === 'paused' ? `<button class="btn btn-small btn-ghost" onclick="resumeRunInstance('${instanceId}')">Retomar</button>` : ''}
+        </div>`;
+        html += '</div>';
+
+        document.getElementById("runInstancesList").innerHTML = html;
+      } catch (err) {
+        showResult("Erro ao ver instância: " + err.message, true);
+      }
+    }
+
+    async function pauseRunInstance(instanceId) {
+      try {
+        await apiRequest("PATCH", `/.netlify/functions/coach-running-instances`, {
+          instanceId: instanceId, action: "pause"
+        });
+        showResult("Instância pausada.", false);
+        loadRunPlanInstances();
+      } catch (err) { showResult("Erro: " + err.message, true); }
+    }
+
+    async function resumeRunInstance(instanceId) {
+      try {
+        await apiRequest("PATCH", `/.netlify/functions/coach-running-instances`, {
+          instanceId: instanceId, action: "resume"
+        });
+        showResult("Instância retomada.", false);
+        loadRunPlanInstances();
+      } catch (err) { showResult("Erro: " + err.message, true); }
+    }
+
+    async function provisionRunWorkouts(instanceId) {
+      try {
+        const data = await apiRequest("PATCH", `/.netlify/functions/coach-running-instances`, {
+          instanceId: instanceId, action: "provision_workouts"
+        });
+        showResult(`${data.provisioned ?? 0} workouts provisionados.`, false);
+        viewRunInstance(instanceId);
+      } catch (err) { showResult("Erro: " + err.message, true); }
+    }
+
+    // ── VDOT Management ──────────────────────────────────────────
+
+    async function loadAthleteVdot(athleteId) {
+      if (!athleteId) return;
+      const panel = document.getElementById("runVdotPanel");
+      panel.hidden = false;
+      try {
+        const data = await apiRequest("GET", `/.netlify/functions/coach-running-vdot?athlete_id=${athleteId}`);
+        runAthleteVdot = data.current || null;
+        document.getElementById("rvVdot").textContent = runAthleteVdot ? runAthleteVdot.vdot : '—';
+        document.getElementById("rvThreshold").textContent = runAthleteVdot?.threshold_pace_sec_per_km
+          ? formatPace(runAthleteVdot.threshold_pace_sec_per_km) : '—';
+        document.getElementById("rvSource").textContent = runAthleteVdot?.source_type || '—';
+        document.getElementById("runVdotMeta").textContent = runAthleteVdot
+          ? `Última atualização: ${new Date(runAthleteVdot.measured_at || runAthleteVdot.created_at).toLocaleDateString('pt-PT')}`
+          : 'Sem VDOT definido.';
+
+        // History
+        const history = data.history || [];
+        const histEl = document.getElementById("runVdotHistory");
+        if (history.length > 0) {
+          histEl.innerHTML = '<span class="microcopy" style="font-weight:600;">Histórico:</span>' +
+            history.slice(0, 5).map(h => `<div class="microcopy" style="margin-top:2px;">
+              ${h.vdot} — ${h.source_type} — ${new Date(h.measured_at || h.created_at).toLocaleDateString('pt-PT')}
+              ${h.is_current ? ' ★' : ''}
+            </div>`).join('');
+        } else {
+          histEl.innerHTML = '';
+        }
+      } catch (err) {
+        document.getElementById("runVdotMeta").textContent = 'Erro ao carregar VDOT.';
+      }
+    }
+
+    async function setAthleteVdot() {
+      if (!selectedAthleteId) return showResult("Seleciona um atleta.", true);
+      const vdotVal = parseFloat(document.getElementById("runVdotInput").value);
+      if (!vdotVal || vdotVal < 20 || vdotVal > 85) return showResult("VDOT inválido (20-85).", true);
+      const source = document.getElementById("runVdotSource").value;
+      try {
+        await apiRequest("POST", "/.netlify/functions/coach-running-vdot", {
+          athlete_id: selectedAthleteId,
+          direct_vdot: vdotVal,
+          source_type: source
+        });
+        showResult("VDOT atualizado.", false);
+        document.getElementById("runVdotInput").value = "";
+        loadAthleteVdot(selectedAthleteId);
+      } catch (err) {
+        showResult("Erro: " + err.message, true);
+      }
+    }
+
+    function calcVdotFromRace() {
+      const distKm = parseFloat(document.getElementById("runCalcDistance").value);
+      const timeStr = document.getElementById("runCalcTime").value.trim();
+      if (!distKm || !timeStr) return showResult("Preenche distância e tempo.", true);
+
+      // Parse time mm:ss or hh:mm:ss
+      const parts = timeStr.split(':').map(Number);
+      let seconds;
+      if (parts.length === 3) seconds = parts[0] * 3600 + parts[1] * 60 + parts[2];
+      else if (parts.length === 2) seconds = parts[0] * 60 + parts[1];
+      else return showResult("Formato: mm:ss ou hh:mm:ss", true);
+
+      if (seconds <= 0) return showResult("Tempo inválido.", true);
+
+      // Daniels VDOT calculation (same as running-engine.js)
+      const distMeters = distKm * 1000;
+      const timeMinutes = seconds / 60;
+      const velocity = distMeters / timeMinutes; // m/min
+
+      const vo2 = -4.60 + 0.182258 * velocity + 0.000104 * velocity * velocity;
+      const pctVO2max = 0.8 + 0.1894393 * Math.exp(-0.012778 * timeMinutes) +
+                        0.2989558 * Math.exp(-0.1932605 * timeMinutes);
+      const vdot = vo2 / pctVO2max;
+
+      const result = document.getElementById("runCalcResult");
+      if (vdot < 20 || vdot > 85) {
+        result.textContent = `VDOT calculado: ${vdot.toFixed(1)} (fora do intervalo esperado)`;
+      } else {
+        result.textContent = `VDOT calculado: ${vdot.toFixed(1)}`;
+        document.getElementById("runVdotInput").value = vdot.toFixed(1);
+        document.getElementById("runVdotSource").value = "race_result";
+      }
+    }
+
+    // ── Workout Templates Library ────────────────────────────────
+
+    async function loadRunWorkoutTemplates() {
+      try {
+        const data = await apiRequest("GET", "/.netlify/functions/coach-running-workout-templates");
+        runWorkouts = data.templates || [];
+        renderRunWorkoutsList();
+      } catch (err) {
+        showResult("Erro ao carregar treinos: " + err.message, true);
+      }
+    }
+
+    function renderRunWorkoutsList() {
+      const filter = document.getElementById("runWktTypeFilter").value;
+      const filtered = filter ? runWorkouts.filter(w => w.session_type === filter) : runWorkouts;
+      const list = document.getElementById("runWorkoutsList");
+
+      if (filtered.length === 0) {
+        list.innerHTML = '<div class="microcopy">Nenhum treino encontrado. Cria o primeiro.</div>';
+        return;
+      }
+
+      list.innerHTML = filtered.map(w => {
+        const color = runSessionTypeColor(w.session_type);
+        return `<div draggable="true" data-run-workout-id="${w.id}" ondragstart="onRunWorkoutDragStart(event, '${w.id}')" ondragend="onRunWorkoutDragEnd(event)" style="display:flex; gap:8px; align-items:center; padding:6px 0; border-bottom:1px solid var(--line); cursor:grab;">
+          <span style="width:4px; height:24px; border-radius:2px; background:${color};"></span>
+          <span style="flex:1; font-weight:500;">${w.name}</span>
+          <span class="microcopy">${runSessionTypeLabel(w.session_type)}</span>
+          <span class="microcopy" style="opacity:.8;">Arrasta para uma sessão</span>
+          <button class="btn btn-small btn-ghost" onclick="editRunWorkout('${w.id}')">Editar Steps</button>
+          <button class="btn btn-small btn-ghost" onclick="editRunWorkoutMeta('${w.id}')">✏</button>
+        </div>`;
+      }).join('');
+    }
+
+    function onRunWorkoutDragStart(event, workoutId) {
+      runDraggedWorkoutId = workoutId || null;
+      if (!event.dataTransfer) return;
+      event.dataTransfer.setData('application/x-run-workout-id', workoutId);
+      event.dataTransfer.setData('text/plain', `run-workout:${workoutId}`);
+      event.dataTransfer.effectAllowed = 'copy';
+    }
+
+    function onRunWorkoutDragEnd() {
+      runDraggedWorkoutId = null;
+    }
+
+    function onRunSessionDragStart(event, sessionId) {
+      runDragSessionId = sessionId;
+      if (!event.dataTransfer) return;
+      event.dataTransfer.setData('application/x-run-session-id', sessionId);
+      event.dataTransfer.setData('text/plain', `run-session:${sessionId}`);
+      event.dataTransfer.effectAllowed = 'move';
+    }
+
+    function getRunWorkoutIdFromDataTransfer(dt) {
+      if (!dt) return runDraggedWorkoutId || '';
+      const direct = dt.getData('application/x-run-workout-id');
+      if (direct) return direct;
+      const text = dt.getData('text/plain') || '';
+      if (text.startsWith('run-workout:')) return text.slice('run-workout:'.length);
+      return runDraggedWorkoutId || '';
+    }
+
+    function getRunSessionIdFromDataTransfer(dt) {
+      if (!dt) return '';
+      const direct = dt.getData('application/x-run-session-id');
+      if (direct) return direct;
+      const text = dt.getData('text/plain') || '';
+      if (text.startsWith('run-session:')) return text.slice('run-session:'.length);
+      return '';
+    }
+
+    function onRunSessionDragOver(event) {
+      event.preventDefault();
+      if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+    }
+
+    function onRunSessionsWrapDragOver(event) {
+      event.preventDefault();
+      if (!event.dataTransfer) return;
+      const hasWorkout = !!getRunWorkoutIdFromDataTransfer(event.dataTransfer);
+      event.dataTransfer.dropEffect = hasWorkout ? 'copy' : 'move';
+    }
+
+    function onRunSessionsWrapDragEnter(event) {
+      const dt = event.dataTransfer;
+      if (!dt) return;
+      if (!getRunWorkoutIdFromDataTransfer(dt)) return;
+      const wrap = document.getElementById('runSessionsTableWrap');
+      if (wrap) wrap.style.outline = '1px dashed var(--gold)';
+    }
+
+    function onRunSessionsWrapDragLeave(event) {
+      const wrap = document.getElementById('runSessionsTableWrap');
+      if (!wrap) return;
+      if (event.relatedTarget && wrap.contains(event.relatedTarget)) return;
+      wrap.style.outline = '';
+    }
+
+    async function onRunSessionsWrapDrop(event) {
+      event.preventDefault();
+      event.stopPropagation();
+      const dt = event.dataTransfer;
+      if (!dt) return;
+      const workoutId = getRunWorkoutIdFromDataTransfer(dt);
+      if (!workoutId) return;
+      const wrap = document.getElementById('runSessionsTableWrap');
+      if (wrap) wrap.style.outline = '';
+      await createRunSessionFromWorkoutDrop(workoutId, runSelectedWeek);
+    }
+
+    function onRunWeekTabDragOver(event) {
+      event.preventDefault();
+      if (!event.dataTransfer) return;
+      const hasWorkout = !!getRunWorkoutIdFromDataTransfer(event.dataTransfer);
+      event.dataTransfer.dropEffect = hasWorkout ? 'copy' : 'move';
+    }
+
+    async function onRunWeekTabDrop(event, weekNumber) {
+      event.preventDefault();
+      event.stopPropagation();
+      const dt = event.dataTransfer;
+      if (!dt) return;
+      const workoutId = getRunWorkoutIdFromDataTransfer(dt);
+      if (!workoutId) return;
+      await createRunSessionFromWorkoutDrop(workoutId, weekNumber);
+    }
+
+    function wireRunDropZones() {
+      const weekTabs = document.getElementById('runSessionsWeekTabs');
+      if (weekTabs) {
+        weekTabs.ondragover = onRunWeekTabsDragOver;
+        weekTabs.ondrop = onRunWeekTabsDrop;
+      }
+      const wrap = document.getElementById('runSessionsTableWrap');
+      if (wrap) {
+        wrap.ondragover = onRunSessionsWrapDragOver;
+        wrap.ondragenter = onRunSessionsWrapDragEnter;
+        wrap.ondragleave = onRunSessionsWrapDragLeave;
+        wrap.ondrop = onRunSessionsWrapDrop;
+      }
+    }
+
+    function onRunWeekTabsDragOver(event) {
+      const dt = event.dataTransfer;
+      if (!dt) return;
+      const workoutId = getRunWorkoutIdFromDataTransfer(dt);
+      const target = event.target.closest('[data-run-week]');
+      if (!workoutId || !target) return;
+      event.preventDefault();
+      dt.dropEffect = 'copy';
+    }
+
+    async function onRunWeekTabsDrop(event) {
+      const dt = event.dataTransfer;
+      if (!dt) return;
+      const workoutId = getRunWorkoutIdFromDataTransfer(dt);
+      const target = event.target.closest('[data-run-week]');
+      if (!workoutId || !target) return;
+      event.preventDefault();
+      event.stopPropagation();
+      const weekNumber = Number(target.getAttribute('data-run-week'));
+      if (!weekNumber) return;
+      await createRunSessionFromWorkoutDrop(workoutId, weekNumber);
+    }
+
+    async function createRunSessionFromWorkoutDrop(workoutTemplateId, weekNumber) {
+      const t = runCurrentPlan?.template;
+      if (!t) return;
+      const workout = runWorkouts.find((w) => w.id === workoutTemplateId);
+      if (!workout) return showResult('Treino inválido para criar sessão.', true);
+
+      const draft = await openRunSessionModal({
+        title: `Nova Sessão (W${weekNumber})`,
+        confirmText: 'Criar Sessão',
+        defaultWeek: weekNumber,
+        defaultSessionType: workout.session_type || 'easy',
+        defaultSessionLabel: workout.name || runSessionTypeLabel(workout.session_type),
+        defaultWorkoutTemplateId: workout.id,
+        defaultNotes: '',
+      });
+      if (!draft) return;
+
+      const sessionKey = generateRunSessionKeyForWeek(draft.week_number);
+      const nextOrder = getNextRunSessionOrderForWeek(draft.week_number);
+
+      try {
+        await apiRequest('PUT', '/.netlify/functions/running-plan', {
+          action: 'save_sessions',
+          plan_template_id: t.id,
+          sessions: [{
+            plan_template_id: t.id,
+            week_number: Number(draft.week_number),
+            session_key: sessionKey,
+            session_label: draft.session_label,
+            session_order: nextOrder,
+            workout_template_id: draft.workout_template_id,
+            session_type: draft.session_type,
+            notes: draft.notes,
+          }],
+        });
+        await loadRunPlan(t.id);
+        if (Number(runSelectedWeek) !== Number(draft.week_number)) {
+          runSelectedWeek = Number(draft.week_number);
+          renderRunSessionsGrid();
+        }
+        showResult(`Sessão criada na semana W${draft.week_number} a partir do template.`, false);
+      } catch (err) {
+        showResult('Erro ao criar sessão por drag-and-drop: ' + err.message, true);
+      }
+    }
+
+    async function onRunSessionDrop(event, targetSessionId) {
+      event.preventDefault();
+      const dt = event.dataTransfer;
+      if (!dt) return;
+
+      const workoutId = getRunWorkoutIdFromDataTransfer(dt);
+      if (workoutId) {
+        await assignWorkoutTemplateToSession(targetSessionId, workoutId);
+        return;
+      }
+
+      const draggedSessionId = getRunSessionIdFromDataTransfer(dt) || runDragSessionId;
+      if (!draggedSessionId || draggedSessionId === targetSessionId) return;
+      await reorderRunSessionsInWeek(draggedSessionId, targetSessionId);
+    }
+
+    async function assignWorkoutTemplateToSession(sessionId, workoutTemplateId) {
+      const session = (runCurrentPlan?.sessions || []).find((s) => s.id === sessionId);
+      const t = runCurrentPlan?.template;
+      if (!session || !t) return;
+
+      try {
+        await apiRequest('PUT', '/.netlify/functions/running-plan', {
+          action: 'save_sessions',
+          plan_template_id: t.id,
+          sessions: [{
+            id: session.id,
+            plan_template_id: t.id,
+            week_number: session.week_number,
+            session_key: session.session_key,
+            session_label: session.session_label || null,
+            session_order: session.session_order || 1,
+            workout_template_id: workoutTemplateId,
+            session_type: session.session_type,
+            notes: session.notes || null,
+          }],
+        });
+        await loadRunPlan(t.id);
+        showResult('Treino associado por drag-and-drop.', false);
+      } catch (err) {
+        showResult('Erro ao associar treino: ' + err.message, true);
+      }
+    }
+
+    async function reorderRunSessionsInWeek(draggedSessionId, targetSessionId) {
+      const t = runCurrentPlan?.template;
+      if (!t) return;
+
+      const weekSessions = (runCurrentPlan.sessions || [])
+        .filter((s) => s.week_number === runSelectedWeek)
+        .slice()
+        .sort(runSessionSort);
+
+      const fromIndex = weekSessions.findIndex((s) => s.id === draggedSessionId);
+      const toIndex = weekSessions.findIndex((s) => s.id === targetSessionId);
+      if (fromIndex < 0 || toIndex < 0 || fromIndex === toIndex) return;
+
+      const [moved] = weekSessions.splice(fromIndex, 1);
+      weekSessions.splice(toIndex, 0, moved);
+
+      const payload = weekSessions.map((s, idx) => ({
+        id: s.id,
+        plan_template_id: t.id,
+        week_number: s.week_number,
+        session_key: s.session_key,
+        session_label: s.session_label || null,
+        session_order: idx + 1,
+        workout_template_id: s.workout_template_id,
+        session_type: s.session_type,
+        notes: s.notes || null,
+      }));
+
+      try {
+        await apiRequest('PUT', '/.netlify/functions/running-plan', {
+          action: 'save_sessions',
+          plan_template_id: t.id,
+          sessions: payload,
+        });
+        await loadRunPlan(t.id);
+        showResult('Ordem da semana atualizada.', false);
+      } catch (err) {
+        showResult('Erro ao reordenar sessões: ' + err.message, true);
+      }
+    }
+
+    async function createRunWorkout() {
+      const form = await openRunFormModal({
+        title: 'Novo Treino de Corrida',
+        fields: [
+          { name: 'name', label: 'Nome do treino', type: 'text', required: true },
+          {
+            name: 'session_type',
+            label: 'Tipo de sessão',
+            type: 'select',
+            required: true,
+            options: RUN_SESSION_TYPES.map((s) => ({ value: s.value, label: s.label })),
+          },
+        ],
+        confirmText: 'Criar',
+      });
+      if (!form) return;
+      const name = (form.name || '').trim();
+      const type = form.session_type;
+      if (!name || !type) return showResult('Nome e tipo são obrigatórios.', true);
+      try {
+        const data = await apiRequest("POST", "/.netlify/functions/coach-running-workout-templates", {
+          name, session_type: type
+        });
+        showResult("Treino criado: " + data.template.name, false);
+        await loadRunWorkoutTemplates();
+        editRunWorkout(data.template.id);
+      } catch (err) {
+        showResult("Erro: " + err.message, true);
+      }
+    }
+
+    async function editRunWorkoutMeta(workoutId) {
+      const w = runWorkouts.find(t => t.id === workoutId);
+      if (!w) return;
+      const form = await openRunFormModal({
+        title: 'Editar Treino de Corrida',
+        fields: [
+          { name: 'name', label: 'Nome', type: 'text', value: w.name, required: true },
+          { name: 'objective', label: 'Objetivo', type: 'textarea', value: w.objective || '' },
+        ],
+        confirmText: 'Guardar',
+      });
+      if (!form) return;
+      const name = (form.name || '').trim();
+      if (!name) return showResult('Nome é obrigatório.', true);
+      const obj = form.objective || '';
+      try {
+        await apiRequest("PUT", "/.netlify/functions/coach-running-workout-templates", {
+          id: w.id, name, objective: obj || null
+        });
+        showResult("Treino atualizado.", false);
+        await loadRunWorkoutTemplates();
+      } catch (err) {
+        showResult("Erro: " + err.message, true);
+      }
+    }
+
+    // ── Step Editor ──────────────────────────────────────────────
+
+    async function editRunWorkout(workoutId) {
+      try {
+        const data = await apiRequest("GET", `/.netlify/functions/coach-running-workout-templates?id=${workoutId}`);
+        runCurrentWorkout = { template: data.template, steps: data.steps || [] };
+        const storedMode = String(
+          runCurrentWorkout.steps[0] && runCurrentWorkout.steps[0].export_hint && runCurrentWorkout.steps[0].export_hint.volume_mode
+            ? runCurrentWorkout.steps[0].export_hint.volume_mode
+            : ''
+        ).toLowerCase();
+        runStepVolumeMode = storedMode === 'manual' ? 'manual' : 'automatic';
+        const modeSelect = document.getElementById('runStepVolumeMode');
+        if (modeSelect) modeSelect.value = runStepVolumeMode;
+        if (runStepVolumeMode === 'automatic') {
+          const hasPct = (runCurrentWorkout.steps || []).some((step) => Number(step?.export_hint?.step_volume_pct) > 0);
+          if (!hasPct && (runCurrentWorkout.steps || []).length > 0) {
+            normalizeRunStepPercentages();
+          }
+        }
+        const editor = document.getElementById("runStepEditor");
+        editor.hidden = false;
+        document.getElementById("runStepEditorTitle").textContent = `Steps: ${data.template.name}`;
+        renderRunSteps();
+      } catch (err) {
+        showResult("Erro ao carregar treino: " + err.message, true);
+      }
+    }
+
+    function normalizeRunStepPercentages() {
+      const steps = runCurrentWorkout?.steps || [];
+      if (!steps.length || runStepVolumeMode !== 'automatic') return;
+      const base = Math.floor((10000 / steps.length)) / 100;
+      let remaining = 100;
+      steps.forEach((step, idx) => {
+        const value = idx === steps.length - 1 ? remaining : base;
+        if (!step.export_hint || typeof step.export_hint !== 'object') {
+          step.export_hint = {};
+        }
+        step.export_hint.step_volume_pct = Number(value.toFixed(2));
+        remaining = Number((remaining - value).toFixed(2));
+      });
+    }
+
+    function renderRunSteps() {
+      const steps = runCurrentWorkout?.steps || [];
+      const list = document.getElementById("runStepsList");
+      const isAutomatic = runStepVolumeMode === 'automatic';
+
+      if (steps.length === 0) {
+        list.innerHTML = '<div class="microcopy">Sem steps. Adiciona o primeiro.</div>';
+        return;
+      }
+
+      list.innerHTML = steps.map((s, i) => {
+        const prescription = (s.prescription_payload && typeof s.prescription_payload === 'object')
+          ? s.prescription_payload
+          : {};
+        const selectedRef = prescription.ref || 'easy';
+        const offset = prescription.offset_sec_per_km ?? 0;
+        const range = prescription.range_sec ?? 0;
+        const stepVolumePct = Number(s?.export_hint?.step_volume_pct);
+        const stepPctValue = Number.isFinite(stepVolumePct) ? stepVolumePct : '';
+        const durationHms = formatSecondsToHms(s.duration_seconds);
+        return `<div class="run-step-row" data-idx="${i}" style="display:flex; gap:6px; align-items:center; padding:6px 0; border-bottom:1px solid var(--line); flex-wrap:wrap;">
+          <span class="microcopy" style="width:24px; text-align:center; font-weight:600;">${i + 1}</span>
+          <div style="display:flex; flex-direction:column; gap:2px; min-width:120px;">
+            <select class="run-step-field" data-field="step_type" style="padding:4px 6px; border-radius:6px; border:1px solid var(--line); background:var(--surface-1); color:var(--text); min-width:120px;">
+              ${RUN_STEP_TYPES.map(t => `<option value="${t.value}" ${t.value === s.step_type ? 'selected' : ''}>${t.label}</option>`).join('')}
+            </select>
+            <span class="microcopy">Tipo do bloco do treino</span>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:2px; min-width:110px;">
+            <select class="run-step-field" data-field="target_type" style="padding:4px 6px; border-radius:6px; border:1px solid var(--line); background:var(--surface-1); color:var(--text);">
+              <option value="none" ${s.target_type === 'none' ? 'selected' : ''}>Sem alvo</option>
+              <option value="pace" ${s.target_type === 'pace' ? 'selected' : ''}>Pace</option>
+            </select>
+            <span class="microcopy">Métrica usada no step</span>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:2px; width:108px;">
+            <input class="run-step-field" data-field="duration_hms" type="text" placeholder="hh:mm:ss" value="${durationHms}" style="width:100px; padding:4px 6px; border-radius:6px; border:1px solid var(--line); background:var(--surface-1); color:var(--text);" ${isAutomatic ? 'disabled' : ''} />
+            <span class="microcopy">Duração (hh:mm:ss)</span>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:2px; width:78px;">
+            <input class="run-step-field" data-field="distance_meters" type="number" placeholder="Dist (m)" value="${s.distance_meters || ''}" style="width:70px; padding:4px 6px; border-radius:6px; border:1px solid var(--line); background:var(--surface-1); color:var(--text);" ${isAutomatic ? 'disabled' : ''} />
+            <span class="microcopy">Distância em metros</span>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:2px; width:78px; ${!isAutomatic ? 'opacity:.45;' : ''}">
+            <input class="run-step-field" data-field="step_volume_pct" type="number" min="0.1" max="100" step="0.1" placeholder="%" value="${stepPctValue}" style="width:70px; padding:4px 6px; border-radius:6px; border:1px solid var(--line); background:var(--surface-1); color:var(--text);" ${!isAutomatic ? 'disabled' : ''} />
+            <span class="microcopy">% do treino</span>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:2px; width:64px; ${s.step_type !== 'repeat' ? 'visibility:hidden;' : ''}">
+            <input class="run-step-field" data-field="repeat_count" type="number" placeholder="Reps" value="${s.repeat_count || ''}" style="width:55px; padding:4px 6px; border-radius:6px; border:1px solid var(--line); background:var(--surface-1); color:var(--text);" ${s.step_type !== 'repeat' ? 'hidden' : ''} />
+            <span class="microcopy">Nº repetições</span>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:2px; min-width:120px; ${s.target_type !== 'pace' ? 'visibility:hidden;' : ''}">
+            <select class="run-step-field" data-field="vdot_ref" style="padding:4px 6px; border-radius:6px; border:1px solid var(--line); background:var(--surface-1); color:var(--text); min-width:110px;" ${s.target_type !== 'pace' ? 'hidden' : ''}>
+              ${RUN_VDOT_REFS.map(r => `<option value="${r.value}" ${r.value === selectedRef ? 'selected' : ''}>${r.label}</option>`).join('')}
+            </select>
+            <span class="microcopy">Referência do VDOT</span>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:2px; width:106px; ${s.target_type !== 'pace' ? 'visibility:hidden;' : ''}">
+            <input class="run-step-field" data-field="offset_sec_per_km" type="number" step="1" placeholder="Offset s/km" value="${offset}" style="width:95px; padding:4px 6px; border-radius:6px; border:1px solid var(--line); background:var(--surface-1); color:var(--text);" ${s.target_type !== 'pace' ? 'hidden' : ''} />
+            <span class="microcopy">Ajuste ao pace base</span>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:2px; width:86px; ${s.target_type !== 'pace' ? 'visibility:hidden;' : ''}">
+            <input class="run-step-field" data-field="range_sec" type="number" step="1" min="0" placeholder="± s/km" value="${range}" style="width:75px; padding:4px 6px; border-radius:6px; border:1px solid var(--line); background:var(--surface-1); color:var(--text);" ${s.target_type !== 'pace' ? 'hidden' : ''} />
+            <span class="microcopy">Margem ± em s/km</span>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:2px; flex:1; min-width:160px;">
+            <input class="run-step-field" data-field="instruction_text" type="text" placeholder="Instrução" value="${s.instruction_text || ''}" style="flex:1; min-width:120px; padding:4px 6px; border-radius:6px; border:1px solid var(--line); background:var(--surface-1); color:var(--text);" />
+            <span class="microcopy">Texto para o atleta</span>
+          </div>
+          <button class="btn btn-small btn-ghost" onclick="moveRunStep(${i}, -1)" ${i === 0 ? 'disabled' : ''}>↑</button>
+          <button class="btn btn-small btn-ghost" onclick="moveRunStep(${i}, 1)" ${i === steps.length - 1 ? 'disabled' : ''}>↓</button>
+          <button class="btn btn-small btn-ghost" onclick="removeRunStep(${i})" style="color:#f85149;">✕</button>
+        </div>`;
+      }).join('');
+
+      const totalNode = document.createElement('div');
+      totalNode.className = 'microcopy';
+      totalNode.style.marginTop = '8px';
+      if (isAutomatic) {
+        const totalPct = steps.reduce((acc, step) => {
+          const pct = Number(step?.export_hint?.step_volume_pct);
+          return acc + (Number.isFinite(pct) ? pct : 0);
+        }, 0);
+        totalNode.style.color = Math.abs(totalPct - 100) <= 0.25 ? '#3fb950' : '#f0883e';
+        totalNode.textContent = `Modo automático: soma dos steps ${totalPct.toFixed(1)}% (deve ser 100%)`;
+      } else {
+        totalNode.style.color = '#8b949e';
+        totalNode.textContent = 'Modo manual: define duração e/ou distância em cada step.';
+      }
+      list.appendChild(totalNode);
+    }
+
+    function addRunStep() {
+      if (!runCurrentWorkout) return;
+      runCurrentWorkout.steps.push({
+        step_type: 'steady',
+        target_type: 'none',
+        duration_seconds: null,
+        distance_meters: null,
+        repeat_count: null,
+        target_min: null,
+        target_max: null,
+        prescription_payload: {},
+        instruction_text: '',
+        export_hint: { step_volume_pct: null, volume_mode: runStepVolumeMode },
+      });
+      normalizeRunStepPercentages();
+      renderRunSteps();
+      scheduleRunStepAutosave();
+    }
+
+    function removeRunStep(idx) {
+      if (!runCurrentWorkout) return;
+      runCurrentWorkout.steps.splice(idx, 1);
+      normalizeRunStepPercentages();
+      renderRunSteps();
+      scheduleRunStepAutosave();
+    }
+
+    function moveRunStep(idx, direction) {
+      if (!runCurrentWorkout) return;
+      const steps = runCurrentWorkout.steps;
+      const newIdx = idx + direction;
+      if (newIdx < 0 || newIdx >= steps.length) return;
+      [steps[idx], steps[newIdx]] = [steps[newIdx], steps[idx]];
+      renderRunSteps();
+      scheduleRunStepAutosave();
+    }
+
+    function collectRunStepsFromDom() {
+      const rows = document.querySelectorAll('.run-step-row');
+      const steps = [];
+      let totalPct = 0;
+      const isAutomatic = runStepVolumeMode === 'automatic';
+      rows.forEach((row) => {
+        const get = (field) => {
+          const el = row.querySelector(`[data-field="${field}"]`);
+          return el ? el.value : null;
+        };
+        const durationSeconds = parseHmsToSeconds(get('duration_hms'));
+        if (Number.isNaN(durationSeconds)) {
+          const stepNumber = (row.dataset && row.dataset.idx) ? Number(row.dataset.idx) + 1 : steps.length + 1;
+          throw new Error(`Step ${stepNumber}: duração inválida. Usa hh:mm:ss (ex: 00:20:00)`);
+        }
+        const distanceMeters = get('distance_meters') ? parseInt(get('distance_meters'), 10) : null;
+        const stepPct = get('step_volume_pct') ? parseFloat(get('step_volume_pct')) : NaN;
+        if (isAutomatic) {
+          if (!Number.isFinite(stepPct) || stepPct <= 0) {
+            const stepNumber = (row.dataset && row.dataset.idx) ? Number(row.dataset.idx) + 1 : steps.length + 1;
+            throw new Error(`Step ${stepNumber}: define % do treino (> 0).`);
+          }
+          totalPct += stepPct;
+        } else {
+          const hasManualDuration = Number.isFinite(durationSeconds) && durationSeconds > 0;
+          const hasManualDistance = Number.isFinite(distanceMeters) && distanceMeters > 0;
+          if (!hasManualDuration && !hasManualDistance) {
+            const stepNumber = (row.dataset && row.dataset.idx) ? Number(row.dataset.idx) + 1 : steps.length + 1;
+            throw new Error(`Step ${stepNumber}: em modo manual define duração ou distância.`);
+          }
+        }
+        steps.push({
+          step_type: get('step_type'),
+          target_type: get('target_type'),
+          duration_seconds: durationSeconds,
+          distance_meters: distanceMeters,
+          repeat_count: get('repeat_count') ? parseInt(get('repeat_count'), 10) : null,
+          target_min: get('target_min') ? parseFloat(get('target_min')) : null,
+          target_max: get('target_max') ? parseFloat(get('target_max')) : null,
+          prescription_payload: get('target_type') === 'pace'
+            ? {
+                mode: 'vdot_reference',
+                ref: get('vdot_ref') || 'easy',
+                offset_sec_per_km: get('offset_sec_per_km') ? parseFloat(get('offset_sec_per_km')) : 0,
+                range_sec: get('range_sec') ? parseFloat(get('range_sec')) : 0,
+              }
+            : {},
+          instruction_text: get('instruction_text') || null,
+          export_hint: {
+            step_volume_pct: isAutomatic && Number.isFinite(stepPct) ? Number(stepPct.toFixed(2)) : null,
+            volume_mode: isAutomatic ? 'automatic' : 'manual',
+          },
+        });
+      });
+
+      if (isAutomatic && Math.abs(totalPct - 100) > 0.25) {
+        throw new Error(`A soma dos steps é ${totalPct.toFixed(1)}%. Ajusta para 100%.`);
+      }
+      return steps;
+    }
+
+    async function saveRunSteps(options = {}) {
+      if (!runCurrentWorkout) return;
+      const silent = !!options.silent;
+      if (runStepSaveTimer) {
+        clearTimeout(runStepSaveTimer);
+        runStepSaveTimer = null;
+      }
+      if (runStepSaveInFlight) {
+        runStepSaveQueued = true;
+        return;
+      }
+      try {
+        runStepSaveInFlight = true;
+        setRunStepSaveStatus("saving", "A guardar…");
+        const steps = collectRunStepsFromDom();
+        const data = await apiRequest("PUT", "/.netlify/functions/coach-running-workout-templates", {
+          action: "save_steps",
+          workout_template_id: runCurrentWorkout.template.id,
+          volume_mode: runStepVolumeMode,
+          steps
+        });
+        // For autosave, avoid re-rendering to preserve cursor/focus while typing.
+        // We still keep the local in-memory model as the source of truth.
+        if (!silent) {
+          runCurrentWorkout.steps = data.steps || [];
+          renderRunSteps();
+        }
+        setRunStepSaveStatus("saved", "Guardado");
+        if (!silent) showResult("Steps guardados.", false);
+      } catch (err) {
+        setRunStepSaveStatus("error", "Erro ao guardar");
+        showResult("Erro ao guardar steps: " + err.message, true);
+      } finally {
+        runStepSaveInFlight = false;
+        if (runStepSaveQueued) {
+          runStepSaveQueued = false;
+          scheduleRunStepAutosave();
+        } else {
+          setTimeout(() => {
+            if (!runStepSaveInFlight && !runStepSaveTimer) setRunStepSaveStatus("idle", "");
+          }, 1200);
+        }
+      }
+    }
+
+    function closeRunStepEditor() {
+      if (runStepSaveTimer) {
+        clearTimeout(runStepSaveTimer);
+        runStepSaveTimer = null;
+      }
+      runStepSaveQueued = false;
+      runStepSaveInFlight = false;
+      setRunStepSaveStatus("idle", "");
+      document.getElementById("runStepEditor").hidden = true;
+      runCurrentWorkout = null;
+    }
+
+    // ── Plan Sessions Grid (Week × Session) ─────────────────────
+
+    function renderRunSessionsGrid() {
+      const t = runCurrentPlan?.template;
+      if (!t) return;
+      const sessions = runCurrentPlan.sessions || [];
+
+      // Render week tabs
+      const weekTabs = document.getElementById("runSessionsWeekTabs");
+      let tabsHtml = '';
+      for (let w = 1; w <= t.total_weeks; w++) {
+        const isActive = w === runSelectedWeek;
+        tabsHtml += `<button class="btn btn-small ${isActive ? 'btn-primary' : 'btn-ghost'}" data-run-week="${w}" onclick="selectRunWeek(${w})" ondragover="onRunWeekTabDragOver(event)" ondrop="onRunWeekTabDrop(event, ${w})" title="Selecionar semana ou largar treino para criar sessão">W${w}</button>`;
+      }
+      weekTabs.innerHTML = tabsHtml;
+
+      // Filter sessions for selected week
+      const weekSessions = sessions.filter(s => s.week_number === runSelectedWeek);
+
+      const wrap = document.getElementById("runSessionsTableWrap");
+      wireRunDropZones();
+      if (weekSessions.length === 0) {
+        wrap.innerHTML = '<div class="microcopy" style="padding:8px 0; border:1px dashed var(--line); border-radius:8px; text-align:center;">Sem sessões nesta semana. Usa "+ Sessão" ou arrasta um treino da biblioteca para aqui.</div>';
+        return;
+      }
+
+      let html = '<div class="microcopy" style="padding:8px; margin-bottom:8px; border:1px dashed var(--line); border-radius:8px; text-align:center;" ondragover="onRunSessionsWrapDragOver(event)" ondrop="onRunSessionsWrapDrop(event)">Arrasta um treino para aqui para criar nova sessão nesta semana</div>';
+      html += '<table style="width:100%; border-collapse:collapse; font-size:0.85rem;">';
+      html += '<thead><tr style="border-bottom:1px solid var(--line);">';
+      html += '<th style="padding:4px 8px; text-align:left;">Sessão</th>';
+      html += '<th style="padding:4px 8px; text-align:left;">Tipo</th>';
+      html += '<th style="padding:4px 8px; text-align:left;">Treino</th>';
+      html += '<th style="padding:4px 8px; text-align:left;">Vol %</th>';
+      html += '<th style="padding:4px 8px; text-align:left;">Notas</th>';
+      html += '<th style="padding:4px 8px; width:60px;"></th>';
+      html += '</tr></thead><tbody>';
+
+      weekSessions.sort(runSessionSort);
+
+      weekSessions.forEach(s => {
+        const color = runSessionTypeColor(s.session_type);
+        const wkt = runWorkouts.find(w => w.id === s.workout_template_id);
+        const workoutCell = wkt
+          ? wkt.name
+          : (s.workout_template_id
+            ? `<span class="microcopy">Associado (${String(s.workout_template_id).slice(0, 8)}...)</span>`
+            : '<em class="microcopy">—</em>');
+        const weeklyVolumePct = Number(s?.progression_rule?.weekly_volume_pct);
+        const weeklyVolumeCell = Number.isFinite(weeklyVolumePct) && weeklyVolumePct > 0
+          ? `${weeklyVolumePct.toFixed(1)}%`
+          : '<span class="microcopy">auto</span>';
+        const displayName = s.session_label || runSessionTypeLabel(s.session_type);
+        html += `<tr draggable="true" ondragstart="onRunSessionDragStart(event, '${s.id}')" ondragover="onRunSessionDragOver(event)" ondrop="onRunSessionDrop(event, '${s.id}')" style="border-bottom:1px solid var(--line); cursor:grab;">
+          <td style="padding:4px 8px;"><span style="display:inline-block; width:4px; height:16px; border-radius:2px; background:${color}; vertical-align:middle; margin-right:6px;"></span>${displayName}</td>
+          <td style="padding:4px 8px;">${runSessionTypeLabel(s.session_type)}</td>
+          <td style="padding:4px 8px;">${workoutCell}</td>
+          <td style="padding:4px 8px;">${weeklyVolumeCell}</td>
+          <td style="padding:4px 8px;"><span class="microcopy">${s.notes || ''}</span></td>
+          <td style="padding:4px 8px;">
+            <button class="btn btn-small btn-ghost" onclick="editRunSession('${s.id}')">✏</button>
+            <button class="btn btn-small btn-ghost" onclick="deleteRunSession('${s.id}')" style="color:#f85149;">✕</button>
+          </td>
+        </tr>`;
+      });
+
+      html += '</tbody></table>';
+      wrap.innerHTML = html;
+    }
+
+    function selectRunWeek(week) {
+      runSelectedWeek = week;
+      renderRunSessionsGrid();
+    }
+
+    function getRunWorkoutSelectOptions() {
+      return runWorkouts.map((w) => ({
+        value: w.id,
+        label: `${w.name} (${runSessionTypeLabel(w.session_type)})`,
+      }));
+    }
+
+    function generateRunSessionKeyForWeek(weekNumber, excludeSessionId = null) {
+      const existing = (runCurrentPlan?.sessions || []).filter((s) => (
+        Number(s.week_number) === Number(weekNumber) && s.id !== excludeSessionId
+      ));
+      const existingKeys = new Set(existing.map((s) => String(s.session_key || '').toUpperCase()));
+      let nextIndex = 1;
+      while (existingKeys.has(`S${nextIndex}`)) nextIndex++;
+      return `S${nextIndex}`;
+    }
+
+    function getNextRunSessionOrderForWeek(weekNumber, excludeSessionId = null) {
+      const existing = (runCurrentPlan?.sessions || []).filter((s) => (
+        Number(s.week_number) === Number(weekNumber) && s.id !== excludeSessionId
+      ));
+      const orders = existing.map((s) => Number(s.session_order)).filter((n) => Number.isFinite(n) && n > 0);
+      return orders.length ? Math.max(...orders) + 1 : 1;
+    }
+
+    async function openRunSessionModal({
+      title,
+      confirmText,
+      defaultWeek,
+      defaultSessionType,
+      defaultSessionLabel,
+      defaultWorkoutTemplateId,
+      defaultWeeklyVolumePct,
+      defaultNotes,
+    }) {
+      const t = runCurrentPlan?.template;
+      if (!t) return null;
+      const distributionMode = ['automatic', 'manual'].includes(
+        String(t.default_volume_distribution_mode || '').trim().toLowerCase()
+      ) ? String(t.default_volume_distribution_mode).trim().toLowerCase() : 'automatic';
+      if (!runWorkouts.length) {
+        showResult('Cria pelo menos um treino na biblioteca antes de criar sessões.', true);
+        return null;
+      }
+
+      const weekOptions = Array.from({ length: Number(t.total_weeks) || 0 }, (_, idx) => {
+        const w = idx + 1;
+        return { value: String(w), label: `Semana ${w}` };
+      });
+
+      const form = await openRunFormModal({
+        title,
+        fields: [
+          {
+            name: 'week_number',
+            label: 'Semana',
+            type: 'select',
+            required: true,
+            value: String(defaultWeek ?? runSelectedWeek),
+            options: weekOptions,
+          },
+          {
+            name: 'session_type',
+            label: 'Tipo',
+            type: 'select',
+            required: true,
+            value: defaultSessionType || 'easy',
+            options: RUN_SESSION_TYPES.map((s) => ({ value: s.value, label: s.label })),
+          },
+          {
+            name: 'session_label',
+            label: 'Nome da sessão',
+            type: 'text',
+            value: defaultSessionLabel || 'Sessão',
+            hint: 'Nome visível. Pode repetir no mesmo plano.',
+          },
+          {
+            name: 'workout_template_id',
+            label: 'Template de treino',
+            type: 'select',
+            required: true,
+            value: defaultWorkoutTemplateId || '',
+            options: getRunWorkoutSelectOptions(),
+          },
+          {
+            name: 'weekly_volume_pct',
+            label: '% do volume semanal' + (distributionMode === 'automatic' ? ' (obrigatório)' : ' (não usado em manual)'),
+            type: 'number',
+            value: defaultWeeklyVolumePct == null ? '' : String(defaultWeeklyVolumePct),
+            min: 0.1,
+            max: 100,
+            step: 0.1,
+            required: distributionMode === 'automatic',
+            hint: distributionMode === 'automatic'
+              ? 'Obrigatório: a soma da semana deve ser 100%.'
+              : 'No modo manual, define distância/duração nos steps do treino.',
+          },
+          {
+            name: 'notes',
+            label: 'Notas',
+            type: 'textarea',
+            value: defaultNotes || '',
+          },
+        ],
+        confirmText,
+      });
+      if (!form) return null;
+
+      const weekNumber = Number(form.week_number);
+      const sessionType = form.session_type;
+      const sessionLabel = (form.session_label || '').trim() || null;
+      const workoutTemplateId = form.workout_template_id || null;
+      const weeklyVolumePctRaw = form.weekly_volume_pct;
+      const weeklyVolumePct = weeklyVolumePctRaw === '' || weeklyVolumePctRaw == null
+        ? null
+        : Number(weeklyVolumePctRaw);
+      const notes = (form.notes || '').trim() || null;
+
+      if (!Number.isInteger(weekNumber) || weekNumber < 1 || weekNumber > Number(t.total_weeks)) {
+        showResult('Semana inválida.', true);
+        return null;
+      }
+      if (!sessionType) {
+        showResult('Tipo de sessão é obrigatório.', true);
+        return null;
+      }
+      if (!workoutTemplateId) {
+        showResult('Template de treino é obrigatório.', true);
+        return null;
+      }
+      if (distributionMode === 'automatic' && weeklyVolumePct == null) {
+        showResult('% do volume semanal é obrigatório no modo automático.', true);
+        return null;
+      }
+      if (weeklyVolumePct != null && (!Number.isFinite(weeklyVolumePct) || weeklyVolumePct <= 0 || weeklyVolumePct > 100)) {
+        showResult('% do volume semanal inválida (0.1 a 100).', true);
+        return null;
+      }
+
+      return {
+        week_number: weekNumber,
+        session_type: sessionType,
+        session_label: sessionLabel,
+        workout_template_id: workoutTemplateId,
+        weekly_volume_pct: weeklyVolumePct,
+        notes,
+      };
+    }
+
+    async function addRunSession() {
+      const t = runCurrentPlan?.template;
+      if (!t) return showResult("Seleciona um plano primeiro.", true);
+      const distributionMode = ['automatic', 'manual'].includes(
+        String(t.default_volume_distribution_mode || '').trim().toLowerCase()
+      ) ? String(t.default_volume_distribution_mode).trim().toLowerCase() : 'automatic';
+      const draft = await openRunSessionModal({
+        title: 'Nova Sessão',
+        confirmText: 'Criar Sessão',
+        defaultWeek: runSelectedWeek,
+        defaultSessionType: 'easy',
+        defaultSessionLabel: 'Sessão',
+        defaultWorkoutTemplateId: '',
+        defaultWeeklyVolumePct: null,
+        defaultNotes: '',
+      });
+      if (!draft) return;
+
+      const sessionKey = generateRunSessionKeyForWeek(draft.week_number);
+      const sessionOrder = getNextRunSessionOrderForWeek(draft.week_number);
+
+      try {
+        await apiRequest("PUT", "/.netlify/functions/running-plan", {
+          action: "save_sessions",
+          plan_template_id: t.id,
+          sessions: [{
+            plan_template_id: t.id,
+            week_number: draft.week_number,
+            session_key: sessionKey,
+            session_label: draft.session_label,
+            session_order: sessionOrder,
+            workout_template_id: draft.workout_template_id,
+            session_type: draft.session_type,
+            progression_rule: distributionMode !== 'automatic' || draft.weekly_volume_pct == null ? {} : {
+              weekly_volume_pct: draft.weekly_volume_pct,
+            },
+            notes: draft.notes,
+          }]
+        });
+        // Reload full plan to refresh sessions
+        await loadRunPlan(t.id);
+        runSelectedWeek = draft.week_number;
+        renderRunSessionsGrid();
+        showResult("Sessão adicionada.", false);
+      } catch (err) {
+        showResult("Erro: " + err.message, true);
+      }
+    }
+
+    async function editRunSession(sessionId) {
+      const session = (runCurrentPlan?.sessions || []).find(s => s.id === sessionId);
+      if (!session) return;
+
+      const draft = await openRunSessionModal({
+        title: 'Editar Sessão',
+        confirmText: 'Guardar Sessão',
+        defaultWeek: session.week_number,
+        defaultSessionType: session.session_type,
+        defaultSessionLabel: session.session_label || runSessionTypeLabel(session.session_type),
+        defaultWorkoutTemplateId: session.workout_template_id || '',
+        defaultWeeklyVolumePct: session?.progression_rule?.weekly_volume_pct ?? null,
+        defaultNotes: session.notes || '',
+      });
+      if (!draft) return;
+
+      const t = runCurrentPlan.template;
+      const distributionMode = ['automatic', 'manual'].includes(
+        String(t.default_volume_distribution_mode || '').trim().toLowerCase()
+      ) ? String(t.default_volume_distribution_mode).trim().toLowerCase() : 'automatic';
+      const nextOrder = Number(draft.week_number) === Number(session.week_number)
+        ? (session.session_order || 1)
+        : getNextRunSessionOrderForWeek(draft.week_number, session.id);
+      const nextProgressionRule = {
+        ...(session.progression_rule && typeof session.progression_rule === 'object' ? session.progression_rule : {}),
+      };
+      if (distributionMode !== 'automatic' || draft.weekly_volume_pct == null) {
+        delete nextProgressionRule.weekly_volume_pct;
+      } else {
+        nextProgressionRule.weekly_volume_pct = draft.weekly_volume_pct;
+      }
+      try {
+        await apiRequest("PUT", "/.netlify/functions/running-plan", {
+          action: "save_sessions",
+          plan_template_id: t.id,
+          sessions: [{
+            id: session.id,
+            plan_template_id: t.id,
+            week_number: draft.week_number,
+            session_key: session.session_key,
+            session_label: draft.session_label,
+            session_order: nextOrder,
+            workout_template_id: draft.workout_template_id,
+            session_type: draft.session_type,
+            progression_rule: nextProgressionRule,
+            notes: draft.notes,
+          }]
+        });
+        await loadRunPlan(t.id);
+        runSelectedWeek = draft.week_number;
+        renderRunSessionsGrid();
+        showResult("Sessão atualizada.", false);
+      } catch (err) {
+        showResult("Erro: " + err.message, true);
+      }
+    }
+
+    async function deleteRunSession(sessionId) {
+      const confirmed = await openRunConfirmModal('Remover Sessão', 'Queres remover esta sessão?', 'Remover');
+      if (!confirmed) return;
+      const t = runCurrentPlan?.template;
+      if (!t) return;
+      try {
+        await apiRequest("PUT", "/.netlify/functions/running-plan", {
+          action: "save_sessions",
+          plan_template_id: t.id,
+          sessions: [],
+          delete_ids: [sessionId]
+        });
+        await loadRunPlan(t.id);
+        showResult("Sessão removida.", false);
+      } catch (err) {
+        showResult("Erro: " + err.message, true);
+      }
+    }
+
+    // ── Corrida Event Listeners ──────────────────────────────────
+
+    document.getElementById("runPlanSelect")?.addEventListener("change", (e) => {
+      loadRunPlan(e.target.value);
+    });
+    document.getElementById("runPlanStatusFilter")?.addEventListener("change", (e) => {
+      runPlanFilters.status = e.target.value || '';
+      applyRunPlanFilters();
+    });
+    document.getElementById("runPlanProgramFilter")?.addEventListener("change", (e) => {
+      runPlanFilters.programId = e.target.value || '';
+      applyRunPlanFilters();
+    });
+    document.getElementById("runPlanDurationFilter")?.addEventListener("change", (e) => {
+      runPlanFilters.durationWeeks = e.target.value || '';
+      applyRunPlanFilters();
+    });
+    document.getElementById("runPlanSearchFilter")?.addEventListener("input", (e) => {
+      runPlanFilters.search = e.target.value || '';
+      applyRunPlanFilters();
+    });
+    document.getElementById("newRunPlanBtn")?.addEventListener("click", createRunPlan);
+    document.getElementById("editRunPlanMetaBtn")?.addEventListener("click", editRunPlanMeta);
+    document.getElementById("activateRunPlanBtn")?.addEventListener("click", () => updateRunPlanStatus("active"));
+    document.getElementById("archiveRunPlanBtn")?.addEventListener("click", () => updateRunPlanStatus("archived"));
+    document.getElementById("assignRunPlanBtn")?.addEventListener("click", assignRunPlan);
+    document.getElementById("newRunWorkoutBtn")?.addEventListener("click", createRunWorkout);
+    document.getElementById("runWktTypeFilter")?.addEventListener("change", renderRunWorkoutsList);
+    document.getElementById("runWorkoutsList")?.addEventListener("dragstart", (event) => {
+      const row = event.target.closest('[data-run-workout-id]');
+      if (!row) return;
+      const workoutId = row.getAttribute('data-run-workout-id');
+      if (!workoutId) return;
+      onRunWorkoutDragStart(event, workoutId);
+    });
+    document.getElementById("runWorkoutsList")?.addEventListener("dragend", () => {
+      onRunWorkoutDragEnd();
+    });
+    document.getElementById("addRunStepBtn")?.addEventListener("click", addRunStep);
+    document.getElementById("saveRunStepsBtn")?.addEventListener("click", saveRunSteps);
+    document.getElementById("closeRunStepEditorBtn")?.addEventListener("click", closeRunStepEditor);
+    document.getElementById("addRunSessionBtn")?.addEventListener("click", addRunSession);
+    document.getElementById("setVdotBtn")?.addEventListener("click", setAthleteVdot);
+    document.getElementById("calcVdotBtn")?.addEventListener("click", calcVdotFromRace);
+    document.getElementById("refreshVdotBtn")?.addEventListener("click", () => {
+      if (selectedAthleteId) loadAthleteVdot(selectedAthleteId);
+    });
+    document.getElementById("runStepVolumeMode")?.addEventListener("change", (event) => {
+      if (!runCurrentWorkout) return;
+      runStepVolumeMode = event.target.value === 'manual' ? 'manual' : 'automatic';
+      (runCurrentWorkout.steps || []).forEach((step) => {
+        if (!step.export_hint || typeof step.export_hint !== 'object') step.export_hint = {};
+        step.export_hint.volume_mode = runStepVolumeMode;
+        if (runStepVolumeMode === 'manual') {
+          step.export_hint.step_volume_pct = null;
+        }
+      });
+      normalizeRunStepPercentages();
+      renderRunSteps();
+      scheduleRunStepAutosave();
+    });
+
+    function syncRunStepFieldToModel(e) {
+      const field = e.target.dataset?.field;
+      if (!field || !runCurrentWorkout) return;
+      const row = e.target.closest('.run-step-row');
+      if (!row) return;
+      const idx = parseInt(row.dataset.idx, 10);
+      const step = runCurrentWorkout.steps[idx];
+      if (!step) return;
+      if (field === 'step_type' || field === 'target_type' || field === 'instruction_text' || field === 'vdot_ref' || field === 'duration_hms') {
+        step[field] = e.target.value;
+      } else if (field === 'step_volume_pct') {
+        if (!step.export_hint || typeof step.export_hint !== 'object') step.export_hint = {};
+        step.export_hint.step_volume_pct = e.target.value ? Number(e.target.value) : null;
+      } else {
+        step[field] = e.target.value ? Number(e.target.value) : null;
+      }
+      // Re-render to show/hide conditional fields
+      if (field === 'step_type' || field === 'target_type') renderRunSteps();
+
+      scheduleRunStepAutosave();
+    }
+
+    // Sync step field changes to model + autosave
+    document.getElementById("runStepsList")?.addEventListener("change", syncRunStepFieldToModel);
+    document.getElementById("runStepsList")?.addEventListener("input", syncRunStepFieldToModel);
+
+    // ═══════════════════════════════════════════════════════════
+    // ═══  VARIANT MANAGEMENT (Planeamento Tab)  ═══════════════
+    // ═══════════════════════════════════════════════════════════
+
+    const varProgramSelect = document.getElementById("var-program-select");
+    const varCreateBtn = document.getElementById("var-create-btn");
+    const varBatchBtn = document.getElementById("var-batch-btn");
+    const varCountLabel = document.getElementById("var-count-label");
+    const varTableBody = document.getElementById("var-table-body");
+
+    // Single modal
+    const variantModal = document.getElementById("variantModal");
+    const variantModalTitle = document.getElementById("variantModalTitle");
+    const variantForm = document.getElementById("variantForm");
+    const varSubmitBtn = document.getElementById("varSubmitBtn");
+    const varCancelBtn = document.getElementById("varCancelBtn");
+    const variantFormError = document.getElementById("variantFormError");
+
+    // Batch modal
+    const variantBatchModal = document.getElementById("variantBatchModal");
+    const variantBatchForm = document.getElementById("variantBatchForm");
+    const batchSubmitBtn = document.getElementById("batchSubmitBtn");
+    const batchCancelBtn = document.getElementById("batchCancelBtn");
+    const batchPreview = document.getElementById("batchPreview");
+    const batchFormError = document.getElementById("batchFormError");
+
+    let _varCurrentProgramId = "";
+    let _varVariants = [];
+    let _varEditingId = null;
+    let _varInitialized = false;
+
+    const LEVEL_LABELS = { beginner: "Iniciante", intermediate: "Intermédio", advanced: "Avançado" };
+
+    async function initVariantsTab() {
+      if (_varInitialized) return;
+      _varInitialized = true;
+
+      // Load programs into variant section dropdown
+      await loadProgramOptions();
+      varProgramSelect.innerHTML = '<option value="">Seleciona um programa...</option>';
+      strPrograms.forEach((p) => {
+        const opt = document.createElement("option");
+        opt.value = p.id;
+        opt.textContent = p.name || p.title || p.id;
+        varProgramSelect.appendChild(opt);
+      });
+
+      varProgramSelect.addEventListener("change", () => {
+        _varCurrentProgramId = varProgramSelect.value;
+        const hasProgram = Boolean(_varCurrentProgramId);
+        varCreateBtn.disabled = !hasProgram;
+        varBatchBtn.disabled = !hasProgram;
+        if (hasProgram) {
+          loadVariants(_varCurrentProgramId);
+        } else {
+          _varVariants = [];
+          renderVariantsTable();
+        }
+      });
+
+      varCreateBtn.addEventListener("click", () => openVariantModal(null));
+      varBatchBtn.addEventListener("click", openBatchModal);
+      varCancelBtn.addEventListener("click", closeVariantModal);
+      batchCancelBtn.addEventListener("click", closeBatchModal);
+      variantModal.addEventListener("click", (e) => { if (e.target === variantModal) closeVariantModal(); });
+      variantBatchModal.addEventListener("click", (e) => { if (e.target === variantBatchModal) closeBatchModal(); });
+
+      variantForm.addEventListener("submit", handleVariantSubmit);
+      variantBatchForm.addEventListener("submit", handleBatchSubmit);
+
+      // Update batch preview on checkbox changes
+      ["batchDurations", "batchLevels", "batchFrequencies"].forEach((id) => {
+        document.getElementById(id).addEventListener("change", updateBatchPreview);
+      });
+    }
+
+    async function loadVariants(programId) {
+      varTableBody.innerHTML = '<tr><td colspan="8" style="padding:16px; color:#8b949e;">Carregando variantes...</td></tr>';
+      try {
+        const data = await apiRequest("GET", `/.netlify/functions/admin-program-variants?program_id=${encodeURIComponent(programId)}`);
+        _varVariants = data.variants || [];
+        renderVariantsTable();
+      } catch (err) {
+        varTableBody.innerHTML = `<tr><td colspan="8" style="padding:16px; color:var(--error);">Erro: ${escapeHtml(err.message)}</td></tr>`;
+      }
+    }
+
+    function findPlanName(plans, planId) {
+      if (!planId) return "—";
+      const plan = plans.find((p) => p.id === planId);
+      return plan ? escapeHtml(plan.name || plan.title || planId.slice(0, 8)) : planId.slice(0, 8) + "…";
+    }
+
+    function renderVariantsTable() {
+      varCountLabel.textContent = _varVariants.length
+        ? `${_varVariants.length} variante(s)`
+        : "";
+
+      if (!_varVariants.length) {
+        varTableBody.innerHTML = _varCurrentProgramId
+          ? '<tr><td colspan="8" style="padding:16px; color:#8b949e;">Nenhuma variante criada. Clica "+ Nova Variante" ou "Gerar Batch".</td></tr>'
+          : '<tr><td colspan="8" style="padding:16px; color:#8b949e;">Seleciona um programa para ver as variantes.</td></tr>';
+        return;
+      }
+
+      // Find current program to check default_variant_id
+      const currentProg = strPrograms.find((p) => p.id === _varCurrentProgramId);
+      const defaultVariantId = currentProg ? currentProg.default_variant_id : null;
+
+      varTableBody.innerHTML = _varVariants.map((v) => {
+        const configKeys = v.running_config_preset ? Object.keys(v.running_config_preset).filter((k) => v.running_config_preset[k] != null && v.running_config_preset[k] !== "") : [];
+        const configSummary = configKeys.length
+          ? configKeys.map((k) => {
+              if (k === "initial_weekly_volume_km") return `${v.running_config_preset[k]}km`;
+              if (k === "weekly_progression_pct") return `+${v.running_config_preset[k]}%`;
+              if (k === "periodization_type") return v.running_config_preset[k];
+              return "";
+            }).filter(Boolean).join(", ")
+          : "—";
+        const isDefault = v.id === defaultVariantId;
+
+        return `<tr style="border-bottom:1px solid rgba(48,54,61,0.5);">
+          <td style="padding:8px; color:#c9d1d9;">${v.duration_weeks}S</td>
+          <td style="padding:8px; color:#c9d1d9;">${escapeHtml(LEVEL_LABELS[v.experience_level] || v.experience_level)}</td>
+          <td style="padding:8px; color:#c9d1d9;">${v.weekly_frequency}×/sem</td>
+          <td style="padding:8px; color:#c9d1d9;">${findPlanName(strPlans, v.strength_plan_id)}</td>
+          <td style="padding:8px; color:#c9d1d9;">${findPlanName(runPlans, v.running_plan_template_id)}</td>
+          <td style="padding:8px; color:#8b949e; font-size:0.82rem;">${configSummary}</td>
+          <td style="padding:8px; text-align:center;">${isDefault ? '<span style="color:var(--gold);" title="Variante default">★</span>' : `<button class="btn btn-small btn-ghost var-set-default-btn" data-id="${v.id}" title="Definir como default">☆</button>`}</td>
+          <td style="padding:8px; text-align:right; white-space:nowrap;">
+            <button class="btn btn-small var-edit-btn" data-id="${v.id}">Editar</button>
+            <button class="btn btn-small btn-ghost var-delete-btn" data-id="${v.id}" style="color:var(--error);">Apagar</button>
+          </td>
+        </tr>`;
+      }).join("");
+    }
+
+    // Delegate click events on variant table
+    if (varTableBody) {
+      varTableBody.addEventListener("click", async (e) => {
+        const target = e.target.closest("button");
+        if (!target) return;
+        const variantId = target.dataset.id;
+        if (!variantId) return;
+
+        if (target.classList.contains("var-edit-btn")) {
+          const variant = _varVariants.find((v) => v.id === variantId);
+          if (variant) openVariantModal(variant);
+        }
+        if (target.classList.contains("var-delete-btn")) {
+          if (!confirm("Apagar esta variante? Atletas que a usam perderão a referência.")) return;
+          try {
+            await apiRequest("DELETE", `/.netlify/functions/admin-program-variants?id=${encodeURIComponent(variantId)}`);
+            showResult("Variante apagada.", false);
+            await loadVariants(_varCurrentProgramId);
+          } catch (err) {
+            showResult("Erro ao apagar: " + err.message, true);
+          }
+        }
+        if (target.classList.contains("var-set-default-btn")) {
+          try {
+            await apiRequest("PUT", "/.netlify/functions/admin-program-variants", {
+              program_id: _varCurrentProgramId,
+              variant_id: variantId
+            });
+            // Update local program data
+            const prog = strPrograms.find((p) => p.id === _varCurrentProgramId);
+            if (prog) prog.default_variant_id = variantId;
+            renderVariantsTable();
+            showResult("Variante definida como default.", false);
+          } catch (err) {
+            showResult("Erro: " + err.message, true);
+          }
+        }
+      });
+    }
+
+    // ── Single variant modal ──
+
+    async function openVariantModal(variant) {
+      _varEditingId = variant ? variant.id : null;
+      variantModalTitle.textContent = variant ? "Editar Variante" : "Criar Variante";
+      varSubmitBtn.textContent = variant ? "Guardar" : "Criar";
+      variantFormError.hidden = true;
+
+      // Populate strength/running plan dropdowns
+      await ensureVariantDropdownsLoaded();
+
+      if (variant) {
+        document.getElementById("varDurationWeeks").value = variant.duration_weeks || "";
+        document.getElementById("varExperienceLevel").value = variant.experience_level || "beginner";
+        document.getElementById("varWeeklyFrequency").value = variant.weekly_frequency || "3";
+        document.getElementById("varStrengthPlan").value = variant.strength_plan_id || "";
+        document.getElementById("varRunningTemplate").value = variant.running_plan_template_id || "";
+        const cfg = variant.running_config_preset || {};
+        document.getElementById("varInitialVolume").value = cfg.initial_weekly_volume_km || "";
+        document.getElementById("varProgressionPct").value = cfg.weekly_progression_pct || "";
+        document.getElementById("varPeriodization").value = cfg.periodization_type || "";
+      } else {
+        variantForm.reset();
+        document.getElementById("varWeeklyFrequency").value = "4";
+      }
+
+      variantModal.classList.remove("hidden");
+      document.getElementById("varDurationWeeks").focus();
+    }
+
+    function closeVariantModal() {
+      variantModal.classList.add("hidden");
+      _varEditingId = null;
+      variantForm.reset();
+    }
+
+    async function handleVariantSubmit(e) {
+      e.preventDefault();
+      variantFormError.hidden = true;
+
+      const strengthPlanId = document.getElementById("varStrengthPlan").value || null;
+      const runningTemplateId = document.getElementById("varRunningTemplate").value || null;
+
+      if (!strengthPlanId && !runningTemplateId) {
+        variantFormError.textContent = "Pelo menos um plano de força ou template de corrida é obrigatório.";
+        variantFormError.hidden = false;
+        return;
+      }
+
+      const runningConfig = {};
+      const vol = document.getElementById("varInitialVolume").value;
+      const prog = document.getElementById("varProgressionPct").value;
+      const period = document.getElementById("varPeriodization").value;
+      if (vol) runningConfig.initial_weekly_volume_km = Number(vol);
+      if (prog) runningConfig.weekly_progression_pct = Number(prog);
+      if (period) runningConfig.periodization_type = period;
+
+      varSubmitBtn.disabled = true;
+
+      try {
+        if (_varEditingId) {
+          // PATCH
+          await apiRequest("PATCH", `/.netlify/functions/admin-program-variants?id=${encodeURIComponent(_varEditingId)}`, {
+            duration_weeks: Number(document.getElementById("varDurationWeeks").value),
+            experience_level: document.getElementById("varExperienceLevel").value,
+            weekly_frequency: Number(document.getElementById("varWeeklyFrequency").value),
+            strength_plan_id: strengthPlanId,
+            running_plan_template_id: runningTemplateId,
+            running_config_preset: Object.keys(runningConfig).length ? runningConfig : {}
+          });
+          showResult("Variante atualizada.", false);
+        } else {
+          // POST
+          await apiRequest("POST", "/.netlify/functions/admin-program-variants", {
+            training_program_id: _varCurrentProgramId,
+            duration_weeks: Number(document.getElementById("varDurationWeeks").value),
+            experience_level: document.getElementById("varExperienceLevel").value,
+            weekly_frequency: Number(document.getElementById("varWeeklyFrequency").value),
+            strength_plan_id: strengthPlanId,
+            running_plan_template_id: runningTemplateId,
+            running_config_preset: Object.keys(runningConfig).length ? runningConfig : {}
+          });
+          showResult("Variante criada.", false);
+        }
+        closeVariantModal();
+        await loadVariants(_varCurrentProgramId);
+      } catch (err) {
+        variantFormError.textContent = err.message;
+        variantFormError.hidden = false;
+      } finally {
+        varSubmitBtn.disabled = false;
+      }
+    }
+
+    // ── Batch modal ──
+
+    async function openBatchModal() {
+      batchFormError.hidden = true;
+      variantBatchForm.reset();
+      // Re-check default checkboxes after reset
+      document.querySelector('#batchDurations input[value="8"]').checked = true;
+      document.querySelectorAll('#batchLevels input').forEach((cb) => { cb.checked = true; });
+      document.querySelector('#batchFrequencies input[value="3"]').checked = true;
+      document.querySelector('#batchFrequencies input[value="4"]').checked = true;
+      document.querySelector('#batchFrequencies input[value="5"]').checked = true;
+
+      await ensureVariantDropdownsLoaded();
+      populatePlanDropdown(document.getElementById("batchStrengthPlan"), strPlans);
+      populatePlanDropdown(document.getElementById("batchRunningTemplate"), runPlans);
+      updateBatchPreview();
+      variantBatchModal.classList.remove("hidden");
+    }
+
+    function closeBatchModal() {
+      variantBatchModal.classList.add("hidden");
+      variantBatchForm.reset();
+    }
+
+    function getCheckedValues(containerId) {
+      return Array.from(document.querySelectorAll(`#${containerId} input[type="checkbox"]:checked`)).map((cb) => cb.value);
+    }
+
+    function updateBatchPreview() {
+      const durations = getCheckedValues("batchDurations");
+      const levels = getCheckedValues("batchLevels");
+      const freqs = getCheckedValues("batchFrequencies");
+      const total = durations.length * levels.length * freqs.length;
+      batchPreview.textContent = total > 0
+        ? `${durations.length} duração(ões) × ${levels.length} nível(eis) × ${freqs.length} frequência(s) = ${total} variante(s)`
+        : "Seleciona pelo menos uma opção em cada categoria.";
+    }
+
+    async function handleBatchSubmit(e) {
+      e.preventDefault();
+      batchFormError.hidden = true;
+
+      const durations = getCheckedValues("batchDurations").map(Number);
+      const levels = getCheckedValues("batchLevels");
+      const freqs = getCheckedValues("batchFrequencies").map(Number);
+      const strengthPlanId = document.getElementById("batchStrengthPlan").value || null;
+      const runningTemplateId = document.getElementById("batchRunningTemplate").value || null;
+
+      if (!durations.length || !levels.length || !freqs.length) {
+        batchFormError.textContent = "Seleciona pelo menos uma opção em cada categoria.";
+        batchFormError.hidden = false;
+        return;
+      }
+
+      if (!strengthPlanId && !runningTemplateId) {
+        batchFormError.textContent = "Pelo menos um plano de força ou template de corrida é obrigatório.";
+        batchFormError.hidden = false;
+        return;
+      }
+
+      // Generate cartesian product
+      const variants = [];
+      for (const dw of durations) {
+        for (const level of levels) {
+          for (const freq of freqs) {
+            const v = {
+              training_program_id: _varCurrentProgramId,
+              duration_weeks: dw,
+              experience_level: level,
+              weekly_frequency: freq
+            };
+            if (strengthPlanId) v.strength_plan_id = strengthPlanId;
+            if (runningTemplateId) v.running_plan_template_id = runningTemplateId;
+            variants.push(v);
+          }
+        }
+      }
+
+      if (variants.length > 50) {
+        batchFormError.textContent = `Máximo 50 variantes por batch. Selecionaste ${variants.length}.`;
+        batchFormError.hidden = false;
+        return;
+      }
+
+      batchSubmitBtn.disabled = true;
+      try {
+        const data = await apiRequest("POST", "/.netlify/functions/admin-program-variants", { variants });
+        showResult(`${data.created || variants.length} variante(s) criada(s).`, false);
+        closeBatchModal();
+        await loadVariants(_varCurrentProgramId);
+      } catch (err) {
+        batchFormError.textContent = err.message;
+        batchFormError.hidden = false;
+      } finally {
+        batchSubmitBtn.disabled = false;
+      }
+    }
+
+    // ── Helpers for populating plan dropdowns ──
+
+    let _varDropdownsLoaded = false;
+    async function ensureVariantDropdownsLoaded() {
+      if (_varDropdownsLoaded && strPlans.length + runPlans.length > 0) return;
+      // Load strength plans
+      try {
+        if (!strPlans.length) {
+          const data = await apiRequest("GET", "/.netlify/functions/strength-plan");
+          strPlans = data.plans || [];
+        }
+      } catch (_) { /* ignore */ }
+      // Load running templates
+      try {
+        if (!runPlans.length) {
+          const data = await apiRequest("GET", "/.netlify/functions/running-plan");
+          runPlans = data.templates || [];
+        }
+      } catch (_) { /* ignore */ }
+      populatePlanDropdown(document.getElementById("varStrengthPlan"), strPlans);
+      populatePlanDropdown(document.getElementById("varRunningTemplate"), runPlans);
+      _varDropdownsLoaded = true;
+    }
+
+    function populatePlanDropdown(select, plans) {
+      if (!select) return;
+      const currentValue = select.value;
+      select.innerHTML = '<option value="">— Nenhum —</option>';
+      plans.forEach((p) => {
+        const opt = document.createElement("option");
+        opt.value = p.id;
+        opt.textContent = p.name || p.title || p.id.slice(0, 8);
+        select.appendChild(opt);
+      });
+      if (currentValue && plans.some((p) => p.id === currentValue)) {
+        select.value = currentValue;
       }
     }
 

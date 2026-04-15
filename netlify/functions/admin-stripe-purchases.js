@@ -3,6 +3,7 @@ const { getConfig } = require("./_lib/config");
 const { requireRole } = require("./_lib/authz");
 const { listStripePurchases, listTrainingPrograms, updateStripePurchaseById } = require("./_lib/supabase");
 const { getStripeClient } = require("./_lib/stripe");
+const { reportOperationalError } = require("./_lib/ops-notifications");
 
 function resolveCheckoutChannel(purchase) {
   if (!purchase || typeof purchase !== "object") return "other";
@@ -226,12 +227,13 @@ async function enrichWithStripeLive(config, purchases, { includeRaw = false } = 
 }
 
 exports.handler = async (event) => {
+  let config;
   if (event.httpMethod !== "GET") {
     return json(405, { error: "Method not allowed" });
   }
 
   try {
-    const config = getConfig();
+    config = getConfig();
     const auth = await requireRole(event, config, "admin");
     if (auth.error) return auth.error;
 
@@ -324,6 +326,16 @@ exports.handler = async (event) => {
       }
     });
   } catch (err) {
+    await reportOperationalError(config, {
+      source: "admin-stripe-purchases",
+      title: "Falha ao listar compras Stripe",
+      error: err,
+      status: 500,
+      metadata: {
+        method: event && event.httpMethod ? event.httpMethod : null,
+        path: event && event.path ? event.path : null
+      }
+    });
     return json(500, { error: err.message || "Erro ao listar compras" });
   }
 };

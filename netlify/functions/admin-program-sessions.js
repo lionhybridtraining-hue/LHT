@@ -47,6 +47,8 @@ function validateSession(entry, index) {
     throw Object.assign(new Error(`sessions[${index}].running_session_type is invalid`), { status: 400 });
   }
 
+  const runningPlanTemplateId = entry.running_plan_template_id == null ? null : entry.running_plan_template_id.toString().trim() || null;
+
   const durationEstimateMin = entry.duration_estimate_min == null ? null : Number(entry.duration_estimate_min);
   if (durationEstimateMin != null && (!Number.isInteger(durationEstimateMin) || durationEstimateMin < 0)) {
     throw Object.assign(new Error(`sessions[${index}].duration_estimate_min must be a non-negative integer`), { status: 400 });
@@ -65,6 +67,7 @@ function validateSession(entry, index) {
     strength_plan_id: strengthPlanId,
     strength_day_number: strengthDayNumber,
     running_session_type: runningSessionType,
+    running_plan_template_id: runningPlanTemplateId,
     duration_estimate_min: durationEstimateMin,
     intensity,
     is_optional: entry.is_optional === true || entry.is_optional === "true",

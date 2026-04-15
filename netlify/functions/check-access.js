@@ -136,7 +136,9 @@ async function syncFromPaymentIntent(config, user, paymentIntentId, fallbackProg
     programId: program.id,
     billingType: metadata.billing_type || program.billing_type,
     email: metadata.email || user.email || null,
-    source: "stripe_elements",
+    source: (program.payment_model || "").toString().trim().toLowerCase() === "phased"
+      ? "stripe_elements_phased"
+      : "stripe_elements",
     subscriptionId,
     expiresAt
   });

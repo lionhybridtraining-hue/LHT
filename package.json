@@ -6,7 +6,11 @@
     "dev": "netlify dev --context dev --no-open --port 8888 --functions-port 9999",
     "dev:offline": "netlify dev --offline --context dev --no-open --port 8888 --functions-port 9999",
     "dev:planocorrida": "cd aer-frontend-main && VITE_ROUTER_BASENAME=/planocorrida VITE_ASSET_BASE_PATH=/planocorrida/ npm run dev -- --host 127.0.0.1 --port 5173",
-    "migrate:posts": "node scripts/migrate-posts-to-db.mjs"
+    "migrate:posts": "node scripts/migrate-posts-to-db.mjs",
+    "seed:running:aer": "node scripts/seed-running-plans-from-aer-backend.mjs",
+    "seed:running:aer:steps": "node scripts/apply-running-workout-steps-aer.mjs",
+    "seed:running:aer:dedupe": "node scripts/dedupe-running-plans-advanced-elite.mjs",
+    "seed:running:aer:normalize": "node scripts/normalize-running-plans-aer-levels.mjs"
   },
   "devDependencies": {
     "netlify-cli": "^24.2.0",

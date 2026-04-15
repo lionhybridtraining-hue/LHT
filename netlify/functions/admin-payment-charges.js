@@ -16,6 +16,7 @@ const {
   listTrainingPrograms,
   listStripePurchases
 } = require("./_lib/supabase");
+const { reportOperationalError } = require("./_lib/ops-notifications");
 
 function mapChargeStatusToPurchaseStatus(status) {
   const normalized = String(status || "").trim().toLowerCase();
@@ -43,12 +44,13 @@ function inferPurchaseMethod(purchase) {
 }
 
 exports.handler = async (event) => {
+  let config;
   if (event.httpMethod !== "GET") {
     return json(405, { error: "Method not allowed" });
   }
 
   try {
-    const config = getConfig();
+    config = getConfig();
     const auth = await requireRole(event, config, "admin");
     if (auth.error) return auth.error;
 
@@ -206,6 +208,16 @@ exports.handler = async (event) => {
       }
     });
   } catch (err) {
+    await reportOperationalError(config, {
+      source: "admin-payment-charges",
+      title: "Falha ao listar linhas de pagamento",
+      error: err,
+      status: 500,
+      metadata: {
+        method: event && event.httpMethod ? event.httpMethod : null,
+        path: event && event.path ? event.path : null
+      }
+    });
     return json(500, { error: err.message || "Erro ao listar linhas de pagamento" });
   }
 };

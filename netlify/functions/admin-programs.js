@@ -8,6 +8,7 @@ const {
   getTrainingEventById
 } = require("./_lib/supabase");
 const { createStripeProductAndPrice, createPriceForProduct, getStripeClient, syncStripeStatus } = require("./_lib/stripe");
+const { reportOperationalError } = require("./_lib/ops-notifications");
 
 const DEFAULT_EXTERNAL_SOURCE = "lht";
 const MAX_EXTERNAL_ID_LENGTH = 64;
@@ -374,6 +375,9 @@ function normalizeProgramPayload(payload) {
   if (!["self_serve", "coached_one_time", "coached_recurring"].includes(accessModel)) {
     throw new Error("accessModel must be self_serve, coached_one_time or coached_recurring");
   }
+  if (billingType !== "recurring" && durationWeeks == null) {
+    throw new Error("durationWeeks is required when billingType is not recurring");
+  }
   if (accessModel === "coached_recurring" && billingType !== "recurring") {
     throw new Error("accessModel coached_recurring requires billingType recurring");
   }
@@ -397,15 +401,17 @@ function normalizeProgramPayload(payload) {
     name,
     external_source: externalSource,
     external_id: externalId,
-    default_coach_identity_id: payload.defaultCoachIdentityId == null
+    default_coach_identity_id: accessModel === "self_serve"
+      ? null
+      : (payload.defaultCoachIdentityId == null
       ? (payload.default_coach_identity_id == null ? null : payload.default_coach_identity_id.toString().trim() || null)
-      : payload.defaultCoachIdentityId.toString().trim() || null,
+      : payload.defaultCoachIdentityId.toString().trim() || null),
     commercial_description: commercialDescription,
     technical_description: technicalDescription,
     description,
     image_url: imageUrl,
     classification,
-    duration_weeks: durationWeeks,
+    duration_weeks: billingType === "recurring" ? null : durationWeeks,
     price_cents: priceCents,
     recurring_price_monthly_cents: recurringPriceMonthlyCents,
     recurring_price_quarterly_cents: recurringPriceQuarterlyCents,
@@ -498,8 +504,9 @@ async function clearHighlightedPrograms(config, keepProgramId = null) {
 
 exports.handler = async (event) => {
   const method = event.httpMethod;
+  let config;
   try {
-    const config = getConfig();
+    config = getConfig();
     const auth = await requireRole(event, config, "admin");
     if (auth.error) return auth.error;
 
@@ -858,6 +865,9 @@ exports.handler = async (event) => {
           : String(dbPatch.defaultCoachIdentityId).trim() || null;
         delete dbPatch.defaultCoachIdentityId;
       }
+      if (dbPatch.access_model === "self_serve") {
+        dbPatch.default_coach_identity_id = null;
+      }
       if (dbPatch.access_model === "coached_recurring" && dbPatch.billing_type && dbPatch.billing_type !== "recurring") {
         return json(400, { error: "accessModel coached_recurring requires billingType recurring" });
       }
@@ -870,6 +880,7 @@ exports.handler = async (event) => {
 
       if (dbPatch.billing_type === "recurring") {
         dbPatch.payment_model = "recurring";
+        dbPatch.duration_weeks = null;
       }
 
       if (dbPatch.billing_type === "recurring") {
@@ -955,6 +966,18 @@ exports.handler = async (event) => {
     return json(405, { error: "Method not allowed" });
   } catch (err) {
     const status = Number.isInteger(err && err.status) ? err.status : 500;
+    if (status >= 500) {
+      await reportOperationalError(config, {
+        source: "admin-programs",
+        title: "Falha ao gerir catalogo de programas",
+        error: err,
+        status,
+        metadata: {
+          method,
+          path: event && event.path ? event.path : null
+        }
+      });
+    }
     return json(status, { error: err.message || "Erro ao gerir programas" });
   }
 };

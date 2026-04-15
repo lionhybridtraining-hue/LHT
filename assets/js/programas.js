@@ -23,6 +23,19 @@
   let appliedCoupon = null;
   let selectedInterval = '';
   let lastSelectedProgramId = '';
+  let filterStrength = '';
+  let filterEndurance = '';
+  let filterFollowup = '';
+
+  function getFiltersNodes(){
+    return {
+      section: document.getElementById('programs-filters'),
+      strength: document.getElementById('filter-strength'),
+      endurance: document.getElementById('filter-endurance'),
+      followup: document.getElementById('filter-followup'),
+      clear: document.getElementById('clear-filters')
+    };
+  }
 
   function animateDetailHeight(detail, fromHeight, toHeight){
     if(!detail || !fromHeight || !toHeight || fromHeight === toHeight) return;
@@ -176,6 +189,65 @@
     return '';
   }
 
+  function getFilteredPrograms(){
+    return (Array.isArray(programs) ? programs : []).filter(function(program){
+      var view = getClassificationView(program);
+      var hasStrength = Boolean(view.strengthToken);
+      var hasEndurance = Boolean(view.enduranceToken);
+      var accessModel = String(program && program.accessModel ? program.accessModel : '').trim().toLowerCase();
+
+      if(filterStrength === 'has' && !hasStrength) return false;
+      if(filterStrength === 'no' && hasStrength) return false;
+
+      if(filterEndurance === 'has' && !hasEndurance) return false;
+      if(filterEndurance === 'no' && hasEndurance) return false;
+
+      if(filterFollowup && accessModel !== filterFollowup) return false;
+
+      return true;
+    });
+  }
+
+  function bindFilterEvents(){
+    var nodes = getFiltersNodes();
+    if(!nodes.section) return;
+    if(nodes.section.dataset.bound === '1') return;
+    nodes.section.dataset.bound = '1';
+
+    if(nodes.strength){
+      nodes.strength.addEventListener('change', function(event){
+        filterStrength = String(event.target.value || '').trim().toLowerCase();
+        render();
+      });
+    }
+
+    if(nodes.endurance){
+      nodes.endurance.addEventListener('change', function(event){
+        filterEndurance = String(event.target.value || '').trim().toLowerCase();
+        render();
+      });
+    }
+
+    if(nodes.followup){
+      nodes.followup.addEventListener('change', function(event){
+        filterFollowup = String(event.target.value || '').trim().toLowerCase();
+        render();
+      });
+    }
+
+    if(nodes.clear){
+      nodes.clear.addEventListener('click', function(){
+        filterStrength = '';
+        filterEndurance = '';
+        filterFollowup = '';
+        if(nodes.strength) nodes.strength.value = '';
+        if(nodes.endurance) nodes.endurance.value = '';
+        if(nodes.followup) nodes.followup.value = '';
+        render();
+      });
+    }
+  }
+
   function shouldShowProgramAvailability(program){
     var availabilityLabel = formatProgramAvailability(program && program.startDate ? program.startDate : '');
     var followupLabel = getProgramFollowupLabel(program);
@@ -284,6 +356,25 @@
       + '<div class="program-detail-experience">'
       + '<p><strong>Experiência de treino recomendada:</strong></p>'
       + lines.map(function(line){ return '<p>' + escapeHtml(line) + '</p>'; }).join('')
+      + '</div>';
+  }
+
+  function buildProgramFollowupHtml(program){
+    var accessModel = String(program && program.accessModel ? program.accessModel : '').trim().toLowerCase();
+    var label, description;
+    if(accessModel === 'coached_recurring'){
+      label = 'Acompanhamento individualizado';
+      description = 'Este programa inclui acompanhamento personalizado contínuo por um treinador — com feedback regular, ajustes ao plano e comunicação direta.';
+    } else if(accessModel === 'coached_one_time'){
+      label = 'Acompanhamento em grupo';
+      description = 'Este programa decorre em formato de grupo, com sessões de acompanhamento partilhadas e suporte do treinador ao longo do ciclo.';
+    } else {
+      return '';
+    }
+    return ''
+      + '<div class="program-detail-followup">'
+      + '<p><strong>' + escapeHtml(label) + '</strong></p>'
+      + '<p>' + escapeHtml(description) + '</p>'
       + '</div>';
   }
 
@@ -818,6 +909,7 @@
   function render(){
     var root = document.getElementById('programs-app');
     var detail = document.getElementById('program-detail');
+    var filtersNodes = getFiltersNodes();
     var hadVisibleDetail = Boolean(detail && !detail.hidden && detail.childElementCount > 0);
     var previousDetailHeight = hadVisibleDetail ? detail.offsetHeight : 0;
     var previousSelectedProgramId = lastSelectedProgramId;
@@ -856,6 +948,7 @@
     }
 
     if(loadingPrograms){
+      if(filtersNodes.section) filtersNodes.section.hidden = true;
       var loading = document.createElement('div');
       loading.className = 'notice';
       loading.textContent = 'A carregar programas...';
@@ -864,6 +957,7 @@
     }
 
     if(!programs.length){
+      if(filtersNodes.section) filtersNodes.section.hidden = true;
       var empty = document.createElement('div');
       empty.className = 'notice';
       empty.textContent = 'Nao existem programas ativos neste momento.';
@@ -871,9 +965,25 @@
       return;
     }
 
+    if(filtersNodes.section){
+      filtersNodes.section.hidden = false;
+    }
+    bindFilterEvents();
+
+    var visiblePrograms = getFilteredPrograms();
+
+    if(!visiblePrograms.length){
+      var noResults = document.createElement('div');
+      noResults.className = 'notice';
+      noResults.textContent = 'Nenhum programa corresponde aos filtros selecionados.';
+      root.appendChild(noResults);
+      lastSelectedProgramId = '';
+      return;
+    }
+
     var selectedProgramId = getSelectedProgramId();
     var selectedProgram = null;
-    programs.forEach(function(program){
+    visiblePrograms.forEach(function(program){
       var card = document.createElement('article');
       card.className = 'program-card' + (selectedProgramId === program.id ? ' selected' : '');
       card.id = 'program-card-' + program.id;
@@ -989,7 +1099,7 @@
 
       var detailCopy = document.createElement('div');
       detailCopy.className = 'program-detail-copy';
-      detailCopy.innerHTML = programTechnicalDescription(selectedProgram) + buildProgramExperienceHtml(selectedProgram);
+      detailCopy.innerHTML = programTechnicalDescription(selectedProgram) + buildProgramExperienceHtml(selectedProgram) + buildProgramFollowupHtml(selectedProgram);
       detail.appendChild(detailCopy);
 
       var detailActions = document.createElement('div');

@@ -813,3 +813,115 @@ body.checkout-open {
     font-size: 12px;
   }
 }
+
+/* Programs Filters Section */
+
+.programs-filters {
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(212, 165, 79, 0.22);
+  background: linear-gradient(180deg, rgba(212, 165, 79, 0.06), rgba(212, 165, 79, 0.02));
+}
+
+.filters-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px;
+  align-items: end;
+}
+
+.filter-group {
+  display: grid;
+  gap: 8px;
+  flex: 1;
+}
+
+.filter-group label {
+  display: block;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.filter-help {
+  margin: 0;
+  color: rgba(245, 241, 232, 0.68);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.filter-select {
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.28);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.4;
+  outline: none;
+  transition: border-color 0.22s ease, background 0.22s ease;
+  cursor: pointer;
+  appearance: none;
+  padding-right: 28px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23d4a54f' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-color: rgba(0, 0, 0, 0.28);
+}
+
+.filter-select:hover {
+  border-color: rgba(212, 165, 79, 0.32);
+  background-color: rgba(0, 0, 0, 0.32);
+}
+
+.filter-select:focus {
+  border-color: rgba(212, 165, 79, 0.55);
+  background-color: rgba(0, 0, 0, 0.36);
+  box-shadow: 0 0 0 2px rgba(212, 165, 79, 0.1);
+}
+
+.btn-clear-filters {
+  padding: 10px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(212, 165, 79, 0.32);
+  background: rgba(212, 165, 79, 0.08);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: border-color 0.22s ease, background 0.22s ease, color 0.22s ease;
+  outline: none;
+}
+
+.btn-clear-filters:hover,
+.btn-clear-filters:focus {
+  border-color: rgba(212, 165, 79, 0.55);
+  background: rgba(212, 165, 79, 0.16);
+  color: var(--gold);
+}
+
+.btn-clear-filters:active {
+  transform: scale(0.98);
+}
+
+@media (max-width: 720px) {
+  .filters-container {
+    grid-template-columns: 1fr;
+  }
+
+  .filter-group,
+  .btn-clear-filters {
+    width: 100%;
+  }
+}
+
+#programs-filters[hidden] {
+  display: none;
+}

@@ -62,6 +62,8 @@ export interface MyProgram {
   presetSelection?: "coach" | "athlete";
   /** Preset already selected for this assignment (null if not yet chosen) */
   selectedPresetId?: string | null;
+  /** Variant already selected for this assignment (null if not yet chosen) */
+  selectedVariantId?: string | null;
   /** True if the assignment is active but no preset has been selected yet */
   needsPresetSelection?: boolean;
 }

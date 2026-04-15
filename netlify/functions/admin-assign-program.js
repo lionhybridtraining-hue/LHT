@@ -14,6 +14,7 @@ const {
   getCoachByIdentityId,
   listStrengthPlanInstances
 } = require("./_lib/supabase");
+const { reportOperationalError } = require("./_lib/ops-notifications");
 
 function normalizeAssignmentPayload(payload) {
   const athleteId = (payload.athleteId || "").toString().trim();
@@ -86,12 +87,13 @@ function mapAssignment(row) {
 
 
 exports.handler = async (event) => {
+  let config;
   if (!["GET", "POST", "PATCH"].includes(event.httpMethod)) {
     return json(405, { error: "Method not allowed" });
   }
 
   try {
-    const config = getConfig();
+    config = getConfig();
     const auth = await requireAuthenticatedUser(event, config);
     if (auth.error) return auth.error;
 
@@ -340,6 +342,19 @@ exports.handler = async (event) => {
     });
   } catch (err) {
     console.error("[admin-assign-program] ERROR:", err.message, err.stack);
+    const status = (err && Number.isInteger(err.status)) ? err.status : 500;
+    if (status >= 500) {
+      await reportOperationalError(config, {
+        source: "admin-assign-program",
+        title: "Falha ao gerir assignment de programa",
+        error: err,
+        status,
+        metadata: {
+          method: event && event.httpMethod ? event.httpMethod : null,
+          path: event && event.path ? event.path : null
+        }
+      });
+    }
     if ((err.message || "").includes('null value in column "coach_id"')) {
       return json(409, {
         error: "Self-serve indisponivel: a coluna program_assignments.coach_id ainda esta NOT NULL. Executa scripts/migration-assignment-coach-nullable.sql."

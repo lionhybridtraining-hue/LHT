@@ -173,6 +173,7 @@ exports.handler = async (event) => {
 
     const now = new Date().toISOString();
     const today = now.slice(0, 10);
+    const templatesByProgramId = {};
 
     // ── Purchase-based program entries ──
     const purchasePrograms = purchases.map((purchase) => {
@@ -264,7 +265,6 @@ exports.handler = async (event) => {
     }
 
     // Fetch templates for all relevant programs in parallel
-    const templatesByProgramId = {};
     if (assignmentProgramIdsForTemplates.size > 0) {
       const templateFetches = [...assignmentProgramIdsForTemplates].map(async (programId) => {
         const plans = await listStrengthPlans(config, { trainingProgramId: programId });
@@ -339,7 +339,8 @@ exports.handler = async (event) => {
             : null,
           assignment: {
             id: assignment.id,
-            selectedPresetId: assignment.selected_preset_id || null
+            selectedPresetId: assignment.selected_preset_id || null,
+            selectedVariantId: assignment.selected_variant_id || null
           },
           phase,
           isCoachLocked,

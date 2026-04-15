@@ -79,6 +79,48 @@ function getAvailableRecurringIntervals(program) {
   return Object.keys(map).filter((interval) => !!map[interval]);
 }
 
+function parsePositiveInt(value, fallback) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return fallback;
+  const intValue = Math.floor(parsed);
+  return intValue > 0 ? intValue : fallback;
+}
+
+function resolvePhasedConfig(body, totalAmountCents) {
+  const phasedBody = body && typeof body.phasedPlan === "object" ? body.phasedPlan : {};
+  const totalInstallments = parsePositiveInt(
+    phasedBody.totalInstallments != null ? phasedBody.totalInstallments : body.phased_total_installments,
+    parsePositiveInt(process.env.PHASED_DEFAULT_INSTALLMENTS, 3)
+  );
+  const frequencyRaw = (phasedBody.frequency || body.phased_frequency || process.env.PHASED_DEFAULT_FREQUENCY || "monthly")
+    .toString()
+    .trim()
+    .toLowerCase();
+  const frequency = ["weekly", "biweekly", "monthly"].includes(frequencyRaw)
+    ? frequencyRaw
+    : "monthly";
+  const gracePeriodDays = parsePositiveInt(
+    phasedBody.gracePeriodDays != null ? phasedBody.gracePeriodDays : body.phased_grace_period_days,
+    parsePositiveInt(process.env.PHASED_DEFAULT_GRACE_DAYS, 7)
+  );
+  const maxRetryAttempts = parsePositiveInt(
+    phasedBody.maxRetryAttempts != null ? phasedBody.maxRetryAttempts : body.phased_max_retry_attempts,
+    parsePositiveInt(process.env.PHASED_DEFAULT_MAX_RETRIES, 3)
+  );
+
+  const normalizedInstallments = Math.max(2, totalInstallments);
+  const firstInstallmentAmount = Math.ceil(totalAmountCents / normalizedInstallments);
+
+  return {
+    totalAmountCents,
+    totalInstallments: normalizedInstallments,
+    firstInstallmentAmount,
+    frequency,
+    gracePeriodDays,
+    maxRetryAttempts
+  };
+}
+
 async function ensureZeroCouponProvisioning(config, { identityId, email, program, purchase }) {
   try {
     // 1. Ensure athlete exists
@@ -174,6 +216,8 @@ exports.handler = async (event) => {
     const resolvedBillingInterval = program.billing_type === "recurring"
       ? (requestedBillingInterval || "monthly")
       : "";
+    const paymentModel = (program.payment_model || "single").toString().trim().toLowerCase();
+    const isPhasedPayment = paymentModel === "phased" && program.billing_type !== "recurring";
     const priceId = resolvePriceId(program, requestedBillingInterval);
 
     if (!priceId) {
@@ -213,6 +257,7 @@ exports.handler = async (event) => {
       program_external_id: program.external_id || "",
       identity_id: auth.user.sub,
       billing_type: program.billing_type || "one_time",
+      payment_model: paymentModel,
       billing_interval: resolvedBillingInterval,
       email: auth.user.email || "",
       event_source_url: body.event_source_url || "",
@@ -333,6 +378,18 @@ exports.handler = async (event) => {
         piParams.metadata.coupon_id = coupon.id;
       }
 
+      let phasedConfig = null;
+      if (isPhasedPayment) {
+        phasedConfig = resolvePhasedConfig(body, piParams.amount);
+        piParams.amount = phasedConfig.firstInstallmentAmount;
+        piParams.metadata.phased_total_amount_cents = String(phasedConfig.totalAmountCents);
+        piParams.metadata.phased_total_installments = String(phasedConfig.totalInstallments);
+        piParams.metadata.phased_frequency = phasedConfig.frequency;
+        piParams.metadata.phased_grace_period_days = String(phasedConfig.gracePeriodDays);
+        piParams.metadata.phased_max_retry_attempts = String(phasedConfig.maxRetryAttempts);
+        piParams.metadata.phased_first_charge_cents = String(phasedConfig.firstInstallmentAmount);
+      }
+
       // Stripe does not allow creating PaymentIntents with amount 0.
       // For 100% discounts we persist a paid purchase directly and let onboarding/check-access continue.
       if (piParams.amount <= 0) {
@@ -375,6 +432,7 @@ exports.handler = async (event) => {
             externalId: program.external_id || null,
             name: program.name,
             billingType: program.billing_type,
+            paymentModel,
             priceCents: 0,
             originalPriceCents: price.unit_amount,
             currency: String(price.currency || program.currency || "EUR").toUpperCase()
@@ -436,6 +494,7 @@ exports.handler = async (event) => {
         externalId: program.external_id || null,
         name: program.name,
         billingType: program.billing_type,
+        paymentModel,
         priceCents: (paymentIntent && paymentIntent.amount) || price.unit_amount,
         originalPriceCents: price.unit_amount,
         currency: String(price.currency || program.currency || "EUR").toUpperCase()

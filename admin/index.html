@@ -47,6 +47,7 @@
           <button id="tab-leads-central" class="admin-tab" type="button" role="tab" aria-selected="false" aria-controls="leads-central-panel">Funil Leads</button>
           <button id="tab-ai" class="admin-tab" type="button" role="tab" aria-selected="false" aria-controls="ai-panel">IA</button>
           <button id="tab-operations" class="admin-tab" type="button" role="tab" aria-selected="false" aria-controls="operations-panel">Operacoes</button>
+          <button id="tab-emails" class="admin-tab" type="button" role="tab" aria-selected="false" aria-controls="emails-panel">Emails</button>
         </div>
       </div>
       <div class="auth-panel">
@@ -1089,16 +1090,49 @@
                 <small class="field-hint">Usada no destaque da home e nos cards de programas.</small>
               </div>
               <div class="field">
-                <label for="program-duration-weeks">Duracao (semanas)</label>
-                <input id="program-duration-weeks" type="number" min="1" />
-              </div>
-              <div class="field">
                 <label for="program-status">Estado</label>
                 <select id="program-status">
                   <option value="draft">draft</option>
                   <option value="active">active</option>
                   <option value="archived">archived</option>
                 </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="programs-form-section field-wide">
+            <div class="programs-form-section-head">
+              <h3>Acesso e operacao</h3>
+              <p>Regras de entrega do programa depois da compra ou atribuicao manual.</p>
+            </div>
+            <div class="programs-form-grid">
+              <div class="field">
+                <label for="program-access-model">Modelo de acesso</label>
+                <select id="program-access-model">
+                  <option value="coached_one_time">coached_one_time - acompanhamento com data de fim</option>
+                  <option value="self_serve">self_serve - atleta gere a instancia sozinho</option>
+                  <option value="coached_recurring">coached_recurring - ativo enquanto subscricao paga</option>
+                </select>
+                <small class="field-hint">Define quem controla a instancia e como o acesso e gerido apos o pagamento.</small>
+              </div>
+              <div class="field">
+                <label for="program-default-coach">Coach por defeito</label>
+                <select id="program-default-coach">
+                  <option value="">Nenhum (self-serve)</option>
+                </select>
+                <small class="field-hint">Coach atribuido automaticamente ao atleta quando compra este programa.</small>
+              </div>
+              <div class="field">
+                <label for="program-duration-weeks">Duracao (semanas)</label>
+                <input id="program-duration-weeks" type="number" min="1" />
+                <small id="program-duration-weeks-hint" class="field-hint" hidden>Nao aplicavel em programas recorrentes; fora de recurring continua obrigatoria.</small>
+              </div>
+              <div class="field field-wide field-checkbox-card">
+                <label class="checkbox-line" for="program-highlighted">
+                  <input type="checkbox" id="program-highlighted" />
+                  <span>Destacar na homepage</span>
+                </label>
+                <small class="field-hint">Apenas um programa pode estar destacado de cada vez.</small>
               </div>
             </div>
           </div>
@@ -1117,7 +1151,7 @@
                 <label for="program-currency">Moeda</label>
                 <input id="program-currency" type="text" value="EUR" maxlength="3" />
               </div>
-              <div class="field">
+              <div class="field" hidden aria-hidden="true" style="display:none;">
                 <label for="program-billing-type">Tipo de faturacao</label>
                 <select id="program-billing-type">
                   <option value="one_time">one_time</option>
@@ -1129,9 +1163,8 @@
                 <select id="program-payment-model">
                   <option value="single">single</option>
                   <option value="phased">phased</option>
-                  <option value="recurring">recurring</option>
                 </select>
-                <small class="field-hint">No billing recurring, este campo fica forçado para recurring.</small>
+                <small class="field-hint">Escolhe apenas entre pagamento unico ou plano faseado. Em coached_recurring este campo e ocultado.</small>
               </div>
               <div id="program-recurring-pricing-fields" class="field field-wide recurring-pricing-fields" hidden>
                 <label>Precos recorrentes (euros)</label>
@@ -1177,38 +1210,6 @@
                 <label for="program-stripe-price-id">Stripe Price ID</label>
                 <input id="program-stripe-price-id" type="text" placeholder="price_..." />
                 <small class="field-hint">ID do preco no Stripe. Se ativares a criacao automatica, deixa este campo vazio.</small>
-              </div>
-            </div>
-          </div>
-
-          <div class="programs-form-section field-wide">
-            <div class="programs-form-section-head">
-              <h3>Acesso e operacao</h3>
-              <p>Regras de entrega do programa depois da compra ou atribuicao manual.</p>
-            </div>
-            <div class="programs-form-grid">
-              <div class="field">
-                <label for="program-access-model">Modelo de acesso</label>
-                <select id="program-access-model">
-                  <option value="coached_one_time">coached_one_time - acompanhamento com data de fim</option>
-                  <option value="self_serve">self_serve - atleta gere a instancia sozinho</option>
-                  <option value="coached_recurring">coached_recurring - ativo enquanto subscricao paga</option>
-                </select>
-                <small class="field-hint">Define quem controla a instancia e como o acesso e gerido apos o pagamento.</small>
-              </div>
-              <div class="field">
-                <label for="program-default-coach">Coach por defeito</label>
-                <select id="program-default-coach">
-                  <option value="">Nenhum (self-serve)</option>
-                </select>
-                <small class="field-hint">Coach atribuido automaticamente ao atleta quando compra este programa.</small>
-              </div>
-              <div class="field field-wide field-checkbox-card">
-                <label class="checkbox-line" for="program-highlighted">
-                  <input type="checkbox" id="program-highlighted" />
-                  <span>Destacar na homepage</span>
-                </label>
-                <small class="field-hint">Apenas um programa pode estar destacado de cada vez.</small>
               </div>
             </div>
           </div>
@@ -1328,6 +1329,16 @@
               <select id="programs-filter-modality" class="programs-filter-select">
                 <option value="">Modalidade: Todas</option>
               </select>
+               <select id="programs-filter-strength" class="programs-filter-select">
+                 <option value="">Força: Todos</option>
+                 <option value="has">Com força</option>
+                 <option value="no">Sem força</option>
+               </select>
+               <select id="programs-filter-endurance" class="programs-filter-select">
+                 <option value="">Endurance: Todos</option>
+                 <option value="has">Com endurance</option>
+                 <option value="no">Sem endurance</option>
+               </select>
               <select id="programs-filter-experience" class="programs-filter-select">
                 <option value="">Experiencia: Todos</option>
                 <option value="beginner">Iniciante</option>
@@ -1423,11 +1434,59 @@
                     <label for="edit-program-image-url">Imagem (URL)</label>
                     <input id="edit-program-image-url" type="url" placeholder="https://..." />
                   </div>
+                </div>
+              </div>
+
+              <div class="programs-form-section field-wide">
+                <div class="programs-form-section-head">
+                  <h3>Acesso e estado</h3>
+                  <p>Controla como o programa e entregue e se fica disponivel para operacao comercial.</p>
+                </div>
+                <div class="programs-form-grid">
+                  <div class="field">
+                    <label for="edit-program-access-model">Tipo de acesso</label>
+                    <select id="edit-program-access-model">
+                      <option value="coached_one_time">coached_one_time</option>
+                      <option value="self_serve">self_serve</option>
+                      <option value="coached_recurring">coached_recurring</option>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label for="edit-program-default-coach">Coach por defeito</label>
+                    <select id="edit-program-default-coach">
+                      <option value="">Nenhum (self-serve)</option>
+                    </select>
+                    <small class="field-hint">Coach auto-atribuido ao atleta na compra.</small>
+                  </div>
                   <div class="field">
                     <label for="edit-program-duration-weeks">Duracao (semanas)</label>
                     <input id="edit-program-duration-weeks" type="number" min="1" />
-                    <small id="edit-program-duration-weeks-hint" class="field-hint" hidden>Desativado para billing recurring.</small>
+                    <small id="edit-program-duration-weeks-hint" class="field-hint" hidden>Nao aplicavel em programas recorrentes; fora de recurring continua obrigatoria.</small>
                   </div>
+                  <div class="field">
+                    <label for="edit-program-status">Estado</label>
+                    <select id="edit-program-status">
+                      <option value="draft">draft</option>
+                      <option value="active">active</option>
+                      <option value="archived">archived</option>
+                    </select>
+                  </div>
+                  <div class="field field-wide field-checkbox-card">
+                    <label class="checkbox-line" for="edit-program-highlighted">
+                      <input type="checkbox" id="edit-program-highlighted" />
+                      <span>Destacar na homepage</span>
+                    </label>
+                    <small class="field-hint">Se ativado, remove o destaque dos restantes programas.</small>
+                  </div>
+                </div>
+              </div>
+
+              <div class="programs-form-section field-wide">
+                <div class="programs-form-section-head">
+                  <h3>Comercial e Stripe</h3>
+                  <p>Edita preco, moeda e identificadores Stripe depois de definires como o programa e entregue.</p>
+                </div>
+                <div class="programs-form-grid">
                   <div id="edit-program-price-one-time-field" class="field" hidden>
                     <label for="edit-program-price-cents">Preco (euros)</label>
                     <input id="edit-program-price-cents" type="number" min="0" step="0.01" />
@@ -1436,7 +1495,7 @@
                     <label for="edit-program-currency">Moeda</label>
                     <input id="edit-program-currency" type="text" maxlength="3" />
                   </div>
-                  <div class="field">
+                  <div class="field" hidden aria-hidden="true" style="display:none;">
                     <label for="edit-program-billing-type">Billing</label>
                     <select id="edit-program-billing-type">
                       <option value="one_time">one_time</option>
@@ -1448,9 +1507,8 @@
                     <select id="edit-program-payment-model">
                       <option value="single">single</option>
                       <option value="phased">phased</option>
-                      <option value="recurring">recurring</option>
                     </select>
-                    <small class="field-hint">No billing recurring, este campo fica forçado para recurring.</small>
+                    <small class="field-hint">Escolhe apenas entre pagamento unico ou plano faseado. Em coached_recurring este campo e ocultado.</small>
                   </div>
                   <div id="edit-program-recurring-pricing-fields" class="field field-wide recurring-pricing-fields" hidden>
                     <label>Precos recorrentes (euros)</label>
@@ -1489,45 +1547,6 @@
                   <div class="field" style="display:none;" aria-hidden="true">
                     <label for="edit-program-stripe-price-id">Stripe Price ID</label>
                     <input id="edit-program-stripe-price-id" type="text" />
-                  </div>
-                </div>
-              </div>
-
-              <div class="programs-form-section field-wide">
-                <div class="programs-form-section-head">
-                  <h3>Acesso e estado</h3>
-                  <p>Controla como o programa e entregue e se fica disponivel para operacao comercial.</p>
-                </div>
-                <div class="programs-form-grid">
-                  <div class="field">
-                    <label for="edit-program-access-model">Tipo de acesso</label>
-                    <select id="edit-program-access-model">
-                      <option value="coached_one_time">coached_one_time</option>
-                      <option value="self_serve">self_serve</option>
-                      <option value="coached_recurring">coached_recurring</option>
-                    </select>
-                  </div>
-                  <div class="field">
-                    <label for="edit-program-default-coach">Coach por defeito</label>
-                    <select id="edit-program-default-coach">
-                      <option value="">Nenhum (self-serve)</option>
-                    </select>
-                    <small class="field-hint">Coach auto-atribuido ao atleta na compra.</small>
-                  </div>
-                  <div class="field">
-                    <label for="edit-program-status">Estado</label>
-                    <select id="edit-program-status">
-                      <option value="draft">draft</option>
-                      <option value="active">active</option>
-                      <option value="archived">archived</option>
-                    </select>
-                  </div>
-                  <div class="field field-wide field-checkbox-card">
-                    <label class="checkbox-line" for="edit-program-highlighted">
-                      <input type="checkbox" id="edit-program-highlighted" />
-                      <span>Destacar na homepage</span>
-                    </label>
-                    <small class="field-hint">Se ativado, remove o destaque dos restantes programas.</small>
                   </div>
                 </div>
               </div>
@@ -2444,6 +2463,149 @@
 
       </section>
 
+      <section id="emails-panel" class="admin-athletes" hidden>
+        <div class="editor-top">
+          <div>
+            <p class="section-eyebrow">Comunicacoes</p>
+            <h2>Email Templates & Auditoria</h2>
+            <p>Gestao de templates transacionais/marketing com preview, envio de teste e registo de auditoria no Supabase.</p>
+          </div>
+          <div class="editor-actions">
+            <button id="email-template-new-btn" type="button">Novo template</button>
+            <button id="email-template-refresh-btn" type="button">Atualizar</button>
+          </div>
+        </div>
+
+        <p id="emails-message" class="message" role="status"></p>
+
+        <div class="module-grid">
+          <article class="module-card">
+            <h3>Templates</h3>
+            <div class="field">
+              <label for="email-template-select">Selecionar template</label>
+              <select id="email-template-select">
+                <option value="">Seleciona...</option>
+              </select>
+            </div>
+            <div class="admin-inline-form">
+              <div class="field">
+                <label for="email-template-name">Nome</label>
+                <input id="email-template-name" type="text" placeholder="Ex.: Check-in aprovado" />
+              </div>
+              <div class="field">
+                <label for="email-template-code">Code</label>
+                <input id="email-template-code" type="text" placeholder="Ex.: checkin_approved" />
+              </div>
+              <div class="field">
+                <label for="email-template-channel">Tipo</label>
+                <select id="email-template-channel">
+                  <option value="transactional">Transacional</option>
+                  <option value="marketing">Marketing</option>
+                </select>
+              </div>
+              <div class="field field-wide">
+                <label for="email-template-description">Descricao</label>
+                <input id="email-template-description" type="text" placeholder="Contexto interno do template" />
+              </div>
+              <div class="field field-wide">
+                <label for="email-template-subject">Subject template</label>
+                <input id="email-template-subject" type="text" placeholder="Ex.: Check-in da semana de {{weekStart}}" />
+              </div>
+              <div class="field field-wide">
+                <label for="email-template-html">HTML template</label>
+                <textarea id="email-template-html" rows="8" placeholder="Suporta placeholders {{athleteName}}"></textarea>
+              </div>
+              <div class="form-actions">
+                <button id="email-template-save-btn" type="button">Guardar template</button>
+                <button id="email-template-delete-btn" type="button">Desativar</button>
+              </div>
+            </div>
+          </article>
+
+          <article class="module-card">
+            <h3>Preview e teste</h3>
+            <div class="admin-inline-form">
+              <div class="field field-wide">
+                <label for="email-preview-context">Variaveis (JSON)</label>
+                <textarea id="email-preview-context" rows="6" placeholder='{"athleteName":"Joao", "weekStart":"2026-04-14"}'></textarea>
+              </div>
+              <div class="field field-wide">
+                <label for="email-test-recipient">Email de teste</label>
+                <input id="email-test-recipient" type="email" placeholder="Ex.: lionhybridtraining@gmail.com" />
+              </div>
+              <div class="form-actions">
+                <button id="email-preview-btn" type="button">Gerar preview</button>
+                <button id="email-test-send-btn" type="button">Enviar teste</button>
+              </div>
+              <div class="field field-wide">
+                <label for="email-preview-subject">Subject renderizado</label>
+                <input id="email-preview-subject" type="text" readonly />
+              </div>
+              <div class="field field-wide">
+                <label for="email-preview-html">HTML renderizado</label>
+                <textarea id="email-preview-html" rows="8" readonly></textarea>
+              </div>
+            </div>
+          </article>
+        </div>
+
+        <div class="editor-top" style="margin-top:16px;">
+          <div>
+            <p class="section-eyebrow">Auditoria</p>
+            <h3>Historico de envios</h3>
+          </div>
+          <div class="editor-actions">
+            <button id="email-logs-refresh-btn" type="button">Atualizar logs</button>
+          </div>
+        </div>
+
+        <div class="athletes-toolbar" style="flex-wrap:wrap;gap:8px;">
+          <div class="field">
+            <label for="email-logs-status-filter">Status</label>
+            <select id="email-logs-status-filter">
+              <option value="">Todos</option>
+              <option value="sent">sent</option>
+              <option value="failed">failed</option>
+              <option value="queued">queued</option>
+              <option value="skipped">skipped</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="email-logs-type-filter">Tipo</label>
+            <select id="email-logs-type-filter">
+              <option value="">Todos</option>
+              <option value="transactional">transactional</option>
+              <option value="marketing">marketing</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="email-logs-test-filter">Teste</label>
+            <select id="email-logs-test-filter">
+              <option value="">Todos</option>
+              <option value="1">Apenas teste</option>
+              <option value="0">Apenas reais</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="athletes-list-wrap">
+          <table class="athletes-table">
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Template</th>
+                <th>Destinatario</th>
+                <th>Status</th>
+                <th>Tipo</th>
+                <th>Teste</th>
+                <th>Erro</th>
+              </tr>
+            </thead>
+            <tbody id="email-logs-body"></tbody>
+          </table>
+        </div>
+      </section>
+
       <section id="ai-panel" class="admin-athletes" hidden>
         <div class="editor-top">
           <div>
@@ -2652,6 +2814,10 @@
     const centralLeadsApiBase = '/.netlify/functions/admin-central-leads';
     const centralLeadEventsApiBase = '/.netlify/functions/admin-central-lead-events';
     const adminLoginRetentionApiBase = '/.netlify/functions/admin-login-retention';
+    const adminEmailTemplatesApiBase = '/.netlify/functions/admin-email-templates';
+    const adminEmailPreviewApiBase = '/.netlify/functions/admin-email-preview';
+    const adminEmailTestSendApiBase = '/.netlify/functions/admin-email-test-send';
+    const adminEmailSendsApiBase = '/.netlify/functions/admin-email-sends';
     const state = {
       user: null,
       token: null,
@@ -2689,6 +2855,8 @@
         access: '',
         billing: '',
         modality: '',
+        strength: '',
+        endurance: '',
         experience: ''
       },
       purchases: [],
@@ -2707,6 +2875,9 @@
       assignments: [],
       assignmentsFiltered: [],
       retentionDashboard: null,
+      emailTemplates: [],
+      selectedEmailTemplateId: null,
+      emailSendLogs: [],
       centralLeads: [],
       centralLeadEventsByLeadId: {},
       centralLeadsCountsByStage: {},
@@ -3428,6 +3599,8 @@
       programsFilterModality: document.getElementById('programs-filter-modality'),
       programsFilterExperience: document.getElementById('programs-filter-experience'),
       programsClearFiltersBtn: document.getElementById('programs-clear-filters-btn'),
+      programsFilterStrength: document.getElementById('programs-filter-strength'),
+      programsFilterEndurance: document.getElementById('programs-filter-endurance'),
       programName: document.getElementById('program-name'),
       programExternalSource: document.getElementById('program-external-source'),
       programExternalId: document.getElementById('program-external-id'),
@@ -3442,6 +3615,7 @@
       programClassificationNotes: document.getElementById('program-classification-notes'),
       programImageUrl: document.getElementById('program-image-url'),
       programDurationWeeks: document.getElementById('program-duration-weeks'),
+      programDurationWeeksHint: document.getElementById('program-duration-weeks-hint'),
       programPriceCents: document.getElementById('program-price-cents'),
       programCurrency: document.getElementById('program-currency'),
       programStripeProductId: document.getElementById('program-stripe-product-id'),
@@ -3659,6 +3833,31 @@
       aiRefreshLogsBtn: document.getElementById('ai-refresh-logs-btn'),
       aiLogsBody: document.getElementById('ai-logs-body'),
       aiLogDetail: document.getElementById('ai-log-detail'),
+      tabEmails: document.getElementById('tab-emails'),
+      emailsPanel: document.getElementById('emails-panel'),
+      emailsMessage: document.getElementById('emails-message'),
+      emailTemplateSelect: document.getElementById('email-template-select'),
+      emailTemplateName: document.getElementById('email-template-name'),
+      emailTemplateCode: document.getElementById('email-template-code'),
+      emailTemplateDescription: document.getElementById('email-template-description'),
+      emailTemplateChannel: document.getElementById('email-template-channel'),
+      emailTemplateSubject: document.getElementById('email-template-subject'),
+      emailTemplateHtml: document.getElementById('email-template-html'),
+      emailTemplateNewBtn: document.getElementById('email-template-new-btn'),
+      emailTemplateRefreshBtn: document.getElementById('email-template-refresh-btn'),
+      emailTemplateSaveBtn: document.getElementById('email-template-save-btn'),
+      emailTemplateDeleteBtn: document.getElementById('email-template-delete-btn'),
+      emailPreviewContext: document.getElementById('email-preview-context'),
+      emailPreviewBtn: document.getElementById('email-preview-btn'),
+      emailTestRecipient: document.getElementById('email-test-recipient'),
+      emailTestSendBtn: document.getElementById('email-test-send-btn'),
+      emailPreviewSubject: document.getElementById('email-preview-subject'),
+      emailPreviewHtml: document.getElementById('email-preview-html'),
+      emailLogsRefreshBtn: document.getElementById('email-logs-refresh-btn'),
+      emailLogsStatusFilter: document.getElementById('email-logs-status-filter'),
+      emailLogsTypeFilter: document.getElementById('email-logs-type-filter'),
+      emailLogsTestFilter: document.getElementById('email-logs-test-filter'),
+      emailLogsBody: document.getElementById('email-logs-body'),
       operationsMessage: document.getElementById('operations-message'),
       refreshRetentionDashboardBtn: document.getElementById('refresh-retention-dashboard-btn'),
       retentionActive7dKpi: document.getElementById('retention-active-7d-kpi'),
@@ -3759,6 +3958,10 @@
       operations: {
         tabEl: () => els.tabOperations,
         panels: () => [els.operationsPanel]
+      },
+      emails: {
+        tabEl: () => els.tabEmails,
+        panels: () => [els.emailsPanel]
       }
     };
 
@@ -3872,6 +4075,11 @@
 
       if (activeTab === 'operations' && state.user && state.isAdmin) {
         refreshRetentionDashboard().catch((err) => showOperationsMessage(err.message, true));
+      }
+
+      if (activeTab === 'emails' && state.user && state.isAdmin) {
+        refreshEmailTemplatesData().catch((err) => showEmailsMessage(err.message, true));
+        refreshEmailLogsData().catch((err) => showEmailsMessage(err.message, true));
       }
     }
 
@@ -4759,6 +4967,215 @@
       showAiMessage(`Logs carregados: ${state.aiLogs.length}.`, false);
     }
 
+    function showEmailsMessage(text, isError) {
+      if (!els.emailsMessage) return;
+      els.emailsMessage.textContent = text || '';
+      els.emailsMessage.classList.toggle('error', Boolean(isError));
+      els.emailsMessage.classList.toggle('success', !isError && Boolean(text));
+    }
+
+    function parseEmailPreviewContext() {
+      const raw = (els.emailPreviewContext && els.emailPreviewContext.value ? els.emailPreviewContext.value : '').trim();
+      if (!raw) return {};
+      try {
+        const parsed = JSON.parse(raw);
+        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+          throw new Error('JSON deve ser um objeto.');
+        }
+        return parsed;
+      } catch (err) {
+        throw new Error(`Contexto JSON invalido: ${err.message}`);
+      }
+    }
+
+    function resetEmailTemplateEditor() {
+      state.selectedEmailTemplateId = null;
+      if (els.emailTemplateSelect) els.emailTemplateSelect.value = '';
+      if (els.emailTemplateName) els.emailTemplateName.value = '';
+      if (els.emailTemplateCode) els.emailTemplateCode.value = '';
+      if (els.emailTemplateDescription) els.emailTemplateDescription.value = '';
+      if (els.emailTemplateChannel) els.emailTemplateChannel.value = 'transactional';
+      if (els.emailTemplateSubject) els.emailTemplateSubject.value = '';
+      if (els.emailTemplateHtml) els.emailTemplateHtml.value = '';
+      if (els.emailPreviewSubject) els.emailPreviewSubject.value = '';
+      if (els.emailPreviewHtml) els.emailPreviewHtml.value = '';
+    }
+
+    function renderEmailTemplateOptions() {
+      if (!els.emailTemplateSelect) return;
+      const selectedId = state.selectedEmailTemplateId || '';
+      els.emailTemplateSelect.innerHTML = '';
+
+      const placeholder = document.createElement('option');
+      placeholder.value = '';
+      placeholder.textContent = state.emailTemplates.length ? 'Seleciona um template...' : 'Sem templates';
+      els.emailTemplateSelect.appendChild(placeholder);
+
+      state.emailTemplates.forEach((template) => {
+        const option = document.createElement('option');
+        option.value = template.id;
+        option.textContent = `${template.code} (${template.channelType})${template.isActive ? '' : ' [inativo]'}`;
+        if (selectedId && selectedId === template.id) {
+          option.selected = true;
+        }
+        els.emailTemplateSelect.appendChild(option);
+      });
+    }
+
+    function applyEmailTemplateToEditor(templateId) {
+      const template = state.emailTemplates.find((item) => item.id === templateId);
+      if (!template) {
+        resetEmailTemplateEditor();
+        return;
+      }
+      state.selectedEmailTemplateId = template.id;
+      if (els.emailTemplateSelect) els.emailTemplateSelect.value = template.id;
+      if (els.emailTemplateName) els.emailTemplateName.value = template.name || '';
+      if (els.emailTemplateCode) els.emailTemplateCode.value = template.code || '';
+      if (els.emailTemplateDescription) els.emailTemplateDescription.value = template.description || '';
+      if (els.emailTemplateChannel) els.emailTemplateChannel.value = template.channelType || 'transactional';
+      if (els.emailTemplateSubject) els.emailTemplateSubject.value = template.subjectTemplate || '';
+      if (els.emailTemplateHtml) els.emailTemplateHtml.value = template.htmlTemplate || '';
+    }
+
+    function renderEmailLogs() {
+      if (!els.emailLogsBody) return;
+      els.emailLogsBody.innerHTML = '';
+      const logs = state.emailSendLogs || [];
+      if (!logs.length) {
+        const row = document.createElement('tr');
+        row.innerHTML = '<td colspan="7">Sem logs para os filtros atuais.</td>';
+        els.emailLogsBody.appendChild(row);
+        return;
+      }
+
+      const fragment = document.createDocumentFragment();
+      logs.forEach((log) => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${escapeHtml(formatDate(log.createdAt))}</td>
+          <td>${escapeHtml(log.templateCode || log.templateName || '-')}</td>
+          <td>${escapeHtml(log.recipientEmail || '-')}</td>
+          <td>${escapeHtml(log.status || '-')}</td>
+          <td>${escapeHtml(log.channelType || '-')}</td>
+          <td>${log.isTest ? 'true' : 'false'}</td>
+          <td>${escapeHtml(log.providerError || '-')}</td>
+        `;
+        fragment.appendChild(row);
+      });
+      els.emailLogsBody.appendChild(fragment);
+    }
+
+    async function refreshEmailTemplatesData() {
+      if (!state.user) return;
+      const data = await apiRequest('GET', `${adminEmailTemplatesApiBase}?includeInactive=1&includeVersions=0`);
+      state.emailTemplates = Array.isArray(data.templates) ? data.templates : [];
+      renderEmailTemplateOptions();
+
+      if (state.selectedEmailTemplateId) {
+        applyEmailTemplateToEditor(state.selectedEmailTemplateId);
+      }
+      showEmailsMessage(`Templates carregados: ${state.emailTemplates.length}.`, false);
+    }
+
+    async function saveEmailTemplate() {
+      const payload = {
+        id: state.selectedEmailTemplateId || undefined,
+        name: (els.emailTemplateName.value || '').trim(),
+        code: (els.emailTemplateCode.value || '').trim(),
+        description: (els.emailTemplateDescription.value || '').trim(),
+        channelType: (els.emailTemplateChannel.value || 'transactional').trim(),
+        subjectTemplate: (els.emailTemplateSubject.value || '').trim(),
+        htmlTemplate: (els.emailTemplateHtml.value || '').trim(),
+        isActive: true,
+        versionChangeNote: 'Update from Admin Emails tab'
+      };
+
+      if (!payload.name) throw new Error('Nome do template e obrigatorio.');
+      if (!payload.code) throw new Error('Code do template e obrigatorio.');
+      if (!payload.subjectTemplate) throw new Error('Subject template e obrigatorio.');
+      if (!payload.htmlTemplate) throw new Error('HTML template e obrigatorio.');
+
+      if (state.selectedEmailTemplateId) {
+        await apiRequest('PATCH', adminEmailTemplatesApiBase, payload);
+        showEmailsMessage('Template atualizado com sucesso.', false);
+      } else {
+        const created = await apiRequest('POST', adminEmailTemplatesApiBase, payload);
+        showEmailsMessage('Template criado com sucesso.', false);
+        state.selectedEmailTemplateId = created && created.template ? created.template.id : null;
+      }
+
+      await refreshEmailTemplatesData();
+      if (state.selectedEmailTemplateId) {
+        applyEmailTemplateToEditor(state.selectedEmailTemplateId);
+      }
+    }
+
+    async function deactivateEmailTemplate() {
+      if (!state.selectedEmailTemplateId) {
+        throw new Error('Seleciona um template para desativar.');
+      }
+      const confirmed = window.confirm('Desativar este template? Esta acao nao apaga historico de envios.');
+      if (!confirmed) return;
+      await apiRequest('DELETE', adminEmailTemplatesApiBase, { id: state.selectedEmailTemplateId });
+      showEmailsMessage('Template desativado com sucesso.', false);
+      resetEmailTemplateEditor();
+      await refreshEmailTemplatesData();
+    }
+
+    async function generateEmailPreview() {
+      const context = parseEmailPreviewContext();
+      const payload = {
+        templateId: state.selectedEmailTemplateId || null,
+        templateCode: (els.emailTemplateCode.value || '').trim() || null,
+        subjectTemplate: (els.emailTemplateSubject.value || '').trim() || null,
+        htmlTemplate: (els.emailTemplateHtml.value || '').trim() || null,
+        context
+      };
+      const data = await apiRequest('POST', adminEmailPreviewApiBase, payload);
+      const preview = data && data.preview ? data.preview : null;
+      if (!preview) throw new Error('Nao foi possivel gerar preview.');
+      if (els.emailPreviewSubject) els.emailPreviewSubject.value = preview.subject || '';
+      if (els.emailPreviewHtml) els.emailPreviewHtml.value = preview.html || '';
+      showEmailsMessage('Preview gerado.', false);
+    }
+
+    async function sendEmailTest() {
+      const to = (els.emailTestRecipient.value || '').trim();
+      if (!to) throw new Error('Define o email de teste.');
+
+      const context = parseEmailPreviewContext();
+      const payload = {
+        to,
+        templateId: state.selectedEmailTemplateId || null,
+        templateCode: (els.emailTemplateCode.value || '').trim() || null,
+        subjectTemplate: (els.emailTemplateSubject.value || '').trim() || null,
+        htmlTemplate: (els.emailTemplateHtml.value || '').trim() || null,
+        channelType: (els.emailTemplateChannel.value || 'transactional').trim(),
+        context
+      };
+
+      const data = await apiRequest('POST', adminEmailTestSendApiBase, payload);
+      showEmailsMessage(data && data.sent ? 'Email de teste enviado.' : 'Teste registado, mas envio nao confirmado.', !(data && data.sent));
+      await refreshEmailLogsData();
+    }
+
+    async function refreshEmailLogsData() {
+      if (!state.user) return;
+      const query = new URLSearchParams();
+      const status = (els.emailLogsStatusFilter.value || '').trim();
+      const channelType = (els.emailLogsTypeFilter.value || '').trim();
+      const isTest = (els.emailLogsTestFilter.value || '').trim();
+      if (status) query.set('status', status);
+      if (channelType) query.set('channelType', channelType);
+      if (isTest) query.set('isTest', isTest);
+      query.set('limit', '100');
+
+      const data = await apiRequest('GET', `${adminEmailSendsApiBase}?${query.toString()}`);
+      state.emailSendLogs = Array.isArray(data.logs) ? data.logs : [];
+      renderEmailLogs();
+    }
+
 
     function showOperationsMessage(text, isError) {
       els.operationsMessage.textContent = text || '';
@@ -4976,7 +5393,7 @@
       ['program-default-coach', 'edit-program-default-coach'].forEach((selectId) => {
         const sel = document.getElementById(selectId);
         if (!sel) return;
-        const currentVal = sel.value || '';
+        const currentVal = sel.value || sel.dataset.pendingValue || '';
         sel.innerHTML = '<option value="">Nenhum (self-serve)</option>';
         state.coaches.forEach((coach) => {
           const option = document.createElement('option');
@@ -4985,6 +5402,12 @@
           if (currentVal && currentVal === coach.identityId) option.selected = true;
           sel.appendChild(option);
         });
+        if (currentVal) {
+          sel.value = currentVal;
+        }
+        if (sel.dataset.pendingValue) {
+          delete sel.dataset.pendingValue;
+        }
       });
     }
 
@@ -7143,16 +7566,6 @@
       }
 
       // Wire search input
-      filterInputs.search.addEventListener('input', (e) => {
-        state.athletesFilterInputs.search = e.target.value;
-        applyAthletesFilters();
-      });
-
-      // Wire coach filter
-      filterInputs.coach.addEventListener('change', (e) => {
-        state.athletesFilterInputs.coach = e.target.value;
-        applyAthletesFilters();
-      });
 
       // Wire status filter
       filterInputs.status.addEventListener('change', (e) => {
@@ -8074,6 +8487,20 @@
           }
         }
 
+        if (filters.strength === 'has' && !view.components.includes('strength')) {
+          return false;
+        }
+        if (filters.strength === 'no' && view.components.includes('strength')) {
+          return false;
+        }
+
+        if (filters.endurance === 'has' && !view.components.includes('endurance')) {
+          return false;
+        }
+        if (filters.endurance === 'no' && view.components.includes('endurance')) {
+          return false;
+        }
+
         if (filters.experience) {
           const matchesExperience = experienceLevelsInclude(view.experienceStrength, filters.experience)
             || experienceLevelsInclude(view.experienceEndurance, filters.experience);
@@ -8325,6 +8752,7 @@
         classificationNotes: els.programClassificationNotes,
         imageUrl: els.programImageUrl,
         durationWeeks: els.programDurationWeeks,
+        durationWeeksHint: els.programDurationWeeksHint,
         priceCents: els.programPriceCents,
         recurringPriceMonthly: els.programRecurringPriceMonthly,
         recurringPriceQuarterly: els.programRecurringPriceQuarterly,
@@ -8399,34 +8827,64 @@
       };
     }
 
+    function isRecurringAccessModel(value) {
+      return String(value || '').trim() === 'coached_recurring';
+    }
+
     function syncRecurringPricingVisibility(fields) {
-      if (!fields || !fields.billingType || !fields.recurringPricingFields) return;
-      const isRecurring = String(fields.billingType.value || '').trim() === 'recurring';
+      if (!fields || !fields.recurringPricingFields) return;
+      const isRecurring = isRecurringAccessModel(fields.accessModel && fields.accessModel.value);
+      const accessModel = fields.accessModel ? String(fields.accessModel.value || '').trim() : '';
+      const isSelfServe = accessModel === 'self_serve';
       const oneTimeRaw = fields.priceCents ? String(fields.priceCents.value || '').trim() : '';
+
+      if (fields.billingType) {
+        fields.billingType.value = isRecurring ? 'recurring' : 'one_time';
+      }
 
       if (fields.paymentModel) {
         if (isRecurring) {
-          fields.paymentModel.value = 'recurring';
+          fields.paymentModel.value = 'single';
           fields.paymentModel.disabled = true;
         } else {
           fields.paymentModel.disabled = false;
-          if (fields.paymentModel.value === 'recurring') {
+          if (!fields.paymentModel.value || fields.paymentModel.value === 'recurring') {
             fields.paymentModel.value = 'single';
           }
         }
+        const pmWrapper = fields.paymentModel.closest('.field');
+        if (pmWrapper) {
+          pmWrapper.hidden = isRecurring;
+          pmWrapper.style.display = isRecurring ? 'none' : '';
+        }
       }
 
-      if (fields.accessModel && !isRecurring && String(fields.accessModel.value || '').trim() === 'coached_recurring') {
-        fields.accessModel.value = 'coached_one_time';
+      if (fields.defaultCoachIdentityId) {
+        if (isSelfServe) {
+          fields.defaultCoachIdentityId.value = '';
+        }
+        fields.defaultCoachIdentityId.disabled = isSelfServe;
+        fields.defaultCoachIdentityId.setAttribute('aria-disabled', isSelfServe ? 'true' : 'false');
+        const coachWrapper = fields.defaultCoachIdentityId.closest('.field');
+        if (coachWrapper) {
+          coachWrapper.hidden = isSelfServe;
+          coachWrapper.style.display = isSelfServe ? 'none' : '';
+        }
       }
 
       fields.recurringPricingFields.hidden = !isRecurring;
       fields.recurringPricingFields.style.display = isRecurring ? '' : 'none';
 
       if (fields.durationWeeks) {
+        const durationWrapper = fields.durationWeeks.closest('.field');
         fields.durationWeeks.disabled = isRecurring;
         fields.durationWeeks.readOnly = isRecurring;
         fields.durationWeeks.setAttribute('aria-disabled', isRecurring ? 'true' : 'false');
+        if (isRecurring) fields.durationWeeks.value = '';
+        if (durationWrapper) {
+          durationWrapper.hidden = isRecurring;
+          durationWrapper.style.display = isRecurring ? 'none' : '';
+        }
       }
       if (fields.durationWeeksHint) {
         fields.durationWeeksHint.hidden = !isRecurring;
@@ -8480,8 +8938,7 @@
 
     function getEditProgramPriceUpdatePlan() {
       const original = state.editProgramOriginal || {};
-      const billingType = String(els.editProgramBillingType && els.editProgramBillingType.value || '').trim();
-      const isRecurring = billingType === 'recurring';
+      const isRecurring = isRecurringAccessModel(els.editProgramAccessModel && els.editProgramAccessModel.value);
       const plan = {
         isRecurring,
         changes: [],
@@ -8551,7 +9008,7 @@
     }
 
     function syncEditProgramPriceFieldVisibility() {
-      const isRecurring = String((els.editProgramBillingType && els.editProgramBillingType.value) || '').trim() === 'recurring';
+      const isRecurring = isRecurringAccessModel(els.editProgramAccessModel && els.editProgramAccessModel.value);
 
       if (els.editProgramPriceOneTimeField) {
         els.editProgramPriceOneTimeField.hidden = isRecurring;
@@ -8668,10 +9125,10 @@
     }
 
     function enforceRecurringSchemaAvailability(fields) {
-      if (!fields || !fields.billingType) return;
+      if (!fields) return;
       if (state.programsRecurringSchemaReady !== false) return;
 
-      if (String(fields.billingType.value || '').trim() === 'recurring') {
+      if (fields.billingType && String(fields.billingType.value || '').trim() === 'recurring') {
         fields.billingType.value = 'one_time';
       }
       if (fields.accessModel && String(fields.accessModel.value || '').trim() === 'coached_recurring') {
@@ -8735,12 +9192,12 @@
       const stripePriceIdAnnual = fields.stripePriceIdAnnual
         ? (fields.stripePriceIdAnnual.value || '').trim() || null
         : null;
-      const billingType = (fields.billingType.value || 'one_time').trim();
+      const accessModel = (fields.accessModel.value || 'coached_one_time').trim();
+      const billingType = isRecurringAccessModel(accessModel) ? 'recurring' : 'one_time';
       const paymentModelRaw = (fields.paymentModel && fields.paymentModel.value ? fields.paymentModel.value : '').trim();
       const paymentModel = billingType === 'recurring'
         ? 'recurring'
         : (paymentModelRaw || 'single');
-      const accessModel = (fields.accessModel.value || 'coached_one_time').trim();
       const highlighted = Boolean(fields.highlighted && fields.highlighted.checked);
       const status = (fields.status.value || 'draft').trim();
       const eventId = fields.eventId ? ((fields.eventId.value || '').trim() || null) : null;
@@ -8752,13 +9209,18 @@
       const calendarVisible = fields.calendarVisible ? Boolean(fields.calendarVisible.checked) : true;
       const rawCalendarHighlightRank = getFieldValue(fields.calendarHighlightRank).trim();
       const calendarHighlightRank = rawCalendarHighlightRank === '' ? null : Number(rawCalendarHighlightRank);
-      const defaultCoachIdentityId = fields.defaultCoachIdentityId
-        ? (fields.defaultCoachIdentityId.value || '').trim() || null
-        : null;
+      const defaultCoachIdentityId = accessModel === 'self_serve'
+        ? null
+        : (fields.defaultCoachIdentityId
+          ? (fields.defaultCoachIdentityId.value || '').trim() || null
+          : null);
 
       if (!name) throw new Error('Nome do programa e obrigatorio.');
       if (durationWeeks != null && (!Number.isInteger(durationWeeks) || durationWeeks <= 0)) {
         throw new Error('Duracao deve ser um inteiro positivo.');
+      }
+      if (billingType !== 'recurring' && (durationWeeks == null || !Number.isInteger(durationWeeks) || durationWeeks <= 0)) {
+        throw new Error('Duracao em semanas e obrigatoria para programas nao recorrentes.');
       }
       if (!Number.isInteger(priceCents) || priceCents < 0) {
         throw new Error('Preço deve ser um número válido em euros (>= 0).');
@@ -8897,7 +9359,7 @@
       if (fields.stripePriceIdAnnual) fields.stripePriceIdAnnual.value = program.stripePriceIdAnnual || '';
       fields.billingType.value = program.billingType || 'one_time';
       if (fields.paymentModel) {
-        fields.paymentModel.value = program.paymentModel || (fields.billingType.value === 'recurring' ? 'recurring' : 'single');
+        fields.paymentModel.value = program.paymentModel === 'phased' ? 'phased' : 'single';
       }
       fields.accessModel.value = program.accessModel || 'coached_one_time';
       if (fields.highlighted) fields.highlighted.checked = program.highlighted === true;
@@ -8910,7 +9372,10 @@
       if (fields.eventDescription) fields.eventDescription.value = program.eventDescription || '';
       if (fields.calendarVisible) fields.calendarVisible.checked = program.calendarVisible !== false;
       if (fields.calendarHighlightRank) fields.calendarHighlightRank.value = program.calendarHighlightRank == null ? '' : String(program.calendarHighlightRank);
-      if (fields.defaultCoachIdentityId) fields.defaultCoachIdentityId.value = program.defaultCoachIdentityId || '';
+      if (fields.defaultCoachIdentityId) {
+        fields.defaultCoachIdentityId.dataset.pendingValue = program.defaultCoachIdentityId || '';
+        fields.defaultCoachIdentityId.value = program.defaultCoachIdentityId || '';
+      }
       syncRecurringPricingVisibility(fields);
       syncEditProgramPriceFieldVisibility();
 
@@ -8927,9 +9392,11 @@
       openDialog(els.editProgramDialog);
       // Ensure coaches are loaded for the default coach selector
       if (!state.coaches.length) {
-        loadCoaches().catch(() => {});
+        loadCoaches(program.defaultCoachIdentityId || '').catch((err) => {
+          showEditProgramMessage(err.message || 'Nao foi possivel carregar a lista de coaches.', true);
+        });
       } else {
-        renderCoachOptions();
+        renderCoachOptions(program.defaultCoachIdentityId || '');
       }
       window.requestAnimationFrame(() => {
         if (els.editProgramName) {
@@ -9009,6 +9476,13 @@
       } catch (eventsErr) {
         console.warn('[programs] events fetch failed:', eventsErr);
         state.events = [];
+      }
+      try {
+        await loadCoaches();
+      } catch (coachesErr) {
+        console.warn('[programs] coaches fetch failed:', coachesErr);
+        state.coaches = [];
+        renderCoachOptions();
       }
       enforceRecurringSchemaAvailability(getProgramCreateFieldRefs());
       enforceRecurringSchemaAvailability(getProgramEditFieldRefs());
@@ -9583,6 +10057,9 @@
       state.aiLogs = [];
       state.selectedAiPromptId = null;
       state.selectedAiLogId = null;
+      state.emailTemplates = [];
+      state.selectedEmailTemplateId = null;
+      state.emailSendLogs = [];
       state.blogProduction = null;
       state.blogDraft = null;
       state.blogStandalone = null;
@@ -9600,6 +10077,8 @@
         access: '',
         billing: '',
         modality: '',
+        strength: '',
+        endurance: '',
         experience: ''
       };
       state.purchases = [];
@@ -10801,7 +11280,9 @@
         els.programsCreateDetails.open = !els.programsCreateDetails.open;
         // Ensure coaches are loaded when opening the create program form
         if (els.programsCreateDetails.open && !state.coaches.length) {
-          loadCoaches().catch(() => {});
+          loadCoaches().catch((err) => {
+            showProgramsMessage(err.message || 'Nao foi possivel carregar a lista de coaches.', true);
+          });
         } else if (els.programsCreateDetails.open && state.coaches.length) {
           renderCoachOptions();
         }
@@ -10864,6 +11345,18 @@
         applyProgramsFilters();
       });
     }
+    if (els.programsFilterStrength) {
+      els.programsFilterStrength.addEventListener('change', (event) => {
+        state.programsFilterInputs.strength = event.target.value || '';
+        applyProgramsFilters();
+      });
+    }
+    if (els.programsFilterEndurance) {
+      els.programsFilterEndurance.addEventListener('change', (event) => {
+        state.programsFilterInputs.endurance = event.target.value || '';
+        applyProgramsFilters();
+      });
+    }
 
     if (els.programsClearFiltersBtn) {
       els.programsClearFiltersBtn.addEventListener('click', () => {
@@ -10874,6 +11367,8 @@
           access: '',
           billing: '',
           modality: '',
+          strength: '',
+          endurance: '',
           experience: ''
         };
         if (els.programsFilterSearch) els.programsFilterSearch.value = '';
@@ -10882,6 +11377,8 @@
         if (els.programsFilterAccess) els.programsFilterAccess.value = '';
         if (els.programsFilterBilling) els.programsFilterBilling.value = '';
         if (els.programsFilterModality) els.programsFilterModality.value = '';
+        if (els.programsFilterStrength) els.programsFilterStrength.value = '';
+        if (els.programsFilterEndurance) els.programsFilterEndurance.value = '';
         if (els.programsFilterExperience) els.programsFilterExperience.value = '';
         applyProgramsFilters();
       });
@@ -10917,23 +11414,23 @@
     toggleProgramCustomModalityField(els.editProgramStrengthModalitySelect, els.editProgramStrengthModalityCustom);
     toggleProgramCustomModalityField(els.editProgramEnduranceModalitySelect, els.editProgramEnduranceModalityCustom);
 
-    if (els.programBillingType) {
-      els.programBillingType.addEventListener('change', () => {
-        syncRecurringPricingVisibility(createProgramFields);
-      });
-    }
     if (els.programPaymentModel) {
       els.programPaymentModel.addEventListener('change', () => {
         syncRecurringPricingVisibility(createProgramFields);
       });
     }
-    if (els.editProgramBillingType) {
-      els.editProgramBillingType.addEventListener('change', () => {
+    if (els.editProgramPaymentModel) {
+      els.editProgramPaymentModel.addEventListener('change', () => {
         syncRecurringPricingVisibility(editProgramFields);
       });
     }
-    if (els.editProgramPaymentModel) {
-      els.editProgramPaymentModel.addEventListener('change', () => {
+    if (els.programAccessModel) {
+      els.programAccessModel.addEventListener('change', () => {
+        syncRecurringPricingVisibility(createProgramFields);
+      });
+    }
+    if (els.editProgramAccessModel) {
+      els.editProgramAccessModel.addEventListener('change', () => {
         syncRecurringPricingVisibility(editProgramFields);
       });
     }
@@ -12309,6 +12806,76 @@
       selectAiLog(logId);
     });
 
+    if (els.emailTemplateSelect) {
+      els.emailTemplateSelect.addEventListener('change', (event) => {
+        const templateId = event.target && event.target.value ? String(event.target.value).trim() : '';
+        if (!templateId) {
+          resetEmailTemplateEditor();
+          return;
+        }
+        applyEmailTemplateToEditor(templateId);
+      });
+    }
+
+    if (els.emailTemplateNewBtn) {
+      els.emailTemplateNewBtn.addEventListener('click', () => {
+        resetEmailTemplateEditor();
+        showEmailsMessage('Editor limpo para criar novo template.', false);
+      });
+    }
+
+    if (els.emailTemplateRefreshBtn) {
+      els.emailTemplateRefreshBtn.addEventListener('click', () => {
+        refreshEmailTemplatesData().catch((err) => showEmailsMessage(err.message, true));
+      });
+    }
+
+    if (els.emailTemplateSaveBtn) {
+      els.emailTemplateSaveBtn.addEventListener('click', () => {
+        saveEmailTemplate().catch((err) => showEmailsMessage(err.message, true));
+      });
+    }
+
+    if (els.emailTemplateDeleteBtn) {
+      els.emailTemplateDeleteBtn.addEventListener('click', () => {
+        deactivateEmailTemplate().catch((err) => showEmailsMessage(err.message, true));
+      });
+    }
+
+    if (els.emailPreviewBtn) {
+      els.emailPreviewBtn.addEventListener('click', () => {
+        generateEmailPreview().catch((err) => showEmailsMessage(err.message, true));
+      });
+    }
+
+    if (els.emailTestSendBtn) {
+      els.emailTestSendBtn.addEventListener('click', () => {
+        sendEmailTest().catch((err) => showEmailsMessage(err.message, true));
+      });
+    }
+
+    if (els.emailLogsRefreshBtn) {
+      els.emailLogsRefreshBtn.addEventListener('click', () => {
+        refreshEmailLogsData().catch((err) => showEmailsMessage(err.message, true));
+      });
+    }
+
+    if (els.emailLogsStatusFilter) {
+      els.emailLogsStatusFilter.addEventListener('change', () => {
+        refreshEmailLogsData().catch((err) => showEmailsMessage(err.message, true));
+      });
+    }
+    if (els.emailLogsTypeFilter) {
+      els.emailLogsTypeFilter.addEventListener('change', () => {
+        refreshEmailLogsData().catch((err) => showEmailsMessage(err.message, true));
+      });
+    }
+    if (els.emailLogsTestFilter) {
+      els.emailLogsTestFilter.addEventListener('change', () => {
+        refreshEmailLogsData().catch((err) => showEmailsMessage(err.message, true));
+      });
+    }
+
     if (els.refreshRetentionDashboardBtn) {
       els.refreshRetentionDashboardBtn.addEventListener('click', async () => {
         try {
@@ -12379,6 +12946,9 @@
       loadAdminNotifications();
       refreshRetentionDashboard().catch((err) => showOperationsMessage(err.message, true));
     });
+    if (els.tabEmails) {
+      els.tabEmails.addEventListener('click', () => setActiveTab('emails'));
+    }
 
     setAuthUI();
     const initialTab = resolveTabFromLocation();
