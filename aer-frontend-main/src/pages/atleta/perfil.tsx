@@ -11,6 +11,8 @@ type ProfileForm = {
   heightCm: string;
   weightKg: string;
   sex: 'male' | 'female' | 'other' | '';
+  strengthLevel: 'beginner' | 'intermediate' | 'advanced' | '';
+  gymAccess: 'full_gym' | 'limited_equipment' | 'no_gym';
 };
 
 const REQUIRED_FIELDS: Array<keyof ProfileForm> = [
@@ -44,6 +46,8 @@ function PerfilContent() {
     heightCm: '',
     weightKg: '',
     sex: '',
+    strengthLevel: '',
+    gymAccess: 'full_gym',
   });
 
   useEffect(() => {
@@ -62,6 +66,8 @@ function PerfilContent() {
           heightCm: data.athlete.heightCm ? String(data.athlete.heightCm) : '',
           weightKg: data.athlete.weightKg ? String(data.athlete.weightKg) : '',
           sex: data.athlete.sex || '',
+          strengthLevel: data.athlete.strengthLevel || '',
+          gymAccess: data.athlete.gymAccess || 'full_gym',
         });
       } catch (e) {
         if (!mounted) return;
@@ -137,6 +143,8 @@ function PerfilContent() {
         heightCm: Number(form.heightCm),
         weightKg: Number(form.weightKg),
         sex: form.sex,
+        strengthLevel: form.strengthLevel || null,
+        gymAccess: form.gymAccess,
       });
 
       setSuccess(true);
@@ -269,6 +277,17 @@ function PerfilContent() {
           ) : null}
         </div>
 
+        <div className="mt-6 rounded-xl border border-[#d4a54f33] bg-[#171717] p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#d4a54f]">Personalização do plano de força</p>
+              <p className="mt-1 text-xs text-[#8f99a8]">
+                As escolhas abaixo ajudam a adaptar os exercícios do teu plano de força ao teu nível atual e ao acesso que tens a material. Alterar estes campos pode mudar os exercícios que te aparecem na app.
+              </p>
+            </div>
+          </div>
+        </div>
+
         <div className="mt-6 grid gap-4 md:grid-cols-2">
           <Input label="Nome completo" value={form.fullName} onChange={(v) => handleChange('fullName', v)} />
           <Input label="Telemóvel" value={form.phone} onChange={(v) => handleChange('phone', v)} placeholder="Opcional" />
@@ -286,6 +305,29 @@ function PerfilContent() {
               { value: 'male', label: 'Masculino' },
               { value: 'female', label: 'Feminino' },
               { value: 'other', label: 'Outro' },
+            ]}
+          />
+
+          <Select
+            label="Nível de força"
+            value={form.strengthLevel}
+            onChange={(v) => handleChange('strengthLevel', v as ProfileForm['strengthLevel'])}
+            options={[
+              { value: '', label: 'Manter standard do plano' },
+              { value: 'beginner', label: 'Iniciante' },
+              { value: 'intermediate', label: 'Intermédio' },
+              { value: 'advanced', label: 'Avançado' },
+            ]}
+          />
+
+          <Select
+            label="Acesso a ginásio / material"
+            value={form.gymAccess}
+            onChange={(v) => handleChange('gymAccess', v as ProfileForm['gymAccess'])}
+            options={[
+              { value: 'full_gym', label: 'Ginásio completo' },
+              { value: 'limited_equipment', label: 'Material limitado' },
+              { value: 'no_gym', label: 'Sem acesso a ginásio' },
             ]}
           />
         </div>

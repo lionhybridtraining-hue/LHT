@@ -221,7 +221,8 @@ exports.handler = async (event) => {
               classification: programMeta.classification || null,
               durationWeeks: programMeta.duration_weeks,
               billingType: programMeta.billing_type,
-              presetSelection: programMeta.preset_selection || 'coach'
+              presetSelection: programMeta.preset_selection || 'coach',
+              defaultVariantId: programMeta.default_variant_id || null
             }
           : null,
         instance: instance
@@ -324,7 +325,8 @@ exports.handler = async (event) => {
                 classification: programMeta.classification || null,
                 durationWeeks: assignment.duration_weeks || programMeta.duration_weeks,
                 billingType: programMeta.billing_type,
-                presetSelection: programMeta.preset_selection || 'coach'
+                presetSelection: programMeta.preset_selection || 'coach',
+                defaultVariantId: programMeta.default_variant_id || null
               }
             : null,
           instance: instance

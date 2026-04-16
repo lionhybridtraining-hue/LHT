@@ -21,6 +21,23 @@ export interface ProgramVariant {
   // Joined FK data (from getVariantById select)
   strength_plans?: { id: string; name: string } | null;
   running_plan_templates?: { id: string; name: string } | null;
+  compatible_presets?: VariantCompatiblePreset[];
+}
+
+export interface VariantCompatiblePreset {
+  id?: string;
+  preset_id: string;
+  sort_order: number;
+  is_default: boolean;
+  preset?: {
+    id: string;
+    training_program_id: string;
+    preset_name: string;
+    description: string | null;
+    total_training_days: number;
+    is_default: boolean;
+    sort_order: number;
+  } | null;
 }
 
 export interface RunningConfigPreset {

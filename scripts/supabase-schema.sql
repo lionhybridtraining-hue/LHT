@@ -938,6 +938,12 @@ create table if not exists exercises (
   updated_at timestamptz not null default now()
 );
 
+alter table exercises
+  add column if not exists progression_of uuid references exercises(id) on delete set null;
+
+alter table exercises
+  add column if not exists regression_of uuid references exercises(id) on delete set null;
+
 create index if not exists exercises_category_subcategory_idx
 on exercises (category, subcategory);
 
@@ -989,6 +995,9 @@ create table if not exists strength_plan_exercises (
   weight_per_side boolean not null default false,
   plyo_mechanical_load text check (plyo_mechanical_load in ('high', 'medium', 'low') or plyo_mechanical_load is null),
   rm_percent_increase_per_week numeric(5,4),
+  alt_progression_exercise_id uuid references exercises(id) on delete set null,
+  alt_regression_exercise_id uuid references exercises(id) on delete set null,
+  alt_lateral_exercise_id uuid references exercises(id) on delete set null,
   created_at timestamptz not null default now()
 );
 
@@ -1102,6 +1111,21 @@ on strength_log_sets (athlete_id, session_date desc);
 -- 8. ALTER athletes — add strength log detail preference
 alter table athletes add column if not exists strength_log_detail text
   default 'exercise' check (strength_log_detail in ('exercise', 'set'));
+
+alter table athletes add column if not exists strength_level text
+  check (strength_level in ('beginner', 'intermediate', 'advanced') or strength_level is null);
+
+alter table athletes add column if not exists gym_access text
+  not null default 'full_gym' check (gym_access in ('full_gym', 'limited_equipment', 'no_gym'));
+
+alter table athletes add column if not exists coach_strength_level_override text
+  check (coach_strength_level_override in ('beginner', 'intermediate', 'advanced') or coach_strength_level_override is null);
+
+alter table athletes add column if not exists coach_gym_access_override text
+  check (coach_gym_access_override in ('full_gym', 'limited_equipment', 'no_gym') or coach_gym_access_override is null);
+
+alter table athletes add column if not exists strength_movement_variant text
+  default 'standard' check (strength_movement_variant in ('standard', 'lateralized'));
 
 create table if not exists ai_prompt_versions (
   id uuid primary key default gen_random_uuid(),

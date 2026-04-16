@@ -158,7 +158,11 @@ exports.handler = async (event) => {
       let actualStatus = row.status || "planned";
 
       if (row.session_type === "strength" && row.strength_instance_id && row.strength_day_number != null) {
-        const key = sessionKey(row.strength_instance_id, row.week_number, row.strength_day_number);
+        const key = sessionKey(
+          row.strength_instance_id,
+          row.strength_week_number || row.week_number,
+          row.strength_day_number
+        );
         const summary = completedBySlot.get(key) || null;
         if (summary) {
           actual = {

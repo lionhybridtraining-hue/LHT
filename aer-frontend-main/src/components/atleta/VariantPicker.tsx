@@ -16,9 +16,10 @@ interface VariantPickerProps {
   variants: ProgramVariant[];
   onSelect: (variant: ProgramVariant) => void;
   generating: boolean;
+  recommendedVariantId?: string | null;
 }
 
-export function VariantPicker({ variants, onSelect, generating }: VariantPickerProps) {
+export function VariantPicker({ variants, onSelect, generating, recommendedVariantId = null }: VariantPickerProps) {
   const [filters, setFilters] = useState<VariantFilters>({});
   const { durations, levels, frequencies } = useMemo(
     () => extractVariantFilterOptions(variants),
@@ -159,6 +160,7 @@ export function VariantPicker({ variants, onSelect, generating }: VariantPickerP
             variant={variant}
             onSelect={() => onSelect(variant)}
             generating={generating}
+            recommended={recommendedVariantId === variant.id}
           />
         ))}
         {filtered.length === 0 && (
@@ -179,6 +181,7 @@ function VariantCard({
   variant: ProgramVariant;
   onSelect: () => void;
   generating: boolean;
+  recommended: boolean;
 }) {
   return (
     <button
@@ -187,9 +190,16 @@ function VariantCard({
       className="w-full rounded-xl border border-[#30363d] bg-[#161b22] p-4 text-left transition hover:border-[#d4a54f]/50 disabled:opacity-50"
     >
       <div className="flex items-center justify-between">
-        <span className="text-sm font-semibold text-[#c9d1d9]">
-          {variant.duration_weeks}S · {LEVEL_LABELS[variant.experience_level]} · {variant.weekly_frequency}×/sem
-        </span>
+        <div>
+          <span className="text-sm font-semibold text-[#c9d1d9]">
+            {variant.duration_weeks}S · {LEVEL_LABELS[variant.experience_level]} · {variant.weekly_frequency}×/sem
+          </span>
+          {recommended && (
+            <div className="mt-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#d4a54f]">
+              recomendada para ti
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="mt-2 flex flex-wrap gap-1.5">

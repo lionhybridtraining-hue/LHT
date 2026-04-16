@@ -40,6 +40,11 @@ function validateSession(entry, index) {
     throw Object.assign(new Error(`sessions[${index}].strength_day_number must be 1-7`), { status: 400 });
   }
 
+  const strengthWeekNumber = entry.strength_week_number == null ? null : Number(entry.strength_week_number);
+  if (strengthWeekNumber != null && (!Number.isInteger(strengthWeekNumber) || strengthWeekNumber < 1)) {
+    throw Object.assign(new Error(`sessions[${index}].strength_week_number must be an integer >= 1`), { status: 400 });
+  }
+
   const strengthPlanId = entry.strength_plan_id == null ? null : entry.strength_plan_id.toString().trim() || null;
 
   const runningSessionType = entry.running_session_type ? entry.running_session_type.toString().trim() : null;
@@ -65,6 +70,7 @@ function validateSession(entry, index) {
     session_type: sessionType,
     session_label: sessionLabel,
     strength_plan_id: strengthPlanId,
+    strength_week_number: strengthWeekNumber,
     strength_day_number: strengthDayNumber,
     running_session_type: runningSessionType,
     running_plan_template_id: runningPlanTemplateId,

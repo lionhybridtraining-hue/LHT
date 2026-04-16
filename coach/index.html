@@ -423,6 +423,49 @@
 
     .microcopy { color: var(--muted); font-size: 13px; line-height: 1.6; }
 
+    .planning-flow {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+    }
+
+    .planning-flow-step {
+      padding: 14px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.025);
+    }
+
+    .planning-flow-step strong {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--text);
+    }
+
+    .planning-flow-step span {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--gold);
+    }
+
+    .planning-recommended-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 3px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(212, 165, 79, 0.28);
+      background: rgba(212, 165, 79, 0.12);
+      color: var(--gold);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
     .metrics-grid {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -524,6 +567,31 @@
       align-items: center;
     }
 
+    .athlete-quickbar {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 280px;
+    }
+
+    .athlete-quickbar label {
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--gold);
+    }
+
+    .athlete-quickbar select {
+      width: 100%;
+      min-height: 38px;
+      padding: 8px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--line-strong);
+      background: rgba(255,255,255,0.04);
+      color: var(--text);
+      font: inherit;
+    }
+
     .brandbar-auth {
       display: flex;
       align-items: center;
@@ -584,6 +652,10 @@
         align-items: flex-start;
         width: 100%;
         gap: 12px;
+      }
+
+      .athlete-quickbar {
+        display: none;
       }
 
       .brandbar-auth {
@@ -1294,6 +1366,12 @@
             </div>
           </div>
           <div class="brandbar-right">
+            <div class="athlete-quickbar">
+              <label for="athleteQuickSelect">Atleta selecionado</label>
+              <select id="athleteQuickSelect">
+                <option value="">Seleciona um atleta...</option>
+              </select>
+            </div>
             <div class="brandbar-auth">
               <span id="auth-status">Não autenticado</span>
               <div class="brandbar-auth-controls">
@@ -1306,7 +1384,6 @@
 
         <div class="coach-tabs" id="coachTabs">
           <button class="coach-tab-btn active" type="button" data-coach-tab="dashboard">Dashboard</button>
-          <button class="coach-tab-btn" type="button" data-coach-tab="athlete">Atletas</button>
           <button class="coach-tab-btn" type="button" data-coach-tab="zonas">Zonas</button>
           <button class="coach-tab-btn" type="button" data-coach-tab="planeamento">Planeamento</button>
           <button class="coach-tab-btn" type="button" data-coach-tab="forca">Força</button>
@@ -1322,13 +1399,13 @@
         <h1>Upload. Analisa. Envia.</h1>
         <p>
           Importa o CSV da semana, gera perguntas estratégicas e cria o link de check-in do atleta.
-          Selecionas o atleta por nome/email no dropdown, sem usar UUID manual.
+          Selecionas o atleta por nome/email no seletor do topo, sem usar UUID manual.
         </p>
 
         <div class="tip-card">
           <h2>Fluxo recomendado</h2>
           <ul class="tip-list">
-            <li>Seleciona atleta no dropdown com pesquisa.</li>
+            <li>Seleciona atleta no seletor do topo.</li>
             <li>Se faltar alguém, usa "Adicionar atleta".</li>
             <li>Faz upload do CSV e envia o link gerado.</li>
           </ul>
@@ -1340,18 +1417,11 @@
           <div>
             <span id="panelHeaderEyebrow" class="eyebrow">Weekly Check-in Builder</span>
             <h2 id="panelHeaderTitle">Importação semanal</h2>
-            <p id="panelHeaderDescription">Seleciona o atleta, carrega o CSV exportado do TrainingPeaks e gera o check-in assistido por IA.</p>
+            <p id="panelHeaderDescription">Usa o seletor do topo para escolher o atleta, carrega o CSV exportado do TrainingPeaks e gera o check-in assistido por IA.</p>
           </div>
         </div>
 
-        <section class="section-card coach-tab-section" data-coach-tab="athlete">
-          <div style="display:flex; justify-content:space-between; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:10px;">
-            <h3 class="section-title" style="margin:0;">Atletas do sistema</h3>
-            <div class="header-actions">
-              <button id="openAthleteUploadModal" class="btn btn-primary" type="button">Upload CSV (atleta)</button>
-              <button id="openAddAthleteModal" class="btn btn-secondary" type="button">Adicionar atleta</button>
-            </div>
-          </div>
+        <section hidden style="display:none;">
           <div class="form-grid">
             <div class="field full">
               <label for="athleteSearch">Pesquisar atleta</label>
@@ -1364,14 +1434,16 @@
               </label>
             </div>
             <div class="field full">
-              <label for="athleteSelect">Selecionar atleta</label>
-              <select id="athleteSelect">
+              <label>Atleta ativo</label>
+              <div class="microcopy" style="padding:10px 12px; border:1px solid var(--line); border-radius:10px; background:rgba(255,255,255,0.03); color:var(--text-soft);">
+                Usa o seletor da nav bar para escolher o atleta ativo. A pesquisa e os filtros abaixo atualizam essa lista.
+              </div>
+              <select id="athleteSelect" hidden>
                 <option value="">A carregar atletas...</option>
               </select>
             </div>
           </div>
           <p id="athleteFilterMeta" class="microcopy">A lista é carregada do Supabase.</p>
-          <button id="openOneRmModal" class="btn btn-secondary" type="button" style="margin-top:10px;" disabled>Gerir 1RM do atleta</button>
         </section>
 
         <section class="section-card coach-tab-section" data-coach-tab="zonas" hidden>
@@ -1386,7 +1458,7 @@
           <p id="trainingZonesMeta" class="microcopy">Seleciona um atleta para gerir zonas por modalidade.</p>
         </section>
 
-        <section class="section-card coach-tab-section" data-coach-tab="athlete">
+        <section class="section-card coach-tab-section" data-coach-tab="operacoes" hidden>
           <div style="display:flex; justify-content:space-between; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:10px;">
             <h3 class="section-title" style="margin:0;">Carga de treino</h3>
             <div class="header-actions" style="align-items:flex-end;">
@@ -1438,12 +1510,17 @@
         </section>
 
         <section class="section-card coach-tab-section" data-coach-tab="operacoes" hidden>
-          <h3 class="section-title">Novo upload</h3>
+          <div style="display:flex; justify-content:space-between; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:10px;">
+            <h3 class="section-title" style="margin:0;">Novo upload</h3>
+            <div class="header-actions">
+              <button id="openAddAthleteModal" class="btn btn-secondary" type="button">Adicionar atleta</button>
+            </div>
+          </div>
           <form id="uploadForm">
             <div class="form-grid">
               <div class="field full">
                 <label for="selectedAthlete">Atleta selecionado</label>
-                <input id="selectedAthlete" placeholder="Seleciona um atleta no dropdown acima" readonly />
+                <input id="selectedAthlete" placeholder="Seleciona um atleta no seletor do topo" readonly />
               </div>
               <div class="field full">
                 <label for="csvFile">Ficheiro de export (CSV/GZ/ZIP)</label>
@@ -1560,6 +1637,7 @@
               <select id="strengthPlanSelect" style="flex:1;">
                 <option value="">— Selecionar plano —</option>
               </select>
+              <button id="openOneRmModal" class="btn btn-secondary" type="button" disabled>Gerir 1RM do atleta</button>
               <button class="btn btn-small" id="newStrengthPlanBtn">+ Novo Plano</button>
               <button class="btn btn-small btn-secondary" id="createDemoPlanBtn" title="Criar plano de demonstração com estrutura pronta">Plano Demo</button>
             </div>
@@ -1594,9 +1672,9 @@
             </div>
 
             <!-- Monitoring panel for selected athlete -->
-            <div id="strengthMonitorPanel" style="margin-bottom:8px; padding:8px 12px; border:1px solid var(--line); border-radius:var(--radius-md); background:var(--surface-2);">
-              <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
-                <span class="microcopy" style="font-weight:600;">Monitorização de Força (atleta selecionado)</span>
+            <details id="strengthMonitorPanel" hidden style="margin-bottom:8px; padding:8px 12px; border:1px solid var(--line); border-radius:var(--radius-md); background:var(--surface-2);">
+              <summary class="microcopy" style="font-weight:600; cursor:pointer; list-style:none;">Monitorização de Força (atleta selecionado)</summary>
+              <div style="display:flex; justify-content:flex-end; align-items:center; gap:8px; flex-wrap:wrap; margin-top:8px;">
                 <button class="btn btn-small btn-ghost" id="refreshStrengthMonitorBtn" type="button" title="Atualizar monitorização">↻</button>
               </div>
               <div id="strengthMonitorMeta" class="microcopy" style="margin-top:4px;">Seleciona atleta e plano para ver monitorização.</div>
@@ -1609,7 +1687,47 @@
               <div id="strengthMonitorSessions" class="microcopy" style="margin-top:8px;">Sem sessões para apresentar.</div>
                           <div id="smWeeklyTable" style="margin-top:10px; overflow-x:auto; display:none;"></div>
                           <div id="smExerciseBreakdown" style="margin-top:6px; display:none;"></div>
-            </div>
+            </details>
+
+            <details id="strengthAthleteProfilePanel" hidden style="margin-bottom:8px; padding:8px 12px; border:1px solid var(--line); border-radius:var(--radius-md); background:var(--surface-2);">
+              <summary class="microcopy" style="font-weight:600; cursor:pointer; list-style:none;">Perfil de força do atleta selecionado</summary>
+              <div style="display:flex; justify-content:flex-end; align-items:center; gap:8px; flex-wrap:wrap; margin:8px 0;">
+                <button class="btn btn-small btn-primary" id="saveStrengthAthleteProfileBtn" type="button">Guardar override</button>
+              </div>
+                <div id="strengthAthleteProfileMeta" class="microcopy" style="margin-bottom:8px;">Seleciona um atleta para ver as escolhas dele e aplicar override do coach quando necessário.</div>
+              <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:8px;">
+                <div>
+                    <label class="microcopy" style="display:block; margin-bottom:4px;">Escolha do atleta · Nível de força</label>
+                    <div id="strengthAthleteLevelValue" style="width:100%; padding:6px; border-radius:6px; border:1px solid var(--line); background:var(--surface-1); color:var(--text); min-height:34px; box-sizing:border-box;">—</div>
+                </div>
+                <div>
+                    <label class="microcopy" style="display:block; margin-bottom:4px;">Escolha do atleta · Acesso a ginásio</label>
+                    <div id="strengthAthleteGymAccessValue" style="width:100%; padding:6px; border-radius:6px; border:1px solid var(--line); background:var(--surface-1); color:var(--text); min-height:34px; box-sizing:border-box;">—</div>
+                </div>
+              </div>
+                <div class="microcopy" style="margin:10px 0 8px; font-weight:600;">Override do coach (opcional)</div>
+                <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:8px;">
+                  <div>
+                    <label for="strengthAthleteLevel" class="microcopy" style="display:block; margin-bottom:4px;">Nível de força</label>
+                    <select id="strengthAthleteLevel" style="width:100%; padding:6px; border-radius:6px; border:1px solid var(--line); background:var(--surface-1); color:var(--text);">
+                      <option value="">Sem override</option>
+                      <option value="beginner">Iniciante</option>
+                      <option value="intermediate">Intermédio</option>
+                      <option value="advanced">Avançado</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label for="strengthAthleteGymAccess" class="microcopy" style="display:block; margin-bottom:4px;">Acesso a ginásio</label>
+                    <select id="strengthAthleteGymAccess" style="width:100%; padding:6px; border-radius:6px; border:1px solid var(--line); background:var(--surface-1); color:var(--text);">
+                      <option value="">Sem override</option>
+                      <option value="full_gym">Ginásio completo</option>
+                      <option value="limited_equipment">Material limitado</option>
+                      <option value="no_gym">Sem acesso a ginásio</option>
+                    </select>
+                  </div>
+                </div>
+                <div id="strengthAthleteOverrideSummary" class="microcopy" style="margin-top:8px;">Sem override do coach.</div>
+              </details>
 
             <!-- Day tabs -->
             <div id="strengthTabsBar">
@@ -1963,12 +2081,28 @@
           </div>
         </section>
 
-        <!-- ═══════════ VARIANTES DO PROGRAMA ═══════════ -->
+        <section class="section-card coach-tab-section" data-coach-tab="planeamento" hidden style="padding:18px 0;">
+          <div class="planning-flow">
+            <div class="planning-flow-step">
+              <span>Passo 1</span>
+              <strong>Define as opcoes do programa</strong>
+              <div class="microcopy">Decide que combinacoes de duracao, nivel e frequencia o atleta vai encontrar quando entrar no programa.</div>
+            </div>
+            <div class="planning-flow-step">
+              <span>Passo 2</span>
+              <strong>Define os calendarios compativeis</strong>
+              <div class="microcopy">Cria as diferentes versões de semana, documenta as diferenças e decide que variantes podem recomendar cada uma.</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ═══════════ OPCOES DO PROGRAMA ═══════════ -->
         <section class="section-card coach-tab-section" data-coach-tab="planeamento" hidden style="padding:24px 0;">
-          <h2 style="margin-bottom:16px; color:#c9d1d9;">Variantes do Programa</h2>
+          <div class="microcopy" style="margin-bottom:8px; color:var(--gold); text-transform:uppercase; letter-spacing:0.12em; font-size:11px;">Passo 1 de 2</div>
+          <h2 style="margin-bottom:16px; color:#c9d1d9;">Opcoes do Programa</h2>
           <p style="color:#8b949e; font-size:0.85rem; margin-bottom:16px;">
-            Cada variante é uma combinação de duração × nível × frequência com planos de força e/ou corrida associados.
-            O atleta escolhe a variante no calendário.
+            Aqui defines as opcoes que o atleta pode escolher: duracao, nivel e frequencia com os planos associados.
+            Em cada opcao escolhes tambem que calendarios podem ser recomendados ao atleta e qual e o default sugerido.
           </p>
 
           <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px; flex-wrap:wrap;">
@@ -1976,8 +2110,8 @@
             <select id="var-program-select" style="padding:6px 10px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9; min-width:240px;">
               <option value="">Seleciona um programa...</option>
             </select>
-            <button id="var-create-btn" class="btn btn-small" type="button" disabled>+ Nova Variante</button>
-            <button id="var-batch-btn" class="btn btn-small btn-ghost" type="button" disabled>Gerar Batch</button>
+            <button id="var-create-btn" class="btn btn-small" type="button" disabled>+ Nova Opcao</button>
+            <button id="var-batch-btn" class="btn btn-small btn-ghost" type="button" disabled>Gerar Opcoes</button>
             <span id="var-count-label" style="margin-left:auto; font-size:0.8rem; color:#8b949e;"></span>
           </div>
 
@@ -1990,22 +2124,23 @@
                   <th style="padding:8px; text-align:left; color:#8b949e;">Freq.</th>
                   <th style="padding:8px; text-align:left; color:#8b949e;">Plano Força</th>
                   <th style="padding:8px; text-align:left; color:#8b949e;">Template Corrida</th>
+                  <th style="padding:8px; text-align:left; color:#8b949e;">Calendários</th>
                   <th style="padding:8px; text-align:left; color:#8b949e;">Config</th>
-                  <th style="padding:8px; text-align:center; color:#8b949e;">Default</th>
+                  <th style="padding:8px; text-align:center; color:#8b949e;">Recomendada</th>
                   <th style="padding:8px; text-align:right; color:#8b949e;">Ações</th>
                 </tr>
               </thead>
               <tbody id="var-table-body">
-                <tr><td colspan="8" style="padding:16px; color:#8b949e;">Seleciona um programa para ver as variantes.</td></tr>
+                <tr><td colspan="9" style="padding:16px; color:#8b949e;">Seleciona um programa para ver as opcoes.</td></tr>
               </tbody>
             </table>
           </div>
         </section>
 
-        <!-- Variant Create/Edit Modal -->
+        <!-- Program Option Create/Edit Modal -->
         <div id="variantModal" class="modal-backdrop hidden" role="dialog" aria-modal="true">
           <div class="modal" style="max-width:560px; max-height:85vh; overflow-y:auto;">
-            <h3 id="variantModalTitle">Criar Variante</h3>
+            <h3 id="variantModalTitle">Criar Opcao</h3>
             <form id="variantForm">
               <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
                 <div class="field">
@@ -2040,12 +2175,18 @@
                   <select id="varStrengthPlan" style="width:100%; padding:6px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9;">
                     <option value="">— Nenhum —</option>
                   </select>
+                  <div id="varStrengthPlanMeta" style="margin-top:6px; color:#8b949e; font-size:0.78rem;"></div>
                 </div>
                 <div class="field">
                   <label for="varRunningTemplate">Template de Corrida</label>
                   <select id="varRunningTemplate" style="width:100%; padding:6px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9;">
                     <option value="">— Nenhum —</option>
                   </select>
+                </div>
+                <div class="field" style="grid-column: span 2;">
+                  <label>Calendários compatíveis</label>
+                  <div id="varPresetCompatibility" style="display:grid; gap:8px; max-height:220px; overflow:auto; border:1px solid #30363d; border-radius:8px; padding:10px; background:#0d1117;"></div>
+                  <div style="margin-top:6px; color:#8b949e; font-size:0.78rem;">Escolhe que versões de calendário ficam disponíveis nesta opção e marca uma como recomendada.</div>
                 </div>
               </div>
               <details style="margin-top:12px;">
@@ -2079,12 +2220,12 @@
           </div>
         </div>
 
-        <!-- Variant Batch Modal -->
+        <!-- Program Option Batch Modal -->
         <div id="variantBatchModal" class="modal-backdrop hidden" role="dialog" aria-modal="true">
           <div class="modal" style="max-width:640px; max-height:85vh; overflow-y:auto;">
-            <h3>Gerar Variantes em Batch</h3>
+            <h3>Gerar Opcoes em Batch</h3>
             <p style="color:#8b949e; margin-bottom:12px;">
-              Gera combinações cartesianas de duração × nível × frequência. Associa o mesmo plano de força e/ou corrida a todas.
+              Gera combinacoes de duracao x nivel x frequencia. Associa o mesmo plano de forca e/ou corrida a todas.
             </p>
             <form id="variantBatchForm">
               <div style="display:grid; grid-template-columns:1fr; gap:14px;">
@@ -2134,7 +2275,7 @@
               <div id="batchPreview" style="margin-top:12px; color:#8b949e; font-size:0.85rem;"></div>
               <div id="batchFormError" style="color:var(--error); font-size:0.85rem; margin-top:8px;" hidden></div>
               <div class="modal-actions" style="margin-top:16px; display:flex; gap:8px;">
-                <button class="btn btn-primary" type="submit" id="batchSubmitBtn">Gerar Variantes</button>
+                <button class="btn btn-primary" type="submit" id="batchSubmitBtn">Gerar Opcoes</button>
                 <button class="btn btn-secondary" type="button" id="batchCancelBtn">Cancelar</button>
               </div>
             </form>
@@ -2143,7 +2284,11 @@
 
         <!-- ═══════════ SCHEDULE / CALENDÁRIO SECTION ═══════════ -->
         <section class="section-card coach-tab-section" data-coach-tab="planeamento" hidden style="padding:24px 0;">
-          <h2 style="margin-bottom:16px; color:#c9d1d9;">Calendário do programa</h2>
+          <div class="microcopy" style="margin-bottom:8px; color:var(--gold); text-transform:uppercase; letter-spacing:0.12em; font-size:11px;">Passo 2 de 2</div>
+          <h2 style="margin-bottom:16px; color:#c9d1d9;">Versões de Calendário do Programa</h2>
+          <p style="color:#8b949e; font-size:0.85rem; margin-bottom:16px;">
+            Cada calendário representa uma versão possível da semana. Usa a explicação para registar as diferenças que vais comunicar ao atleta.
+          </p>
 
           <!-- Program selector -->
           <div style="display:flex; align-items:center; gap:12px; margin-bottom:20px; flex-wrap:wrap;">
@@ -2156,14 +2301,15 @@
           <!-- Calendar template view -->
           <div id="sched-sessions-area" hidden>
             <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px; flex-wrap:wrap;">
-              <label style="color:#8b949e; font-size:0.85rem;">Preset:</label>
+              <label style="color:#8b949e; font-size:0.85rem;">Calendário:</label>
               <select id="sched-preset-select" style="padding:6px 10px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9; min-width:220px;">
-                <option value="">Seleciona um preset...</option>
+                <option value="">Seleciona um calendário...</option>
               </select>
-              <button class="btn btn-small" id="sched-new-preset-btn" type="button">+ Novo preset</button>
-              <button class="btn btn-small btn-ghost" id="sched-rename-preset-btn" type="button">Renomear</button>
+              <button class="btn btn-small" id="sched-new-preset-btn" type="button">+ Novo calendário</button>
+              <button class="btn btn-small btn-ghost" id="sched-rename-preset-btn" type="button">Editar nome e explicação</button>
               <button class="btn btn-small btn-ghost" id="sched-delete-preset-btn" type="button">Apagar</button>
             </div>
+            <div id="sched-preset-description" class="microcopy" style="margin:-6px 0 14px; color:#8b949e;"></div>
             <div id="sched-inline-calendar-view"></div>
           </div>
         </section>
@@ -2191,47 +2337,6 @@
         <div class="modal-actions">
           <button id="createAthleteButton" class="btn btn-primary" type="submit">Criar atleta</button>
           <button id="cancelAddAthlete" class="btn btn-secondary" type="button">Cancelar</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <div id="athleteUploadModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="athleteUploadTitle">
-    <div class="modal" style="max-width:720px; max-height:90vh; overflow-y:auto;">
-      <h3 id="athleteUploadTitle">Upload CSV por atleta</h3>
-      <p>Fluxo por atleta: confirma o atleta selecionado, carrega o ficheiro e processa o check-in semanal.</p>
-      <form id="athleteUploadForm">
-        <div class="form-grid">
-          <div class="field full">
-            <label for="athleteUploadSelectedAthlete">Atleta selecionado</label>
-            <input id="athleteUploadSelectedAthlete" readonly placeholder="Seleciona um atleta no painel principal" />
-          </div>
-          <div class="field full">
-            <label for="athleteUploadCsvFile">Ficheiro de export (CSV/GZ/ZIP)</label>
-            <input id="athleteUploadCsvFile" type="file" accept=".csv,.gz,.zip" required />
-          </div>
-          <div class="field full">
-            <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
-              <input id="athleteUploadSkipCheckin" type="checkbox" />
-              <span>Importar sem criar check-in</span>
-            </label>
-          </div>
-          <div class="field">
-            <label for="athleteUploadStrengthPlannedDoneCount">Forca planned done (manual)</label>
-            <input id="athleteUploadStrengthPlannedDoneCount" type="number" min="0" step="1" value="0" required />
-          </div>
-          <div class="field">
-            <label for="athleteUploadStrengthPlannedNotDoneCount">Forca planned not done (manual)</label>
-            <input id="athleteUploadStrengthPlannedNotDoneCount" type="number" min="0" step="1" value="0" required />
-          </div>
-          <div class="field full">
-            <label for="athleteUploadManualStrengthFeedback">Feedback manual do treino de forca (opcional)</label>
-            <textarea id="athleteUploadManualStrengthFeedback" rows="3" placeholder="Ex.: 2 sessoes feitas com boa qualidade tecnica; 1 sessao cortada por fadiga"></textarea>
-          </div>
-        </div>
-        <div class="modal-actions">
-          <button id="athleteUploadSubmitButton" class="btn btn-primary" type="submit">Importar e gerar check-in</button>
-          <button id="athleteUploadCancelButton" class="btn btn-secondary" type="button">Cancelar</button>
         </div>
       </form>
     </div>
@@ -2394,6 +2499,20 @@
             <input id="spStartDate" type="date" />
           </div>
         </div>
+        <details style="margin-top:12px;">
+          <summary style="color:var(--text-soft); cursor:pointer; font-size:0.9rem;">Fases do plano (opcional)</summary>
+          <div style="margin-top:10px; display:flex; flex-direction:column; gap:10px;">
+            <label style="display:flex; align-items:center; gap:8px; color:var(--text-soft); font-size:0.92rem;">
+              <input id="spUsePhases" type="checkbox" />
+              Usar este plano como contentor de fases
+            </label>
+            <div id="spPhaseBuilder" style="display:none; border:1px solid #30363d; border-radius:8px; padding:12px; background:#0d1117;">
+              <p style="margin:0 0 10px; color:#8b949e; font-size:0.85rem;">Cada fase aponta para um plano existente e arranca numa semana do programa. Ao usares este plano numa variant, as fases ficam logo resolvidas automaticamente.</p>
+              <div id="spPhaseRows" style="display:flex; flex-direction:column; gap:8px;"></div>
+              <button class="btn btn-small btn-secondary" type="button" id="spAddPhaseBtn" style="margin-top:10px;">+ Adicionar fase</button>
+            </div>
+          </div>
+        </details>
         <div class="modal-actions">
           <button class="btn btn-primary" type="submit" id="spSaveBtn">Criar plano</button>
           <button class="btn btn-secondary" type="button" id="spCancelBtn">Cancelar</button>
@@ -2436,7 +2555,7 @@
   <!-- Add Exercise to Section Modal -->
   <div id="addExerciseModal" class="modal-backdrop hidden" role="dialog" aria-modal="true">
     <div class="modal" style="max-width:640px; max-height:85vh; overflow-y:auto;">
-      <h3>Adicionar Exercício</h3>
+      <h3 id="addExerciseModalTitle">Adicionar Exercício</h3>
       <div class="field" style="margin-bottom:8px;">
         <input id="exerciseSearchInput" placeholder="Pesquisar exercício..." style="width:100%;" />
       </div>
@@ -2457,6 +2576,51 @@
       <div class="modal-actions" style="margin-top:8px;">
         <button class="btn btn-primary" type="button" id="createExerciseFromPickerBtn">+ Criar Novo Exercício</button>
         <button class="btn btn-secondary" type="button" id="cancelAddExerciseBtn">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="exerciseAlternativesModal" class="modal-backdrop hidden" role="dialog" aria-modal="true">
+    <div class="modal" style="max-width:640px; max-height:85vh; overflow-y:auto;">
+      <h3>Alternativas do Exercício</h3>
+      <div id="exerciseAlternativesMeta" class="microcopy" style="margin-bottom:10px;">Configura progressão, regressão, lateralização e flags da slot atual.</div>
+      <div class="form-grid">
+        <div class="field" style="grid-column:1/-1;">
+          <label for="exerciseAlternativesBaseName">Exercício base</label>
+          <input id="exerciseAlternativesBaseName" readonly />
+        </div>
+        <div class="field">
+          <label for="exerciseAltProgression">Progressão</label>
+          <input id="exerciseAltProgression" list="exerciseAlternativeOptions" placeholder="Escreve para pesquisar..." autocomplete="off" />
+        </div>
+        <div class="field">
+          <label for="exerciseAltRegression">Regressão</label>
+          <input id="exerciseAltRegression" list="exerciseAlternativeOptions" placeholder="Escreve para pesquisar..." autocomplete="off" />
+        </div>
+        <div class="field" style="grid-column:1/-1;">
+          <label for="exerciseAltLateral">Lateralização</label>
+          <input id="exerciseAltLateral" list="exerciseAlternativeOptions" placeholder="Escreve para pesquisar..." autocomplete="off" />
+          <div class="microcopy" style="margin-top:4px;">Podes escrever o nome do exercício e escolher da lista. Deixa vazio para não usar alternativa.</div>
+        </div>
+        <datalist id="exerciseAlternativeOptions"></datalist>
+        <div class="field">
+          <label for="exerciseAltEachSide">Cada lado</label>
+          <select id="exerciseAltEachSide">
+            <option value="false">Não</option>
+            <option value="true">Sim</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="exerciseAltWeightPerSide">Carga por lado</label>
+          <select id="exerciseAltWeightPerSide">
+            <option value="false">Não</option>
+            <option value="true">Sim</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-actions" style="margin-top:12px;">
+        <button class="btn btn-primary" type="button" id="saveExerciseAlternativesBtn">Guardar alternativas</button>
+        <button class="btn btn-secondary" type="button" id="cancelExerciseAlternativesBtn">Cancelar</button>
       </div>
     </div>
   </div>
@@ -2657,8 +2821,10 @@
     const manualStrengthFeedbackInput = document.getElementById("manualStrengthFeedback");
     const checkinStatusFilter = document.getElementById("checkinStatusFilter");
     const checkinsContainer = document.getElementById("checkinsContainer");
+    const varPresetCompatibility = document.getElementById("varPresetCompatibility");
     const checkinOverviewWeekInput = document.getElementById("checkinOverviewWeek");
     const checkinOverviewRefreshBtn = document.getElementById("checkinOverviewRefresh");
+    let _varProgramPresets = [];
     const ovResponded = document.getElementById("ovResponded");
     const ovRate = document.getElementById("ovRate");
     const ovPending = document.getElementById("ovPending");
@@ -2667,48 +2833,129 @@
     const ovTrendList = document.getElementById("ovTrendList");
     const ovStrengthTable = document.getElementById("ovStrengthTable");
     const trainingLoadMeta = document.getElementById("trainingLoadMeta");
-    const trainingLoadWeekInput = document.getElementById("trainingLoadWeek");
+          Promise.all([
+            loadVariants(_varCurrentProgramId),
+            loadVariantProgramPresets(_varCurrentProgramId)
+          ]).catch((err) => showResult(err.message, true));
     const applyTrainingLoadWeekButton = document.getElementById("applyTrainingLoadWeek");
     const latestTrainingLoadWeekButton = document.getElementById("latestTrainingLoadWeek");
+          _varProgramPresets = [];
     const prevTrainingLoadWeekButton = document.getElementById("prevTrainingLoadWeek");
     const nextTrainingLoadWeekButton = document.getElementById("nextTrainingLoadWeek");
     const metricCtl = document.getElementById("metricCtl");
     const metricAtl = document.getElementById("metricAtl");
     const metricTsb = document.getElementById("metricTsb");
+      document.getElementById("varWeeklyFrequency").addEventListener("change", () => {
+        if (!_varEditingId) {
+          renderVariantPresetCompatibility(buildDefaultVariantPresetSelection(Number(document.getElementById("varWeeklyFrequency").value || 0)));
+        }
+      });
     const metricDuration = document.getElementById("metricDuration");
-    const metricTss = document.getElementById("metricTss");
+      varTableBody.innerHTML = '<tr><td colspan="9" style="padding:16px; color:#8b949e;">Carregando opcoes...</td></tr>';
     const metricDistance = document.getElementById("metricDistance");
     const metricWork = document.getElementById("metricWork");
     const result = document.getElementById("result");
     const submitButton = document.getElementById("submitButton");
     const coachTabs = document.getElementById("coachTabs");
-    const coachTabButtons = Array.from(document.querySelectorAll(".coach-tab-btn"));
+        varTableBody.innerHTML = `<tr><td colspan="9" style="padding:16px; color:var(--error);">Erro: ${escapeHtml(err.message)}</td></tr>`;
     const coachTabSections = Array.from(document.querySelectorAll(".coach-tab-section"));
     const panelHeaderEyebrow = document.getElementById("panelHeaderEyebrow");
+
+    async function loadVariantProgramPresets(programId) {
+      if (!programId) {
+        _varProgramPresets = [];
+        return [];
+      }
+      const data = await apiRequest("GET", `/.netlify/functions/admin-program-schedule?trainingProgramId=${encodeURIComponent(programId)}&includeSlots=1`);
+      _varProgramPresets = Array.isArray(data && data.presets) ? data.presets : [];
+      return _varProgramPresets;
+    }
+
+    function buildDefaultVariantPresetSelection(weeklyFrequency) {
+      if (!Array.isArray(_varProgramPresets) || !_varProgramPresets.length) return [];
+      const exactMatches = _varProgramPresets.filter((preset) => Number(preset.total_training_days) === Number(weeklyFrequency));
+      const presets = exactMatches.length ? exactMatches : _varProgramPresets;
+      const defaultPreset = presets.find((preset) => preset.is_default) || presets[0];
+      return presets.map((preset, index) => ({
+        preset_id: preset.id,
+        is_default: Boolean(defaultPreset && defaultPreset.id === preset.id),
+        sort_order: index
+      }));
+    }
+
+    function renderVariantPresetCompatibility(selectedLinks) {
+      if (!varPresetCompatibility) return;
+      const selectedById = new Map((selectedLinks || []).map((entry) => [entry.preset_id, entry]));
+      if (!_varProgramPresets.length) {
+        varPresetCompatibility.innerHTML = '<div class="microcopy" style="color:#8b949e;">Cria primeiro pelo menos um calendário na secção abaixo.</div>';
+        return;
+      }
+
+      varPresetCompatibility.innerHTML = _varProgramPresets.map((preset, index) => {
+        const selected = selectedById.get(preset.id) || null;
+        const checked = Boolean(selected);
+        const isDefault = checked && selected && selected.is_default === true;
+        const description = preset.description ? `<div style="margin-top:4px; color:#8b949e; font-size:0.76rem;">${escapeHtml(preset.description)}</div>` : '<div style="margin-top:4px; color:#8b949e; font-size:0.76rem;">Sem explicação guardada.</div>';
+        return `<label style="display:block; border:1px solid #30363d; border-radius:8px; padding:10px; cursor:pointer; background:${checked ? 'rgba(212,165,79,0.08)' : '#11161d'};">
+          <div style="display:flex; align-items:flex-start; gap:10px;">
+            <input type="checkbox" data-var-preset-checkbox="${preset.id}" ${checked ? 'checked' : ''} style="margin-top:3px;" />
+            <div style="flex:1; min-width:0;">
+              <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+                <strong style="color:#c9d1d9;">${escapeHtml(preset.preset_name || 'Calendário')}</strong>
+                <span style="font-size:0.72rem; color:#8b949e;">${Number(preset.total_training_days || 0)} dias</span>
+              </div>
+              ${description}
+              <label style="display:flex; align-items:center; gap:6px; margin-top:8px; color:#8b949e; font-size:0.76rem; ${checked ? '' : 'opacity:0.45;'}">
+                <input type="radio" name="var-default-preset" value="${preset.id}" ${isDefault ? 'checked' : ''} ${checked ? '' : 'disabled'} />
+                Recomendado por defeito nesta opção
+              </label>
+              <input type="hidden" data-var-preset-sort="${preset.id}" value="${selected && Number.isInteger(Number(selected.sort_order)) ? Number(selected.sort_order) : index}" />
+            </div>
+          </div>
+        </label>`;
+      }).join('');
+    }
+
+    function collectVariantCompatiblePresets() {
+      if (!varPresetCompatibility) return [];
+      const checkedIds = Array.from(varPresetCompatibility.querySelectorAll("[data-var-preset-checkbox]"))
+        .filter((input) => input.checked)
+        .map((input) => input.getAttribute("data-var-preset-checkbox") || "")
+        .filter(Boolean);
+      const defaultPresetInput = varPresetCompatibility.querySelector('input[name="var-default-preset"]:checked');
+      const defaultPresetId = defaultPresetInput ? defaultPresetInput.value : checkedIds[0] || null;
+      return checkedIds.map((presetId, index) => {
+        const sortInput = varPresetCompatibility.querySelector(`[data-var-preset-sort="${presetId}"]`);
+        const sortValue = sortInput ? Number(sortInput.value) : index;
+        return {
+          preset_id: presetId,
+          sort_order: Number.isInteger(sortValue) ? sortValue : index,
+          is_default: defaultPresetId === presetId
+        };
+      });
+    }
     const panelHeaderTitle = document.getElementById("panelHeaderTitle");
     const panelHeaderDescription = document.getElementById("panelHeaderDescription");
-
-    const addAthleteModal = document.getElementById("addAthleteModal");
+          ? '<tr><td colspan="9" style="padding:16px; color:#8b949e;">Ainda nao ha opcoes criadas. Clica em "+ Nova Opcao" ou "Gerar Opcoes".</td></tr>'
+          : '<tr><td colspan="9" style="padding:16px; color:#8b949e;">Seleciona um programa para ver as opcoes.</td></tr>';
     const openAddAthleteModalButton = document.getElementById("openAddAthleteModal");
     const cancelAddAthleteButton = document.getElementById("cancelAddAthlete");
     const addAthleteForm = document.getElementById("addAthleteForm");
-    const openAthleteUploadModalButton = document.getElementById("openAthleteUploadModal");
-    const athleteUploadModal = document.getElementById("athleteUploadModal");
-    const athleteUploadForm = document.getElementById("athleteUploadForm");
-    const athleteUploadSelectedAthlete = document.getElementById("athleteUploadSelectedAthlete");
-    const athleteUploadCsvFile = document.getElementById("athleteUploadCsvFile");
-    const athleteUploadSkipCheckin = document.getElementById("athleteUploadSkipCheckin");
-    const athleteUploadStrengthPlannedDoneCount = document.getElementById("athleteUploadStrengthPlannedDoneCount");
-    const athleteUploadStrengthPlannedNotDoneCount = document.getElementById("athleteUploadStrengthPlannedNotDoneCount");
-    const athleteUploadManualStrengthFeedback = document.getElementById("athleteUploadManualStrengthFeedback");
-    const athleteUploadSubmitButton = document.getElementById("athleteUploadSubmitButton");
-    const athleteUploadCancelButton = document.getElementById("athleteUploadCancelButton");
+        const compatiblePresets = Array.isArray(v.compatible_presets) ? v.compatible_presets : [];
+        const presetSummary = compatiblePresets.length
+          ? compatiblePresets.map((entry) => {
+              const preset = entry.preset || _varProgramPresets.find((item) => item.id === entry.preset_id) || null;
+              const name = preset && preset.preset_name ? preset.preset_name : String(entry.preset_id || '').slice(0, 8);
+              return `${escapeHtml(name)}${entry.is_default ? ' ★' : ''}`;
+            }).join('<br>')
+          : '<span style="color:#8b949e;">Auto</span>';
     const trainingZonesForm = document.getElementById("trainingZonesForm");
     const trainingZonesList = document.getElementById("trainingZonesList");
     const addTrainingZoneProfileBtn = document.getElementById("addTrainingZoneProfileBtn");
     const trainingZonesFamily = document.getElementById("trainingZonesFamily");
     const trainingZonesScope = document.getElementById("trainingZonesScope");
     const trainingZonesMethod = document.getElementById("trainingZonesMethod");
+          <td style="padding:8px; color:#8b949e; font-size:0.8rem; line-height:1.4;">${presetSummary}</td>
     const trainingZonesModality = document.getElementById("trainingZonesModality");
     const trainingZonesMetricType = document.getElementById("trainingZonesMetricType");
     const trainingZonesModel = document.getElementById("trainingZonesModel");
@@ -2720,6 +2967,7 @@
     const trainingZonesVdotSuggestion = document.getElementById("trainingZonesVdotSuggestion");
     const trainingZonesVdotCalculator = document.getElementById("trainingZonesVdotCalculator");
     const trainingZonesVdotCalcDistance = document.getElementById("trainingZonesVdotCalcDistance");
+      await loadVariantProgramPresets(_varCurrentProgramId);
     const trainingZonesVdotCalcTime = document.getElementById("trainingZonesVdotCalcTime");
     const trainingZonesVdotCalcBtn = document.getElementById("trainingZonesVdotCalcBtn");
     const trainingZonesVdotCalcResult = document.getElementById("trainingZonesVdotCalcResult");
@@ -2727,9 +2975,11 @@
     const tzFieldMetricType = document.getElementById("tzFieldMetricType");
     const tzFieldModel = document.getElementById("tzFieldModel");
     const tzFieldHrMax = document.getElementById("tzFieldHrMax");
+        renderVariantPresetCompatibility(Array.isArray(variant.compatible_presets) ? variant.compatible_presets : []);
     const tzFieldHrRest = document.getElementById("tzFieldHrRest");
     const tzFieldVdot = document.getElementById("tzFieldVdot");
     const tzFieldThresholdPace = document.getElementById("tzFieldThresholdPace");
+        renderVariantPresetCompatibility(buildDefaultVariantPresetSelection(4));
     const trainingZonesThresholdPaceLabel = document.getElementById("trainingZonesThresholdPaceLabel");
     const trainingZonesContextHint = document.getElementById("trainingZonesContextHint");
     const trainingZonesContextHintText = document.getElementById("trainingZonesContextHintText");
@@ -2738,19 +2988,28 @@
     const autoTrainingZonesBtn = document.getElementById("autoTrainingZonesBtn");
     const trainingZonesEditorModal = document.getElementById("trainingZonesEditorModal");
     const cancelTrainingZonesEditorBtn = document.getElementById("cancelTrainingZonesEditorBtn");
+
+      const compatiblePresets = collectVariantCompatiblePresets();
+      if (!compatiblePresets.length) {
+        variantFormError.textContent = "Seleciona pelo menos um calendário compatível para esta opção.";
+        variantFormError.hidden = false;
+        return;
+      }
     const tz1Min = document.getElementById("tz1Min");
     const tz1Max = document.getElementById("tz1Max");
     const tz2Min = document.getElementById("tz2Min");
     const tz2Max = document.getElementById("tz2Max");
     const tz3Min = document.getElementById("tz3Min");
-    const tz3Max = document.getElementById("tz3Max");
+            running_config_preset: Object.keys(runningConfig).length ? runningConfig : {},
+            compatible_presets: compatiblePresets
     const tz4Min = document.getElementById("tz4Min");
     const tz4Max = document.getElementById("tz4Max");
     const tz5Min = document.getElementById("tz5Min");
     const tz5Max = document.getElementById("tz5Max");
 
     const checkinDetailModal = document.getElementById("checkinDetailModal");
-    const checkinDetailBody = document.getElementById("checkinDetailBody");
+            running_config_preset: Object.keys(runningConfig).length ? runningConfig : {},
+            compatible_presets: compatiblePresets
     const checkinApproveBtn = document.getElementById("checkinApproveBtn");
     const checkinDetailCloseBtn = document.getElementById("checkinDetailCloseBtn");
     const newAthleteNameInput = document.getElementById("newAthleteName");
@@ -2759,9 +3018,11 @@
     const authStatus = document.getElementById("auth-status");
     const loginBtn = document.getElementById("login-btn");
     const logoutBtn = document.getElementById("logout-btn");
+    const athleteQuickSelect = document.getElementById("athleteQuickSelect");
+    const schedPresetDescription = document.getElementById("sched-preset-description");
 
     const DEFAULT_AUTH_MAX_SESSION_SECONDS = 24 * 60 * 60;
-    
+      schedPresetSelect.innerHTML = '<option value="">Seleciona um calendário...</option>';
     let supabaseClient = null;
     let publicConfig = null;
 
@@ -2771,24 +3032,33 @@
     let selectedAthleteId = "";
     let selectedTrainingLoadWeekStart = "";
     let allCheckins = [];
+      if (schedPresetDescription) {
+        schedPresetDescription.textContent = schedCurrentPreset && schedCurrentPreset.description
+          ? schedCurrentPreset.description
+          : (schedCurrentPreset ? 'Sem explicação guardada para este calendário.' : '');
+      }
     let state = {
       user: null,
       token: null,
-      roles: []
+      const presetName = window.prompt("Nome do novo calendário:", "Novo calendário");
     };
+      const presetDescription = window.prompt("Explicação curta para o coach usar com o atleta:", "") || "";
 
     async function loadPublicConfig() {
       if (publicConfig) return publicConfig;
+        description: presetDescription.trim() || null,
       const response = await fetch('/.netlify/functions/public-config');
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) {
         throw new Error((payload && payload.error) ? payload.error : 'Nao foi possivel carregar configuracao publica.');
       }
-      publicConfig = {
+      const presetName = window.prompt("Novo nome do calendário:", schedCurrentPreset.preset_name || "");
         supabaseUrl: payload.supabaseUrl,
+      const presetDescription = window.prompt("Explicação curta para este calendário:", schedCurrentPreset.description || "") || "";
         supabaseAnonKey: payload.supabaseAnonKey,
         authMaxSessionSeconds: Number(payload.authMaxSessionSeconds) || DEFAULT_AUTH_MAX_SESSION_SECONDS
-      };
+        preset_name: presetName.trim(),
+        description: presetDescription.trim() || null
       return publicConfig;
     }
 
@@ -2879,6 +3149,7 @@
       loginBtn.disabled = canUseApi;
       logoutBtn.disabled = !canUseApi;
       athleteSelect.disabled = !canUseApi;
+      if (athleteQuickSelect) athleteQuickSelect.disabled = !canUseApi;
       athleteSearchInput.disabled = !canUseApi;
       openAddAthleteModalButton.disabled = !canUseApi;
       if (loadTrainingZonesBtn) loadTrainingZonesBtn.disabled = !canUseApi;
@@ -2924,7 +3195,6 @@
         try {
           await loadAthletes();
           loadStrengthPlans();
-          syncAthleteUploadSelectedAthlete();
         } catch (err) {
           showResult(err.message, true);
         }
@@ -2934,7 +3204,6 @@
         renderAthleteOptions(athletes);
         renderTrainingLoadSummary(null, "Sem dados calculados ainda.");
         checkinsContainer.innerHTML = "Faz login para ver check-ins.";
-        syncAthleteUploadSelectedAthlete();
       }
     }
 
@@ -2948,27 +3217,6 @@
       submitButton.textContent = skipCheckin
         ? "Importar sem check-in"
         : "Importar e gerar check-in";
-    }
-
-    function syncAthleteUploadMode() {
-      if (!athleteUploadSkipCheckin) return;
-      const skipCheckin = Boolean(athleteUploadSkipCheckin.checked);
-      athleteUploadStrengthPlannedDoneCount.disabled = skipCheckin;
-      athleteUploadStrengthPlannedNotDoneCount.disabled = skipCheckin;
-      athleteUploadManualStrengthFeedback.disabled = skipCheckin;
-      athleteUploadStrengthPlannedDoneCount.required = !skipCheckin;
-      athleteUploadStrengthPlannedNotDoneCount.required = !skipCheckin;
-      athleteUploadSubmitButton.textContent = skipCheckin
-        ? "Importar sem check-in"
-        : "Importar e gerar check-in";
-    }
-
-    function syncAthleteUploadSelectedAthlete() {
-      if (!athleteUploadSelectedAthlete) return;
-      athleteUploadSelectedAthlete.value = selectedAthleteInput.value || "";
-      if (openAthleteUploadModalButton) {
-        openAthleteUploadModalButton.disabled = !selectedAthleteId;
-      }
     }
 
     const TRAINING_ZONE_MODALITIES = ["general", "run", "bike", "swim", "row", "other"];
@@ -3836,11 +4084,6 @@
           title: "Visão semanal da carteira",
           description: "Acompanha resposta aos check-ins, pendentes de aprovação e aderência de força para priorizar as ações da semana."
         },
-        athlete: {
-          eyebrow: "Gestão de Atletas",
-          title: "Seleciona e prepara o contexto",
-          description: "Escolhe o atleta, confirma estado de pagamento e valida rapidamente os dados-base antes de planear ou importar."
-        },
         zonas: {
           eyebrow: "Zonas de Treino",
           title: "Controla perfis por modalidade",
@@ -3849,7 +4092,7 @@
         planeamento: {
           eyebrow: "Planeamento",
           title: "Assignments e calendário",
-          description: "Cria assignments, configura presets e gera o calendário semanal do atleta com controlo de regeneração por semana."
+          description: "Cria assignments, define as opcoes do programa e gere o calendario base semanal que depois e aplicado ao atleta."
         },
         forca: {
           eyebrow: "Treino de Força",
@@ -4532,45 +4775,55 @@
 
     function renderAthleteOptions(filteredAthletes) {
       const list = Array.isArray(filteredAthletes) ? filteredAthletes : athletes;
-      athleteSelect.innerHTML = "";
-
       const payingCount = list.filter((a) => a.isPaying).length;
-      const defaultOption = document.createElement("option");
-      defaultOption.value = "";
-      defaultOption.textContent = list.length
-        ? `Seleciona um atleta (${payingCount} pagante${payingCount !== 1 ? "s" : ""} / ${list.length} total)`
-        : "Nenhum atleta encontrado";
-      athleteSelect.appendChild(defaultOption);
+      const populateSelect = (selectEl, placeholderText) => {
+        if (!selectEl) return;
+        selectEl.innerHTML = "";
 
-      list.forEach((athlete) => {
-        const option = document.createElement("option");
-        option.value = athlete.id;
-        const nameLabel = athlete.name
-          ? `${athlete.name} (${athlete.email || athlete.id.slice(0, 8)})`
-          : (athlete.email || athlete.id);
-        const payTag = athlete.isPaying ? " ✓ Pagante" : " ○ Sem pagamento";
-        option.textContent = nameLabel + payTag;
-        athleteSelect.appendChild(option);
-      });
+        const defaultOption = document.createElement("option");
+        defaultOption.value = "";
+        defaultOption.textContent = placeholderText;
+        selectEl.appendChild(defaultOption);
 
-      // Preserve current selection even when filtered out of the visible list.
-      if (selectedAthleteId) {
-        const stillVisible = list.some((a) => a.id === selectedAthleteId);
-        if (!stillVisible) {
-          const selectedAthlete = athletes.find((a) => a.id === selectedAthleteId);
-          if (selectedAthlete) {
-            const stickyOption = document.createElement("option");
-            stickyOption.value = selectedAthlete.id;
-            const selectedLabel = selectedAthlete.name
-              ? `${selectedAthlete.name} (${selectedAthlete.email || selectedAthlete.id.slice(0, 8)})`
-              : (selectedAthlete.email || selectedAthlete.id);
-            stickyOption.textContent = `${selectedLabel} • selecionado`;
-            athleteSelect.appendChild(stickyOption);
+        list.forEach((athlete) => {
+          const option = document.createElement("option");
+          option.value = athlete.id;
+          const nameLabel = athlete.name
+            ? `${athlete.name} (${athlete.email || athlete.id.slice(0, 8)})`
+            : (athlete.email || athlete.id);
+          const payTag = athlete.isPaying ? " ✓ Pagante" : " ○ Sem pagamento";
+          option.textContent = nameLabel + payTag;
+          selectEl.appendChild(option);
+        });
+
+        if (selectedAthleteId) {
+          const stillVisible = list.some((a) => a.id === selectedAthleteId);
+          if (!stillVisible) {
+            const selectedAthlete = athletes.find((a) => a.id === selectedAthleteId);
+            if (selectedAthlete) {
+              const stickyOption = document.createElement("option");
+              stickyOption.value = selectedAthlete.id;
+              const selectedLabel = selectedAthlete.name
+                ? `${selectedAthlete.name} (${selectedAthlete.email || selectedAthlete.id.slice(0, 8)})`
+                : (selectedAthlete.email || selectedAthlete.id);
+              stickyOption.textContent = `${selectedLabel} • selecionado`;
+              selectEl.appendChild(stickyOption);
+            }
           }
+          selectEl.value = selectedAthleteId;
         }
+      };
 
-        athleteSelect.value = selectedAthleteId;
-      }
+      populateSelect(
+        athleteSelect,
+        list.length
+          ? `Seleciona um atleta (${payingCount} pagante${payingCount !== 1 ? "s" : ""} / ${list.length} total)`
+          : "Nenhum atleta encontrado"
+      );
+      populateSelect(
+        athleteQuickSelect,
+        list.length ? "Seleciona um atleta..." : "Nenhum atleta encontrado"
+      );
     }
 
     function applyAthleteFilter() {
@@ -4601,28 +4854,33 @@
 
     function syncSelectedAthlete(athleteId) {
       selectedAthleteId = athleteId || "";
+      if (athleteQuickSelect && athleteQuickSelect.value !== selectedAthleteId) {
+        athleteQuickSelect.value = selectedAthleteId;
+      }
+      if (athleteSelect && athleteSelect.value !== selectedAthleteId) {
+        athleteSelect.value = selectedAthleteId;
+      }
       if (!selectedAthleteId) {
         selectedAthleteInput.value = "";
-        syncAthleteUploadSelectedAthlete();
         setSelectedTrainingLoadWeekStart("");
         syncTrainingLoadWeekControls();
         renderTrainingLoadSummary(null, "Sem dados calculados ainda.");
         renderStrengthMonitoring();
+        renderStrengthAthleteProfilePanel();
         loadTrainingZonesForAthlete("");
         return;
       }
       const athlete = athletes.find((item) => item.id === selectedAthleteId);
       if (!athlete) {
         selectedAthleteInput.value = "";
-        syncAthleteUploadSelectedAthlete();
         syncTrainingLoadWeekControls();
         return;
       }
       selectedAthleteInput.value = athlete.name
         ? `${athlete.name} (${athlete.email || athlete.id})`
         : (athlete.email || athlete.id);
-      syncAthleteUploadSelectedAthlete();
       syncTrainingLoadWeekControls();
+      renderStrengthAthleteProfilePanel();
 
       if (strCurrentPlan && strCurrentPlan.plan) {
         loadStrengthMonitoring(strCurrentPlan.plan.id, selectedAthleteId);
@@ -4630,6 +4888,80 @@
         renderStrengthMonitoring();
       }
       loadTrainingZonesForAthlete(selectedAthleteId);
+    }
+
+    function renderStrengthAthleteProfilePanel() {
+      if (!strengthAthleteProfilePanel) return;
+      const athlete = athletes.find((item) => item.id === selectedAthleteId);
+      const hasAthlete = !!athlete;
+      strengthAthleteProfilePanel.hidden = !hasAthlete;
+      strengthAthleteLevel.disabled = !hasAthlete;
+        strengthAthleteGymAccess.disabled = !hasAthlete;
+      saveStrengthAthleteProfileBtn.disabled = !hasAthlete;
+      if (!hasAthlete) {
+          strengthAthleteProfileMeta.textContent = "Seleciona um atleta para ver as escolhas dele e aplicar override do coach quando necessário.";
+          strengthAthleteLevelValue.textContent = "—";
+          strengthAthleteGymAccessValue.textContent = "—";
+        strengthAthleteLevel.value = "";
+          strengthAthleteGymAccess.value = "";
+          strengthAthleteOverrideSummary.textContent = "Sem override do coach.";
+        return;
+      }
+
+      const athleteName = athlete.name || athlete.email || athlete.id;
+        const baseLevelLabels = {
+          beginner: "Iniciante",
+          intermediate: "Intermédio",
+          advanced: "Avançado"
+        };
+        const gymAccessLabels = {
+          full_gym: "Ginásio completo",
+          limited_equipment: "Material limitado",
+          no_gym: "Sem acesso a ginásio"
+        };
+        strengthAthleteProfileMeta.textContent = `O atleta ${athleteName} controla as preferências base no perfil dele. Aqui podes aplicar um override específico no contexto do coaching.`;
+        strengthAthleteLevelValue.textContent = athlete.strengthLevel ? (baseLevelLabels[athlete.strengthLevel] || athlete.strengthLevel) : "Standard do plano";
+        strengthAthleteGymAccessValue.textContent = gymAccessLabels[athlete.gymAccess || "full_gym"] || "Ginásio completo";
+        strengthAthleteLevel.value = athlete.coachStrengthLevelOverride || "";
+        strengthAthleteGymAccess.value = athlete.coachGymAccessOverride || "";
+        const effectiveLevel = athlete.coachStrengthLevelOverride || athlete.strengthLevel || null;
+        const effectiveGymAccess = athlete.coachGymAccessOverride || athlete.gymAccess || "full_gym";
+        strengthAthleteOverrideSummary.textContent = athlete.coachStrengthLevelOverride || athlete.coachGymAccessOverride
+          ? `Override ativo. Efetivo agora: ${effectiveLevel ? (baseLevelLabels[effectiveLevel] || effectiveLevel) : "Standard do plano"} · ${gymAccessLabels[effectiveGymAccess] || effectiveGymAccess}.`
+          : "Sem override do coach. O plano usa a escolha do atleta.";
+    }
+
+    async function saveSelectedAthleteStrengthProfile() {
+      if (!selectedAthleteId) {
+        showResult("Seleciona um atleta primeiro.", "error");
+        return;
+      }
+      saveStrengthAthleteProfileBtn.disabled = true;
+      const originalLabel = saveStrengthAthleteProfileBtn.textContent;
+      saveStrengthAthleteProfileBtn.textContent = "A guardar...";
+      try {
+        const data = await apiRequest("PATCH", "/.netlify/functions/coach-athlete-strength-profile", {
+          athlete_id: selectedAthleteId,
+          coach_strength_level_override: strengthAthleteLevel.value || null,
+          coach_gym_access_override: strengthAthleteGymAccess.value || null
+        });
+        const athlete = athletes.find((item) => item.id === selectedAthleteId);
+        if (athlete && data && data.athlete) {
+          athlete.strengthLevel = data.athlete.strength_level || null;
+          athlete.gymAccess = data.athlete.gym_access || "full_gym";
+          athlete.coachStrengthLevelOverride = data.athlete.coach_strength_level_override || null;
+          athlete.coachGymAccessOverride = data.athlete.coach_gym_access_override || null;
+          athlete.strengthMovementVariant = data.athlete.strength_movement_variant || "standard";
+          athlete.strengthLogDetail = data.athlete.strength_log_detail || athlete.strengthLogDetail || "exercise";
+        }
+        renderStrengthAthleteProfilePanel();
+        showResult("Override de força do coach guardado.", "success");
+      } catch (error) {
+        showResult("Erro ao guardar override de força: " + (error.message || "erro"), "error");
+      } finally {
+        saveStrengthAthleteProfileBtn.disabled = false;
+        saveStrengthAthleteProfileBtn.textContent = originalLabel;
+      }
     }
 
     async function loadAthletes(preselectId) {
@@ -4682,57 +5014,6 @@
     openAddAthleteModalButton.addEventListener("click", openAddAthleteModal);
     cancelAddAthleteButton.addEventListener("click", closeAddAthleteModal);
 
-    if (openAthleteUploadModalButton) {
-      openAthleteUploadModalButton.addEventListener("click", () => {
-        if (!selectedAthleteId) {
-          showResult("Seleciona um atleta primeiro para abrir o upload por atleta.", "error");
-          return;
-        }
-        syncAthleteUploadSelectedAthlete();
-        syncAthleteUploadMode();
-        athleteUploadModal.classList.remove("hidden");
-      });
-    }
-
-    if (athleteUploadCancelButton) {
-      athleteUploadCancelButton.addEventListener("click", () => {
-        athleteUploadModal.classList.add("hidden");
-      });
-    }
-
-    if (athleteUploadModal) {
-      athleteUploadModal.addEventListener("click", (event) => {
-        if (event.target === athleteUploadModal) {
-          athleteUploadModal.classList.add("hidden");
-        }
-      });
-    }
-
-    if (athleteUploadSkipCheckin) {
-      athleteUploadSkipCheckin.addEventListener("change", syncAthleteUploadMode);
-    }
-
-    if (athleteUploadForm) {
-      athleteUploadForm.addEventListener("submit", async (event) => {
-        event.preventDefault();
-        await processCsvUpload({
-          file: athleteUploadCsvFile.files && athleteUploadCsvFile.files[0],
-          skipCheckin: Boolean(athleteUploadSkipCheckin.checked),
-          strengthPlannedDoneCount: Number(athleteUploadStrengthPlannedDoneCount.value),
-          strengthPlannedNotDoneCount: Number(athleteUploadStrengthPlannedNotDoneCount.value),
-          manualStrengthFeedback: (athleteUploadManualStrengthFeedback.value || "").trim(),
-          submitControl: athleteUploadSubmitButton,
-          closeAfterSuccess: () => {
-            athleteUploadModal.classList.add("hidden");
-            athleteUploadForm.reset();
-            athleteUploadStrengthPlannedDoneCount.value = "0";
-            athleteUploadStrengthPlannedNotDoneCount.value = "0";
-            syncAthleteUploadMode();
-          }
-        });
-      });
-    }
-
     addAthleteModal.addEventListener("click", (event) => {
       if (event.target === addAthleteModal) {
         closeAddAthleteModal();
@@ -4777,6 +5058,19 @@
         if (strCurrentPlan) renderDayView();
       });
     });
+
+    if (athleteQuickSelect) {
+      athleteQuickSelect.addEventListener("change", () => {
+        syncSelectedAthlete(athleteQuickSelect.value);
+        setSelectedTrainingLoadWeekStart("");
+        loadCheckinsForAthlete(athleteQuickSelect.value);
+        loadTrainingLoadForAthlete(athleteQuickSelect.value);
+        load1RMsForAthlete(athleteQuickSelect.value).then(() => {
+          document.getElementById("openOneRmModal").disabled = !athleteQuickSelect.value;
+          if (strCurrentPlan) renderDayView();
+        });
+      });
+    }
 
     // 1RM modal open/close/add
     document.getElementById("openOneRmModal").addEventListener("click", () => {
@@ -5334,9 +5628,74 @@
     let strEditingTemplatePlanId = null;
     let strInstanceSnapshotDirty = false;
     let strLastMobileLayout = window.innerWidth <= 680;
+    let strengthPlanPhaseDraft = [];
 
     function cloneJson(value) {
       return value == null ? value : JSON.parse(JSON.stringify(value));
+    }
+
+    function getStrengthPhaseDefinitions(plan) {
+      return Array.isArray(plan && plan.phase_definitions) ? cloneJson(plan.phase_definitions) : [];
+    }
+
+    function getStrengthPlanDisplayName(plan) {
+      if (!plan) return "";
+      const phaseCount = getStrengthPhaseDefinitions(plan).length;
+      const baseName = plan.name || plan.title || (plan.id ? plan.id.slice(0, 8) : "Plano");
+      return phaseCount > 0 ? `${baseName} · ${phaseCount} fase(s)` : baseName;
+    }
+
+    function renderStrengthPlanPhaseBuilder(editingPlanId) {
+      if (!spUsePhases || !spPhaseBuilder || !spPhaseRows) return;
+      spPhaseBuilder.style.display = spUsePhases.checked ? "block" : "none";
+      if (!spUsePhases.checked) {
+        spPhaseRows.innerHTML = "";
+        return;
+      }
+
+      if (!Array.isArray(strengthPlanPhaseDraft) || strengthPlanPhaseDraft.length === 0) {
+        spPhaseRows.innerHTML = '<p style="margin:0; color:#8b949e; font-size:0.85rem;">Ainda não há fases configuradas.</p>';
+        return;
+      }
+
+      const optionList = (strPlans || [])
+        .filter((plan) => plan && plan.id && plan.id !== editingPlanId)
+        .map((plan) => `<option value="${escapeHtml(plan.id)}">${escapeHtml(getStrengthPlanDisplayName(plan))}</option>`)
+        .join("");
+
+      spPhaseRows.innerHTML = strengthPlanPhaseDraft.map((entry, index) => {
+        const selectedPlanId = (entry.plan_id || "").toString();
+        const selectedToken = `value="${escapeHtml(selectedPlanId)}"`;
+        return `<div style="display:grid; grid-template-columns:110px 1fr 1fr auto; gap:8px; align-items:end;">
+          <label style="display:flex; flex-direction:column; gap:4px; font-size:0.8rem; color:#8b949e;">
+            Semana inicial
+            <input data-phase-field="start_week" data-phase-index="${index}" type="number" min="1" value="${escapeHtml(String(entry.start_week || 1))}" style="width:100%; padding:6px; border-radius:6px; border:1px solid #30363d; background:#161b22; color:#c9d1d9;" />
+          </label>
+          <label style="display:flex; flex-direction:column; gap:4px; font-size:0.8rem; color:#8b949e;">
+            Plano da fase
+            <select data-phase-field="plan_id" data-phase-index="${index}" style="width:100%; padding:6px; border-radius:6px; border:1px solid #30363d; background:#161b22; color:#c9d1d9;">
+              <option value="">— Selecionar —</option>
+              ${optionList.replace(selectedToken, `${selectedToken} selected`)}
+            </select>
+          </label>
+          <label style="display:flex; flex-direction:column; gap:4px; font-size:0.8rem; color:#8b949e;">
+            Etiqueta (opcional)
+            <input data-phase-field="label" data-phase-index="${index}" value="${escapeHtml((entry.label || "").toString())}" placeholder="Ex.: Base / Intensificação" style="width:100%; padding:6px; border-radius:6px; border:1px solid #30363d; background:#161b22; color:#c9d1d9;" />
+          </label>
+          <button type="button" class="btn btn-small btn-secondary" data-phase-remove="${index}">Remover</button>
+        </div>`;
+      }).join("");
+    }
+
+    function collectStrengthPlanPhaseDefinitions() {
+      if (!spUsePhases || !spUsePhases.checked) return [];
+      return (strengthPlanPhaseDraft || [])
+        .map((entry) => ({
+          start_week: Number(entry.start_week),
+          plan_id: (entry.plan_id || "").toString().trim(),
+          label: (entry.label || "").toString().trim() || null
+        }))
+        .filter((entry) => Number.isInteger(entry.start_week) && entry.start_week >= 1 && entry.plan_id);
     }
 
     function parseInstanceSnapshot(raw) {
@@ -5552,9 +5911,21 @@
     const exitInstanceEditBtn = document.getElementById("exitInstanceEditBtn");
     const strengthMonitorMeta = document.getElementById("strengthMonitorMeta");
     const strengthMonitorSessions = document.getElementById("strengthMonitorSessions");
+    const strengthAthleteProfilePanel = document.getElementById("strengthAthleteProfilePanel");
+    const strengthAthleteProfileMeta = document.getElementById("strengthAthleteProfileMeta");
+      const strengthAthleteLevelValue = document.getElementById("strengthAthleteLevelValue");
+      const strengthAthleteGymAccessValue = document.getElementById("strengthAthleteGymAccessValue");
+    const strengthAthleteLevel = document.getElementById("strengthAthleteLevel");
+      const strengthAthleteGymAccess = document.getElementById("strengthAthleteGymAccess");
+      const strengthAthleteOverrideSummary = document.getElementById("strengthAthleteOverrideSummary");
+    const saveStrengthAthleteProfileBtn = document.getElementById("saveStrengthAthleteProfileBtn");
     const strengthPlanModal = document.getElementById("strengthPlanModal");
     const strengthPlanForm = document.getElementById("strengthPlanForm");
     const spProgramSelect = document.getElementById("spProgram");
+    const spUsePhases = document.getElementById("spUsePhases");
+    const spPhaseBuilder = document.getElementById("spPhaseBuilder");
+    const spPhaseRows = document.getElementById("spPhaseRows");
+    const spAddPhaseBtn = document.getElementById("spAddPhaseBtn");
     let strPrograms = [];
 
     window.addEventListener("resize", () => {
@@ -5571,7 +5942,23 @@
     const warmupLibraryModal = document.getElementById("warmupLibraryModal");
     const warmupPresetList = document.getElementById("warmupPresetList");
     const warmupPresetPreview = document.getElementById("warmupPresetPreview");
+    const addExerciseModalTitle = document.getElementById("addExerciseModalTitle");
+    const exerciseAlternativesModal = document.getElementById("exerciseAlternativesModal");
+    const exerciseAlternativesMeta = document.getElementById("exerciseAlternativesMeta");
+    const exerciseAlternativesBaseName = document.getElementById("exerciseAlternativesBaseName");
+    const exerciseAltProgression = document.getElementById("exerciseAltProgression");
+    const exerciseAltRegression = document.getElementById("exerciseAltRegression");
+    const exerciseAltLateral = document.getElementById("exerciseAltLateral");
+    const exerciseAlternativeOptions = document.getElementById("exerciseAlternativeOptions");
+    const exerciseAltEachSide = document.getElementById("exerciseAltEachSide");
+    const exerciseAltWeightPerSide = document.getElementById("exerciseAltWeightPerSide");
+    const saveExerciseAlternativesBtn = document.getElementById("saveExerciseAlternativesBtn");
+    const cancelExerciseAlternativesBtn = document.getElementById("cancelExerciseAlternativesBtn");
     let addExerciseTargetSection = "";
+    let replaceExerciseTargetPeId = null;
+    let alternativeExerciseTargetPeId = null;
+    let alternativeExerciseLookup = new Map();
+    let alternativeExerciseNameLookup = new Map();
     let isCreatingFromPicker = false; // Track if we're creating an exercise from the picker modal
     let exCrudOpenFromPlan = false;
     const pendingExerciseAddKeys = new Set();
@@ -5741,7 +6128,7 @@
         for (const p of strPlans) {
           const opt = document.createElement("option");
           opt.value = p.id;
-          opt.textContent = `${p.name} (${p.status})`;
+          opt.textContent = `${getStrengthPlanDisplayName(p)} (${p.status})`;
           strengthPlanSelect.appendChild(opt);
         }
 
@@ -5939,6 +6326,9 @@
     }
 
     function renderStrengthMonitoring() {
+      if (strengthMonitorPanel) {
+        strengthMonitorPanel.hidden = !selectedAthleteId;
+      }
       const complianceEl = document.getElementById("smCompliance");
       const plannedEl = document.getElementById("smPlannedKg");
       const actualEl = document.getElementById("smActualKg");
@@ -6163,11 +6553,12 @@
       }
       const p = strCurrentPlan.plan;
       const editingInstance = isEditingInstanceMode();
+      const phaseCount = getStrengthPhaseDefinitions(p).length;
       document.getElementById("strengthPlanName").textContent = p.name;
       const badge = document.getElementById("strengthPlanStatus");
       badge.textContent = editingInstance ? `instância ${strEditingInstance.status || "active"}` : p.status;
       badge.className = "status-badge " + (editingInstance ? (strEditingInstance.status || "active") : p.status);
-      document.getElementById("strengthPlanWeeks").textContent = `${p.total_weeks} semanas · Carga arred. ${getEffectiveLoadRound()}kg`;
+      document.getElementById("strengthPlanWeeks").textContent = `${p.total_weeks} semanas · Carga arred. ${getEffectiveLoadRound()}kg${phaseCount ? ` · ${phaseCount} fase(s)` : ""}`;
       strengthInstanceModeLabel.textContent = editingInstance
         ? `Modo instância · ${getEditingInstanceAthleteName()}`
         : "";
@@ -6380,7 +6771,9 @@
         alt_progression_exercise: null,
         alt_regression_exercise: null,
         alt_progression_exercise_id: null,
-        alt_regression_exercise_id: null
+        alt_regression_exercise_id: null,
+        alt_lateral_exercise: null,
+        alt_lateral_exercise_id: null
       };
       strCurrentPlan.exercises.push(newExercise);
       const totalWeeks = Number(strCurrentPlan.plan.total_weeks) || 1;
@@ -6480,6 +6873,33 @@
       }
     }
 
+    function replaceExerciseInCurrentPlan(peId, exercise) {
+      if (!strCurrentPlan || !peId || !exercise) return false;
+      ensureCurrentPlanArrays();
+      const target = (strCurrentPlan.exercises || []).find((item) => item.id === peId);
+      if (!target) return false;
+
+      target.exercise_id = exercise.id;
+      target.exercise = cloneJson(exercise);
+      target.each_side = !!exercise.default_each_side;
+      target.weight_per_side = !!exercise.default_weight_per_side;
+      target.alt_progression_exercise_id = null;
+      target.alt_regression_exercise_id = null;
+      target.alt_lateral_exercise_id = null;
+      target.alt_progression_exercise = null;
+      target.alt_regression_exercise = null;
+      target.alt_lateral_exercise = null;
+
+      queueExerciseChange(peId, "exercise_id", exercise.id);
+      queueExerciseChange(peId, "each_side", !!exercise.default_each_side);
+      queueExerciseChange(peId, "weight_per_side", !!exercise.default_weight_per_side);
+      queueExerciseChange(peId, "alt_progression_exercise_id", null);
+      queueExerciseChange(peId, "alt_regression_exercise_id", null);
+      queueExerciseChange(peId, "alt_lateral_exercise_id", null);
+      renderDayView();
+      return true;
+    }
+
     function removeExerciseFromCurrentSnapshot(peId) {
       if (!strCurrentPlan || !peId) return;
       ensureCurrentPlanArrays();
@@ -6542,7 +6962,9 @@
           alt_progression_exercise: null,
           alt_regression_exercise: null,
           alt_progression_exercise_id: null,
-          alt_regression_exercise_id: null
+          alt_regression_exercise_id: null,
+          alt_lateral_exercise: null,
+          alt_lateral_exercise_id: null
         };
         exerciseIndexMap[index + 1] = created.id;
         strCurrentPlan.exercises.push(created);
@@ -6843,6 +7265,9 @@
         const exMetaTags = [];
         if (pe.weight_per_side) exMetaTags.push("kg/lado");
         if (pe.each_side) exMetaTags.push("cada lado");
+        if (pe.alt_regression_exercise_id) exMetaTags.push("reg");
+        if (pe.alt_progression_exercise_id) exMetaTags.push("prog");
+        if (pe.alt_lateral_exercise_id) exMetaTags.push("lat");
         const exMetaHtml = exMetaTags.length > 0
           ? `<div class="str-ex-flags">${exMetaTags.map((tag) => `<span class="str-ex-flag">${tag}</span>`).join("")}</div>`
           : "";
@@ -6901,7 +7326,7 @@
               <div class="str-mobile-title" title="${escapeHtml(exName)}"><button type="button" class="str-mobile-title-btn" data-edit-exid="${exId}" title="Editar exercício">${escapeHtml(exName)}</button></div>
               ${exMetaHtml}
             </div>
-            <div class="str-mobile-actions"><button class="str-rm-btn" data-rmpe="${pe.id}" title="Remover">✕</button></div>
+            <div class="str-mobile-actions" style="display:flex; gap:6px;"><button type="button" class="str-rm-btn" data-alt-peid="${pe.id}" title="Progressão, regressão e lateralização" aria-label="Editar alternativas">Alt</button><button type="button" class="str-rm-btn" data-replace-peid="${pe.id}" title="Substituir exercício" aria-label="Substituir exercício">⇄</button><button class="str-rm-btn" data-rmpe="${pe.id}" title="Remover">✕</button></div>
           </div>
           <div class="str-mobile-grid">
             ${fieldsHtml}
@@ -6974,6 +7399,9 @@
         const exMetaTags = [];
         if (pe.weight_per_side) exMetaTags.push("kg/lado");
         if (pe.each_side) exMetaTags.push("cada lado");
+        if (pe.alt_regression_exercise_id) exMetaTags.push("reg");
+        if (pe.alt_progression_exercise_id) exMetaTags.push("prog");
+        if (pe.alt_lateral_exercise_id) exMetaTags.push("lat");
         const exMetaHtml = exMetaTags.length > 0
           ? `<div class="str-ex-flags">${exMetaTags.map((tag) => `<span class="str-ex-flag">${tag}</span>`).join("")}</div>`
           : "";
@@ -6999,7 +7427,7 @@
             <td>${buildRepsDurControl(rx, pe.id, week)}</td>
             <td><input type="number" value="${rx.rest_seconds||''}" data-field="rest_seconds" data-peid="${pe.id}" data-week="${week}" min="0" placeholder="s" /></td>
             <td class="str-col-secondary"><input value="${rx.coach_notes||''}" data-field="coach_notes" data-peid="${pe.id}" data-week="${week}" placeholder="Notas..." /></td>
-            <td><button class="str-rm-btn" data-rmpe="${pe.id}" title="Remover">✕</button></td>
+            <td><div style="display:flex; gap:6px; align-items:center;"><button type="button" class="str-rm-btn" data-alt-peid="${pe.id}" title="Progressão, regressão e lateralização" aria-label="Editar alternativas">Alt</button><button type="button" class="str-rm-btn" data-replace-peid="${pe.id}" title="Substituir exercício" aria-label="Substituir exercício">⇄</button><button class="str-rm-btn" data-rmpe="${pe.id}" title="Remover">✕</button></div></td>
             ${expandBtn}
           `;
         } else if (section === "plyos_speed") {
@@ -7022,7 +7450,7 @@
               <option value="low" ${pe.plyo_mechanical_load==="low"?"selected":""}>Low</option>
             </select></td>
             <td class="str-col-secondary"><input value="${rx.coach_notes||''}" data-field="coach_notes" data-peid="${pe.id}" data-week="${week}" placeholder="Notas..." /></td>
-            <td><button class="str-rm-btn" data-rmpe="${pe.id}" title="Remover">✕</button></td>
+            <td><div style="display:flex; gap:6px; align-items:center;"><button type="button" class="str-rm-btn" data-alt-peid="${pe.id}" title="Progressão, regressão e lateralização" aria-label="Editar alternativas">Alt</button><button type="button" class="str-rm-btn" data-replace-peid="${pe.id}" title="Substituir exercício" aria-label="Substituir exercício">⇄</button><button class="str-rm-btn" data-rmpe="${pe.id}" title="Remover">✕</button></div></td>
             ${expandBtn}
           `;
         } else if (section === "main") {
@@ -7050,7 +7478,7 @@
             <td><input type="number" value="${loadOverrideVal}" data-field="load_override_kg" data-peid="${pe.id}" data-week="${week}" placeholder="${loadPlaceholder}" step="0.5" min="0" class="load-input" /></td>
             <td class="str-col-secondary"><input value="${rx.coach_notes||''}" data-field="coach_notes" data-peid="${pe.id}" data-week="${week}" /></td>
             <td class="str-col-secondary"></td>
-            <td><button class="str-rm-btn" data-rmpe="${pe.id}" title="Remover">✕</button></td>
+            <td><div style="display:flex; gap:6px; align-items:center;"><button type="button" class="str-rm-btn" data-alt-peid="${pe.id}" title="Progressão, regressão e lateralização" aria-label="Editar alternativas">Alt</button><button type="button" class="str-rm-btn" data-replace-peid="${pe.id}" title="Substituir exercício" aria-label="Substituir exercício">⇄</button><button class="str-rm-btn" data-rmpe="${pe.id}" title="Remover">✕</button></div></td>
             ${expandBtn}
           `;
         }
@@ -7572,6 +8000,20 @@
     }
 
     async function handleTableClick(e) {
+      const alternativesBtn = e.target.closest("[data-alt-peid]");
+      if (alternativesBtn) {
+        const peId = alternativesBtn.getAttribute("data-alt-peid");
+        if (peId) await openExerciseAlternativesModal(peId);
+        return;
+      }
+
+      const replaceExerciseBtn = e.target.closest("[data-replace-peid]");
+      if (replaceExerciseBtn) {
+        const peId = replaceExerciseBtn.getAttribute("data-replace-peid");
+        if (peId) await openReplaceExerciseModal(peId);
+        return;
+      }
+
       const editExerciseBtn = e.target.closest("[data-edit-exid]");
       if (editExerciseBtn) {
         const exerciseId = editExerciseBtn.getAttribute("data-edit-exid");
@@ -7735,12 +8177,166 @@
     function openAddExerciseModal(section) {
       if (!strCurrentPlan) { alert("Seleciona um plano primeiro."); return; }
       addExerciseTargetSection = section;
+      replaceExerciseTargetPeId = null;
+      if (addExerciseModalTitle) addExerciseModalTitle.textContent = "Adicionar Exercício";
       addExerciseModal.classList.remove("hidden");
       document.getElementById("exerciseSearchInput").value = "";
       document.getElementById("exerciseCatFilter").value = "";
       document.getElementById("exerciseSubcatFilter").innerHTML = '<option value="">Todas subcategorias</option>';
       renderExercisePicker();
       document.getElementById("exerciseSearchInput").focus();
+    }
+
+    async function openReplaceExerciseModal(peId) {
+      if (!strCurrentPlan || !peId) { alert("Seleciona um plano primeiro."); return; }
+      await loadExerciseCatalog();
+      const current = (strCurrentPlan.exercises || []).find((entry) => entry.id === peId);
+      if (!current) return;
+      addExerciseTargetSection = current.section || "";
+      replaceExerciseTargetPeId = peId;
+      if (addExerciseModalTitle) addExerciseModalTitle.textContent = "Substituir Exercício";
+      addExerciseModal.classList.remove("hidden");
+      document.getElementById("exerciseSearchInput").value = current.exercise && current.exercise.name ? current.exercise.name : "";
+      document.getElementById("exerciseCatFilter").value = current.exercise && current.exercise.category ? current.exercise.category : "";
+      const cat = document.getElementById("exerciseCatFilter").value;
+      const subcats = [...new Set(strExercises.filter(e => !cat || e.category === cat).map(e => e.subcategory).filter(Boolean))].sort();
+      document.getElementById("exerciseSubcatFilter").innerHTML = '<option value="">Todas subcategorias</option>' + subcats.map(s => `<option value="${s}">${s}</option>`).join("");
+      if (current.exercise && current.exercise.subcategory) {
+        document.getElementById("exerciseSubcatFilter").value = current.exercise.subcategory;
+      }
+      renderExercisePicker();
+      document.getElementById("exerciseSearchInput").focus();
+      document.getElementById("exerciseSearchInput").select();
+    }
+
+    function formatExerciseAlternativeLabel(exercise) {
+      if (!exercise) return "";
+      return `${exercise.name} · ${exercise.category || "—"} / ${exercise.subcategory || "—"}`;
+    }
+
+    function buildExerciseAlternativeCatalog(sourceExercise) {
+      const baseId = sourceExercise && sourceExercise.id ? sourceExercise.id : "";
+      const preferred = [];
+      const secondary = [];
+      for (const exercise of strExercises) {
+        if (!exercise || !exercise.id || exercise.id === baseId) continue;
+        if (sourceExercise && exercise.category === sourceExercise.category) preferred.push(exercise);
+        else secondary.push(exercise);
+      }
+      return [...preferred.sort((a, b) => a.name.localeCompare(b.name, "pt")), ...secondary.sort((a, b) => a.name.localeCompare(b.name, "pt"))];
+    }
+
+    function renderExerciseAlternativeOptions(sourceExercise) {
+      const ordered = buildExerciseAlternativeCatalog(sourceExercise);
+      alternativeExerciseLookup = new Map();
+      alternativeExerciseNameLookup = new Map();
+      exerciseAlternativeOptions.innerHTML = ordered.map((exercise) => {
+        const label = formatExerciseAlternativeLabel(exercise);
+        const key = label.toLowerCase();
+        alternativeExerciseLookup.set(key, exercise);
+
+        const nameKey = (exercise.name || "").trim().toLowerCase();
+        if (nameKey) {
+          const existing = alternativeExerciseNameLookup.get(nameKey);
+          if (!existing) alternativeExerciseNameLookup.set(nameKey, exercise);
+          else alternativeExerciseNameLookup.set(nameKey, null);
+        }
+
+        return `<option value="${escapeHtml(label)}"></option>`;
+      }).join("");
+    }
+
+    function setAlternativeExerciseInputValue(input, exerciseId) {
+      if (!input) return;
+      if (!exerciseId) {
+        input.value = "";
+        return;
+      }
+      const exercise = strExercises.find((entry) => entry.id === exerciseId) || null;
+      input.value = exercise ? formatExerciseAlternativeLabel(exercise) : "";
+    }
+
+    function resolveAlternativeExerciseId(rawValue, baseExerciseId, fieldLabel) {
+      const normalized = (rawValue || "").toString().trim();
+      if (!normalized) return null;
+
+      const key = normalized.toLowerCase();
+      const exact = alternativeExerciseLookup.get(key) || null;
+      const byName = exact ? null : (alternativeExerciseNameLookup.get(key) || null);
+      const resolved = exact || byName;
+
+      if (!resolved || !resolved.id) {
+        throw new Error(`${fieldLabel}: escolhe um exercício válido da lista.`);
+      }
+      if (resolved.id === baseExerciseId) {
+        throw new Error(`${fieldLabel}: a alternativa não pode ser o mesmo exercício base.`);
+      }
+
+      return resolved.id;
+    }
+
+    function closeExerciseAlternativesModal() {
+      alternativeExerciseTargetPeId = null;
+      exerciseAlternativesModal.classList.add("hidden");
+    }
+
+    async function openExerciseAlternativesModal(peId) {
+      if (!strCurrentPlan || !peId) return;
+      await loadExerciseCatalog();
+      const pe = (strCurrentPlan.exercises || []).find((entry) => entry.id === peId);
+      if (!pe) return;
+      alternativeExerciseTargetPeId = peId;
+      const baseExercise = pe.exercise || strExercises.find((entry) => entry.id === pe.exercise_id) || null;
+      exerciseAlternativesBaseName.value = baseExercise ? baseExercise.name : "Exercício sem nome";
+      exerciseAlternativesMeta.textContent = "Define alternativas específicas desta slot. O atleta usa regressão/progressão pelo nível e lateralização pelo perfil de movimento.";
+      renderExerciseAlternativeOptions(baseExercise);
+      setAlternativeExerciseInputValue(exerciseAltProgression, pe.alt_progression_exercise_id || "");
+      setAlternativeExerciseInputValue(exerciseAltRegression, pe.alt_regression_exercise_id || "");
+      setAlternativeExerciseInputValue(exerciseAltLateral, pe.alt_lateral_exercise_id || "");
+      exerciseAltEachSide.value = pe.each_side ? "true" : "false";
+      exerciseAltWeightPerSide.value = pe.weight_per_side ? "true" : "false";
+      exerciseAlternativesModal.classList.remove("hidden");
+    }
+
+    async function saveExerciseAlternatives() {
+      if (!strCurrentPlan || !alternativeExerciseTargetPeId) return;
+      const pe = (strCurrentPlan.exercises || []).find((entry) => entry.id === alternativeExerciseTargetPeId);
+      if (!pe) return;
+
+      let nextProgressionId;
+      let nextRegressionId;
+      let nextLateralId;
+      try {
+        nextProgressionId = resolveAlternativeExerciseId(exerciseAltProgression.value, pe.exercise_id, "Progressão");
+        nextRegressionId = resolveAlternativeExerciseId(exerciseAltRegression.value, pe.exercise_id, "Regressão");
+        nextLateralId = resolveAlternativeExerciseId(exerciseAltLateral.value, pe.exercise_id, "Lateralização");
+      } catch (error) {
+        showResult(error.message || "Escolhe um exercício válido para a alternativa.", "error");
+        return;
+      }
+      const nextEachSide = exerciseAltEachSide.value === "true";
+      const nextWeightPerSide = exerciseAltWeightPerSide.value === "true";
+
+      pe.alt_progression_exercise_id = nextProgressionId;
+      pe.alt_regression_exercise_id = nextRegressionId;
+      pe.alt_lateral_exercise_id = nextLateralId;
+      pe.alt_progression_exercise = nextProgressionId ? (strExercises.find((entry) => entry.id === nextProgressionId) || null) : null;
+      pe.alt_regression_exercise = nextRegressionId ? (strExercises.find((entry) => entry.id === nextRegressionId) || null) : null;
+      pe.alt_lateral_exercise = nextLateralId ? (strExercises.find((entry) => entry.id === nextLateralId) || null) : null;
+      pe.each_side = nextEachSide;
+      pe.weight_per_side = nextWeightPerSide;
+
+      queueExerciseChange(pe.id, "alt_progression_exercise_id", nextProgressionId);
+      queueExerciseChange(pe.id, "alt_regression_exercise_id", nextRegressionId);
+      queueExerciseChange(pe.id, "alt_lateral_exercise_id", nextLateralId);
+      queueExerciseChange(pe.id, "each_side", nextEachSide);
+      queueExerciseChange(pe.id, "weight_per_side", nextWeightPerSide);
+
+      if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
+      await flushSave();
+      renderDayView();
+      closeExerciseAlternativesModal();
+      showResult("Alternativas do exercício guardadas.", "success");
     }
 
     function openSaveWarmupModal() {
@@ -7947,24 +8543,65 @@
       item.innerHTML = `<div class="exercise-pick-main"><span class="exercise-pick-name" style="color:var(--gold);">A adicionar…</span></div>`;
 
       try {
-        const added = await addExerciseToSelectedSection(addExerciseTargetSection, exercise);
-        if (added) {
+        let ok = false;
+        if (replaceExerciseTargetPeId) {
+          ok = replaceExerciseInCurrentPlan(replaceExerciseTargetPeId, exercise);
+          if (ok) {
+            if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
+            await flushSave();
+            showResult("Exercício substituído sem alterar as prescrições.", "success");
+          }
+        } else {
+          ok = await addExerciseToSelectedSection(addExerciseTargetSection, exercise);
+        }
+
+        if (ok) {
+          replaceExerciseTargetPeId = null;
+          addExerciseTargetSection = "";
+          if (addExerciseModalTitle) addExerciseModalTitle.textContent = "Adicionar Exercício";
           addExerciseModal.classList.add("hidden");
         } else {
           item.innerHTML = originalHtml;
           item.classList.remove("adding");
-          showResult("Não foi possível adicionar o exercício. Verifica se o plano está carregado.", "error");
+          showResult("Não foi possível aplicar a alteração. Verifica se o plano está carregado.", "error");
         }
       } catch (err) {
         item.innerHTML = originalHtml;
         item.classList.remove("adding");
-        showResult("Erro ao adicionar exercício: " + (err.message || "erro desconhecido"), "error");
+        showResult("Erro ao aplicar exercício: " + (err.message || "erro desconhecido"), "error");
       }
     });
 
     document.getElementById("cancelAddExerciseBtn").addEventListener("click", () => {
+      replaceExerciseTargetPeId = null;
+      addExerciseTargetSection = "";
+      if (addExerciseModalTitle) addExerciseModalTitle.textContent = "Adicionar Exercício";
       addExerciseModal.classList.add("hidden");
     });
+
+    if (saveStrengthAthleteProfileBtn) {
+      saveStrengthAthleteProfileBtn.addEventListener("click", async () => {
+        await saveSelectedAthleteStrengthProfile();
+      });
+    }
+
+    if (saveExerciseAlternativesBtn) {
+      saveExerciseAlternativesBtn.addEventListener("click", async () => {
+        await saveExerciseAlternatives();
+      });
+    }
+
+    if (cancelExerciseAlternativesBtn) {
+      cancelExerciseAlternativesBtn.addEventListener("click", () => {
+        closeExerciseAlternativesModal();
+      });
+    }
+
+    if (exerciseAlternativesModal) {
+      exerciseAlternativesModal.addEventListener("click", (event) => {
+        if (event.target === exerciseAlternativesModal) closeExerciseAlternativesModal();
+      });
+    }
 
     document.getElementById("createExerciseFromPickerBtn").addEventListener("click", () => {
       // Open the exercise creation modal and keep the exercise picker context
@@ -8073,6 +8710,9 @@
       document.getElementById("spEditId").value = "";
       document.getElementById("strengthPlanModalTitle").textContent = "Novo Plano de Força";
       document.getElementById("spSaveBtn").textContent = "Criar plano";
+      if (!Array.isArray(strPlans) || strPlans.length === 0) {
+        await loadStrengthPlans();
+      }
       await loadProgramOptions();
       renderProgramOptions("");
       document.getElementById("spName").value = "";
@@ -8080,6 +8720,9 @@
       document.getElementById("spWeeks").value = "4";
       document.getElementById("spLoadRound").value = "2.5";
       document.getElementById("spStartDate").value = "";
+      strengthPlanPhaseDraft = [];
+      spUsePhases.checked = false;
+      renderStrengthPlanPhaseBuilder(null);
       strengthPlanModal.classList.remove("hidden");
       document.getElementById("spName").focus();
     });
@@ -8352,11 +8995,51 @@
       document.getElementById("spWeeks").value = p.total_weeks;
       document.getElementById("spLoadRound").value = p.load_round;
       document.getElementById("spStartDate").value = p.start_date || "";
+      strengthPlanPhaseDraft = getStrengthPhaseDefinitions(p);
+      spUsePhases.checked = strengthPlanPhaseDraft.length > 0;
+      renderStrengthPlanPhaseBuilder(p.id);
       strengthPlanModal.classList.remove("hidden");
     });
 
     document.getElementById("spCancelBtn").addEventListener("click", () => {
       strengthPlanModal.classList.add("hidden");
+    });
+
+    spUsePhases?.addEventListener("change", () => {
+      if (spUsePhases.checked && (!Array.isArray(strengthPlanPhaseDraft) || strengthPlanPhaseDraft.length === 0)) {
+        strengthPlanPhaseDraft = [{ start_week: 1, plan_id: "", label: "" }];
+      }
+      const editingPlanId = document.getElementById("spEditId").value || null;
+      renderStrengthPlanPhaseBuilder(editingPlanId);
+    });
+
+    spAddPhaseBtn?.addEventListener("click", () => {
+      strengthPlanPhaseDraft = Array.isArray(strengthPlanPhaseDraft) ? strengthPlanPhaseDraft : [];
+      strengthPlanPhaseDraft.push({ start_week: strengthPlanPhaseDraft.length === 0 ? 1 : "", plan_id: "", label: "" });
+      const editingPlanId = document.getElementById("spEditId").value || null;
+      renderStrengthPlanPhaseBuilder(editingPlanId);
+    });
+
+    spPhaseRows?.addEventListener("input", (event) => {
+      const field = event.target?.dataset?.phaseField;
+      const index = Number(event.target?.dataset?.phaseIndex);
+      if (!field || !Number.isInteger(index) || !strengthPlanPhaseDraft[index]) return;
+      strengthPlanPhaseDraft[index][field] = field === "start_week" ? Number(event.target.value || 0) : event.target.value;
+    });
+
+    spPhaseRows?.addEventListener("change", (event) => {
+      const field = event.target?.dataset?.phaseField;
+      const index = Number(event.target?.dataset?.phaseIndex);
+      if (!field || !Number.isInteger(index) || !strengthPlanPhaseDraft[index]) return;
+      strengthPlanPhaseDraft[index][field] = field === "start_week" ? Number(event.target.value || 0) : event.target.value;
+    });
+
+    spPhaseRows?.addEventListener("click", (event) => {
+      const removeIndex = Number(event.target?.dataset?.phaseRemove);
+      if (!Number.isInteger(removeIndex)) return;
+      strengthPlanPhaseDraft.splice(removeIndex, 1);
+      const editingPlanId = document.getElementById("spEditId").value || null;
+      renderStrengthPlanPhaseBuilder(editingPlanId);
     });
 
     strengthPlanForm.addEventListener("submit", async (e) => {
@@ -8368,6 +9051,7 @@
       const totalWeeks = parseInt(document.getElementById("spWeeks").value, 10);
       const loadRound = parseFloat(document.getElementById("spLoadRound").value) || 2.5;
       const startDate = document.getElementById("spStartDate").value || null;
+      const phaseDefinitions = collectStrengthPlanPhaseDefinitions();
 
       if (!name || !totalWeeks) return;
 
@@ -8375,14 +9059,16 @@
         if (editId) {
           await apiRequest("PATCH", "/.netlify/functions/strength-plan", {
             plan_id: editId, name, description, training_program_id: trainingProgramId,
-            total_weeks: totalWeeks, load_round: loadRound, start_date: startDate
+            total_weeks: totalWeeks, load_round: loadRound, start_date: startDate,
+            phase_definitions: phaseDefinitions
           });
           strengthPlanModal.classList.add("hidden");
           await loadStrengthPlanFull(editId);
         } else {
           const data = await apiRequest("POST", "/.netlify/functions/strength-plan", {
             name, description, training_program_id: trainingProgramId,
-            total_weeks: totalWeeks, load_round: loadRound, start_date: startDate
+            total_weeks: totalWeeks, load_round: loadRound, start_date: startDate,
+            phase_definitions: phaseDefinitions
           });
 
           strengthPlanModal.classList.add("hidden");
@@ -8844,16 +9530,25 @@
         }
 
         // If we're creating from the picker, automatically add the exercise to the plan
-        if (isCreatingFromPicker && !editId && savedExercise && addExerciseTargetSection) {
-          btn.textContent = "A adicionar ao plano…";
-          showResult("A criar exercício e a adicionar ao plano de força…", "");
-          await addExerciseToSelectedSection(addExerciseTargetSection, savedExercise);
+        if (isCreatingFromPicker && !editId && savedExercise && (addExerciseTargetSection || replaceExerciseTargetPeId)) {
+          btn.textContent = replaceExerciseTargetPeId ? "A substituir no plano…" : "A adicionar ao plano…";
+          showResult(replaceExerciseTargetPeId ? "A criar exercício e a substituir na slot atual…" : "A criar exercício e a adicionar ao plano de força…", "");
+          if (replaceExerciseTargetPeId) {
+            replaceExerciseInCurrentPlan(replaceExerciseTargetPeId, savedExercise);
+            if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
+            await flushSave();
+          } else {
+            await addExerciseToSelectedSection(addExerciseTargetSection, savedExercise);
+          }
           document.getElementById("exerciseCrudModal").classList.add("hidden");
           addExerciseModal.classList.add("hidden");
           document.getElementById("exerciseSearchInput").value = payload.name;
           renderExercisePicker();
-          showResult("Exercício criado e adicionado ao plano com sucesso.", "success");
+          showResult(replaceExerciseTargetPeId ? "Exercício criado e substituído no plano com sucesso." : "Exercício criado e adicionado ao plano com sucesso.", "success");
           isCreatingFromPicker = false;
+          replaceExerciseTargetPeId = null;
+          addExerciseTargetSection = "";
+          if (addExerciseModalTitle) addExerciseModalTitle.textContent = "Adicionar Exercício";
         } else {
           document.getElementById("exerciseCrudModal").classList.add("hidden");
           isCreatingFromPicker = false;
@@ -9534,8 +10229,6 @@
           const startDate = (coachNewAssignStart.value || "").trim() || null;
           const durationWeeks = Number(coachNewAssignWeeks.value) || 12;
           const notes = (coachNewAssignNotes.value || "").trim() || null;
-          const presetSelect = document.getElementById("coach-new-assign-preset");
-          const selectedPresetId = presetSelect ? (presetSelect.value || null) : null;
 
           if (!athleteId) { showResult("Seleciona um atleta.", true); return; }
           if (!trainingProgramId) { showResult("Seleciona um programa.", true); return; }
@@ -9555,21 +10248,7 @@
               notes
             });
             let msg = "Assignment criado com sucesso.";
-
-            // If coach selected a preset, generate the calendar now
-            if (selectedPresetId && result.assignment && result.assignment.id) {
-              try {
-                await apiRequest("POST", "/.netlify/functions/athlete-weekly-plan", {
-                  assignment_id: result.assignment.id,
-                  preset_id: selectedPresetId
-                });
-                msg += " Calendário gerado com preset selecionado.";
-              } catch (calErr) {
-                msg += " Aviso: erro ao gerar calendário — " + calErr.message;
-              }
-            } else {
-              msg += " Atleta deverá escolher um preset para gerar o calendário.";
-            }
+            msg += " O atleta vai receber uma recomendação automática de calendário quando abrir a app e pode ajustá-la se for preciso.";
             showResult(msg, false);
             coachAssignCreateForm.hidden = true;
             await refreshCoachAssignments();
@@ -9611,23 +10290,6 @@
           if (Number.isInteger(selectedDuration) && selectedDuration > 0 && coachNewAssignWeeks) {
             coachNewAssignWeeks.value = selectedDuration;
           }
-          // Populate preset dropdown for selected program
-          const presetSelect = document.getElementById("coach-new-assign-preset");
-          if (presetSelect) {
-            presetSelect.innerHTML = '<option value="">Atleta escolhe depois</option>';
-            if (coachNewAssignProgram.value) {
-              apiRequest("GET", `/.netlify/functions/admin-program-schedule?trainingProgramId=${coachNewAssignProgram.value}&includeSlots=1`)
-                .then((data) => {
-                  ((data && data.presets) || []).forEach((pr) => {
-                    const opt = document.createElement("option");
-                    opt.value = pr.id;
-                    opt.textContent = `${pr.preset_name || pr.id} (${pr.total_training_days || "?"}d)${pr.is_default ? " ★" : ""}`;
-                    presetSelect.appendChild(opt);
-                  });
-                })
-                .catch(() => {});
-            }
-          }
         });
       }
 
@@ -9635,8 +10297,6 @@
       if (coachNewAssignStart) coachNewAssignStart.value = "";
       if (coachNewAssignWeeks) coachNewAssignWeeks.value = "12";
       if (coachNewAssignNotes) coachNewAssignNotes.value = "";
-      const presetSelect = document.getElementById("coach-new-assign-preset");
-      if (presetSelect) presetSelect.innerHTML = '<option value="">Atleta escolhe depois</option>';
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -9673,7 +10333,7 @@
 
     function renderSchedulePresetOptions() {
       if (!schedPresetSelect) return;
-      schedPresetSelect.innerHTML = '<option value="">Seleciona um preset...</option>';
+      schedPresetSelect.innerHTML = '<option value="">Seleciona um calendario base...</option>';
       schedPresets.forEach((preset) => {
         const opt = document.createElement("option");
         opt.value = preset.id;
@@ -9693,7 +10353,7 @@
       if (!presets.length && autoCreate) {
         const created = await apiRequest("POST", "/.netlify/functions/admin-program-schedule", {
           training_program_id: programId,
-          preset_name: "Template",
+          preset_name: "Calendario base",
           total_training_days: 5,
           is_default: true,
           slots: []
@@ -9764,7 +10424,7 @@
 
     async function onCreateSchedulePreset() {
       if (!schedSelectedProgramId) return;
-      const presetName = window.prompt("Nome do novo preset:", "Novo preset");
+      const presetName = window.prompt("Nome do novo calendario base:", "Novo calendario base");
       if (!presetName || !presetName.trim()) return;
       const created = await apiRequest("POST", "/.netlify/functions/admin-program-schedule", {
         training_program_id: schedSelectedProgramId,
@@ -9782,7 +10442,7 @@
 
     async function onRenameSchedulePreset() {
       if (!schedCurrentPreset) return;
-      const presetName = window.prompt("Novo nome do preset:", schedCurrentPreset.preset_name || "");
+      const presetName = window.prompt("Novo nome do calendario base:", schedCurrentPreset.preset_name || "");
       if (!presetName || !presetName.trim()) return;
       await apiRequest("PUT", "/.netlify/functions/admin-program-schedule", {
         preset_id: schedCurrentPreset.id,
@@ -9798,7 +10458,7 @@
     async function onDeleteSchedulePreset() {
       if (!schedCurrentPreset) return;
       const label = schedCurrentPreset.preset_name || schedCurrentPreset.id;
-      if (!window.confirm(`Apagar preset "${label}"?`)) return;
+      if (!window.confirm(`Apagar calendario base "${label}"?`)) return;
       await apiRequest("DELETE", `/.netlify/functions/admin-program-schedule?presetId=${encodeURIComponent(schedCurrentPreset.id)}`);
       await loadSchedulePresets(schedSelectedProgramId, { autoCreate: true });
       await loadInlineCalendarView();
@@ -9826,6 +10486,7 @@
                 session_type: existing.session_type || "strength",
                 session_label: label,
                 strength_plan_id: planId,
+                strength_week_number: existing.strength_week_number || null,
                 strength_day_number: dayNumber,
                 sort_priority: Number(existing.sort_priority || 0),
                 is_optional: isOptional === true
@@ -9849,6 +10510,7 @@
           session_type: "strength",
           session_label: label,
           strength_plan_id: planId,
+          strength_week_number: 1,
           strength_day_number: dayNumber,
           sort_priority: schedSessions.length + 1,
           is_optional: isOptional === true
@@ -10537,9 +11199,18 @@
           }
 
           const dayNum = Number(sess.strength_day_number || 0);
+          const baseStrengthWeek = Number(sess.strength_week_number || 1);
+          const startWeekCandidates = localSlots
+            .filter((slot) => slot.session_id === sessionId)
+            .map((slot) => Number(slot.week_number || 0))
+            .filter((slotWeek) => Number.isInteger(slotWeek) && slotWeek >= 1);
+          const startWeek = startWeekCandidates.length ? Math.min(...startWeekCandidates) : weekNumber;
+          const effectiveStrengthWeek = sess.session_type === "strength"
+            ? Math.max(1, baseStrengthWeek + Math.max(0, weekNumber - startWeek))
+            : weekNumber;
           const names = detail && detail.dayMap ? (detail.dayMap[dayNum] || []) : [];
           const setCount = detail && detail.daySetMap && detail.daySetMap[dayNum]
-            ? Number(detail.daySetMap[dayNum][weekNumber] || 0)
+            ? Number(detail.daySetMap[dayNum][effectiveStrengthWeek] || 0)
             : 0;
 
           let summary = "";
@@ -12989,7 +13660,7 @@
     }
 
     async function loadVariants(programId) {
-      varTableBody.innerHTML = '<tr><td colspan="8" style="padding:16px; color:#8b949e;">Carregando variantes...</td></tr>';
+      varTableBody.innerHTML = '<tr><td colspan="8" style="padding:16px; color:#8b949e;">Carregando opcoes...</td></tr>';
       try {
         const data = await apiRequest("GET", `/.netlify/functions/admin-program-variants?program_id=${encodeURIComponent(programId)}`);
         _varVariants = data.variants || [];
@@ -13002,22 +13673,22 @@
     function findPlanName(plans, planId) {
       if (!planId) return "—";
       const plan = plans.find((p) => p.id === planId);
-      return plan ? escapeHtml(plan.name || plan.title || planId.slice(0, 8)) : planId.slice(0, 8) + "…";
+      return plan ? escapeHtml(getStrengthPlanDisplayName(plan)) : planId.slice(0, 8) + "…";
     }
 
     function renderVariantsTable() {
       varCountLabel.textContent = _varVariants.length
-        ? `${_varVariants.length} variante(s)`
+        ? `${_varVariants.length} opcao(oes)`
         : "";
 
       if (!_varVariants.length) {
         varTableBody.innerHTML = _varCurrentProgramId
-          ? '<tr><td colspan="8" style="padding:16px; color:#8b949e;">Nenhuma variante criada. Clica "+ Nova Variante" ou "Gerar Batch".</td></tr>'
-          : '<tr><td colspan="8" style="padding:16px; color:#8b949e;">Seleciona um programa para ver as variantes.</td></tr>';
+          ? '<tr><td colspan="8" style="padding:16px; color:#8b949e;">Ainda nao ha opcoes criadas. Clica em "+ Nova Opcao" ou "Gerar Opcoes".</td></tr>'
+          : '<tr><td colspan="8" style="padding:16px; color:#8b949e;">Seleciona um programa para ver as opcoes.</td></tr>';
         return;
       }
 
-      // Find current program to check default_variant_id
+      // Find current program to check recommended option
       const currentProg = strPrograms.find((p) => p.id === _varCurrentProgramId);
       const defaultVariantId = currentProg ? currentProg.default_variant_id : null;
 
@@ -13031,7 +13702,7 @@
               return "";
             }).filter(Boolean).join(", ")
           : "—";
-        const isDefault = v.id === defaultVariantId;
+        const isRecommended = v.id === defaultVariantId;
 
         return `<tr style="border-bottom:1px solid rgba(48,54,61,0.5);">
           <td style="padding:8px; color:#c9d1d9;">${v.duration_weeks}S</td>
@@ -13040,7 +13711,7 @@
           <td style="padding:8px; color:#c9d1d9;">${findPlanName(strPlans, v.strength_plan_id)}</td>
           <td style="padding:8px; color:#c9d1d9;">${findPlanName(runPlans, v.running_plan_template_id)}</td>
           <td style="padding:8px; color:#8b949e; font-size:0.82rem;">${configSummary}</td>
-          <td style="padding:8px; text-align:center;">${isDefault ? '<span style="color:var(--gold);" title="Variante default">★</span>' : `<button class="btn btn-small btn-ghost var-set-default-btn" data-id="${v.id}" title="Definir como default">☆</button>`}</td>
+          <td style="padding:8px; text-align:center;">${isRecommended ? '<span class="planning-recommended-badge" title="Opcao recomendada">Recomendada</span>' : `<button class="btn btn-small btn-ghost var-set-default-btn" data-id="${v.id}" title="Marcar como recomendada">☆</button>`}</td>
           <td style="padding:8px; text-align:right; white-space:nowrap;">
             <button class="btn btn-small var-edit-btn" data-id="${v.id}">Editar</button>
             <button class="btn btn-small btn-ghost var-delete-btn" data-id="${v.id}" style="color:var(--error);">Apagar</button>
@@ -13062,10 +13733,10 @@
           if (variant) openVariantModal(variant);
         }
         if (target.classList.contains("var-delete-btn")) {
-          if (!confirm("Apagar esta variante? Atletas que a usam perderão a referência.")) return;
+          if (!confirm("Apagar esta opcao? Atletas que a usam perderao a referencia.")) return;
           try {
             await apiRequest("DELETE", `/.netlify/functions/admin-program-variants?id=${encodeURIComponent(variantId)}`);
-            showResult("Variante apagada.", false);
+            showResult("Opcao apagada.", false);
             await loadVariants(_varCurrentProgramId);
           } catch (err) {
             showResult("Erro ao apagar: " + err.message, true);
@@ -13081,7 +13752,7 @@
             const prog = strPrograms.find((p) => p.id === _varCurrentProgramId);
             if (prog) prog.default_variant_id = variantId;
             renderVariantsTable();
-            showResult("Variante definida como default.", false);
+            showResult("Opcao recomendada atualizada.", false);
           } catch (err) {
             showResult("Erro: " + err.message, true);
           }
@@ -13093,8 +13764,8 @@
 
     async function openVariantModal(variant) {
       _varEditingId = variant ? variant.id : null;
-      variantModalTitle.textContent = variant ? "Editar Variante" : "Criar Variante";
-      varSubmitBtn.textContent = variant ? "Guardar" : "Criar";
+      variantModalTitle.textContent = variant ? "Editar Opcao" : "Criar Opcao";
+      varSubmitBtn.textContent = variant ? "Guardar" : "Criar opcao";
       variantFormError.hidden = true;
 
       // Populate strength/running plan dropdowns
@@ -13115,6 +13786,8 @@
         document.getElementById("varWeeklyFrequency").value = "4";
       }
 
+      refreshVariantStrengthPlanMeta();
+
       variantModal.classList.remove("hidden");
       document.getElementById("varDurationWeeks").focus();
     }
@@ -13123,6 +13796,18 @@
       variantModal.classList.add("hidden");
       _varEditingId = null;
       variantForm.reset();
+      refreshVariantStrengthPlanMeta();
+    }
+
+    function refreshVariantStrengthPlanMeta() {
+      const meta = document.getElementById("varStrengthPlanMeta");
+      const planId = document.getElementById("varStrengthPlan")?.value || "";
+      if (!meta) return;
+      const plan = (strPlans || []).find((item) => item.id === planId);
+      const phaseCount = plan ? getStrengthPhaseDefinitions(plan).length : 0;
+      meta.textContent = phaseCount > 0
+        ? `Este plano ja tem ${phaseCount} fase(s) configuradas. Esta opcao vai herdar essas fases automaticamente.`
+        : "";
     }
 
     async function handleVariantSubmit(e) {
@@ -13159,8 +13844,9 @@
             running_plan_template_id: runningTemplateId,
             running_config_preset: Object.keys(runningConfig).length ? runningConfig : {}
           });
-          showResult("Variante atualizada.", false);
+          showResult("Opcao atualizada.", false);
         } else {
+          refreshVariantStrengthPlanMeta();
           // POST
           await apiRequest("POST", "/.netlify/functions/admin-program-variants", {
             training_program_id: _varCurrentProgramId,
@@ -13171,7 +13857,7 @@
             running_plan_template_id: runningTemplateId,
             running_config_preset: Object.keys(runningConfig).length ? runningConfig : {}
           });
-          showResult("Variante criada.", false);
+          showResult("Opcao criada.", false);
         }
         closeVariantModal();
         await loadVariants(_varCurrentProgramId);
@@ -13217,7 +13903,7 @@
       const freqs = getCheckedValues("batchFrequencies");
       const total = durations.length * levels.length * freqs.length;
       batchPreview.textContent = total > 0
-        ? `${durations.length} duração(ões) × ${levels.length} nível(eis) × ${freqs.length} frequência(s) = ${total} variante(s)`
+        ? `${durations.length} duracao(oes) x ${levels.length} nivel(eis) x ${freqs.length} frequencia(s) = ${total} opcao(oes)`
         : "Seleciona pelo menos uma opção em cada categoria.";
     }
 
@@ -13262,7 +13948,7 @@
       }
 
       if (variants.length > 50) {
-        batchFormError.textContent = `Máximo 50 variantes por batch. Selecionaste ${variants.length}.`;
+        batchFormError.textContent = `Maximo 50 opcoes por batch. Selecionaste ${variants.length}.`;
         batchFormError.hidden = false;
         return;
       }
@@ -13270,7 +13956,7 @@
       batchSubmitBtn.disabled = true;
       try {
         const data = await apiRequest("POST", "/.netlify/functions/admin-program-variants", { variants });
-        showResult(`${data.created || variants.length} variante(s) criada(s).`, false);
+        showResult(`${data.created || variants.length} opcao(oes) criada(s).`, false);
         closeBatchModal();
         await loadVariants(_varCurrentProgramId);
       } catch (err) {
@@ -13313,12 +13999,17 @@
         const opt = document.createElement("option");
         opt.value = p.id;
         opt.textContent = p.name || p.title || p.id.slice(0, 8);
+        if (p && Array.isArray(p.phase_definitions) && p.phase_definitions.length > 0) {
+          opt.textContent = `${opt.textContent} · ${p.phase_definitions.length} fase(s)`;
+        }
         select.appendChild(opt);
       });
       if (currentValue && plans.some((p) => p.id === currentValue)) {
         select.value = currentValue;
       }
     }
+
+    document.getElementById("varStrengthPlan")?.addEventListener("change", refreshVariantStrengthPlanMeta);
 
   </script>
 </body>

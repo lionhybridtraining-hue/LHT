@@ -28,13 +28,15 @@ export default function ForcaPage() {
 function ForcaContent() {
   const [searchParams] = useSearchParams();
   const instanceId = searchParams.get("instanceId") || undefined;
+  const requestedWeek = Number(searchParams.get("week") || 0);
+  const requestedDay = Number(searchParams.get("day") || 0);
   const { setVisible: setNavVisible } = useBottomNav();
 
   const [data, setData] = useState<AthletePlanResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [selectedDay, setSelectedDay] = useState<number>(1);
+  const [selectedDay, setSelectedDay] = useState<number>(requestedDay >= 1 ? requestedDay : 1);
   const [view, setView] = useState<View>("plan");
   const [completedSession, setCompletedSession] =
     useState<WorkoutSession | null>(null);
@@ -60,14 +62,14 @@ function ForcaContent() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetchAthletePlan(undefined, instanceId);
+      const res = await fetchAthletePlan(requestedWeek >= 1 ? requestedWeek : undefined, instanceId);
       setData(res);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Erro ao carregar plano");
     } finally {
       setLoading(false);
     }
-  }, [instanceId]);
+  }, [instanceId, requestedWeek]);
 
   useEffect(() => {
     load();
@@ -149,7 +151,7 @@ function ForcaContent() {
 
   // ── Active plan ──
   const { plan, exercises, prescriptions, logs, phaseNotes } = data;
-  const currentWeek = plan.current_week || 1;
+  const currentWeek = requestedWeek >= 1 ? requestedWeek : (plan.current_week || 1);
   const availableDays = getAvailableDays(exercises);
 
   // Ensure selected day is valid

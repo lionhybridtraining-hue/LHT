@@ -3,6 +3,7 @@ const { getConfig } = require("./_lib/config");
 const { requireAuthenticatedUser } = require("./_lib/authz");
 const {
   getProgramSchedulePresetById,
+  listVariantPresetLinks,
   listProgramScheduleSlots,
   listProgramWeeklySessions,
   getProgramAssignmentById,
@@ -18,6 +19,7 @@ const {
   setAssignmentVariant,
   getVariantById,
   createStrengthPlanInstance,
+  getStrengthPlanById,
   getTrainingProgramById,
   createRunningPlanInstance,
   getRunningPlanTemplateById,
@@ -35,6 +37,79 @@ const {
 } = require("./_lib/running-engine");
 
 const DAY_LABELS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
+
+function normalizeStrengthPhaseDefinitions(entries) {
+  if (!Array.isArray(entries)) return [];
+  return entries
+    .map((entry) => {
+      const startWeek = Number(entry && (entry.start_week != null ? entry.start_week : entry.startWeek));
+      const planId = ((entry && (entry.plan_id != null ? entry.plan_id : entry.planId)) || "").toString().trim();
+      if (!Number.isInteger(startWeek) || startWeek < 1 || !planId) return null;
+      return {
+        start_week: startWeek,
+        plan_id: planId,
+        label: (entry.label || entry.phase_label || "").toString().trim() || null
+      };
+    })
+    .filter(Boolean)
+    .sort((left, right) => left.start_week - right.start_week);
+}
+
+async function loadStrengthPlanPhaseTree(config, planIds, cache, depth = 0) {
+  if (depth > 8) return;
+
+  for (const planId of (planIds || [])) {
+    if (!planId || cache.has(planId)) continue;
+    const plan = await getStrengthPlanById(config, planId);
+    cache.set(planId, plan || null);
+    if (!plan) continue;
+
+    const phaseDefinitions = normalizeStrengthPhaseDefinitions(plan.phase_definitions);
+    if (phaseDefinitions.length > 0) {
+      await loadStrengthPlanPhaseTree(
+        config,
+        phaseDefinitions.map((entry) => entry.plan_id),
+        cache,
+        depth + 1
+      );
+    }
+  }
+}
+
+function createStrengthPlanPhaseResolver(planCache) {
+  function resolve(planId, weekNumber, visited = new Set()) {
+    if (!planId) {
+      return { planId: null, weekNumber: null, phased: false };
+    }
+    if (visited.has(planId)) {
+      return { planId, weekNumber, phased: false };
+    }
+
+    const plan = planCache.get(planId);
+    const phaseDefinitions = normalizeStrengthPhaseDefinitions(plan && plan.phase_definitions);
+    if (!phaseDefinitions.length) {
+      return { planId, weekNumber, phased: false };
+    }
+
+    const matchedPhase = [...phaseDefinitions]
+      .reverse()
+      .find((entry) => weekNumber >= entry.start_week) || phaseDefinitions[0];
+
+    const nextVisited = new Set(visited);
+    nextVisited.add(planId);
+    const nested = resolve(matchedPhase.plan_id, Math.max(1, weekNumber - matchedPhase.start_week + 1), nextVisited);
+
+    return {
+      planId: nested.planId,
+      weekNumber: nested.weekNumber,
+      phased: true,
+      phaseLabel: matchedPhase.label || nested.phaseLabel || null,
+      containerPlanId: planId
+    };
+  }
+
+  return resolve;
+}
 
 // ── Running volume helpers (shared with coach-running-instances.js) ──
 
@@ -384,11 +459,22 @@ function generateWeeklyPlanRows({
   source,
   presetId,
   variantId,
-  fromWeek
+  fromWeek,
+  resolveStrengthPlanForWeek
 }) {
   const sessionMap = new Map(sessions.map((s) => [s.id, s]));
+  const sessionStartWeekMap = new Map();
   const rows = [];
   const effectiveFromWeek = fromWeek || 1;
+
+  for (const slot of slots) {
+    const week = Number(slot.week_number || 1);
+    if (!Number.isInteger(week) || week < 1) continue;
+    const existing = sessionStartWeekMap.get(slot.session_id);
+    if (existing == null || week < existing) {
+      sessionStartWeekMap.set(slot.session_id, week);
+    }
+  }
 
   for (const slot of slots) {
     const week = Number(slot.week_number || 1);
@@ -398,8 +484,23 @@ function generateWeeklyPlanRows({
     if (!session) continue;
 
     // Use slot-level plan IDs (may be overridden by variant in enriched slots)
-    const effectiveStrengthPlanId = slot.strength_plan_id || session.strength_plan_id;
+    const baseStrengthPlanId = slot.strength_plan_id || session.strength_plan_id;
     const effectiveRunningTemplateId = slot.running_plan_template_id || session.running_plan_template_id;
+    const phasedStrengthResolution = session.session_type === "strength" && baseStrengthPlanId && resolveStrengthPlanForWeek
+      ? resolveStrengthPlanForWeek(baseStrengthPlanId, week)
+      : null;
+    const effectiveStrengthPlanId = phasedStrengthResolution && phasedStrengthResolution.planId
+      ? phasedStrengthResolution.planId
+      : baseStrengthPlanId;
+    const baseStrengthWeek = Number(slot.strength_week_number || session.strength_week_number || 1);
+    const sessionStartWeek = sessionStartWeekMap.get(slot.session_id) || week;
+    const effectiveStrengthWeekNumber = session.session_type === "strength" && effectiveStrengthPlanId
+      ? (
+        phasedStrengthResolution && phasedStrengthResolution.phased
+          ? phasedStrengthResolution.weekNumber
+          : Math.max(1, (Number.isInteger(baseStrengthWeek) ? baseStrengthWeek : 1) + Math.max(0, week - sessionStartWeek))
+      )
+      : null;
 
     // Calculate week_start_date (Monday of the slot's week)
     const weekStartDate = new Date(startDate);
@@ -437,6 +538,7 @@ function generateWeeklyPlanRows({
       strength_instance_id: session.session_type === "strength" && effectiveStrengthPlanId && strengthInstanceMap
         ? (strengthInstanceMap.get(effectiveStrengthPlanId) || null)
         : null,
+      strength_week_number: effectiveStrengthWeekNumber,
       strength_day_number: session.strength_day_number || null,
       running_plan_instance_id: runningPlanInstanceId,
       running_workout_instance_id: runningWorkoutInstanceId,
@@ -540,6 +642,10 @@ exports.handler = async (event) => {
         }
       }
 
+      const variantPresetLinks = variantId
+        ? await listVariantPresetLinks(config, variantId)
+        : [];
+
       // ── Load preset for schedule layout (slots) ──
       // Preset is required for slot layout. If only variant_id was provided,
       // try using the assignment's existing preset or program's default.
@@ -547,11 +653,27 @@ exports.handler = async (event) => {
       if (!effectivePresetId && assignment.selected_preset_id) {
         effectivePresetId = assignment.selected_preset_id;
       }
+      if (!effectivePresetId && variantPresetLinks.length > 0) {
+        const defaultLink = variantPresetLinks.find((link) => link.is_default === true) || variantPresetLinks[0];
+        effectivePresetId = defaultLink && defaultLink.preset_id ? defaultLink.preset_id : null;
+      }
       if (!effectivePresetId) {
         return json(400, {
           error: "preset_id is required for schedule layout (variant provides plan bindings, preset provides day/time slots)",
           code: "MISSING_PRESET_FOR_LAYOUT"
         });
+      }
+
+      if (variant && variantPresetLinks.length > 0) {
+        const isCompatiblePreset = variantPresetLinks.some((link) => link.preset_id === effectivePresetId);
+        if (!isCompatiblePreset) {
+          return json(400, {
+            error: "The selected preset is not compatible with this variant",
+            code: "INCOMPATIBLE_PRESET_FOR_VARIANT",
+            preset_id: effectivePresetId,
+            variant_id: variantId
+          });
+        }
       }
 
       const preset = await getProgramSchedulePresetById(config, effectivePresetId);
@@ -582,25 +704,44 @@ exports.handler = async (event) => {
       const source = body.source || defaultSource;
       const fromWeek = body.from_week != null ? Number(body.from_week) : null;
       const effectiveStartWeek = fromWeek && Number.isInteger(fromWeek) && fromWeek > 0 ? fromWeek : 1;
+      const strengthPlanCache = new Map();
+      await loadStrengthPlanPhaseTree(
+        config,
+        [
+          variant && variant.strength_plan_id ? variant.strength_plan_id : null,
+          ...sessions.filter((session) => session.session_type === "strength" && session.strength_plan_id).map((session) => session.strength_plan_id)
+        ].filter(Boolean),
+        strengthPlanCache
+      );
+      const resolveStrengthPlanForWeek = createStrengthPlanPhaseResolver(strengthPlanCache);
+      const sessionMap = new Map(sessions.map((session) => [session.id, session]));
 
       // ── Resolve plan bindings ──
-      // Variant overrides: uses variant's strength_plan_id for ALL strength sessions,
-      // and variant's running_plan_template_id for ALL running sessions.
-      // Without variant: uses each session's own plan IDs (original behavior).
+      // Variant overrides: uses variant's strength plan container for ALL strength sessions,
+      // resolving the effective phase plan by week when needed.
       let resolvedStrengthPlanIds;
       let resolvedRunningTemplateIds;
 
+      const strengthWeeksToProvision = (slots || [])
+        .map((slot) => {
+          const session = sessionMap.get(slot.session_id);
+          if (!session || session.session_type !== "strength") return null;
+          return {
+            planId: variant && variant.strength_plan_id ? variant.strength_plan_id : session.strength_plan_id,
+            weekNumber: Number(slot.week_number || 1)
+          };
+        })
+        .filter((entry) => entry && entry.planId && Number.isInteger(entry.weekNumber) && entry.weekNumber >= effectiveStartWeek && entry.weekNumber <= totalWeeks);
+
+      resolvedStrengthPlanIds = [...new Set(
+        strengthWeeksToProvision
+          .map((entry) => resolveStrengthPlanForWeek(entry.planId, entry.weekNumber).planId)
+          .filter(Boolean)
+      )];
+
       if (variant) {
-        // Variant provides single strength_plan and single running_plan_template
-        resolvedStrengthPlanIds = variant.strength_plan_id ? [variant.strength_plan_id] : [];
         resolvedRunningTemplateIds = variant.running_plan_template_id ? [variant.running_plan_template_id] : [];
       } else {
-        // Original behavior: extract plan IDs from sessions
-        resolvedStrengthPlanIds = [...new Set(
-          sessions
-            .filter(s => s.session_type === "strength" && s.strength_plan_id)
-            .map(s => s.strength_plan_id)
-        )];
         resolvedRunningTemplateIds = [...new Set(
           sessions
             .filter(s => s.session_type === "running" && s.running_plan_template_id)
@@ -742,8 +883,6 @@ exports.handler = async (event) => {
       }
 
       // ── Enrich slots with session data for proper identification ──
-      const sessionMap = new Map(sessions.map(s => [s.id, s]));
-
       const enrichedSlots = (slots || []).map(slot => {
         const session = sessionMap.get(slot.session_id);
         if (!session) {
@@ -755,9 +894,15 @@ exports.handler = async (event) => {
         }
 
         // When using variant, override plan bindings in enriched slots
-        const effectiveStrengthPlanId = (variant && variant.strength_plan_id && session.session_type === "strength")
+        const baseStrengthPlanId = (variant && variant.strength_plan_id && session.session_type === "strength")
           ? variant.strength_plan_id
           : session.strength_plan_id;
+        const phasedStrengthResolution = session.session_type === "strength" && baseStrengthPlanId
+          ? resolveStrengthPlanForWeek(baseStrengthPlanId, Number(slot.week_number || 1))
+          : null;
+        const effectiveStrengthPlanId = phasedStrengthResolution && phasedStrengthResolution.planId
+          ? phasedStrengthResolution.planId
+          : baseStrengthPlanId;
         const effectiveRunningTemplateId = (variant && variant.running_plan_template_id && session.session_type === "running")
           ? variant.running_plan_template_id
           : session.running_plan_template_id;
@@ -770,6 +915,8 @@ exports.handler = async (event) => {
           duration_estimate_min: session.duration_estimate_min,
           intensity: session.intensity,
           strength_plan_id: effectiveStrengthPlanId,
+          strength_phase_label: phasedStrengthResolution && phasedStrengthResolution.phaseLabel ? phasedStrengthResolution.phaseLabel : null,
+          strength_week_number: session.strength_week_number,
           strength_day_number: session.strength_day_number,
           running_plan_template_id: effectiveRunningTemplateId,
           running_session_type: session.running_session_type,
@@ -788,7 +935,8 @@ exports.handler = async (event) => {
         source,
         presetId: effectivePresetId,
         variantId,
-        fromWeek: effectiveStartWeek
+        fromWeek: effectiveStartWeek,
+        resolveStrengthPlanForWeek
       });
 
       // Delete existing plan: full or partial (from_week onwards)

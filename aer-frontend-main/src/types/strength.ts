@@ -5,6 +5,8 @@ export interface AthleteInfo {
   name: string | null;
   email: string | null;
   strength_level: "beginner" | "intermediate" | "advanced" | null;
+  gym_access?: "full_gym" | "limited_equipment" | "no_gym" | null;
+  strength_movement_variant: "standard" | "lateralized" | null;
   strength_log_detail: "exercise" | "set" | "quick";
 }
 
@@ -63,6 +65,7 @@ export interface PlanExercise {
   id: string;
   exercise_id: string;
   original_exercise_id: string;
+  resolved_variant?: "standard" | "regression" | "progression" | "lateral" | "gym_access";
   day_number: number;
   section: "warm_up" | "plyos_speed" | "main" | "conditioning" | "observations";
   exercise_order: number;
@@ -70,6 +73,9 @@ export interface PlanExercise {
   each_side: boolean;
   weight_per_side: boolean;
   plyo_mechanical_load: string | null;
+  alt_progression_exercise_id?: string | null;
+  alt_regression_exercise_id?: string | null;
+  alt_lateral_exercise_id?: string | null;
   exercise: ExerciseDetail;
 }
 

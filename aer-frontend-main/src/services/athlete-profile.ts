@@ -18,6 +18,8 @@ export interface AthleteProfileData {
     heightCm: number | null;
     weightKg: number | null;
     sex: 'male' | 'female' | 'other' | null;
+    strengthLevel: 'beginner' | 'intermediate' | 'advanced' | null;
+    gymAccess: 'full_gym' | 'limited_equipment' | 'no_gym';
   };
   onboarding: {
     fullName: string | null;
@@ -63,6 +65,8 @@ export function saveAthleteProfile(payload: {
   heightCm: number;
   weightKg: number;
   sex: 'male' | 'female' | 'other';
+  strengthLevel?: 'beginner' | 'intermediate' | 'advanced' | null;
+  gymAccess?: 'full_gym' | 'limited_equipment' | 'no_gym';
 }): Promise<AthleteProfileData> {
   return apiFetch('/athlete-profile', {
     method: 'POST',

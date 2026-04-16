@@ -164,10 +164,12 @@ exports.handler = async (event) => {
     // Determine current week based on instance start_date
     const currentWeek = calculateCurrentWeek(instance.start_date, planData.plan.total_weeks);
 
-    // Resolve exercises with alternatives based on athlete strength_level
+    // Resolve exercises with alternatives based on athlete strength profile.
     const resolvedExercises = resolveExerciseAlternatives(
       planData.exercises,
-      athlete.strength_level
+      athlete.coach_strength_level_override || athlete.strength_level,
+      athlete.coach_gym_access_override || athlete.gym_access || null,
+      athlete.strength_movement_variant || "standard"
     );
 
     // Resolve loads for each prescription (athlete never sees %RM)
@@ -241,6 +243,7 @@ exports.handler = async (event) => {
         id: e.id,
         exercise_id: e.resolved_exercise_id || e.exercise_id,
         original_exercise_id: e.exercise_id,
+        resolved_variant: e.resolved_variant || "standard",
         day_number: e.day_number,
         section: e.section,
         exercise_order: e.exercise_order,
@@ -266,7 +269,11 @@ function sanitizeAthlete(athlete) {
     name: athlete.name || null,
     email: athlete.email || null,
     strength_level: athlete.strength_level || null,
-    strength_log_detail: athlete.strength_log_detail || "exercise"
+    coach_strength_level_override: athlete.coach_strength_level_override || null,
+    strength_log_detail: athlete.strength_log_detail || "exercise",
+    strength_movement_variant: athlete.strength_movement_variant || "standard",
+    gym_access: athlete.gym_access || "full_gym",
+    coach_gym_access_override: athlete.coach_gym_access_override || null
   };
 }
 
@@ -279,37 +286,42 @@ function calculateCurrentWeek(startDate, totalWeeks) {
   return Math.max(1, Math.min(diffWeeks, totalWeeks || 52));
 }
 
-function resolveExerciseAlternatives(exercises, strengthLevel) {
+function resolveExerciseAlternatives(exercises, strengthLevel, gymAccess, movementVariant) {
   return exercises.map(pe => {
-    // Default: use the assigned exercise
+    // Default: use the assigned exercise.
     let resolvedExerciseId = pe.exercise_id;
     let resolvedExercise = pe.exercise;
+    let resolvedVariant = "standard";
 
-    if (strengthLevel === "beginner") {
-      // Plan-level override first, then catalog default
+    const limitedGymAccess = gymAccess === "limited_equipment" || gymAccess === "no_gym";
+
+    if ((limitedGymAccess || movementVariant === "lateralized") && pe.alt_lateral_exercise_id) {
+      resolvedExerciseId = pe.alt_lateral_exercise_id;
+      resolvedExercise = pe.alt_lateral_exercise || pe.exercise;
+      resolvedVariant = limitedGymAccess ? "gym_access" : "lateral";
+    } else if (strengthLevel === "beginner") {
+      // Plan-level override first, then catalog default.
       if (pe.alt_regression_exercise_id) {
         resolvedExerciseId = pe.alt_regression_exercise_id;
         resolvedExercise = pe.alt_regression_exercise || pe.exercise;
+        resolvedVariant = "regression";
       } else if (pe.exercise?.regression_of) {
-        // Catalog: this exercise IS a progression of something — look for regression
-        // (regression_of means "this is a regression of X", so we'd want the exercise itself as regression)
-        // Actually: progression_of = "this is harder than X", regression_of = "this is easier than X"
-        // For a beginner, we want the regression version
-        // Since exercises table stores regression_of as self-FK pointing to the standard exercise,
+        // Since exercises.regression_of is a forward reference,
         // we can't easily reverse-lookup. Plan-level override is the reliable path.
       }
     } else if (strengthLevel === "advanced") {
       if (pe.alt_progression_exercise_id) {
         resolvedExerciseId = pe.alt_progression_exercise_id;
         resolvedExercise = pe.alt_progression_exercise || pe.exercise;
+        resolvedVariant = "progression";
       }
     }
-    // intermediate or null → use standard exercise (no change)
 
     return {
       ...pe,
       resolved_exercise_id: resolvedExerciseId,
-      resolved_exercise: resolvedExercise
+      resolved_exercise: resolvedExercise,
+      resolved_variant: resolvedVariant
     };
   });
 }

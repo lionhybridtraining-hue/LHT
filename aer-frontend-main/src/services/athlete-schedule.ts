@@ -28,6 +28,7 @@ export interface WeeklySession {
   session_key: string;
   session_type: string;
   session_label: string;
+  strength_week_number?: number | null;
   strength_day_number: number | null;
   running_session_type: string | null;
   duration_estimate_min: number | null;
@@ -50,6 +51,7 @@ export interface WeeklyPlanRow {
   duration_estimate_min: number | null;
   intensity: string | null;
   strength_instance_id: string | null;
+  strength_week_number: number | null;
   strength_day_number: number | null;
   running_session_data: Record<string, unknown> | null;
   is_optional: boolean;

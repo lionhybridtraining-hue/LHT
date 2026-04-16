@@ -21,6 +21,7 @@ SET plan_snapshot = jsonb_build_object(
         'rm_percent_increase_per_week', spe.rm_percent_increase_per_week,
         'alt_progression_exercise_id', spe.alt_progression_exercise_id,
         'alt_regression_exercise_id', spe.alt_regression_exercise_id,
+        'alt_lateral_exercise_id', spe.alt_lateral_exercise_id,
         'created_at', spe.created_at,
         'exercise', CASE
           WHEN ex.id IS NULL THEN NULL
@@ -69,6 +70,22 @@ SET plan_snapshot = jsonb_build_object(
             'progression_of', ex_reg.progression_of,
             'regression_of', ex_reg.regression_of
           )
+        END,
+        'alt_lateral_exercise', CASE
+          WHEN ex_lat.id IS NULL THEN NULL
+          ELSE jsonb_build_object(
+            'id', ex_lat.id,
+            'name', ex_lat.name,
+            'category', ex_lat.category,
+            'subcategory', ex_lat.subcategory,
+            'video_url', ex_lat.video_url,
+            'description', ex_lat.description,
+            'default_weight_per_side', ex_lat.default_weight_per_side,
+            'default_each_side', ex_lat.default_each_side,
+            'default_tempo', ex_lat.default_tempo,
+            'progression_of', ex_lat.progression_of,
+            'regression_of', ex_lat.regression_of
+          )
         END
       )
       ORDER BY spe.day_number ASC, spe.exercise_order ASC
@@ -77,6 +94,7 @@ SET plan_snapshot = jsonb_build_object(
     LEFT JOIN exercises ex ON ex.id = spe.exercise_id
     LEFT JOIN exercises ex_prog ON ex_prog.id = spe.alt_progression_exercise_id
     LEFT JOIN exercises ex_reg ON ex_reg.id = spe.alt_regression_exercise_id
+    LEFT JOIN exercises ex_lat ON ex_lat.id = spe.alt_lateral_exercise_id
     WHERE spe.plan_id = spi.plan_id
   ), '[]'::jsonb),
   'prescriptions',

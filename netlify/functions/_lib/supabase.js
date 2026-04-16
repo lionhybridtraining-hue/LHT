@@ -850,7 +850,7 @@ async function listAthletesByCoach(config, coachIdentityId) {
   return supabaseRequest({
     url: config.supabaseUrl,
     serviceRoleKey: config.supabaseServiceRoleKey,
-    path: `athletes?coach_identity_id=eq.${encodeURIComponent(coachIdentityId)}&select=id,name,email,identity_id&limit=200`
+    path: `athletes?coach_identity_id=eq.${encodeURIComponent(coachIdentityId)}&select=id,name,email,identity_id,strength_level,gym_access,coach_strength_level_override,coach_gym_access_override,strength_movement_variant,strength_log_detail&limit=200`
   });
 }
 
@@ -1129,7 +1129,7 @@ async function listAllAthletesForAdmin(config) {
   return supabaseRequest({
     url: config.supabaseUrl,
     serviceRoleKey: config.supabaseServiceRoleKey,
-    path: "athletes?select=id,name,email,identity_id,coach_identity_id,created_at,funnel_stage&or=(funnel_stage.is.null,funnel_stage.neq.archived)&order=created_at.desc&limit=500"
+    path: "athletes?select=id,name,email,identity_id,coach_identity_id,created_at,funnel_stage,strength_level,gym_access,coach_strength_level_override,coach_gym_access_override,strength_movement_variant,strength_log_detail&or=(funnel_stage.is.null,funnel_stage.neq.archived)&order=created_at.desc&limit=500"
   });
 }
 
@@ -2504,7 +2504,7 @@ async function updateExercise(config, id, patch) {
 }
 
 async function listStrengthPlans(config, filters) {
-  const params = ['select=id,name,description,total_weeks,start_date,status,training_program_id,created_by,created_at,updated_at', 'order=created_at.desc'];
+  const params = ['select=id,name,description,total_weeks,start_date,status,training_program_id,created_by,created_at,updated_at,phase_definitions', 'order=created_at.desc'];
   if (filters && filters.status) params.push(`status=eq.${encodeURIComponent(filters.status)}`);
   if (filters && filters.trainingProgramId) params.push(`training_program_id=eq.${encodeURIComponent(filters.trainingProgramId)}`);
   if (filters && filters.createdBy) params.push(`created_by=eq.${encodeURIComponent(filters.createdBy)}`);
@@ -2626,7 +2626,7 @@ async function getStrengthPlanFull(config, planId) {
   const exercises = await supabaseRequest({
     url: config.supabaseUrl,
     serviceRoleKey: config.supabaseServiceRoleKey,
-    path: `strength_plan_exercises?plan_id=eq.${encodeURIComponent(planId)}&select=id,plan_id,day_number,section,superset_group,exercise_order,exercise_id,each_side,weight_per_side,plyo_mechanical_load,rm_percent_increase_per_week,alt_progression_exercise_id,alt_regression_exercise_id,created_at&order=day_number.asc,exercise_order.asc`
+    path: `strength_plan_exercises?plan_id=eq.${encodeURIComponent(planId)}&select=id,plan_id,day_number,section,superset_group,exercise_order,exercise_id,each_side,weight_per_side,plyo_mechanical_load,rm_percent_increase_per_week,alt_progression_exercise_id,alt_regression_exercise_id,alt_lateral_exercise_id,created_at&order=day_number.asc,exercise_order.asc`
   });
 
   // Avoid PostgREST relationship ambiguity by hydrating exercise records explicitly.
@@ -2635,6 +2635,7 @@ async function getStrengthPlanFull(config, planId) {
     if (pe.exercise_id) exerciseIdSet.add(pe.exercise_id);
     if (pe.alt_progression_exercise_id) exerciseIdSet.add(pe.alt_progression_exercise_id);
     if (pe.alt_regression_exercise_id) exerciseIdSet.add(pe.alt_regression_exercise_id);
+    if (pe.alt_lateral_exercise_id) exerciseIdSet.add(pe.alt_lateral_exercise_id);
   }
 
   let exerciseMap = {};
@@ -2655,7 +2656,8 @@ async function getStrengthPlanFull(config, planId) {
     ...pe,
     exercise: pe.exercise_id ? exerciseMap[pe.exercise_id] || null : null,
     alt_progression_exercise: pe.alt_progression_exercise_id ? exerciseMap[pe.alt_progression_exercise_id] || null : null,
-    alt_regression_exercise: pe.alt_regression_exercise_id ? exerciseMap[pe.alt_regression_exercise_id] || null : null
+    alt_regression_exercise: pe.alt_regression_exercise_id ? exerciseMap[pe.alt_regression_exercise_id] || null : null,
+    alt_lateral_exercise: pe.alt_lateral_exercise_id ? exerciseMap[pe.alt_lateral_exercise_id] || null : null
   }));
 
   const exerciseIds = (exercises || []).map(e => e.id);
@@ -2676,7 +2678,14 @@ async function getStrengthPlanFull(config, planId) {
 
   const dayLabels = await listStrengthPlanDayLabels(config, planId);
 
-  return { plan, exercises: hydratedExercises, prescriptions: prescriptions || [], phaseNotes: phaseNotes || [], dayLabels: dayLabels || [] };
+  return {
+    plan,
+    exercises: hydratedExercises,
+    prescriptions: prescriptions || [],
+    phaseNotes: phaseNotes || [],
+    dayLabels: dayLabels || [],
+    phaseDefinitions: Array.isArray(plan.phase_definitions) ? plan.phase_definitions : []
+  };
 }
 
 async function createStrengthPlan(config, payload) {
@@ -3045,7 +3054,7 @@ async function getActiveAssignmentsForAthlete(config, athleteId) {
   const rows = await supabaseRequest({
     url: config.supabaseUrl,
     serviceRoleKey: config.supabaseServiceRoleKey,
-    path: `program_assignments?athlete_id=eq.${encodeURIComponent(athleteId)}&status=in.(active,scheduled,paused)&select=id,athlete_id,coach_id,training_program_id,start_date,duration_weeks,computed_end_date,status,selected_preset_id,created_at,training_program:training_programs(id,name,access_model,duration_weeks,billing_type,preset_selection,classification)&order=created_at.desc`
+    path: `program_assignments?athlete_id=eq.${encodeURIComponent(athleteId)}&status=in.(active,scheduled,paused)&select=id,athlete_id,coach_id,training_program_id,start_date,duration_weeks,computed_end_date,status,selected_preset_id,selected_variant_id,created_at,training_program:training_programs(id,name,access_model,duration_weeks,billing_type,preset_selection,classification,default_variant_id)&order=created_at.desc`
   });
   return Array.isArray(rows) ? rows : [];
 }
@@ -3185,6 +3194,46 @@ async function deleteProgramSchedulePreset(config, presetId) {
     method: 'DELETE'
   });
   return Array.isArray(rows) ? rows.length : 0;
+}
+
+async function listVariantPresetLinks(config, variantIds) {
+  const ids = Array.isArray(variantIds)
+    ? variantIds.map((value) => String(value || '').trim()).filter(Boolean)
+    : [String(variantIds || '').trim()].filter(Boolean);
+
+  if (!ids.length) return [];
+
+  const filter = ids.map((value) => encodeURIComponent(value)).join(',');
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `program_variant_preset_links?variant_id=in.(${filter})&select=id,variant_id,preset_id,sort_order,is_default,preset:program_schedule_presets(id,training_program_id,preset_name,description,total_training_days,is_default,sort_order)&order=sort_order.asc,created_at.asc`
+  });
+  return Array.isArray(rows) ? rows : [];
+}
+
+async function replaceVariantPresetLinks(config, variantId, links) {
+  const normalizedVariantId = String(variantId || '').trim();
+  if (!normalizedVariantId) return [];
+
+  await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `program_variant_preset_links?variant_id=eq.${encodeURIComponent(normalizedVariantId)}`,
+    method: 'DELETE'
+  });
+
+  if (!Array.isArray(links) || !links.length) return [];
+
+  const rows = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: 'program_variant_preset_links',
+    method: 'POST',
+    body: links,
+    prefer: 'return=representation'
+  });
+  return Array.isArray(rows) ? rows : [];
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -3408,7 +3457,7 @@ async function deleteAthleteWeeklyPlanFromWeek(config, programAssignmentId, from
 }
 
 async function markWeeklyPlanSlotCompleted(config, { athleteId, strengthInstanceId, weekNumber, dayNumber }) {
-  const path = `athlete_weekly_plan?athlete_id=eq.${encodeURIComponent(athleteId)}&strength_instance_id=eq.${encodeURIComponent(strengthInstanceId)}&week_number=eq.${encodeURIComponent(weekNumber)}&strength_day_number=eq.${encodeURIComponent(dayNumber)}&status=eq.planned`;
+  const path = `athlete_weekly_plan?athlete_id=eq.${encodeURIComponent(athleteId)}&strength_instance_id=eq.${encodeURIComponent(strengthInstanceId)}&strength_week_number=eq.${encodeURIComponent(weekNumber)}&strength_day_number=eq.${encodeURIComponent(dayNumber)}&status=eq.planned`;
   const rows = await supabaseRequest({
     url: config.supabaseUrl,
     serviceRoleKey: config.supabaseServiceRoleKey,
@@ -4824,6 +4873,8 @@ module.exports = {
   createProgramSchedulePreset,
   updateProgramSchedulePreset,
   deleteProgramSchedulePreset,
+  listVariantPresetLinks,
+  replaceVariantPresetLinks,
   listProgramScheduleSlots,
   upsertProgramScheduleSlots,
   deleteProgramScheduleSlots,

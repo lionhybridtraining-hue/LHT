@@ -57,6 +57,20 @@ function normalizeSex(value) {
   return ['male', 'female', 'other'].includes(normalized) ? normalized : null;
 }
 
+function normalizeStrengthLevel(value) {
+  const normalized = toNullableString(value);
+  if (!normalized) return null;
+  const key = normalized.toLowerCase();
+  return ['beginner', 'intermediate', 'advanced'].includes(key) ? key : null;
+}
+
+function normalizeGymAccess(value) {
+  const normalized = toNullableString(value);
+  if (!normalized) return 'full_gym';
+  const key = normalized.toLowerCase();
+  return ['full_gym', 'limited_equipment', 'no_gym'].includes(key) ? key : 'full_gym';
+}
+
 function normalizeCanonicalExperienceLevel(value) {
   const normalized = toNullableString(value);
   if (!normalized) return null;
@@ -252,7 +266,9 @@ exports.handler = async (event) => {
         date_of_birth: toNullableString(body.dateOfBirth),
         height_cm: toNullableNumber(body.heightCm),
         weight_kg: toNullableNumber(body.weightKg),
-        sex: normalizeSex(body.sex)
+        sex: normalizeSex(body.sex),
+        strength_level: normalizeStrengthLevel(body.strengthLevel),
+        gym_access: normalizeGymAccess(body.gymAccess)
       };
 
       const updatedAthlete = await updateAthlete(config, athlete.id, personalPatch);
@@ -272,7 +288,9 @@ exports.handler = async (event) => {
         dateOfBirth: (freshAthlete || athlete).date_of_birth || null,
         heightCm: (freshAthlete || athlete).height_cm || null,
         weightKg: (freshAthlete || athlete).weight_kg || null,
-        sex: (freshAthlete || athlete).sex || null
+        sex: (freshAthlete || athlete).sex || null,
+        strengthLevel: (freshAthlete || athlete).strength_level || null,
+        gymAccess: (freshAthlete || athlete).gym_access || 'full_gym'
       },
       onboarding,
       completion,

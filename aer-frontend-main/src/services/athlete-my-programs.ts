@@ -28,6 +28,7 @@ export interface MyProgramMeta {
   accessModel: string;
   durationWeeks: number;
   billingType: string;
+  defaultVariantId?: string | null;
 }
 
 export interface MyProgramInstance {

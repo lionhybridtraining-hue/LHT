@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useOutletContext, useNavigate } from "react-router-dom";
 import type { AthleteOutletContext } from "@/components/atleta/AthleteLayout";
+import { getAccessToken } from "@/lib/supabase";
+import { fetchOnboardingIntake, mergeOnboardingAnswers } from "@/lib/onboarding-intake";
 import {
   fetchSchedulePresets,
   fetchWeeklySessions,
@@ -19,6 +21,7 @@ import {
   fetchVariantsForProgram,
   type ProgramVariant,
 } from "@/services/variant-service";
+import { fetchAthleteProfile, type AthleteProfileData } from "@/services/athlete-profile";
 import { VariantPicker } from "@/components/atleta/VariantPicker";
 
 const DAY_LABELS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
@@ -34,6 +37,22 @@ const SESSION_THEME: Record<string, { badge: string; chip: string }> = {
 };
 
 type CalendarViewMode = "multi-week" | "week" | "day";
+
+type CalendarPriority = "balanced" | "strength" | "running";
+
+interface CalendarPreferences {
+  preferredTrainingDays: number[];
+  availableGymDays: number[];
+  allowsDoubleSessions: boolean | null;
+  priority: CalendarPriority;
+}
+
+interface PresetRecommendationResult {
+  recommendedPresetId: string | null;
+  rankedPresetIds: string[];
+  reasons: string[];
+  needsMoreContext: boolean;
+}
 
 /** Derives the current week number based on instance start_date. */
 function getCurrentWeek(startDate: string | null | undefined): number {
@@ -53,6 +72,7 @@ interface CalendarProgram {
   instanceId: string | null;
   programId: string | null;
   startDate: string | null;
+  defaultVariantId: string | null;
   presetSelection: "coach" | "athlete";
   selectedPresetId: string | null;
   selectedVariantId: string | null;
@@ -144,6 +164,206 @@ function pickDaySport(rows: WeeklyPlanRow[]): string {
   return rows[0].session_type || "other";
 }
 
+function normalizeExperienceLevel(value: string | null | undefined): "beginner" | "intermediate" | "advanced" | null {
+  const normalized = (value || "").toString().trim().toLowerCase();
+  if (!normalized) return null;
+  if (["iniciante", "beginner", "starter"].includes(normalized)) return "beginner";
+  if (["intermedio", "intermédio", "intermediate", "building"].includes(normalized)) return "intermediate";
+  if (["avancado", "avançado", "advanced", "performance"].includes(normalized)) return "advanced";
+  return null;
+}
+
+function normalizeCalendarPreferences(answers: Record<string, unknown> | null | undefined): CalendarPreferences {
+  const prefs = answers && typeof answers.calendar_preferences === "object" && answers.calendar_preferences
+    ? (answers.calendar_preferences as Record<string, unknown>)
+    : {};
+
+  const toDayArray = (value: unknown) => {
+    if (!Array.isArray(value)) return [];
+    return value
+      .map((entry) => Number(entry))
+      .filter((day) => Number.isInteger(day) && day >= 0 && day <= 6)
+      .sort((left, right) => left - right);
+  };
+
+  const allowsDoubleSessions = typeof prefs.allowsDoubleSessions === "boolean"
+    ? prefs.allowsDoubleSessions
+    : null;
+  const priority = prefs.priority === "strength" || prefs.priority === "running"
+    ? prefs.priority
+    : "balanced";
+
+  return {
+    preferredTrainingDays: toDayArray(prefs.preferredTrainingDays),
+    availableGymDays: toDayArray(prefs.availableGymDays),
+    allowsDoubleSessions,
+    priority,
+  };
+}
+
+function serializeCalendarPreferences(preferences: CalendarPreferences) {
+  return {
+    calendar_preferences: {
+      preferredTrainingDays: preferences.preferredTrainingDays,
+      availableGymDays: preferences.availableGymDays,
+      allowsDoubleSessions: preferences.allowsDoubleSessions,
+      priority: preferences.priority,
+    }
+  };
+}
+
+function summarizePresetLayout(preset: SchedulePreset, sessions: WeeklySession[]) {
+  const sessionMap = new Map(sessions.map((session) => [session.id, session]));
+  const occupiedDays = new Set<number>();
+  const strengthDays = new Set<number>();
+  const runningDays = new Set<number>();
+  const slotsPerDay = new Map<number, number>();
+
+  (preset.slots || []).forEach((slot) => {
+    const day = Number(slot.day_of_week);
+    if (!Number.isInteger(day) || day < 0 || day > 6) return;
+    occupiedDays.add(day);
+    slotsPerDay.set(day, (slotsPerDay.get(day) || 0) + 1);
+    const session = sessionMap.get(slot.session_id);
+    if (!session) return;
+    if (session.session_type === "strength") strengthDays.add(day);
+    if (session.session_type === "running") runningDays.add(day);
+  });
+
+  const doubleSessionDays = [...slotsPerDay.entries()]
+    .filter(([, count]) => count > 1)
+    .map(([day]) => day)
+    .sort((left, right) => left - right);
+
+  return {
+    occupiedDays: [...occupiedDays].sort((left, right) => left - right),
+    strengthDays: [...strengthDays].sort((left, right) => left - right),
+    runningDays: [...runningDays].sort((left, right) => left - right),
+    doubleSessionDays,
+  };
+}
+
+function getCompatiblePresetsForVariant(variant: ProgramVariant | null, presets: SchedulePreset[]) {
+  if (!variant) return [];
+  const compatible = Array.isArray(variant.compatible_presets) ? variant.compatible_presets : [];
+  if (!compatible.length) return presets;
+
+  return compatible
+    .slice()
+    .sort((left, right) => Number(left.sort_order || 0) - Number(right.sort_order || 0))
+    .map((entry) => presets.find((preset) => preset.id === entry.preset_id) || entry.preset || null)
+    .filter((preset): preset is SchedulePreset => Boolean(preset));
+}
+
+function recommendVariant(
+  variants: ProgramVariant[],
+  programDefaultVariantId: string | null | undefined,
+  profile: AthleteProfileData | null
+) {
+  if (!variants.length) return null;
+  const targetFrequency = Number(profile?.onboarding.weeklyFrequency || 0) || null;
+  const targetExperience = normalizeExperienceLevel(profile?.onboarding.experienceLevel) || profile?.athlete.strengthLevel || null;
+
+  const ranked = variants
+    .map((variant) => {
+      let score = 0;
+      if (programDefaultVariantId && variant.id === programDefaultVariantId) score += 12;
+      if (targetFrequency != null) score += Math.max(0, 18 - Math.abs(variant.weekly_frequency - targetFrequency) * 6);
+      if (targetExperience && variant.experience_level === targetExperience) score += 14;
+      return { variant, score };
+    })
+    .sort((left, right) => right.score - left.score);
+
+  return ranked[0]?.variant?.id || null;
+}
+
+function recommendPreset(
+  presets: SchedulePreset[],
+  sessions: WeeklySession[],
+  preferences: CalendarPreferences,
+  profile: AthleteProfileData | null,
+  variant: ProgramVariant | null
+): PresetRecommendationResult {
+  if (!presets.length) {
+    return {
+      recommendedPresetId: null,
+      rankedPresetIds: [],
+      reasons: [],
+      needsMoreContext: false,
+    };
+  }
+
+  const preferredWeeklyFrequency = Number(profile?.onboarding.weeklyFrequency || 0) || null;
+  const ranked = presets.map((preset) => {
+    const layout = summarizePresetLayout(preset, sessions);
+    const reasons: string[] = [];
+    let score = 0;
+
+    if (variant) {
+      const matchingLink = (variant.compatible_presets || []).find((entry) => entry.preset_id === preset.id);
+      if (matchingLink?.is_default) {
+        score += 12;
+        reasons.push("é o calendário recomendado nesta opção");
+      }
+      score += Math.max(0, 20 - Math.abs(preset.total_training_days - variant.weekly_frequency) * 6);
+    }
+
+    if (preferredWeeklyFrequency != null) {
+      score += Math.max(0, 14 - Math.abs(preset.total_training_days - preferredWeeklyFrequency) * 5);
+    }
+
+    if (preferences.preferredTrainingDays.length > 0) {
+      const matches = layout.occupiedDays.filter((day) => preferences.preferredTrainingDays.includes(day)).length;
+      score += matches * 6;
+      if (matches > 0) reasons.push("encaixa melhor nos dias que indicaste para treinar");
+    }
+
+    if (preferences.availableGymDays.length > 0 && layout.strengthDays.length > 0) {
+      const gymMatches = layout.strengthDays.filter((day) => preferences.availableGymDays.includes(day)).length;
+      const gymMisses = layout.strengthDays.length - gymMatches;
+      score += gymMatches * 8;
+      score -= gymMisses * 10;
+      if (gymMatches > 0) reasons.push("coloca a força em dias compatíveis com o teu acesso ao ginásio");
+    }
+
+    if (preferences.allowsDoubleSessions === false) {
+      if (layout.doubleSessionDays.length === 0) {
+        score += 10;
+        reasons.push("evita dias com duas sessões");
+      } else {
+        score -= layout.doubleSessionDays.length * 12;
+      }
+    } else if (preferences.allowsDoubleSessions === true && layout.doubleSessionDays.length > 0) {
+      score += 4;
+    }
+
+    if (preferences.priority === "strength" && layout.strengthDays.length > 0) {
+      score += layout.strengthDays.length * 2;
+    }
+    if (preferences.priority === "running" && layout.runningDays.length > 0) {
+      score += layout.runningDays.length * 2;
+    }
+
+    return {
+      preset,
+      score,
+      reasons,
+    };
+  }).sort((left, right) => right.score - left.score);
+
+  const top = ranked[0] || null;
+  const runnerUp = ranked[1] || null;
+  const missingSignal = preferences.preferredTrainingDays.length === 0 || preferences.availableGymDays.length === 0 || preferences.allowsDoubleSessions == null;
+  const needsMoreContext = Boolean(top && runnerUp && Math.abs(top.score - runnerUp.score) <= 6 && missingSignal);
+
+  return {
+    recommendedPresetId: top ? top.preset.id : null,
+    rankedPresetIds: ranked.map((entry) => entry.preset.id),
+    reasons: top ? top.reasons.slice(0, 3) : [],
+    needsMoreContext,
+  };
+}
+
 export default function CalendarioPage() {
   const { session } = useOutletContext<AthleteOutletContext>();
   return <CalendarioContent session={session} />;
@@ -168,6 +388,15 @@ function CalendarioContent({ session: _session }: { session: AthleteOutletContex
   const [planLoading, setPlanLoading] = useState(false);
   const [pendingPresetId, setPendingPresetId] = useState<string | null>(null);
   const [pendingVariantId, setPendingVariantId] = useState<string | null>(null);
+  const [athleteProfile, setAthleteProfile] = useState<AthleteProfileData | null>(null);
+  const [calendarPreferences, setCalendarPreferences] = useState<CalendarPreferences>({
+    preferredTrainingDays: [],
+    availableGymDays: [],
+    allowsDoubleSessions: null,
+    priority: "balanced",
+  });
+  const [selectedSetupVariantId, setSelectedSetupVariantId] = useState<string | null>(null);
+  const [showCalendarPreferenceForm, setShowCalendarPreferenceForm] = useState(false);
   const [runVolumeConfig, setRunVolumeConfig] = useState({
     initialWeeklyVolumeKm: "30",
     weeklyProgressionPct: "5",
@@ -217,6 +446,7 @@ function CalendarioContent({ session: _session }: { session: AthleteOutletContex
               instanceId: p.instance.id,
               programId: p.program?.id || null,
               startDate: p.instance.startDate || null,
+              defaultVariantId: p.program?.defaultVariantId || null,
               presetSelection,
               selectedPresetId,
               selectedVariantId,
@@ -234,6 +464,7 @@ function CalendarioContent({ session: _session }: { session: AthleteOutletContex
               instanceId: null,
               programId: p.program?.id || null,
               startDate: p.purchase?.paidAt || null,
+              defaultVariantId: p.program?.defaultVariantId || null,
               presetSelection,
               selectedPresetId,
               selectedVariantId,
@@ -254,6 +485,7 @@ function CalendarioContent({ session: _session }: { session: AthleteOutletContex
               instanceId: inst.id,
               programId: inst.plan?.training_program_id || null,
               startDate: inst.start_date || null,
+              defaultVariantId: null,
               presetSelection: "athlete",
               selectedPresetId: null,
               selectedVariantId: null,
@@ -292,6 +524,8 @@ function CalendarioContent({ session: _session }: { session: AthleteOutletContex
       setPresets([]);
       setSessions([]);
       setVariants([]);
+      setSelectedSetupVariantId(null);
+      setShowCalendarPreferenceForm(false);
       setMovingRow(null);
 
       try {
@@ -315,15 +549,25 @@ function CalendarioContent({ session: _session }: { session: AthleteOutletContex
           setViewMode("week");
         } else if (selectedProgram.programId) {
           // No plan: load presets, sessions, and variants for setup
-          const [presetsData, sessionsData, variantsData] = await Promise.all([
+          const [presetsData, sessionsData, variantsData, profileData, intakeData] = await Promise.all([
             fetchSchedulePresets(selectedProgram.programId),
             fetchWeeklySessions(selectedProgram.programId),
             fetchVariantsForProgram(selectedProgram.programId).catch(() => ({ variants: [] })),
+            fetchAthleteProfile().catch(() => null),
+            (async () => {
+              const token = await getAccessToken();
+              return fetchOnboardingIntake(token).catch(() => null);
+            })(),
           ]);
           if (!mounted) return;
           setPresets(presetsData.presets || []);
           setSessions(sessionsData.sessions || []);
           setVariants(variantsData.variants || []);
+          setAthleteProfile(profileData || null);
+          const answers = intakeData && intakeData.answers && typeof intakeData.answers === "object"
+            ? (intakeData.answers as Record<string, unknown>)
+            : {};
+          setCalendarPreferences(normalizeCalendarPreferences(answers));
         }
       } catch (err) {
         if (!mounted) return;
@@ -375,6 +619,67 @@ function CalendarioContent({ session: _session }: { session: AthleteOutletContex
   // Program progress stats
   const totalRows = plan.length;
   const completedRows = plan.filter((r) => r.status === "completed").length;
+
+  const recommendedVariantId = useMemo(() => {
+    return recommendVariant(
+      variants,
+      selectedProgram?.defaultVariantId || null,
+      athleteProfile
+    );
+  }, [variants, athleteProfile, selectedProgram]);
+
+  const selectedSetupVariant = useMemo(
+    () => variants.find((variant) => variant.id === selectedSetupVariantId) || null,
+    [variants, selectedSetupVariantId]
+  );
+
+  const compatiblePresets = useMemo(() => {
+    if (selectedSetupVariant) {
+      return getCompatiblePresetsForVariant(selectedSetupVariant, presets);
+    }
+    return presets;
+  }, [selectedSetupVariant, presets]);
+
+  const presetRecommendation = useMemo(() => {
+    return recommendPreset(
+      compatiblePresets,
+      sessions,
+      calendarPreferences,
+      athleteProfile,
+      selectedSetupVariant
+    );
+  }, [compatiblePresets, sessions, calendarPreferences, athleteProfile, selectedSetupVariant]);
+
+  const recommendedPreset = useMemo(
+    () => compatiblePresets.find((preset) => preset.id === presetRecommendation.recommendedPresetId) || null,
+    [compatiblePresets, presetRecommendation]
+  );
+
+  const alternativePresets = useMemo(
+    () => compatiblePresets.filter((preset) => preset.id !== presetRecommendation.recommendedPresetId),
+    [compatiblePresets, presetRecommendation]
+  );
+
+  useEffect(() => {
+    if (!variants.length) {
+      setSelectedSetupVariantId(null);
+      return;
+    }
+
+    const preferredVariantId = selectedProgram?.selectedVariantId || recommendedVariantId || variants[0]?.id || null;
+    setSelectedSetupVariantId((current) => {
+      if (current && variants.some((variant) => variant.id === current)) return current;
+      return preferredVariantId;
+    });
+  }, [variants, selectedProgram?.selectedVariantId, recommendedVariantId, selectedProgram]);
+
+  useEffect(() => {
+    if (!selectedSetupVariant || !compatiblePresets.length) {
+      setShowCalendarPreferenceForm(false);
+      return;
+    }
+    setShowCalendarPreferenceForm(presetRecommendation.needsMoreContext);
+  }, [selectedSetupVariant, compatiblePresets, presetRecommendation]);
 
   const handleGeneratePlan = useCallback(
     async (
@@ -437,11 +742,25 @@ function CalendarioContent({ session: _session }: { session: AthleteOutletContex
 
   const handleVariantSelect = useCallback(
     (variant: ProgramVariant) => {
-      // Variant provides running config from running_config_preset — no manual input needed
-      // Still need a preset for schedule layout; use the program's default preset
-      const defaultPreset = presets.find((p) => p.is_default) || presets[0];
+      setSelectedSetupVariantId(variant.id);
+      const variantPresets = getCompatiblePresetsForVariant(variant, presets);
+      const recommendation = recommendPreset(
+        variantPresets,
+        sessions,
+        calendarPreferences,
+        athleteProfile,
+        variant
+      );
+      const defaultPreset = variantPresets.find((preset) => preset.id === recommendation.recommendedPresetId)
+        || variantPresets[0]
+        || null;
       if (!defaultPreset) {
-        setError("Nenhum preset de calendário disponível. O coach precisa configurar os horários primeiro.");
+        setError("Nenhum calendário compatível disponível. O coach precisa configurar os horários desta opção.");
+        return;
+      }
+
+      if (recommendation.needsMoreContext) {
+        setShowCalendarPreferenceForm(true);
         return;
       }
 
@@ -456,8 +775,44 @@ function CalendarioContent({ session: _session }: { session: AthleteOutletContex
         void handleGeneratePlan(defaultPreset.id, undefined, variant.id);
       }
     },
-    [presets, hasRunningSessions, handleGeneratePlan]
+    [presets, hasRunningSessions, handleGeneratePlan, sessions, calendarPreferences, athleteProfile]
   );
+
+  const handleSaveCalendarPreferences = useCallback(async () => {
+    try {
+      const payload = serializeCalendarPreferences(calendarPreferences);
+      const token = await getAccessToken();
+      await mergeOnboardingAnswers(token, payload);
+      setShowCalendarPreferenceForm(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao guardar preferências do calendário.");
+    }
+  }, [calendarPreferences]);
+
+  const handleApplyRecommendedPreset = useCallback(() => {
+    if (!recommendedPreset) {
+      setError("Não foi possível determinar um calendário recomendado.");
+      return;
+    }
+
+    if (!selectedSetupVariant) {
+      void handleOpenPresetGeneration(recommendedPreset.id);
+      return;
+    }
+
+    if (selectedSetupVariant.running_config_preset?.initial_weekly_volume_km != null) {
+      void handleGeneratePlan(recommendedPreset.id, undefined, selectedSetupVariant.id);
+      return;
+    }
+
+    if (hasRunningSessions) {
+      setPendingPresetId(recommendedPreset.id);
+      setPendingVariantId(selectedSetupVariant.id);
+      return;
+    }
+
+    void handleGeneratePlan(recommendedPreset.id, undefined, selectedSetupVariant.id);
+  }, [recommendedPreset, selectedSetupVariant, handleGeneratePlan, hasRunningSessions, handleOpenPresetGeneration]);
 
   const handleConfirmRunningConfig = useCallback(async () => {
     if (!pendingPresetId) return;
@@ -630,17 +985,199 @@ function CalendarioContent({ session: _session }: { session: AthleteOutletContex
               variants={variants}
               onSelect={handleVariantSelect}
               generating={generating}
+              recommendedVariantId={recommendedVariantId}
             />
+
+            {selectedSetupVariant && (
+              <div className="mt-4 rounded-xl border border-[#30363d] bg-[#161b22] p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#d4a54f]">
+                      recomendação de calendário
+                    </p>
+                    <h3 className="mt-1 text-base font-semibold text-[#f7f1e8]">
+                      {recommendedPreset?.preset_name || "Sem calendário recomendado"}
+                    </h3>
+                  </div>
+                  {recommendedPreset && (
+                    <button
+                      onClick={handleApplyRecommendedPreset}
+                      disabled={generating}
+                      className="rounded-lg border border-[#d4a54f] bg-[#d4a54f]/15 px-3 py-2 text-xs font-semibold text-[#d4a54f] disabled:opacity-50"
+                    >
+                      {generating ? "A gerar..." : "Usar recomendado"}
+                    </button>
+                  )}
+                </div>
+
+                {presetRecommendation.reasons.length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {presetRecommendation.reasons.map((reason) => (
+                      <span
+                        key={reason}
+                        className="rounded-full border border-[#30363d] bg-[#0d1117] px-2 py-1 text-[11px] text-[#8f99a8]"
+                      >
+                        {reason}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {recommendedPreset?.description && (
+                  <p className="mt-3 text-xs text-[#8f99a8]">{recommendedPreset.description}</p>
+                )}
+
+                {showCalendarPreferenceForm && (
+                  <div className="mt-4 rounded-xl border border-[#30363d] bg-[#0d1117] p-4">
+                    <h4 className="text-sm font-semibold text-[#f7f1e8]">Faltam-nos alguns detalhes para acertar melhor</h4>
+                    <p className="mt-1 text-xs text-[#8f99a8]">
+                      Responde só ao que influencia a distribuição da tua semana. Guardamos isto para recomendações futuras.
+                    </p>
+
+                    <div className="mt-4 space-y-4">
+                      <div>
+                        <p className="text-xs font-medium text-[#c9d1d9]">Em que dias preferes treinar?</p>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {DAY_LABELS.map((label, day) => {
+                            const active = calendarPreferences.preferredTrainingDays.includes(day);
+                            return (
+                              <button
+                                key={`pref-${day}`}
+                                type="button"
+                                onClick={() => setCalendarPreferences((current) => ({
+                                  ...current,
+                                  preferredTrainingDays: active
+                                    ? current.preferredTrainingDays.filter((entry) => entry !== day)
+                                    : [...current.preferredTrainingDays, day].sort((left, right) => left - right),
+                                }))}
+                                className={`rounded-md border px-2.5 py-1.5 text-xs ${active ? "border-[#d4a54f] bg-[#d4a54f]/15 text-[#d4a54f]" : "border-[#30363d] bg-[#161b22] text-[#8f99a8]"}`}
+                              >
+                                {label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      <div>
+                        <p className="text-xs font-medium text-[#c9d1d9]">Em que dias tens acesso ao ginásio?</p>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {DAY_LABELS.map((label, day) => {
+                            const active = calendarPreferences.availableGymDays.includes(day);
+                            return (
+                              <button
+                                key={`gym-${day}`}
+                                type="button"
+                                onClick={() => setCalendarPreferences((current) => ({
+                                  ...current,
+                                  availableGymDays: active
+                                    ? current.availableGymDays.filter((entry) => entry !== day)
+                                    : [...current.availableGymDays, day].sort((left, right) => left - right),
+                                }))}
+                                className={`rounded-md border px-2.5 py-1.5 text-xs ${active ? "border-[#d4a54f] bg-[#d4a54f]/15 text-[#d4a54f]" : "border-[#30363d] bg-[#161b22] text-[#8f99a8]"}`}
+                              >
+                                {label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      <div>
+                        <p className="text-xs font-medium text-[#c9d1d9]">Aceitas dias com duas sessões?</p>
+                        <div className="mt-2 flex gap-2">
+                          {[
+                            { label: "Sim", value: true },
+                            { label: "Não", value: false },
+                          ].map((option) => (
+                            <button
+                              key={option.label}
+                              type="button"
+                              onClick={() => setCalendarPreferences((current) => ({ ...current, allowsDoubleSessions: option.value }))}
+                              className={`rounded-md border px-3 py-1.5 text-xs ${calendarPreferences.allowsDoubleSessions === option.value ? "border-[#d4a54f] bg-[#d4a54f]/15 text-[#d4a54f]" : "border-[#30363d] bg-[#161b22] text-[#8f99a8]"}`}
+                            >
+                              {option.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div>
+                        <p className="text-xs font-medium text-[#c9d1d9]">O que deve ter prioridade quando a semana aperta?</p>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {[
+                            { label: "Equilíbrio", value: "balanced" as const },
+                            { label: "Força", value: "strength" as const },
+                            { label: "Corrida", value: "running" as const },
+                          ].map((option) => (
+                            <button
+                              key={option.value}
+                              type="button"
+                              onClick={() => setCalendarPreferences((current) => ({ ...current, priority: option.value }))}
+                              className={`rounded-md border px-3 py-1.5 text-xs ${calendarPreferences.priority === option.value ? "border-[#d4a54f] bg-[#d4a54f]/15 text-[#d4a54f]" : "border-[#30363d] bg-[#161b22] text-[#8f99a8]"}`}
+                            >
+                              {option.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => void handleSaveCalendarPreferences()}
+                        className="rounded-lg border border-[#d4a54f] bg-[#d4a54f]/15 px-3 py-2 text-xs font-semibold text-[#d4a54f]"
+                      >
+                        Guardar preferências
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {alternativePresets.length > 0 && (
+                  <div className="mt-4">
+                    <p className="mb-3 text-xs text-[#8f99a8]">Se precisares, podes trocar para outra versão compatível:</p>
+                    <div className="space-y-3">
+                      {alternativePresets.map((preset) => (
+                        <PresetCard
+                          key={preset.id}
+                          preset={preset}
+                          sessions={sessions}
+                          onSelect={() => {
+                            if (!selectedSetupVariant) {
+                              handleOpenPresetGeneration(preset.id);
+                              return;
+                            }
+                            if (selectedSetupVariant.running_config_preset?.initial_weekly_volume_km != null) {
+                              void handleGeneratePlan(preset.id, undefined, selectedSetupVariant.id);
+                              return;
+                            }
+                            if (hasRunningSessions) {
+                              setPendingPresetId(preset.id);
+                              setPendingVariantId(selectedSetupVariant.id);
+                              return;
+                            }
+                            void handleGeneratePlan(preset.id, undefined, selectedSetupVariant.id);
+                          }}
+                          generating={generating}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
         {!planLoading && !hasPlan && presets.length > 0 && variants.length === 0 && selectedProgram?.presetSelection !== "coach" && (
           <div className="mt-6">
             <h2 className="mb-3 text-lg font-semibold text-[#f7f1e8]">
-              Escolhe o teu calendário
+              Escolhe a versão da tua semana
             </h2>
             <p className="mb-4 text-xs text-[#8f99a8]">
-              Seleciona o layout semanal que melhor se adapta à tua disponibilidade.
+              Seleciona o calendário semanal que melhor se adapta à tua disponibilidade.
             </p>
             <div className="space-y-3">
               {presets.map((preset) => (
@@ -1333,7 +1870,7 @@ function SportBackgroundSvg({ sport }: { sport: string }) {
 function handleSessionTap(row: WeeklyPlanRow, navigate: ReturnType<typeof useNavigate>) {
   if (row.session_type === "strength" && row.strength_instance_id) {
     navigate(
-      `/atleta/forca?instanceId=${row.strength_instance_id}&day=${row.strength_day_number || 1}&week=${row.week_number}`
+      `/atleta/forca?instanceId=${row.strength_instance_id}&day=${row.strength_day_number || 1}&week=${row.strength_week_number || row.week_number}`
     );
   }
 }

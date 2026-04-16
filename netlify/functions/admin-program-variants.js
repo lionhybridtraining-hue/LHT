@@ -9,7 +9,10 @@ const {
   createVariantsBatch,
   updateVariant,
   deleteVariant,
-  setDefaultVariant
+  setDefaultVariant,
+  listProgramSchedulePresets,
+  listVariantPresetLinks,
+  replaceVariantPresetLinks
 } = require("./_lib/supabase");
 
 // ── Validation ─────────────────────────────────────────────
@@ -61,6 +64,118 @@ function validateVariant(body, index) {
   };
 }
 
+function attachCompatiblePresets(variants, links) {
+  const linksByVariantId = new Map();
+  (links || []).forEach((link) => {
+    const variantId = link && link.variant_id ? link.variant_id : null;
+    if (!variantId) return;
+    if (!linksByVariantId.has(variantId)) linksByVariantId.set(variantId, []);
+    linksByVariantId.get(variantId).push(link);
+  });
+
+  return (variants || []).map((variant) => ({
+    ...variant,
+    compatible_presets: (linksByVariantId.get(variant.id) || []).map((link) => ({
+      id: link.id,
+      preset_id: link.preset_id,
+      sort_order: Number(link.sort_order || 0),
+      is_default: link.is_default === true,
+      preset: link.preset || null
+    }))
+  }));
+}
+
+function buildAutoCompatiblePresets(programPresets, weeklyFrequency) {
+  const presets = Array.isArray(programPresets) ? programPresets : [];
+  if (!presets.length) return [];
+
+  const exactMatches = presets.filter((preset) => Number(preset.total_training_days) === Number(weeklyFrequency));
+  const candidates = exactMatches.length ? exactMatches : presets;
+  const defaultPreset = candidates.find((preset) => preset.is_default)
+    || candidates.slice().sort((left, right) => {
+      const leftDiff = Math.abs(Number(left.total_training_days || 0) - Number(weeklyFrequency || 0));
+      const rightDiff = Math.abs(Number(right.total_training_days || 0) - Number(weeklyFrequency || 0));
+      return leftDiff - rightDiff;
+    })[0]
+    || candidates[0];
+
+  return candidates.map((preset, index) => ({
+    preset_id: preset.id,
+    sort_order: index,
+    is_default: Boolean(defaultPreset && defaultPreset.id === preset.id)
+  }));
+}
+
+function normalizeCompatiblePresets(rawEntries, programPresets) {
+  if (!Array.isArray(rawEntries)) return null;
+
+  const presetById = new Map((programPresets || []).map((preset) => [preset.id, preset]));
+  const normalized = rawEntries.map((entry, index) => {
+    const presetId = (entry && (entry.preset_id || entry.id || entry.presetId) || "").toString().trim();
+    if (!presetId) {
+      throw Object.assign(new Error(`compatible_presets[${index}].preset_id is required`), { status: 400 });
+    }
+    if (!presetById.has(presetId)) {
+      throw Object.assign(new Error(`compatible_presets[${index}] does not belong to this program`), { status: 400 });
+    }
+    return {
+      preset_id: presetId,
+      sort_order: Number.isInteger(Number(entry && entry.sort_order)) ? Number(entry.sort_order) : index,
+      is_default: entry && (entry.is_default === true || entry.is_default === "true")
+    };
+  });
+
+  const deduped = [];
+  const seen = new Set();
+  normalized.forEach((entry) => {
+    if (seen.has(entry.preset_id)) return;
+    seen.add(entry.preset_id);
+    deduped.push(entry);
+  });
+
+  if (!deduped.length) {
+    throw Object.assign(new Error("compatible_presets must include at least one preset"), { status: 400 });
+  }
+
+  let hasDefault = deduped.some((entry) => entry.is_default === true);
+  if (!hasDefault) {
+    deduped[0].is_default = true;
+    hasDefault = true;
+  }
+  if (hasDefault) {
+    let foundDefault = false;
+    deduped.forEach((entry) => {
+      if (entry.is_default === true && !foundDefault) {
+        foundDefault = true;
+        return;
+      }
+      entry.is_default = false;
+    });
+  }
+
+  return deduped;
+}
+
+async function syncVariantCompatiblePresets(config, variant, rawCompatiblePresets) {
+  const programPresets = await listProgramSchedulePresets(config, variant.training_program_id);
+  const normalized = normalizeCompatiblePresets(rawCompatiblePresets, programPresets)
+    || buildAutoCompatiblePresets(programPresets, variant.weekly_frequency);
+
+  const rows = normalized.map((entry) => ({
+    variant_id: variant.id,
+    preset_id: entry.preset_id,
+    sort_order: entry.sort_order,
+    is_default: entry.is_default === true
+  }));
+
+  await replaceVariantPresetLinks(config, variant.id, rows);
+  return attachCompatiblePresets([variant], rows.map((entry) => ({
+    ...entry,
+    variant_id: variant.id,
+    preset: (programPresets || []).find((preset) => preset.id === entry.preset_id) || null
+  })))[0];
+}
+
 // ── Handler ────────────────────────────────────────────────
 
 exports.handler = async (event) => {
@@ -89,11 +204,15 @@ exports.handler = async (event) => {
           weeklyFrequency: qs.weekly_frequency ? Number(qs.weekly_frequency) : null,
           durationWeeks: qs.duration_weeks ? Number(qs.duration_weeks) : null
         });
-        return json(200, { program_id: programId, count: variants.length, variants });
+        const links = await listVariantPresetLinks(config, variants.map((variant) => variant.id));
+        const enriched = attachCompatiblePresets(variants, links);
+        return json(200, { program_id: programId, count: enriched.length, variants: enriched });
       }
 
       const variants = await getVariantsForProgram(config, programId);
-      return json(200, { program_id: programId, count: variants.length, variants });
+      const links = await listVariantPresetLinks(config, variants.map((variant) => variant.id));
+      const enriched = attachCompatiblePresets(variants, links);
+      return json(200, { program_id: programId, count: enriched.length, variants: enriched });
     }
 
     // ── POST: create variant(s) ──────────────────────────────
@@ -128,7 +247,11 @@ exports.handler = async (event) => {
         }
 
         const created = await createVariantsBatch(config, validated);
-        return json(201, { created: created.length, variants: created });
+        const synced = [];
+        for (const variant of created) {
+          synced.push(await syncVariantCompatiblePresets(config, variant, body.compatible_presets));
+        }
+        return json(201, { created: synced.length, variants: synced });
       }
 
       // Single creation: POST with { training_program_id, ... }
@@ -138,7 +261,8 @@ exports.handler = async (event) => {
       }
 
       const created = await createVariant(config, validated);
-      return json(201, created);
+      const synced = await syncVariantCompatiblePresets(config, created, body.compatible_presets);
+      return json(201, synced);
     }
 
     // ── PATCH: update variant ────────────────────────────────
@@ -188,11 +312,21 @@ exports.handler = async (event) => {
         return json(400, { error: "No valid fields to update" });
       }
 
+      const existing = await getVariantById(config, variantId);
+      if (!existing) {
+        return json(404, { error: "Variant not found" });
+      }
+
       const updated = await updateVariant(config, variantId, patch);
       if (!updated) {
         return json(404, { error: "Variant not found" });
       }
-      return json(200, updated);
+      const synced = await syncVariantCompatiblePresets(
+        config,
+        updated,
+        Object.prototype.hasOwnProperty.call(body, "compatible_presets") ? body.compatible_presets : null
+      );
+      return json(200, synced);
     }
 
     // ── DELETE: remove variant ────────────────────────────────

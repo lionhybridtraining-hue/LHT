@@ -106,6 +106,7 @@ async function buildSnapshotExerciseCatalog(config, exercises) {
     if (entry && entry.exercise_id) exerciseIds.add(entry.exercise_id);
     if (entry && entry.alt_progression_exercise_id) exerciseIds.add(entry.alt_progression_exercise_id);
     if (entry && entry.alt_regression_exercise_id) exerciseIds.add(entry.alt_regression_exercise_id);
+    if (entry && entry.alt_lateral_exercise_id) exerciseIds.add(entry.alt_lateral_exercise_id);
   }
   const rows = await getExercisesByIds(config, Array.from(exerciseIds));
   return (rows || []).reduce((acc, row) => {
@@ -135,6 +136,11 @@ function sanitizeSnapshotExercises(exercises, planId, exerciseCatalog) {
       throw Object.assign(new Error(`exercises[${index}].alt_regression_exercise_id is invalid`), { status: 400 });
     }
 
+    const altLateralId = asTrimmedString(entry.alt_lateral_exercise_id);
+    if (altLateralId && !exerciseCatalog[altLateralId]) {
+      throw Object.assign(new Error(`exercises[${index}].alt_lateral_exercise_id is invalid`), { status: 400 });
+    }
+
     const section = asTrimmedString(entry.section);
     if (!section || !SNAPSHOT_SECTIONS.has(section)) {
       throw Object.assign(new Error(`exercises[${index}].section is invalid`), { status: 400 });
@@ -161,10 +167,12 @@ function sanitizeSnapshotExercises(exercises, planId, exerciseCatalog) {
         : asNumber(entry.rm_percent_increase_per_week, `exercises[${index}].rm_percent_increase_per_week`, { allowNull: true }),
       alt_progression_exercise_id: altProgressionId,
       alt_regression_exercise_id: altRegressionId,
+      alt_lateral_exercise_id: altLateralId,
       created_at: asTrimmedString(entry.created_at) || new Date().toISOString(),
       exercise: exerciseCatalog[exerciseId] || null,
       alt_progression_exercise: altProgressionId ? (exerciseCatalog[altProgressionId] || null) : null,
-      alt_regression_exercise: altRegressionId ? (exerciseCatalog[altRegressionId] || null) : null
+      alt_regression_exercise: altRegressionId ? (exerciseCatalog[altRegressionId] || null) : null,
+      alt_lateral_exercise: altLateralId ? (exerciseCatalog[altLateralId] || null) : null
     };
   });
 
@@ -286,6 +294,67 @@ function sanitizeSnapshotPhaseNotes(notes, planId) {
   });
 
   return normalized;
+}
+
+function sanitizePlanPhaseDefinitions(entries, { totalWeeks, planId } = {}) {
+  if (entries == null) return [];
+  if (!Array.isArray(entries)) {
+    throw Object.assign(new Error("phase_definitions must be an array"), { status: 400 });
+  }
+
+  const seenWeeks = new Set();
+  const normalized = entries.map((entry, index) => {
+    if (!entry || typeof entry !== "object") {
+      throw Object.assign(new Error(`phase_definitions[${index}] must be an object`), { status: 400 });
+    }
+
+    const startWeek = asInteger(
+      entry.start_week != null ? entry.start_week : entry.startWeek,
+      `phase_definitions[${index}].start_week`,
+      { min: 1 }
+    );
+    const childPlanId = ((entry.plan_id != null ? entry.plan_id : entry.planId) || "").toString().trim();
+    if (!childPlanId) {
+      throw Object.assign(new Error(`phase_definitions[${index}].plan_id is required`), { status: 400 });
+    }
+    if (planId && childPlanId === planId) {
+      throw Object.assign(new Error(`phase_definitions[${index}].plan_id cannot reference the same plan`), { status: 400 });
+    }
+    if (seenWeeks.has(startWeek)) {
+      throw Object.assign(new Error(`Duplicate phase start_week ${startWeek}`), { status: 400 });
+    }
+    seenWeeks.add(startWeek);
+
+    return {
+      start_week: startWeek,
+      plan_id: childPlanId,
+      label: asTrimmedString(entry.label || entry.phase_label) || null
+    };
+  }).sort((left, right) => left.start_week - right.start_week);
+
+  if (normalized.length > 0) {
+    if (normalized[0].start_week !== 1) {
+      throw Object.assign(new Error("phase_definitions must start at week 1"), { status: 400 });
+    }
+    if (Number.isInteger(totalWeeks)) {
+      const overflow = normalized.find((entry) => entry.start_week > totalWeeks);
+      if (overflow) {
+        throw Object.assign(new Error(`Phase start_week ${overflow.start_week} exceeds total_weeks ${totalWeeks}`), { status: 400 });
+      }
+    }
+  }
+
+  return normalized;
+}
+
+async function validatePlanPhaseDefinitions(config, entries) {
+  const uniquePlanIds = [...new Set((entries || []).map((entry) => entry.plan_id).filter(Boolean))];
+  for (const linkedPlanId of uniquePlanIds) {
+    const linkedPlan = await getStrengthPlanById(config, linkedPlanId);
+    if (!linkedPlan) {
+      throw Object.assign(new Error(`Linked phase plan not found: ${linkedPlanId}`), { status: 400 });
+    }
+  }
 }
 
 async function buildValidatedInstanceSnapshot(config, instance, body, actorId) {
@@ -427,12 +496,18 @@ exports.handler = async (event) => {
       if (!body.name || !body.total_weeks) {
         return json(400, { error: "name and total_weeks are required" });
       }
+      const phaseDefinitions = sanitizePlanPhaseDefinitions(body.phase_definitions, {
+        totalWeeks: Number(body.total_weeks) || null,
+        planId: null
+      });
+      await validatePlanPhaseDefinitions(config, phaseDefinitions);
       const plan = await createStrengthPlan(config, {
         name: body.name,
         description: body.description || null,
         total_weeks: body.total_weeks,
         start_date: body.start_date || null,
         training_program_id: body.training_program_id || null,
+        phase_definitions: phaseDefinitions,
         status: "draft",
         created_by: coachId
       });
@@ -535,6 +610,18 @@ exports.handler = async (event) => {
       const patch = {};
       for (const key of allowed) {
         if (body[key] !== undefined) patch[key] = body[key];
+      }
+
+      if (body.phase_definitions !== undefined) {
+        const nextTotalWeeks = body.total_weeks !== undefined
+          ? Number(body.total_weeks)
+          : Number(plan.total_weeks);
+        const phaseDefinitions = sanitizePlanPhaseDefinitions(body.phase_definitions, {
+          totalWeeks: Number.isInteger(nextTotalWeeks) ? nextTotalWeeks : null,
+          planId: body.plan_id
+        });
+        await validatePlanPhaseDefinitions(config, phaseDefinitions);
+        patch.phase_definitions = phaseDefinitions;
       }
 
       let updated = plan;
