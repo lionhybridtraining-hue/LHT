@@ -177,6 +177,7 @@ function VariantCard({
   variant,
   onSelect,
   generating,
+  recommended,
 }: {
   variant: ProgramVariant;
   onSelect: () => void;
