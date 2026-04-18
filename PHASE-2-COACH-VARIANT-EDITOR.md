@@ -2,7 +2,7 @@
 
 **Prepared by:** Backend team (Phase 1)
 **For:** Coach UI engineer (Phase 2A) + Backend engineer (Phase 2B)
-**Date:** 2026-04-14
+**Date:** 2026-04-17 (updated)
 
 ---
 
@@ -12,6 +12,13 @@ Phase 2 builds the **coach-facing variant management system**. This document sho
 1. What API endpoints Phase 2B must implement
 2. What UI components Phase 2A must build
 3. How they interact with Phase 1 database layer
+
+**Update (Apr 17, 2026):** The read-side aggregation layer is now complete:
+- `GET /coach-program-blueprint?programId=X` — returns full program + variants + presets + slots + sessions in a single call
+- `GET /coach-athlete-profile-unified?athleteId=X` — unified athlete profile with VDOT + zones + 1RM + assignments
+- `GET /coach-calendar-week?athleteId=X` — materialized weekly plan
+- All 47 E2E tests passing. See `_lib/view-models.js` and `scripts/test-view-models-e2e.js`.
+- The coach UI refactor (Phase 2A) should consume these aggregated endpoints instead of making multiple separate API calls.
 
 ---
 

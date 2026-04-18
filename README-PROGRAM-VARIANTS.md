@@ -185,11 +185,16 @@ Executar a migration SQL no Supabase Studio:
 ```
 scripts/
   migration-program-variants-final.sql    ← SQL para executar no Supabase
+  test-view-models-e2e.js                 ← 47 testes E2E (inclui variantes via composeProgramBlueprint)
 
 netlify/functions/
   admin-program-variants.js               ← CRUD endpoint
   athlete-weekly-plan.js                  ← Geração de plano (aceita variant_id)
-  _lib/supabase.js                        ← 10 helper functions
+  coach-program-blueprint.js              ← Endpoint agregado: programa + variantes + presets + slots
+  coach-athlete-profile-unified.js        ← Endpoint agregado: perfil atleta unificado
+  coach-calendar-week.js                  ← Endpoint agregado: semana do calendário
+  _lib/supabase.js                        ← 10+ helper functions
+  _lib/view-models.js                     ← Camada de agregação (3 composers read-only)
 
 coach/
   index.html                              ← Tab "Planeamento" > secção "Variantes do Programa"
@@ -201,6 +206,18 @@ aer-frontend-main/src/
   components/atleta/VariantPicker.tsx      ← UI de seleção (filtros + cards)
   pages/atleta/calendario.tsx             ← Integração do picker no calendário
 ```
+
+### Endpoints Agregados (NEW — Abril 2026)
+
+Os novos endpoints em `view-models.js` compõem múltiplas tabelas numa única resposta:
+
+| Endpoint | O que agrega | Uso principal |
+|----------|--------------|---------------|
+| `GET /coach-program-blueprint?programId=X` | Programa + variantes + presets + slots + sessões | Coach: ver programa completo |
+| `GET /coach-athlete-profile-unified?athleteId=X` | Atleta + VDOT + zonas + 1RM + assignments + instâncias | Coach: perfil unificado |
+| `GET /coach-calendar-week?athleteId=X[&week=N]` | Plano semanal + contexto do programa | Coach: vista semanal |
+
+Estes endpoints são **read-only** e não substituem os endpoints de escrita existentes.
 
 ---
 

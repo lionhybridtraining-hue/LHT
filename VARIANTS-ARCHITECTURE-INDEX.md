@@ -1,8 +1,8 @@
 # Multi-Variant Training Program Architecture — Documentation Index
 
-**Date:** 2026-04-14
-**Status:** Phase 1 Implementation Complete ✅
-**Next:** Phase 1 Verification (Migration Application) + Phase 2 Planning
+**Date:** 2026-04-17
+**Status:** Phase 1 Implementation Complete ✅ + Aggregation Layer Complete ✅
+**Next:** Phase 2 Planning (Coach UI refactor to use aggregated endpoints)
 
 ---
 
@@ -111,7 +111,18 @@ netlify/functions/_lib/supabase.js
   ├── createVariantsBatch()
   ├── updateVariant()
   ├── deleteVariant()
-  └── setDefaultVariant()
+  ├── setDefaultVariant()
+  └── supabaseRequest (now exported)
+
+netlify/functions/_lib/view-models.js (NEW — Apr 17, 2026)
+  ├── composeProgramBlueprint()  — program + variants + presets + slots + sessions
+  ├── composeAthleteProfile()    — identity + VDOT + zones + 1RM + assignments
+  └── composeCalendarWeek()      — materialized weekly plan with context
+
+netlify/functions/ (NEW endpoints)
+  ├── coach-program-blueprint.js
+  ├── coach-athlete-profile-unified.js
+  └── coach-calendar-week.js
 ```
 
 ### Related Tables (Pre-existing)

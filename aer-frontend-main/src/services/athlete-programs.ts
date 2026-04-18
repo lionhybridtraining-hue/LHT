@@ -22,6 +22,11 @@ export interface AthleteRunningProgramsResponse {
   runningPrograms: RunningPlanEntry[];
 }
 
+export interface RunningPlanExportDownload {
+  blob: Blob;
+  filename: string;
+}
+
 async function authHeaders(): Promise<HeadersInit> {
   const token = await getAccessToken();
   return {
@@ -41,4 +46,37 @@ export async function fetchAthleteRunningPrograms(): Promise<AthleteRunningProgr
     throw new Error(data.error || `API error ${response.status}`);
   }
   return data as AthleteRunningProgramsResponse;
+}
+
+export async function exportAthleteRunningPlan(
+  format: "fit" | "tcx" = "fit"
+): Promise<RunningPlanExportDownload> {
+  const token = await getAccessToken();
+  const response = await fetch(
+    `${API_BASE}/athlete-running-plan-export?format=${encodeURIComponent(format)}`,
+    {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  if (!response.ok) {
+    let errorMessage = `API error ${response.status}`;
+    try {
+      const payload = await response.json();
+      errorMessage = payload.error || errorMessage;
+    } catch {
+      // Ignore invalid JSON responses.
+    }
+    throw new Error(errorMessage);
+  }
+
+  const disposition = response.headers.get("Content-Disposition") || "";
+  const filenameMatch = disposition.match(/filename="?([^";]+)"?/i);
+  return {
+    blob: await response.blob(),
+    filename: filenameMatch?.[1] || `lht-running-plan-${format}.zip`,
+  };
 }

@@ -1,7 +1,7 @@
 # LHT Product Roadmap 2026
 
 **Version**: 1.0  
-**Last Updated**: April 5, 2026  
+**Last Updated**: April 17, 2026  
 **Status**: Active Product Development  
 **North Star**: Autonomous training management platform with real-time athlete monitoring, intelligent planning, and closed-loop adaptation.
 
@@ -18,10 +18,10 @@
 
 ---
 
-## 📈 Current State Summary (As of April 5, 2026)
+## 📈 Current State Summary (As of April 17, 2026)
 
 | Area | Status | Completion |
-|------|--------|-----------|
+|------|--------|------------|
 | **Strength Backend** | ✅ Complete | 100% |
 | **Strength Athlete UI** | ✅ Complete | 100% |
 | **Strength Coach UI** | ⚠️ Partial | 60% |
@@ -34,10 +34,13 @@
 | **Calendar/Programa** | ✅ Preset-driven | 90% |
 | **Blog System** | ✅ Complete | 100% |
 | **Athlete Profile Flow** | ✅ Complete | 100% |
-| **Coach Dashboard** | ⚠️ Partial | 40% |
+| **Coach Dashboard** | ⚠️ Partial (endpoints ready) | 50% |
 | **Analytics** | ⚠️ Events sent, no dashboard | 30% |
+| **Aggregation Layer** | ✅ Complete (3 composers + 3 endpoints) | 100% |
+| **E2E Tests (view-models)** | ✅ 47 tests passing | 100% |
+| **Admin Cleanup** | ✅ 18 tables, allowlist-only | 100% |
 
-**Overall**: ~68% complete. Core athlete experience ready. Coach tools & data integration need work.
+**Overall**: ~75% complete. Core athlete experience ready. Aggregation layer done. Coach UI refactor pending.
 
 ---
 

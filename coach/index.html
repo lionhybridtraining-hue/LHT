@@ -423,49 +423,6 @@
 
     .microcopy { color: var(--muted); font-size: 13px; line-height: 1.6; }
 
-    .planning-flow {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 12px;
-    }
-
-    .planning-flow-step {
-      padding: 14px;
-      border-radius: var(--radius-md);
-      border: 1px solid var(--line);
-      background: rgba(255, 255, 255, 0.025);
-    }
-
-    .planning-flow-step strong {
-      display: block;
-      margin-bottom: 6px;
-      color: var(--text);
-    }
-
-    .planning-flow-step span {
-      display: block;
-      margin-bottom: 6px;
-      font-size: 11px;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: var(--gold);
-    }
-
-    .planning-recommended-badge {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      padding: 3px 8px;
-      border-radius: 999px;
-      border: 1px solid rgba(212, 165, 79, 0.28);
-      background: rgba(212, 165, 79, 0.12);
-      color: var(--gold);
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-    }
-
     .metrics-grid {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -2081,28 +2038,12 @@
           </div>
         </section>
 
-        <section class="section-card coach-tab-section" data-coach-tab="planeamento" hidden style="padding:18px 0;">
-          <div class="planning-flow">
-            <div class="planning-flow-step">
-              <span>Passo 1</span>
-              <strong>Define as opcoes do programa</strong>
-              <div class="microcopy">Decide que combinacoes de duracao, nivel e frequencia o atleta vai encontrar quando entrar no programa.</div>
-            </div>
-            <div class="planning-flow-step">
-              <span>Passo 2</span>
-              <strong>Define os calendarios compativeis</strong>
-              <div class="microcopy">Cria as diferentes versões de semana, documenta as diferenças e decide que variantes podem recomendar cada uma.</div>
-            </div>
-          </div>
-        </section>
-
-        <!-- ═══════════ OPCOES DO PROGRAMA ═══════════ -->
+        <!-- ═══════════ VARIANTES DO PROGRAMA ═══════════ -->
         <section class="section-card coach-tab-section" data-coach-tab="planeamento" hidden style="padding:24px 0;">
-          <div class="microcopy" style="margin-bottom:8px; color:var(--gold); text-transform:uppercase; letter-spacing:0.12em; font-size:11px;">Passo 1 de 2</div>
-          <h2 style="margin-bottom:16px; color:#c9d1d9;">Opcoes do Programa</h2>
+          <h2 style="margin-bottom:16px; color:#c9d1d9;">Variantes do Programa</h2>
           <p style="color:#8b949e; font-size:0.85rem; margin-bottom:16px;">
-            Aqui defines as opcoes que o atleta pode escolher: duracao, nivel e frequencia com os planos associados.
-            Em cada opcao escolhes tambem que calendarios podem ser recomendados ao atleta e qual e o default sugerido.
+            Cada variante é uma combinação de duração × nível × frequência com planos de força e/ou corrida associados.
+            O atleta escolhe a variante no calendário.
           </p>
 
           <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px; flex-wrap:wrap;">
@@ -2110,8 +2051,8 @@
             <select id="var-program-select" style="padding:6px 10px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9; min-width:240px;">
               <option value="">Seleciona um programa...</option>
             </select>
-            <button id="var-create-btn" class="btn btn-small" type="button" disabled>+ Nova Opcao</button>
-            <button id="var-batch-btn" class="btn btn-small btn-ghost" type="button" disabled>Gerar Opcoes</button>
+            <button id="var-create-btn" class="btn btn-small" type="button" disabled>+ Nova Variante</button>
+            <button id="var-batch-btn" class="btn btn-small btn-ghost" type="button" disabled>Gerar Batch</button>
             <span id="var-count-label" style="margin-left:auto; font-size:0.8rem; color:#8b949e;"></span>
           </div>
 
@@ -2124,23 +2065,22 @@
                   <th style="padding:8px; text-align:left; color:#8b949e;">Freq.</th>
                   <th style="padding:8px; text-align:left; color:#8b949e;">Plano Força</th>
                   <th style="padding:8px; text-align:left; color:#8b949e;">Template Corrida</th>
-                  <th style="padding:8px; text-align:left; color:#8b949e;">Calendários</th>
                   <th style="padding:8px; text-align:left; color:#8b949e;">Config</th>
-                  <th style="padding:8px; text-align:center; color:#8b949e;">Recomendada</th>
+                  <th style="padding:8px; text-align:center; color:#8b949e;">Default</th>
                   <th style="padding:8px; text-align:right; color:#8b949e;">Ações</th>
                 </tr>
               </thead>
               <tbody id="var-table-body">
-                <tr><td colspan="9" style="padding:16px; color:#8b949e;">Seleciona um programa para ver as opcoes.</td></tr>
+                <tr><td colspan="8" style="padding:16px; color:#8b949e;">Seleciona um programa para ver as variantes.</td></tr>
               </tbody>
             </table>
           </div>
         </section>
 
-        <!-- Program Option Create/Edit Modal -->
+        <!-- Variant Create/Edit Modal -->
         <div id="variantModal" class="modal-backdrop hidden" role="dialog" aria-modal="true">
           <div class="modal" style="max-width:560px; max-height:85vh; overflow-y:auto;">
-            <h3 id="variantModalTitle">Criar Opcao</h3>
+            <h3 id="variantModalTitle">Criar Variante</h3>
             <form id="variantForm">
               <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
                 <div class="field">
@@ -2183,11 +2123,6 @@
                     <option value="">— Nenhum —</option>
                   </select>
                 </div>
-                <div class="field" style="grid-column: span 2;">
-                  <label>Calendários compatíveis</label>
-                  <div id="varPresetCompatibility" style="display:grid; gap:8px; max-height:220px; overflow:auto; border:1px solid #30363d; border-radius:8px; padding:10px; background:#0d1117;"></div>
-                  <div style="margin-top:6px; color:#8b949e; font-size:0.78rem;">Escolhe que versões de calendário ficam disponíveis nesta opção e marca uma como recomendada.</div>
-                </div>
               </div>
               <details style="margin-top:12px;">
                 <summary style="color:var(--text-soft); cursor:pointer; font-size:0.9rem;">Config corrida (opcional)</summary>
@@ -2220,12 +2155,12 @@
           </div>
         </div>
 
-        <!-- Program Option Batch Modal -->
+        <!-- Variant Batch Modal -->
         <div id="variantBatchModal" class="modal-backdrop hidden" role="dialog" aria-modal="true">
           <div class="modal" style="max-width:640px; max-height:85vh; overflow-y:auto;">
-            <h3>Gerar Opcoes em Batch</h3>
+            <h3>Gerar Variantes em Batch</h3>
             <p style="color:#8b949e; margin-bottom:12px;">
-              Gera combinacoes de duracao x nivel x frequencia. Associa o mesmo plano de forca e/ou corrida a todas.
+              Gera combinações cartesianas de duração × nível × frequência. Associa o mesmo plano de força e/ou corrida a todas.
             </p>
             <form id="variantBatchForm">
               <div style="display:grid; grid-template-columns:1fr; gap:14px;">
@@ -2275,7 +2210,7 @@
               <div id="batchPreview" style="margin-top:12px; color:#8b949e; font-size:0.85rem;"></div>
               <div id="batchFormError" style="color:var(--error); font-size:0.85rem; margin-top:8px;" hidden></div>
               <div class="modal-actions" style="margin-top:16px; display:flex; gap:8px;">
-                <button class="btn btn-primary" type="submit" id="batchSubmitBtn">Gerar Opcoes</button>
+                <button class="btn btn-primary" type="submit" id="batchSubmitBtn">Gerar Variantes</button>
                 <button class="btn btn-secondary" type="button" id="batchCancelBtn">Cancelar</button>
               </div>
             </form>
@@ -2284,11 +2219,7 @@
 
         <!-- ═══════════ SCHEDULE / CALENDÁRIO SECTION ═══════════ -->
         <section class="section-card coach-tab-section" data-coach-tab="planeamento" hidden style="padding:24px 0;">
-          <div class="microcopy" style="margin-bottom:8px; color:var(--gold); text-transform:uppercase; letter-spacing:0.12em; font-size:11px;">Passo 2 de 2</div>
-          <h2 style="margin-bottom:16px; color:#c9d1d9;">Versões de Calendário do Programa</h2>
-          <p style="color:#8b949e; font-size:0.85rem; margin-bottom:16px;">
-            Cada calendário representa uma versão possível da semana. Usa a explicação para registar as diferenças que vais comunicar ao atleta.
-          </p>
+          <h2 style="margin-bottom:16px; color:#c9d1d9;">Calendário do programa</h2>
 
           <!-- Program selector -->
           <div style="display:flex; align-items:center; gap:12px; margin-bottom:20px; flex-wrap:wrap;">
@@ -2301,15 +2232,14 @@
           <!-- Calendar template view -->
           <div id="sched-sessions-area" hidden>
             <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px; flex-wrap:wrap;">
-              <label style="color:#8b949e; font-size:0.85rem;">Calendário:</label>
+              <label style="color:#8b949e; font-size:0.85rem;">Preset:</label>
               <select id="sched-preset-select" style="padding:6px 10px; border-radius:6px; border:1px solid #30363d; background:#0d1117; color:#c9d1d9; min-width:220px;">
-                <option value="">Seleciona um calendário...</option>
+                <option value="">Seleciona um preset...</option>
               </select>
-              <button class="btn btn-small" id="sched-new-preset-btn" type="button">+ Novo calendário</button>
-              <button class="btn btn-small btn-ghost" id="sched-rename-preset-btn" type="button">Editar nome e explicação</button>
+              <button class="btn btn-small" id="sched-new-preset-btn" type="button">+ Novo preset</button>
+              <button class="btn btn-small btn-ghost" id="sched-rename-preset-btn" type="button">Renomear</button>
               <button class="btn btn-small btn-ghost" id="sched-delete-preset-btn" type="button">Apagar</button>
             </div>
-            <div id="sched-preset-description" class="microcopy" style="margin:-6px 0 14px; color:#8b949e;"></div>
             <div id="sched-inline-calendar-view"></div>
           </div>
         </section>
@@ -2821,10 +2751,8 @@
     const manualStrengthFeedbackInput = document.getElementById("manualStrengthFeedback");
     const checkinStatusFilter = document.getElementById("checkinStatusFilter");
     const checkinsContainer = document.getElementById("checkinsContainer");
-    const varPresetCompatibility = document.getElementById("varPresetCompatibility");
     const checkinOverviewWeekInput = document.getElementById("checkinOverviewWeek");
     const checkinOverviewRefreshBtn = document.getElementById("checkinOverviewRefresh");
-    let _varProgramPresets = [];
     const ovResponded = document.getElementById("ovResponded");
     const ovRate = document.getElementById("ovRate");
     const ovPending = document.getElementById("ovPending");
@@ -2833,129 +2761,37 @@
     const ovTrendList = document.getElementById("ovTrendList");
     const ovStrengthTable = document.getElementById("ovStrengthTable");
     const trainingLoadMeta = document.getElementById("trainingLoadMeta");
-          Promise.all([
-            loadVariants(_varCurrentProgramId),
-            loadVariantProgramPresets(_varCurrentProgramId)
-          ]).catch((err) => showResult(err.message, true));
+    const trainingLoadWeekInput = document.getElementById("trainingLoadWeek");
     const applyTrainingLoadWeekButton = document.getElementById("applyTrainingLoadWeek");
     const latestTrainingLoadWeekButton = document.getElementById("latestTrainingLoadWeek");
-          _varProgramPresets = [];
     const prevTrainingLoadWeekButton = document.getElementById("prevTrainingLoadWeek");
     const nextTrainingLoadWeekButton = document.getElementById("nextTrainingLoadWeek");
     const metricCtl = document.getElementById("metricCtl");
     const metricAtl = document.getElementById("metricAtl");
     const metricTsb = document.getElementById("metricTsb");
-      document.getElementById("varWeeklyFrequency").addEventListener("change", () => {
-        if (!_varEditingId) {
-          renderVariantPresetCompatibility(buildDefaultVariantPresetSelection(Number(document.getElementById("varWeeklyFrequency").value || 0)));
-        }
-      });
     const metricDuration = document.getElementById("metricDuration");
-      varTableBody.innerHTML = '<tr><td colspan="9" style="padding:16px; color:#8b949e;">Carregando opcoes...</td></tr>';
+    const metricTss = document.getElementById("metricTss");
     const metricDistance = document.getElementById("metricDistance");
     const metricWork = document.getElementById("metricWork");
     const result = document.getElementById("result");
     const submitButton = document.getElementById("submitButton");
     const coachTabs = document.getElementById("coachTabs");
-        varTableBody.innerHTML = `<tr><td colspan="9" style="padding:16px; color:var(--error);">Erro: ${escapeHtml(err.message)}</td></tr>`;
+    const coachTabButtons = Array.from(document.querySelectorAll(".coach-tab-btn"));
     const coachTabSections = Array.from(document.querySelectorAll(".coach-tab-section"));
     const panelHeaderEyebrow = document.getElementById("panelHeaderEyebrow");
-
-    async function loadVariantProgramPresets(programId) {
-      if (!programId) {
-        _varProgramPresets = [];
-        return [];
-      }
-      const data = await apiRequest("GET", `/.netlify/functions/admin-program-schedule?trainingProgramId=${encodeURIComponent(programId)}&includeSlots=1`);
-      _varProgramPresets = Array.isArray(data && data.presets) ? data.presets : [];
-      return _varProgramPresets;
-    }
-
-    function buildDefaultVariantPresetSelection(weeklyFrequency) {
-      if (!Array.isArray(_varProgramPresets) || !_varProgramPresets.length) return [];
-      const exactMatches = _varProgramPresets.filter((preset) => Number(preset.total_training_days) === Number(weeklyFrequency));
-      const presets = exactMatches.length ? exactMatches : _varProgramPresets;
-      const defaultPreset = presets.find((preset) => preset.is_default) || presets[0];
-      return presets.map((preset, index) => ({
-        preset_id: preset.id,
-        is_default: Boolean(defaultPreset && defaultPreset.id === preset.id),
-        sort_order: index
-      }));
-    }
-
-    function renderVariantPresetCompatibility(selectedLinks) {
-      if (!varPresetCompatibility) return;
-      const selectedById = new Map((selectedLinks || []).map((entry) => [entry.preset_id, entry]));
-      if (!_varProgramPresets.length) {
-        varPresetCompatibility.innerHTML = '<div class="microcopy" style="color:#8b949e;">Cria primeiro pelo menos um calendário na secção abaixo.</div>';
-        return;
-      }
-
-      varPresetCompatibility.innerHTML = _varProgramPresets.map((preset, index) => {
-        const selected = selectedById.get(preset.id) || null;
-        const checked = Boolean(selected);
-        const isDefault = checked && selected && selected.is_default === true;
-        const description = preset.description ? `<div style="margin-top:4px; color:#8b949e; font-size:0.76rem;">${escapeHtml(preset.description)}</div>` : '<div style="margin-top:4px; color:#8b949e; font-size:0.76rem;">Sem explicação guardada.</div>';
-        return `<label style="display:block; border:1px solid #30363d; border-radius:8px; padding:10px; cursor:pointer; background:${checked ? 'rgba(212,165,79,0.08)' : '#11161d'};">
-          <div style="display:flex; align-items:flex-start; gap:10px;">
-            <input type="checkbox" data-var-preset-checkbox="${preset.id}" ${checked ? 'checked' : ''} style="margin-top:3px;" />
-            <div style="flex:1; min-width:0;">
-              <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
-                <strong style="color:#c9d1d9;">${escapeHtml(preset.preset_name || 'Calendário')}</strong>
-                <span style="font-size:0.72rem; color:#8b949e;">${Number(preset.total_training_days || 0)} dias</span>
-              </div>
-              ${description}
-              <label style="display:flex; align-items:center; gap:6px; margin-top:8px; color:#8b949e; font-size:0.76rem; ${checked ? '' : 'opacity:0.45;'}">
-                <input type="radio" name="var-default-preset" value="${preset.id}" ${isDefault ? 'checked' : ''} ${checked ? '' : 'disabled'} />
-                Recomendado por defeito nesta opção
-              </label>
-              <input type="hidden" data-var-preset-sort="${preset.id}" value="${selected && Number.isInteger(Number(selected.sort_order)) ? Number(selected.sort_order) : index}" />
-            </div>
-          </div>
-        </label>`;
-      }).join('');
-    }
-
-    function collectVariantCompatiblePresets() {
-      if (!varPresetCompatibility) return [];
-      const checkedIds = Array.from(varPresetCompatibility.querySelectorAll("[data-var-preset-checkbox]"))
-        .filter((input) => input.checked)
-        .map((input) => input.getAttribute("data-var-preset-checkbox") || "")
-        .filter(Boolean);
-      const defaultPresetInput = varPresetCompatibility.querySelector('input[name="var-default-preset"]:checked');
-      const defaultPresetId = defaultPresetInput ? defaultPresetInput.value : checkedIds[0] || null;
-      return checkedIds.map((presetId, index) => {
-        const sortInput = varPresetCompatibility.querySelector(`[data-var-preset-sort="${presetId}"]`);
-        const sortValue = sortInput ? Number(sortInput.value) : index;
-        return {
-          preset_id: presetId,
-          sort_order: Number.isInteger(sortValue) ? sortValue : index,
-          is_default: defaultPresetId === presetId
-        };
-      });
-    }
     const panelHeaderTitle = document.getElementById("panelHeaderTitle");
     const panelHeaderDescription = document.getElementById("panelHeaderDescription");
-          ? '<tr><td colspan="9" style="padding:16px; color:#8b949e;">Ainda nao ha opcoes criadas. Clica em "+ Nova Opcao" ou "Gerar Opcoes".</td></tr>'
-          : '<tr><td colspan="9" style="padding:16px; color:#8b949e;">Seleciona um programa para ver as opcoes.</td></tr>';
+
+    const addAthleteModal = document.getElementById("addAthleteModal");
     const openAddAthleteModalButton = document.getElementById("openAddAthleteModal");
     const cancelAddAthleteButton = document.getElementById("cancelAddAthlete");
     const addAthleteForm = document.getElementById("addAthleteForm");
-        const compatiblePresets = Array.isArray(v.compatible_presets) ? v.compatible_presets : [];
-        const presetSummary = compatiblePresets.length
-          ? compatiblePresets.map((entry) => {
-              const preset = entry.preset || _varProgramPresets.find((item) => item.id === entry.preset_id) || null;
-              const name = preset && preset.preset_name ? preset.preset_name : String(entry.preset_id || '').slice(0, 8);
-              return `${escapeHtml(name)}${entry.is_default ? ' ★' : ''}`;
-            }).join('<br>')
-          : '<span style="color:#8b949e;">Auto</span>';
     const trainingZonesForm = document.getElementById("trainingZonesForm");
     const trainingZonesList = document.getElementById("trainingZonesList");
     const addTrainingZoneProfileBtn = document.getElementById("addTrainingZoneProfileBtn");
     const trainingZonesFamily = document.getElementById("trainingZonesFamily");
     const trainingZonesScope = document.getElementById("trainingZonesScope");
     const trainingZonesMethod = document.getElementById("trainingZonesMethod");
-          <td style="padding:8px; color:#8b949e; font-size:0.8rem; line-height:1.4;">${presetSummary}</td>
     const trainingZonesModality = document.getElementById("trainingZonesModality");
     const trainingZonesMetricType = document.getElementById("trainingZonesMetricType");
     const trainingZonesModel = document.getElementById("trainingZonesModel");
@@ -2967,7 +2803,6 @@
     const trainingZonesVdotSuggestion = document.getElementById("trainingZonesVdotSuggestion");
     const trainingZonesVdotCalculator = document.getElementById("trainingZonesVdotCalculator");
     const trainingZonesVdotCalcDistance = document.getElementById("trainingZonesVdotCalcDistance");
-      await loadVariantProgramPresets(_varCurrentProgramId);
     const trainingZonesVdotCalcTime = document.getElementById("trainingZonesVdotCalcTime");
     const trainingZonesVdotCalcBtn = document.getElementById("trainingZonesVdotCalcBtn");
     const trainingZonesVdotCalcResult = document.getElementById("trainingZonesVdotCalcResult");
@@ -2975,11 +2810,9 @@
     const tzFieldMetricType = document.getElementById("tzFieldMetricType");
     const tzFieldModel = document.getElementById("tzFieldModel");
     const tzFieldHrMax = document.getElementById("tzFieldHrMax");
-        renderVariantPresetCompatibility(Array.isArray(variant.compatible_presets) ? variant.compatible_presets : []);
     const tzFieldHrRest = document.getElementById("tzFieldHrRest");
     const tzFieldVdot = document.getElementById("tzFieldVdot");
     const tzFieldThresholdPace = document.getElementById("tzFieldThresholdPace");
-        renderVariantPresetCompatibility(buildDefaultVariantPresetSelection(4));
     const trainingZonesThresholdPaceLabel = document.getElementById("trainingZonesThresholdPaceLabel");
     const trainingZonesContextHint = document.getElementById("trainingZonesContextHint");
     const trainingZonesContextHintText = document.getElementById("trainingZonesContextHintText");
@@ -2988,28 +2821,19 @@
     const autoTrainingZonesBtn = document.getElementById("autoTrainingZonesBtn");
     const trainingZonesEditorModal = document.getElementById("trainingZonesEditorModal");
     const cancelTrainingZonesEditorBtn = document.getElementById("cancelTrainingZonesEditorBtn");
-
-      const compatiblePresets = collectVariantCompatiblePresets();
-      if (!compatiblePresets.length) {
-        variantFormError.textContent = "Seleciona pelo menos um calendário compatível para esta opção.";
-        variantFormError.hidden = false;
-        return;
-      }
     const tz1Min = document.getElementById("tz1Min");
     const tz1Max = document.getElementById("tz1Max");
     const tz2Min = document.getElementById("tz2Min");
     const tz2Max = document.getElementById("tz2Max");
     const tz3Min = document.getElementById("tz3Min");
-            running_config_preset: Object.keys(runningConfig).length ? runningConfig : {},
-            compatible_presets: compatiblePresets
+    const tz3Max = document.getElementById("tz3Max");
     const tz4Min = document.getElementById("tz4Min");
     const tz4Max = document.getElementById("tz4Max");
     const tz5Min = document.getElementById("tz5Min");
     const tz5Max = document.getElementById("tz5Max");
 
     const checkinDetailModal = document.getElementById("checkinDetailModal");
-            running_config_preset: Object.keys(runningConfig).length ? runningConfig : {},
-            compatible_presets: compatiblePresets
+    const checkinDetailBody = document.getElementById("checkinDetailBody");
     const checkinApproveBtn = document.getElementById("checkinApproveBtn");
     const checkinDetailCloseBtn = document.getElementById("checkinDetailCloseBtn");
     const newAthleteNameInput = document.getElementById("newAthleteName");
@@ -3019,10 +2843,9 @@
     const loginBtn = document.getElementById("login-btn");
     const logoutBtn = document.getElementById("logout-btn");
     const athleteQuickSelect = document.getElementById("athleteQuickSelect");
-    const schedPresetDescription = document.getElementById("sched-preset-description");
 
     const DEFAULT_AUTH_MAX_SESSION_SECONDS = 24 * 60 * 60;
-      schedPresetSelect.innerHTML = '<option value="">Seleciona um calendário...</option>';
+    
     let supabaseClient = null;
     let publicConfig = null;
 
@@ -3032,33 +2855,24 @@
     let selectedAthleteId = "";
     let selectedTrainingLoadWeekStart = "";
     let allCheckins = [];
-      if (schedPresetDescription) {
-        schedPresetDescription.textContent = schedCurrentPreset && schedCurrentPreset.description
-          ? schedCurrentPreset.description
-          : (schedCurrentPreset ? 'Sem explicação guardada para este calendário.' : '');
-      }
     let state = {
       user: null,
       token: null,
-      const presetName = window.prompt("Nome do novo calendário:", "Novo calendário");
+      roles: []
     };
-      const presetDescription = window.prompt("Explicação curta para o coach usar com o atleta:", "") || "";
 
     async function loadPublicConfig() {
       if (publicConfig) return publicConfig;
-        description: presetDescription.trim() || null,
       const response = await fetch('/.netlify/functions/public-config');
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) {
         throw new Error((payload && payload.error) ? payload.error : 'Nao foi possivel carregar configuracao publica.');
       }
-      const presetName = window.prompt("Novo nome do calendário:", schedCurrentPreset.preset_name || "");
+      publicConfig = {
         supabaseUrl: payload.supabaseUrl,
-      const presetDescription = window.prompt("Explicação curta para este calendário:", schedCurrentPreset.description || "") || "";
         supabaseAnonKey: payload.supabaseAnonKey,
         authMaxSessionSeconds: Number(payload.authMaxSessionSeconds) || DEFAULT_AUTH_MAX_SESSION_SECONDS
-        preset_name: presetName.trim(),
-        description: presetDescription.trim() || null
+      };
       return publicConfig;
     }
 
@@ -3959,6 +3773,7 @@
       trainingZonesMeta.textContent = "A guardar zonas...";
       try {
         await apiRequest("PUT", "/.netlify/functions/coach-athlete-training-zones", payload);
+        cachedAthleteProfile = null; // invalidate unified cache after zones write
         await loadTrainingZonesForAthlete(selectedAthleteId);
         closeTrainingZonesEditor(true);
         trainingZonesMeta.textContent = "Zonas guardadas com sucesso.";
@@ -4092,7 +3907,7 @@
         planeamento: {
           eyebrow: "Planeamento",
           title: "Assignments e calendário",
-          description: "Cria assignments, define as opcoes do programa e gere o calendario base semanal que depois e aplicado ao atleta."
+          description: "Cria assignments, configura presets e gera o calendário semanal do atleta com controlo de regeneração por semana."
         },
         forca: {
           eyebrow: "Treino de Força",
@@ -5053,7 +4868,7 @@
       setSelectedTrainingLoadWeekStart("");
       loadCheckinsForAthlete(athleteSelect.value);
       loadTrainingLoadForAthlete(athleteSelect.value);
-      load1RMsForAthlete(athleteSelect.value).then(() => {
+      loadUnifiedAthleteProfile(athleteSelect.value).then(() => {
         document.getElementById("openOneRmModal").disabled = !athleteSelect.value;
         if (strCurrentPlan) renderDayView();
       });
@@ -5065,7 +4880,7 @@
         setSelectedTrainingLoadWeekStart("");
         loadCheckinsForAthlete(athleteQuickSelect.value);
         loadTrainingLoadForAthlete(athleteQuickSelect.value);
-        load1RMsForAthlete(athleteQuickSelect.value).then(() => {
+        loadUnifiedAthleteProfile(athleteQuickSelect.value).then(() => {
           document.getElementById("openOneRmModal").disabled = !athleteQuickSelect.value;
           if (strCurrentPlan) renderDayView();
         });
@@ -5364,6 +5179,10 @@
       }
     }
 
+    function buildCoachAuthRedirectUrl() {
+      return window.location.origin + '/coach/';
+    }
+
     async function initializeAuth() {
       // Espera que o Supabase script carregue
       let attempts = 0;
@@ -5406,7 +5225,7 @@
         const { error } = await supabaseClient.auth.signInWithOAuth({
           provider: 'google',
           options: {
-            redirectTo: window.location.origin + '/coach'
+            redirectTo: buildCoachAuthRedirectUrl()
           }
         });
         if (error) {
@@ -5418,7 +5237,7 @@
         const { error } = await supabaseClient.auth.signInWithOAuth({
           provider: 'google',
           options: {
-            redirectTo: window.location.origin + '/coach'
+            redirectTo: buildCoachAuthRedirectUrl()
           }
         });
         if (error) {
@@ -5618,6 +5437,7 @@
     let strSelectedWeek = 1;
     let strOneRms = {};  // exerciseId → value_kg
     let strOneRmRecords = []; // full records from API for modal display
+    let cachedAthleteProfile = null; // cached response from coach-athlete-profile-unified
     let strLoadedInstances = []; // active instances for current plan
     let strMonitor = { loading: false, error: null, progression: null, sessions: [] };
     let strDragState = { peId: null, section: null };
@@ -6088,14 +5908,10 @@
     async function loadProgramOptions() {
       if (strPrograms.length > 0) return;
       try {
-        const data = await apiRequest("GET", "/.netlify/functions/list-programs");
+        const data = await apiRequest("GET", "/.netlify/functions/coach-program-blueprint");
         strPrograms = data.programs || [];
       } catch (e) {
-        // Fallback to admin endpoint if list endpoint is unavailable.
-        try {
-          const data = await apiRequest("GET", "/.netlify/functions/admin-programs");
-          strPrograms = data.programs || [];
-        } catch (e2) { console.error("Failed to load programs", e2); }
+        console.error("Failed to load programs", e);
       }
     }
 
@@ -6147,6 +5963,39 @@
       } catch (e) {
         strengthNoPlan.textContent = "Erro ao carregar planos.";
         console.error(e);
+      }
+    }
+
+    // ── Unified Athlete Profile (aggregated endpoint) ──
+    async function loadUnifiedAthleteProfile(athleteId) {
+      if (!athleteId) {
+        cachedAthleteProfile = null;
+        strOneRms = {};
+        strOneRmRecords = [];
+        return;
+      }
+      try {
+        const data = await apiRequest("GET", `/.netlify/functions/coach-athlete-profile-unified?athleteId=${encodeURIComponent(athleteId)}`);
+        const profile = data.profile || {};
+        cachedAthleteProfile = profile;
+
+        // Map strength → strOneRmRecords / strOneRms (same shape load1RMsForAthlete used)
+        const strength = Array.isArray(profile.strength) ? profile.strength : [];
+        strOneRmRecords = strength.map((r) => ({
+          exercise_id: r.exercise_id,
+          value_kg: r.current_1rm_kg,
+          method: r.method,
+          tested_at: r.tested_at,
+        }));
+        strOneRms = {};
+        for (const r of strOneRmRecords) {
+          strOneRms[r.exercise_id] = Number(r.value_kg);
+        }
+      } catch (e) {
+        console.error("Failed to load unified athlete profile", e);
+        cachedAthleteProfile = null;
+        strOneRms = {};
+        strOneRmRecords = [];
       }
     }
 
@@ -6278,6 +6127,7 @@
         document.getElementById("oneRmEpleyWeight").value = "";
         document.getElementById("oneRmEpleyReps").value = "";
         document.getElementById("oneRmEpleyRir").value = "";
+        cachedAthleteProfile = null; // invalidate unified cache after 1RM write
         await load1RMsForAthlete(selectedAthleteId);
         renderOneRmModal();
         if (strCurrentPlan) renderDayView();
@@ -10229,6 +10079,8 @@
           const startDate = (coachNewAssignStart.value || "").trim() || null;
           const durationWeeks = Number(coachNewAssignWeeks.value) || 12;
           const notes = (coachNewAssignNotes.value || "").trim() || null;
+          const presetSelect = document.getElementById("coach-new-assign-preset");
+          const selectedPresetId = presetSelect ? (presetSelect.value || null) : null;
 
           if (!athleteId) { showResult("Seleciona um atleta.", true); return; }
           if (!trainingProgramId) { showResult("Seleciona um programa.", true); return; }
@@ -10248,7 +10100,21 @@
               notes
             });
             let msg = "Assignment criado com sucesso.";
-            msg += " O atleta vai receber uma recomendação automática de calendário quando abrir a app e pode ajustá-la se for preciso.";
+
+            // If coach selected a preset, generate the calendar now
+            if (selectedPresetId && result.assignment && result.assignment.id) {
+              try {
+                await apiRequest("POST", "/.netlify/functions/athlete-weekly-plan", {
+                  assignment_id: result.assignment.id,
+                  preset_id: selectedPresetId
+                });
+                msg += " Calendário gerado com preset selecionado.";
+              } catch (calErr) {
+                msg += " Aviso: erro ao gerar calendário — " + calErr.message;
+              }
+            } else {
+              msg += " Atleta deverá escolher um preset para gerar o calendário.";
+            }
             showResult(msg, false);
             coachAssignCreateForm.hidden = true;
             await refreshCoachAssignments();
@@ -10290,6 +10156,23 @@
           if (Number.isInteger(selectedDuration) && selectedDuration > 0 && coachNewAssignWeeks) {
             coachNewAssignWeeks.value = selectedDuration;
           }
+          // Populate preset dropdown for selected program
+          const presetSelect = document.getElementById("coach-new-assign-preset");
+          if (presetSelect) {
+            presetSelect.innerHTML = '<option value="">Atleta escolhe depois</option>';
+            if (coachNewAssignProgram.value) {
+              apiRequest("GET", `/.netlify/functions/admin-program-schedule?trainingProgramId=${coachNewAssignProgram.value}&includeSlots=1`)
+                .then((data) => {
+                  ((data && data.presets) || []).forEach((pr) => {
+                    const opt = document.createElement("option");
+                    opt.value = pr.id;
+                    opt.textContent = `${pr.preset_name || pr.id} (${pr.total_training_days || "?"}d)${pr.is_default ? " ★" : ""}`;
+                    presetSelect.appendChild(opt);
+                  });
+                })
+                .catch(() => {});
+            }
+          }
         });
       }
 
@@ -10297,6 +10180,8 @@
       if (coachNewAssignStart) coachNewAssignStart.value = "";
       if (coachNewAssignWeeks) coachNewAssignWeeks.value = "12";
       if (coachNewAssignNotes) coachNewAssignNotes.value = "";
+      const presetSelect = document.getElementById("coach-new-assign-preset");
+      if (presetSelect) presetSelect.innerHTML = '<option value="">Atleta escolhe depois</option>';
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -10333,7 +10218,7 @@
 
     function renderSchedulePresetOptions() {
       if (!schedPresetSelect) return;
-      schedPresetSelect.innerHTML = '<option value="">Seleciona um calendario base...</option>';
+      schedPresetSelect.innerHTML = '<option value="">Seleciona um preset...</option>';
       schedPresets.forEach((preset) => {
         const opt = document.createElement("option");
         opt.value = preset.id;
@@ -10353,7 +10238,7 @@
       if (!presets.length && autoCreate) {
         const created = await apiRequest("POST", "/.netlify/functions/admin-program-schedule", {
           training_program_id: programId,
-          preset_name: "Calendario base",
+          preset_name: "Template",
           total_training_days: 5,
           is_default: true,
           slots: []
@@ -10372,7 +10257,7 @@
 
     async function loadScheduleProgramOptions() {
       try {
-        const data = await apiRequest("GET", "/.netlify/functions/list-programs");
+        const data = await apiRequest("GET", "/.netlify/functions/coach-program-blueprint");
         const programs = data.programs || [];
         schedPrograms = Array.isArray(programs) ? programs : [];
         schedProgramSelect.innerHTML = '<option value="">Seleciona um programa...</option>';
@@ -10382,22 +10267,8 @@
           opt.textContent = p.name || p.title || p.id;
           schedProgramSelect.appendChild(opt);
         });
-      } catch (_) {
-        // Fallback to admin endpoint.
-        try {
-          const data = await apiRequest("GET", "/.netlify/functions/admin-programs");
-          const programs = data.programs || [];
-          schedPrograms = Array.isArray(programs) ? programs : [];
-          schedProgramSelect.innerHTML = '<option value="">Seleciona um programa...</option>';
-          schedPrograms.forEach((p) => {
-            const opt = document.createElement("option");
-            opt.value = p.id;
-            opt.textContent = p.name || p.title || p.id;
-            schedProgramSelect.appendChild(opt);
-          });
-        } catch (err) {
-          showResult("Erro ao carregar programas: " + err.message, true);
-        }
+      } catch (err) {
+        showResult("Erro ao carregar programas: " + err.message, true);
       }
     }
 
@@ -10424,7 +10295,7 @@
 
     async function onCreateSchedulePreset() {
       if (!schedSelectedProgramId) return;
-      const presetName = window.prompt("Nome do novo calendario base:", "Novo calendario base");
+      const presetName = window.prompt("Nome do novo preset:", "Novo preset");
       if (!presetName || !presetName.trim()) return;
       const created = await apiRequest("POST", "/.netlify/functions/admin-program-schedule", {
         training_program_id: schedSelectedProgramId,
@@ -10442,7 +10313,7 @@
 
     async function onRenameSchedulePreset() {
       if (!schedCurrentPreset) return;
-      const presetName = window.prompt("Novo nome do calendario base:", schedCurrentPreset.preset_name || "");
+      const presetName = window.prompt("Novo nome do preset:", schedCurrentPreset.preset_name || "");
       if (!presetName || !presetName.trim()) return;
       await apiRequest("PUT", "/.netlify/functions/admin-program-schedule", {
         preset_id: schedCurrentPreset.id,
@@ -10458,7 +10329,7 @@
     async function onDeleteSchedulePreset() {
       if (!schedCurrentPreset) return;
       const label = schedCurrentPreset.preset_name || schedCurrentPreset.id;
-      if (!window.confirm(`Apagar calendario base "${label}"?`)) return;
+      if (!window.confirm(`Apagar preset "${label}"?`)) return;
       await apiRequest("DELETE", `/.netlify/functions/admin-program-schedule?presetId=${encodeURIComponent(schedCurrentPreset.id)}`);
       await loadSchedulePresets(schedSelectedProgramId, { autoCreate: true });
       await loadInlineCalendarView();
@@ -12420,6 +12291,36 @@
       if (!athleteId) return;
       const panel = document.getElementById("runVdotPanel");
       panel.hidden = false;
+
+      // Use cached unified profile data if available (avoids extra API call)
+      if (cachedAthleteProfile && cachedAthleteProfile.id === athleteId && cachedAthleteProfile.performance) {
+        const perf = cachedAthleteProfile.performance;
+        runAthleteVdot = perf.current_vdot ? {
+          vdot: perf.current_vdot,
+          threshold_pace_sec_per_km: perf.threshold_pace_sec_per_km,
+          source_type: perf.vdot_source,
+          measured_at: perf.vdot_measured_at,
+        } : null;
+        document.getElementById("rvVdot").textContent = runAthleteVdot ? runAthleteVdot.vdot : '—';
+        document.getElementById("rvThreshold").textContent = runAthleteVdot?.threshold_pace_sec_per_km
+          ? formatPace(runAthleteVdot.threshold_pace_sec_per_km) : '—';
+        document.getElementById("rvSource").textContent = runAthleteVdot?.source_type || '—';
+        document.getElementById("runVdotMeta").textContent = runAthleteVdot
+          ? `Última atualização: ${new Date(runAthleteVdot.measured_at).toLocaleDateString('pt-PT')}`
+          : 'Sem VDOT definido.';
+        const history = Array.isArray(perf.vdot_history) ? perf.vdot_history : [];
+        const histEl = document.getElementById("runVdotHistory");
+        if (history.length > 0) {
+          histEl.innerHTML = '<span class="microcopy" style="font-weight:600;">Histórico:</span>' +
+            history.slice(0, 5).map(h => `<div class="microcopy" style="margin-top:2px;">
+              ${h.vdot} — ${h.source_type} — ${new Date(h.measured_at).toLocaleDateString('pt-PT')}
+            </div>`).join('');
+        } else {
+          histEl.innerHTML = '';
+        }
+        return;
+      }
+
       try {
         const data = await apiRequest("GET", `/.netlify/functions/coach-running-vdot?athlete_id=${athleteId}`);
         runAthleteVdot = data.current || null;
@@ -12461,6 +12362,7 @@
         });
         showResult("VDOT atualizado.", false);
         document.getElementById("runVdotInput").value = "";
+        cachedAthleteProfile = null; // invalidate cache so loadAthleteVdot fetches fresh
         loadAthleteVdot(selectedAthleteId);
       } catch (err) {
         showResult("Erro: " + err.message, true);
@@ -13540,6 +13442,7 @@
     document.getElementById("setVdotBtn")?.addEventListener("click", setAthleteVdot);
     document.getElementById("calcVdotBtn")?.addEventListener("click", calcVdotFromRace);
     document.getElementById("refreshVdotBtn")?.addEventListener("click", () => {
+      cachedAthleteProfile = null; // force fresh fetch
       if (selectedAthleteId) loadAthleteVdot(selectedAthleteId);
     });
     document.getElementById("runStepVolumeMode")?.addEventListener("change", (event) => {
@@ -13660,7 +13563,7 @@
     }
 
     async function loadVariants(programId) {
-      varTableBody.innerHTML = '<tr><td colspan="8" style="padding:16px; color:#8b949e;">Carregando opcoes...</td></tr>';
+      varTableBody.innerHTML = '<tr><td colspan="8" style="padding:16px; color:#8b949e;">Carregando variantes...</td></tr>';
       try {
         const data = await apiRequest("GET", `/.netlify/functions/admin-program-variants?program_id=${encodeURIComponent(programId)}`);
         _varVariants = data.variants || [];
@@ -13678,17 +13581,17 @@
 
     function renderVariantsTable() {
       varCountLabel.textContent = _varVariants.length
-        ? `${_varVariants.length} opcao(oes)`
+        ? `${_varVariants.length} variante(s)`
         : "";
 
       if (!_varVariants.length) {
         varTableBody.innerHTML = _varCurrentProgramId
-          ? '<tr><td colspan="8" style="padding:16px; color:#8b949e;">Ainda nao ha opcoes criadas. Clica em "+ Nova Opcao" ou "Gerar Opcoes".</td></tr>'
-          : '<tr><td colspan="8" style="padding:16px; color:#8b949e;">Seleciona um programa para ver as opcoes.</td></tr>';
+          ? '<tr><td colspan="8" style="padding:16px; color:#8b949e;">Nenhuma variante criada. Clica "+ Nova Variante" ou "Gerar Batch".</td></tr>'
+          : '<tr><td colspan="8" style="padding:16px; color:#8b949e;">Seleciona um programa para ver as variantes.</td></tr>';
         return;
       }
 
-      // Find current program to check recommended option
+      // Find current program to check default_variant_id
       const currentProg = strPrograms.find((p) => p.id === _varCurrentProgramId);
       const defaultVariantId = currentProg ? currentProg.default_variant_id : null;
 
@@ -13702,7 +13605,7 @@
               return "";
             }).filter(Boolean).join(", ")
           : "—";
-        const isRecommended = v.id === defaultVariantId;
+        const isDefault = v.id === defaultVariantId;
 
         return `<tr style="border-bottom:1px solid rgba(48,54,61,0.5);">
           <td style="padding:8px; color:#c9d1d9;">${v.duration_weeks}S</td>
@@ -13711,7 +13614,7 @@
           <td style="padding:8px; color:#c9d1d9;">${findPlanName(strPlans, v.strength_plan_id)}</td>
           <td style="padding:8px; color:#c9d1d9;">${findPlanName(runPlans, v.running_plan_template_id)}</td>
           <td style="padding:8px; color:#8b949e; font-size:0.82rem;">${configSummary}</td>
-          <td style="padding:8px; text-align:center;">${isRecommended ? '<span class="planning-recommended-badge" title="Opcao recomendada">Recomendada</span>' : `<button class="btn btn-small btn-ghost var-set-default-btn" data-id="${v.id}" title="Marcar como recomendada">☆</button>`}</td>
+          <td style="padding:8px; text-align:center;">${isDefault ? '<span style="color:var(--gold);" title="Variante default">★</span>' : `<button class="btn btn-small btn-ghost var-set-default-btn" data-id="${v.id}" title="Definir como default">☆</button>`}</td>
           <td style="padding:8px; text-align:right; white-space:nowrap;">
             <button class="btn btn-small var-edit-btn" data-id="${v.id}">Editar</button>
             <button class="btn btn-small btn-ghost var-delete-btn" data-id="${v.id}" style="color:var(--error);">Apagar</button>
@@ -13733,10 +13636,10 @@
           if (variant) openVariantModal(variant);
         }
         if (target.classList.contains("var-delete-btn")) {
-          if (!confirm("Apagar esta opcao? Atletas que a usam perderao a referencia.")) return;
+          if (!confirm("Apagar esta variante? Atletas que a usam perderão a referência.")) return;
           try {
             await apiRequest("DELETE", `/.netlify/functions/admin-program-variants?id=${encodeURIComponent(variantId)}`);
-            showResult("Opcao apagada.", false);
+            showResult("Variante apagada.", false);
             await loadVariants(_varCurrentProgramId);
           } catch (err) {
             showResult("Erro ao apagar: " + err.message, true);
@@ -13752,7 +13655,7 @@
             const prog = strPrograms.find((p) => p.id === _varCurrentProgramId);
             if (prog) prog.default_variant_id = variantId;
             renderVariantsTable();
-            showResult("Opcao recomendada atualizada.", false);
+            showResult("Variante definida como default.", false);
           } catch (err) {
             showResult("Erro: " + err.message, true);
           }
@@ -13764,8 +13667,8 @@
 
     async function openVariantModal(variant) {
       _varEditingId = variant ? variant.id : null;
-      variantModalTitle.textContent = variant ? "Editar Opcao" : "Criar Opcao";
-      varSubmitBtn.textContent = variant ? "Guardar" : "Criar opcao";
+      variantModalTitle.textContent = variant ? "Editar Variante" : "Criar Variante";
+      varSubmitBtn.textContent = variant ? "Guardar" : "Criar";
       variantFormError.hidden = true;
 
       // Populate strength/running plan dropdowns
@@ -13806,7 +13709,7 @@
       const plan = (strPlans || []).find((item) => item.id === planId);
       const phaseCount = plan ? getStrengthPhaseDefinitions(plan).length : 0;
       meta.textContent = phaseCount > 0
-        ? `Este plano ja tem ${phaseCount} fase(s) configuradas. Esta opcao vai herdar essas fases automaticamente.`
+        ? `Este plano já tem ${phaseCount} fase(s) configuradas. A variant vai herdar essas fases automaticamente.`
         : "";
     }
 
@@ -13844,7 +13747,7 @@
             running_plan_template_id: runningTemplateId,
             running_config_preset: Object.keys(runningConfig).length ? runningConfig : {}
           });
-          showResult("Opcao atualizada.", false);
+          showResult("Variante atualizada.", false);
         } else {
           refreshVariantStrengthPlanMeta();
           // POST
@@ -13857,7 +13760,7 @@
             running_plan_template_id: runningTemplateId,
             running_config_preset: Object.keys(runningConfig).length ? runningConfig : {}
           });
-          showResult("Opcao criada.", false);
+          showResult("Variante criada.", false);
         }
         closeVariantModal();
         await loadVariants(_varCurrentProgramId);
@@ -13903,7 +13806,7 @@
       const freqs = getCheckedValues("batchFrequencies");
       const total = durations.length * levels.length * freqs.length;
       batchPreview.textContent = total > 0
-        ? `${durations.length} duracao(oes) x ${levels.length} nivel(eis) x ${freqs.length} frequencia(s) = ${total} opcao(oes)`
+        ? `${durations.length} duração(ões) × ${levels.length} nível(eis) × ${freqs.length} frequência(s) = ${total} variante(s)`
         : "Seleciona pelo menos uma opção em cada categoria.";
     }
 
@@ -13948,7 +13851,7 @@
       }
 
       if (variants.length > 50) {
-        batchFormError.textContent = `Maximo 50 opcoes por batch. Selecionaste ${variants.length}.`;
+        batchFormError.textContent = `Máximo 50 variantes por batch. Selecionaste ${variants.length}.`;
         batchFormError.hidden = false;
         return;
       }
@@ -13956,7 +13859,7 @@
       batchSubmitBtn.disabled = true;
       try {
         const data = await apiRequest("POST", "/.netlify/functions/admin-program-variants", { variants });
-        showResult(`${data.created || variants.length} opcao(oes) criada(s).`, false);
+        showResult(`${data.created || variants.length} variante(s) criada(s).`, false);
         closeBatchModal();
         await loadVariants(_varCurrentProgramId);
       } catch (err) {

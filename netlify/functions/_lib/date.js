@@ -14,7 +14,21 @@ function getWeekStartIso(dateLike) {
   return toIsoDate(date);
 }
 
+function getCurrentOrNextWeekStartIso(dateLike) {
+  const date = dateLike instanceof Date ? new Date(dateLike.getTime()) : new Date(dateLike);
+  if (Number.isNaN(date.getTime())) return null;
+
+  const day = (date.getUTCDay() + 6) % 7;
+  if (day === 0) {
+    return toIsoDate(date);
+  }
+
+  date.setUTCDate(date.getUTCDate() + (7 - day));
+  return toIsoDate(date);
+}
+
 module.exports = {
   toIsoDate,
-  getWeekStartIso
+  getWeekStartIso,
+  getCurrentOrNextWeekStartIso
 };

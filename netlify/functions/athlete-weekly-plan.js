@@ -1,6 +1,7 @@
 const { json, parseJsonBody } = require("./_lib/http");
 const { getConfig } = require("./_lib/config");
 const { requireAuthenticatedUser } = require("./_lib/authz");
+const { getWeekStartIso, getCurrentOrNextWeekStartIso } = require("./_lib/date");
 const {
   getProgramSchedulePresetById,
   listVariantPresetLinks,
@@ -17,6 +18,7 @@ const {
   getAthleteByIdentity,
   setAssignmentPreset,
   setAssignmentVariant,
+  updateProgramAssignment,
   getVariantById,
   createStrengthPlanInstance,
   getStrengthPlanById,
@@ -151,6 +153,15 @@ function buildResolvedPaceTarget(paces, prescription, fallbackRef) {
     max_sec_per_km: round1(center + rangeSec),
     offset_sec_per_km: round1(offsetSec), range_sec: round1(rangeSec),
   };
+}
+
+function parseIsoDateInput(value) {
+  const raw = (value || "").toString().trim();
+  if (!raw) return null;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) return null;
+  const parsed = new Date(`${raw}T00:00:00.000Z`);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return raw;
 }
 
 function buildLinearWeeklyVolumes(totalWeeks, initial, pct) {
@@ -466,6 +477,8 @@ function generateWeeklyPlanRows({
   const sessionStartWeekMap = new Map();
   const rows = [];
   const effectiveFromWeek = fromWeek || 1;
+  const effectiveStartDate = startDate;
+  const normalizedStartDate = getWeekStartIso(startDate) || startDate;
 
   for (const slot of slots) {
     const week = Number(slot.week_number || 1);
@@ -502,10 +515,17 @@ function generateWeeklyPlanRows({
       )
       : null;
 
-    // Calculate week_start_date (Monday of the slot's week)
-    const weekStartDate = new Date(startDate);
+    // Calculate week_start_date from the Monday of the assignment's ISO week.
+    const weekStartDate = new Date(`${normalizedStartDate}T00:00:00.000Z`);
     weekStartDate.setDate(weekStartDate.getDate() + (week - 1) * 7);
     const weekStartStr = weekStartDate.toISOString().slice(0, 10);
+    const slotDate = new Date(`${weekStartStr}T00:00:00.000Z`);
+    slotDate.setDate(slotDate.getDate() + Number(slot.day_of_week || 0));
+    const slotDateStr = slotDate.toISOString().slice(0, 10);
+
+    if (week === 1 && slotDateStr < effectiveStartDate) {
+      continue;
+    }
 
     // Resolve running instance links
     let runningPlanInstanceId = null;
@@ -696,7 +716,15 @@ exports.handler = async (event) => {
       const totalWeeks = variant
         ? (variant.duration_weeks || assignment.duration_weeks || 12)
         : (assignment.duration_weeks || 12);
-      const startDate = assignment.start_date || new Date().toISOString().slice(0, 10);
+      const todayIso = new Date().toISOString().slice(0, 10);
+      const assignmentStartDate = assignment.start_date || todayIso;
+      const requestedStartDate = parseIsoDateInput(body.start_date);
+      if (body.start_date != null && !requestedStartDate) {
+        return json(400, {
+          error: "start_date tem de ser uma data ISO válida (YYYY-MM-DD).",
+          code: "INVALID_START_DATE"
+        });
+      }
 
       const defaultSource = variant
         ? "variant"
@@ -704,6 +732,43 @@ exports.handler = async (event) => {
       const source = body.source || defaultSource;
       const fromWeek = body.from_week != null ? Number(body.from_week) : null;
       const effectiveStartWeek = fromWeek && Number.isInteger(fromWeek) && fromWeek > 0 ? fromWeek : 1;
+      const existingPlanRows = await listAthleteWeeklyPlan(config, {
+        athleteId: assignment.athlete_id,
+        programAssignmentId: assignment.id
+      });
+      const hasExistingPlan = Array.isArray(existingPlanRows) && existingPlanRows.length > 0;
+      let startDate = assignmentStartDate;
+      if (!hasExistingPlan && effectiveStartWeek === 1) {
+        const anchorDate = assignmentStartDate > todayIso ? assignmentStartDate : todayIso;
+        if (requestedStartDate) {
+          if (requestedStartDate < anchorDate) {
+            return json(400, {
+              error: "A data de início tem de ser hoje ou futura e não pode ser anterior ao arranque do assignment.",
+              code: "INVALID_START_DATE_RANGE",
+              min_start_date: anchorDate,
+            });
+          }
+          startDate = requestedStartDate;
+        } else {
+          startDate = getCurrentOrNextWeekStartIso(anchorDate)
+            || getWeekStartIso(anchorDate)
+            || assignmentStartDate;
+        }
+
+        if (startDate !== assignment.start_date) {
+          try {
+            await updateProgramAssignment(config, assignment.id, {
+              start_date: startDate,
+              status: startDate > todayIso ? "scheduled" : "active"
+            });
+            assignment.start_date = startDate;
+            assignment.status = startDate > todayIso ? "scheduled" : "active";
+          } catch (_err) {
+            console.error("Failed to align assignment start_date to calendar anchor:", _err.message);
+          }
+        }
+      }
+
       const strengthPlanCache = new Map();
       await loadStrengthPlanPhaseTree(
         config,

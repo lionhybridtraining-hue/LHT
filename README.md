@@ -2,7 +2,7 @@
 
 Plataforma de coaching autónomo: captação de treino → análise inteligente → ajuste adaptativo.
 
-**Estado atual**: Phase 1 MVP — ~68% completo (Abril 2026)
+**Estado atual**: Phase 1 MVP — ~75% completo (Abril 2026)
 
 ---
 
@@ -83,17 +83,23 @@ LHT/
 ├── check-in/                   # Sistema de check-in do atleta
 │
 ├── netlify/functions/          # Backend serverless (80+ funções)
-│   ├── _lib/                   # Helpers partilhados: auth, supabase, strava
+│   ├── _lib/                   # Helpers partilhados: auth, supabase, strava, view-models
+│   ├── _lib/view-models.js     # Camada de agregação (3 composers read-only)
 │   ├── strength-plan.js        # Gestão de templates de força
 │   ├── strava-sync.js          # Ingestão de dados Strava
 │   ├── program-*.js            # Gestão de calendário/programa
+│   ├── coach-program-blueprint.js      # Endpoint agregado: programa completo
+│   ├── coach-athlete-profile-unified.js # Endpoint agregado: perfil atleta
+│   ├── coach-calendar-week.js          # Endpoint agregado: semana calendário
+│   ├── admin-cleanup-athlete.js        # Limpeza de conta de teste
 │   └── ...
 │
 ├── scripts/                    # Migrações DB + scripts de build
 │   ├── supabase-schema.sql     # Schema canónico da DB
 │   ├── migration-*.sql         # Migrações incrementais (50+)
 │   ├── build-planocorrida.mjs  # Build do React app (Vite)
-│   └── generate-posts-json.mjs # Gera JSON estático do blog
+│   ├── generate-posts-json.mjs # Gera JSON estático do blog
+│   └── test-view-models-e2e.js # Testes E2E dos view-model composers (47 testes)
 │
 ├── assets/                     # Imagens, ícones, vídeos (públicos)
 ├── blog/                       # Conteúdo do blog (gerado)
@@ -118,6 +124,7 @@ LHT/
 | Documento | Descrição |
 |-----------|-----------|
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Arquitetura do sistema, data model, APIs |
+| [README-FRONTEND-DATA-FLOW.md](README-FRONTEND-DATA-FLOW.md) | Mapa simples do que o frontend recolhe, onde guarda, trata e volta a pedir |
 | [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md) | Visão do produto e roadmap 4 fases |
 | [PHASES-OVERVIEW.md](PHASES-OVERVIEW.md) | Resumo visual de cada fase |
 | [PHASE-1-TASKS.md](PHASE-1-TASKS.md) | Tasks detalhadas da sprint atual |
@@ -162,6 +169,9 @@ LHT/
 | Athlete Profile | ✅ Completo | 100% |
 | Coach Dashboard | ⚠️ Parcial | 40% |
 | Analytics | ⚠️ Eventos enviados | 30% |
+| **Aggregation Layer** | ✅ **Completo** | **100%** |
+| **View-Model Endpoints** | ✅ **3 endpoints + E2E** | **100%** |
+| **Test Account Cleanup** | ✅ **18 tabelas** | **100%** |
 
 ### Fases do Produto
 1. **Phase 1** (2-3 sem) — MVP: strength + calendar + basic Strava ← **atual**
@@ -170,6 +180,23 @@ LHT/
 4. **Phase 4** (12-18 meses) — Autonomous: wearables + predictive AI + scale
 
 → Ver [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md) para detalhes completos.
+
+---
+
+## 🧩 Camada de Agregação (View-Models)
+
+A partir de Abril 2026, o backend inclui uma **camada de agregação** (`_lib/view-models.js`) que compõe tabelas internas em payloads simplificados para o UI:
+
+| Endpoint | Descrição | Tabelas compostas |
+|----------|-----------|-------------------|
+| `GET /coach-program-blueprint` | Programa completo com variantes, presets, slots, sessões | 6 tabelas |
+| `GET /coach-athlete-profile-unified` | Perfil unificado: VDOT, zonas, 1RM, assignments, instâncias | 8 tabelas |
+| `GET /coach-calendar-week` | Semana materializada do plano semanal | 3 tabelas |
+
+**Testes**: 47 testes E2E em `scripts/test-view-models-e2e.js` — todos a passar.
+
+→ Ver [ARCHITECTURE.md](ARCHITECTURE.md) secção "Aggregated View-Model Endpoints" para detalhes.
+→ Ver [README-FRONTEND-DATA-FLOW.md](README-FRONTEND-DATA-FLOW.md) para um mapa simples de recolha, persistência, tratamento e refetch no atleta, coach e admin.
 
 ---
 

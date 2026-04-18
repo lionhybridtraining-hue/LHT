@@ -2,7 +2,10 @@ import { useLocation, useNavigate, useOutletContext } from "react-router-dom";
 import { getAccessToken } from "@/lib/supabase";
 import type { AthleteOutletContext } from "@/components/atleta/AthleteLayout";
 import AppDownloadPopup from "@/components/atleta/AppDownloadPopup";
-import { fetchAthleteRunningPrograms } from "@/services/athlete-programs";
+import {
+  exportAthleteRunningPlan,
+  fetchAthleteRunningPrograms,
+} from "@/services/athlete-programs";
 import { fetchAthleteProfile } from "@/services/athlete-profile";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -321,6 +324,8 @@ function Home() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isPlanSaved, setIsPlanSaved] = useState<boolean>(false);
   const [savingPlan, setSavingPlan] = useState<boolean>(false);
+  const [exportingPlan, setExportingPlan] = useState<boolean>(false);
+  const [exportError, setExportError] = useState<string | null>(null);
   const [athleteDisplayName, setAthleteDisplayName] = useState<string>("");
   const saveAttemptedRef = useRef(false);
 
@@ -355,6 +360,27 @@ function Home() {
   const backToProgramsPath = "/atleta/programas";
   const regeneratePlanPath = "/atleta/onboarding/formulario";
   const catalogPath = "/programas";
+
+  async function handleExportPlan() {
+    try {
+      setExportError(null);
+      setExportingPlan(true);
+      const { blob, filename } = await exportAthleteRunningPlan("fit");
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = downloadUrl;
+      anchor.download = filename;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.URL.revokeObjectURL(downloadUrl);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Erro ao exportar plano.";
+      setExportError(message);
+    } finally {
+      setExportingPlan(false);
+    }
+  }
 
   useEffect(() => {
     let mounted = true;
@@ -615,6 +641,27 @@ function Home() {
             ✓ Plano guardado
           </div>
         )}
+        <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+          <button
+            type="button"
+            onClick={() => void handleExportPlan()}
+            disabled={exportingPlan}
+            className="rounded-xl border border-[#d4a54f66] bg-[#171717] px-4 py-2 text-sm font-semibold text-[#f7f1e8] hover:bg-[#1d1d1d] disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {exportingPlan ? "A exportar FIT..." : "Exportar FIT (.zip)"}
+          </button>
+          <p className="text-xs text-[#8f99a8]">
+            Um ficheiro FIT por treino para Garmin e plataformas que aceitam structured workout FIT.
+          </p>
+        </div>
+        <div className="mt-2 max-w-3xl rounded-xl border border-[#d4a54f22] bg-[#171717] px-4 py-3 text-xs text-[#aeb7c5]">
+          O upload manual do TrainingPeaks continua a rejeitar este ficheiro porque esse fluxo parece aceitar atividades concluídas, não workouts planeados. Para usar no ecossistema TrainingPeaks, o caminho fiável é criar o workout dentro do calendário do TP ou usar uma integração própria com a API deles.
+        </div>
+        {exportError ? (
+          <div className="mt-2 rounded-xl border border-[#8a3c3c] bg-[#2a1518] px-4 py-2 text-sm text-[#ffd4d4]">
+            {exportError}
+          </div>
+        ) : null}
 
         {insideAthleteApp ? (
           <div className="mt-4 w-full max-w-4xl rounded-2xl border border-[#d4a54f2c] bg-[#141414] px-5 py-4 shadow-[0_14px_34px_rgba(0,0,0,0.32)]">

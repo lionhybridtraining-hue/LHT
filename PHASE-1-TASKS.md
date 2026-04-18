@@ -3,7 +3,7 @@
 **Timeline**: 2-3 weeks (Target: late April 2026)  
 **Goal**: MVP with working strength + calendar + basic Strava display  
 **Owner**: Dev team  
-**Status**: � In Progress (~68% complete as of Apr 8, 2026)
+**Status**: 🟡 In Progress (~75% complete as of Apr 17, 2026)
 
 ### ✅ Already Completed (Prior to Sprint)
 | Area | Completion | Notes |
@@ -18,6 +18,8 @@
 | Training Zones Backend | 85% | Family/method MVP |
 | Training Zones Coach UI | 100% | Editor complete |
 | Auth (Supabase JWT) | 100% | Google OAuth, migrated from Netlify Identity Mar 18, 2026 |
+| Aggregation Layer (view-models.js) | 100% | 3 composers + 3 endpoints + 47 E2E tests (Apr 17, 2026) |
+| Admin Cleanup Endpoint | 100% | 18 tables in dependency order, allowlist-only (Apr 17, 2026) |
 
 ---
 
@@ -310,5 +312,5 @@ Post-deployment (first 24h):
 
 ---
 
-**Last Updated**: April 5, 2026  
-**Next Review**: April 7, 2026 (mid-week sync)
+**Last Updated**: April 17, 2026  
+**Next Review**: April 21, 2026 (mid-week sync)

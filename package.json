@@ -17,6 +17,7 @@
     "pg": "^8.20.0"
   },
   "dependencies": {
+    "@garmin/fitsdk": "^21.200.0",
     "adm-zip": "^0.5.16",
     "resend": "^4.8.0",
     "stripe": "^20.4.1"

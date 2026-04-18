@@ -52,13 +52,24 @@ Create a Netlify Function that can be called from the admin dashboard:
   "success": true,
   "message": "Athlete cleanup completed",
   "deletedCounts": {
-    "athletes": 1,
-    "training_sessions": N,
-    "program_assignments": N,
+    "leads_central": N,
+    "ai_logs": N,
+    "strength_log_sets": N,
+    "athlete_weekly_plan": N,
+    "running_workout_instances": N,
+    "running_plan_instances": N,
+    "athlete_exercise_1rm": N,
+    "athlete_running_vdot_history": N,
+    "login_events": N,
     "strength_plan_instances": N,
+    "program_assignments": N,
+    "stripe_purchases": N,
     "weekly_checkins": N,
-    "leads": N,
-    "onboarding": N
+    "training_sessions": N,
+    "athlete_strava_connections": N,
+    "onboarding_intake": N,
+    "athlete_training_zone_profiles": N,
+    "athletes": 1
   }
 }
 ```
@@ -77,28 +88,39 @@ psql postgresql://user:password@db.supabase.co:5432/postgres
 
 ## What Gets Deleted
 
-✅ **Athletes table**
-- Main athlete record
+The cleanup endpoint (`admin-cleanup-athlete.js`) deletes data in strict dependency order (18 tables):
 
-✅ **Training data**
-- `training_sessions` - all uploaded workouts
-- `training_zones` - zone profiles and configurations
-- `athlete_strava_connections` - Strava integration data
+✅ **Lead & Analytics**
+- `leads_central` — funnel tracking records (by athlete_id + identity_id)
+- `ai_logs` — AI analysis logs
+
+✅ **Training execution**
+- `strength_log_sets` — strength workout logs
+- `athlete_weekly_plan` — weekly training plans
+- `running_workout_instances` — running workout instances
+- `running_plan_instances` — running plan instances
+
+✅ **Performance data**
+- `athlete_exercise_1rm` — 1RM records
+- `athlete_running_vdot_history` — VDOT history
+- `login_events` — login tracking (by identity_id)
 
 ✅ **Program management**
-- `program_assignments` - coach assignments
-- `stripe_purchases` - Stripe checkout sessions
-- `strength_plan_instances` - strength plan instances
-- `athlete_weekly_plan` - weekly training plans
+- `strength_plan_instances` — strength plan instances
+- `program_assignments` — coach assignments
+- `stripe_purchases` — Stripe checkout sessions (by identity_id + email)
 
 ✅ **Interaction history**
-- `weekly_checkins` - feedback forms
-- `strength_log_sets` - strength workout logs
-- `ai_logs` - AI analysis logs
+- `weekly_checkins` — feedback forms
+- `training_sessions` — all uploaded workouts
 
-✅ **Lead tracking**
-- `leads_central` - funnel tracking records
-- `onboarding_intake` - onboarding form responses
+✅ **Connections & profiles**
+- `athlete_strava_connections` — Strava integration data
+- `onboarding_intake` — onboarding form responses
+- `athlete_training_zone_profiles` — zone profiles (cascade deletes zones)
+
+✅ **Core record**
+- `athletes` — main athlete record
 
 ## Testing Workflows After Cleanup
 

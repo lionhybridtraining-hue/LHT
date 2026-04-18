@@ -16,6 +16,7 @@ export interface SchedulePreset {
 export interface ScheduleSlot {
   id: string;
   preset_id: string;
+  week_number: number;
   day_of_week: number;
   time_slot: number;
   session_id: string;
@@ -118,6 +119,7 @@ export async function generateWeeklyPlan(
   options?: {
     variantId?: string;
     fromWeek?: number;
+    startDate?: string;
     initialWeeklyVolumeKm?: number;
     weeklyProgressionPct?: number;
     periodizationType?: "linear" | "undulating" | "block";
@@ -131,6 +133,7 @@ export async function generateWeeklyPlan(
   };
   if (options?.variantId) body.variant_id = options.variantId;
   if (options?.fromWeek != null) body.from_week = options.fromWeek;
+  if (options?.startDate) body.start_date = options.startDate;
   if (options?.initialWeeklyVolumeKm != null) {
     body.initial_weekly_volume_km = options.initialWeeklyVolumeKm;
   }

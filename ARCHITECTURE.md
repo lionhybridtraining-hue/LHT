@@ -2,7 +2,7 @@
 
 **Purpose**: Single source of truth for system structure, data model, APIs, and how features connect.  
 **Audience**: Dev team, architects, new team members  
-**Last Updated**: April 5, 2026
+**Last Updated**: April 17, 2026
 
 ---
 
@@ -32,8 +32,11 @@
 │  ├─ Strava: /strava-*, /training-sessions*                      │
 │  ├─ Zones: /coach-athlete-training-zones                        │
 │  ├─ Calendar: /program-* /athlete-program                       │
+│  ├─ Aggregated: /coach-program-blueprint,                       │
+│  │   /coach-athlete-profile-unified, /coach-calendar-week       │
 │  ├─ Check-in: /checkin-*                                        │
 │  ├─ Meta: /meta-webhook (Stripe), /meta-events                 │
+│  ├─ Admin: /admin-cleanup-athlete                               │
 │  └─ Utility: /health-check, /env, /config                       │
 └─────────────────────────────────────────────────────────────────┘
         ↓
@@ -46,9 +49,10 @@
 │  ├─ strength_plans + strength_plan_exercises + ...              │
 │  ├─ athlete_training_zone_profiles + zones                      │
 │  ├─ athlete_training_sessions + daily_training_load             │
-│  ├─ program_* (calendar/presets)                                │
+│  ├─ program_* (calendar/presets) + program_variants             │
 │  ├─ athlete_strava_connections                                  │
-│  └─ ... (30+ tables total)                                      │
+│  ├─ athlete_exercise_1rm + athlete_running_vdot_history         │
+│  └─ ... (70+ tables total)                                      │
 │                                                                   │
 │  Storage:                                                        │
 │  ├─ blog images, video thumbnails                               │
@@ -70,9 +74,17 @@
 └─────────────────────────┘  └─────────────────────┘
 ```
 
----
+### Quick Reading Note
 
-## 📋 Core Data Model (Simplified)
+If you need a simpler operational view of the system before reading the full architecture, start with [README-FRONTEND-DATA-FLOW.md](README-FRONTEND-DATA-FLOW.md).
+
+That document answers, per area (`athlete`, `coach`, `admin`):
+
+- what the frontend collects
+- where data is stored
+- where data is processed
+- when the UI requests it again
+-
 
 ### **1. Authentication & Real Identities**
 
@@ -576,10 +588,51 @@ POST /program-assignment        – Assign program to athlete (coach)
 GET  /athlete-program-detail    – Get program details + progress
 ```
 
+### **Aggregated View-Model Endpoints (NEW — April 2026)**
+
+These endpoints compose multiple internal tables into simplified payloads for UI consumption.  
+Backend: `netlify/functions/_lib/view-models.js` (aggregation layer, read-only).
+
+```
+GET  /coach-program-blueprint?programId=<uuid>
+     – Full program structure: program + variants + presets + slots + sessions
+     – Without programId: lightweight list of all programs
+     – Auth: coach role required
+
+GET  /coach-athlete-profile-unified?athleteId=<uuid>
+     – Unified athlete profile: identity + VDOT + zone profiles + 1RM + active assignments + instances
+     – Auth: authenticated user, coach/admin, verifyCoachOwnsAthlete
+
+GET  /coach-calendar-week?athleteId=<uuid>[&week=N][&weekStartDate=YYYY-MM-DD]
+     – Materialized weekly plan with program context
+     – Supports weekNumber or weekStartDate filter; auto-picks current/latest week if neither
+     – Auth: same as profile-unified
+```
+
+**View-Model Composers** (`_lib/view-models.js`):
+| Function | Tables Composed | Output Shape |
+|----------|----------------|--------------|
+| `composeProgramBlueprint` | training_programs, program_variants, variant_preset_links, program_schedule_presets, program_schedule_slots, program_weekly_sessions | `{ id, name, status, variants[], presets[], sessions[] }` |
+| `composeAthleteProfile` | athletes, athlete_running_vdot_history, athlete_training_zone_profiles (+zones), athlete_exercise_1rm, exercises, program_assignments, strength_plan_instances, running_plan_instances | `{ id, name, performance{}, zones[], strength[], active_assignments[], active_strength_instance, active_running_instance }` |
+| `composeCalendarWeek` | athlete_weekly_plan, program_assignments, training_programs | `{ athlete_id, week_start_date, week_number, available_weeks[], entries[], program{} }` |
+
 ### **Check-ins**
 ```
 GET  /athlete-check-in-form     – Get weekly check-in form
 POST /athlete-check-in          – Submit check-in (strength/running compliance, fatigue, notes)
+```
+
+### **Admin & Cleanup**
+```
+POST /admin-cleanup-athlete     – Delete all data for a test account (allowlist-only)
+     – Body: { email: "rodrigolibanio1999@gmail.com" }
+     – Auth: admin role required
+     – Deletes (in dependency order): leads_central, ai_logs, strength_log_sets,
+       athlete_weekly_plan, running_workout_instances, running_plan_instances,
+       athlete_exercise_1rm, athlete_running_vdot_history, login_events,
+       strength_plan_instances, program_assignments, stripe_purchases,
+       weekly_checkins, training_sessions, athlete_strava_connections,
+       onboarding_intake, athlete_training_zone_profiles, athletes
 ```
 
 ---
@@ -671,7 +724,9 @@ Manual: Coach clicks "Sync Strava" on athlete detail (or cron job runs daily)
 | **Strength Training** | strength_plans, exercises, strength_plan_exercises, strength_prescriptions, strength_plan_instances, strength_log_sets | athlete_exercise_1rm, strength_plan_phase_notes |
 | **Training Zones** | athlete_training_zone_profiles, athlete_training_zones | None |
 | **Strava Sync** | athlete_strava_connections, athlete_training_sessions, strava_sync_events | daily_training_load (Phase 2+) |
-| **Calendar** | training_programs, program_schedule_presets, program_schedule_sessions, athlete_weekly_schedules, program_assignments | None |
+| **Calendar** | training_programs, program_schedule_presets, program_schedule_sessions, athlete_weekly_schedules, program_assignments | athlete_weekly_plan |
+| **Program Variants** | program_variants, variant_preset_links | training_programs, program_schedule_presets |
+| **Aggregated Views** | view-models.js composes: training_programs, program_variants, variant_preset_links, program_schedule_presets, program_schedule_slots, program_weekly_sessions, athletes, athlete_running_vdot_history, athlete_training_zone_profiles, athlete_exercise_1rm, exercises, program_assignments, strength_plan_instances, running_plan_instances, athlete_weekly_plan | All tables above |
 | **Check-ins** | athlete_check_ins | None |
 | **Payments** | meta_orders, meta_subscriptions | program_assignments |
 | **Monitoring** | daily_training_load (Phase 2+), athlete_training_sessions | athlete_check_ins |
@@ -755,6 +810,10 @@ Manual: Coach clicks "Sync Strava" on athlete detail (or cron job runs daily)
 | **Strava backend** | `netlify/functions/strava-*.js` |
 | **Strava athlete UI** | `aer-frontend-main/src/services/strava.ts`, `aer-frontend-main/src/pages/atleta/perfil.tsx` |
 | **Calendar** | `aer-frontend-main/src/pages/atleta/calendario.tsx`, `netlify/functions/program-*.js` |
+| **Aggregation layer** | `netlify/functions/_lib/view-models.js` (3 composers) |
+| **Aggregated endpoints** | `netlify/functions/coach-program-blueprint.js`, `coach-athlete-profile-unified.js`, `coach-calendar-week.js` |
+| **Admin/Cleanup** | `netlify/functions/admin-cleanup-athlete.js` |
+| **E2E tests** | `scripts/test-view-models-e2e.js` (47 tests for view-model composers) |
 | **Database schema** | `scripts/supabase-schema.sql`, `scripts/migration-*.sql` |
 | **Config** | `netlify/functions/_lib/config.js`, `.env` files |
 

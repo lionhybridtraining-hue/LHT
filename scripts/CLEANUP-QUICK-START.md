@@ -55,12 +55,14 @@ curl -X POST \
   -d '{"email":"rodrigolibanio1999@gmail.com"}'
 ```
 
-3. **Ou via JavaScript:**
+**Nota**: O endpoint agora elimina 18 tabelas em ordem de dependência (incluindo `running_workout_instances`, `running_plan_instances`, `athlete_exercise_1rm`, `athlete_running_vdot_history`, `login_events`).
+
+3. **Ou via script Node.js direto (com service role key):**
 
 ```javascript
-// No browser console (depois de fazer admin login):
-const cleanup = new TestAthleteCleanup(localStorage.getItem('sb-admin-token'));
-await cleanup.cleanup('rodrigolibanio1999@gmail.com');
+// node --env-file=.env -e "..."
+const { supabaseRequest } = require('./netlify/functions/_lib/supabase');
+// Ver scripts/test-view-models-e2e.js para exemplo completo
 ```
 
 4. **Requisitos:**

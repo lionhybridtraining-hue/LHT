@@ -12,10 +12,12 @@ Start here, in order:
 2. [**PHASES-OVERVIEW.md**](PHASES-OVERVIEW.md) — Quick visual summary of each phase
 3. [**PHASE-1-TASKS.md**](PHASE-1-TASKS.md) — Current sprint tasks (what we're building now)
 4. [**ARCHITECTURE.md**](ARCHITECTURE.md) — System structure, APIs, data model
+5. [**README-FRONTEND-DATA-FLOW.md**](README-FRONTEND-DATA-FLOW.md) — Simple map of what the frontend collects, stores, processes, and re-fetches
 
 ### **👨‍💻 For Developers**
 - **Picking a task?** → See [PHASE-1-TASKS.md](PHASE-1-TASKS.md) for sprint tasks
 - **Need system context?** → See [ARCHITECTURE.md](ARCHITECTURE.md) for data model + APIs
+- **Tracing a bug through the UI?** → See [README-FRONTEND-DATA-FLOW.md](README-FRONTEND-DATA-FLOW.md) for the browser → function → database flow
 - **Understanding a feature?** → Look for feature name in ARCHITECTURE.md table
 - **Finding code?** → See "Where to Find Things" section in ARCHITECTURE.md
 
@@ -36,11 +38,13 @@ Start here, in order:
 **Lion Hybrid Training**: A platform for coaches to manage athletes' strength + endurance training.
 
 ### **Current State (April 2026)**
-- ✅ **68% feature-complete**
+- ✅ **75% feature-complete**
 - ✅ Strength training app (athlete + coach)
 - ✅ Calendar/programas (preset-driven)
 - ✅ Strava integration (OAuth + manual sync)
 - ✅ Training zones (coach editor, athlete UI coming)
+- ✅ Aggregation layer (3 unified endpoints + 47 E2E tests)
+- ✅ Test account cleanup (18 tables)
 - ⏳ Training load metrics (Phase 2)
 - ⏳ Adaptive scheduling (Phase 3)
 
@@ -96,8 +100,12 @@ LHT/
 │   ├── strava-sync.js              # Strava data ingestion + TSS calc
 │   ├── strava-connect.js           # OAuth flow
 │   ├── coach-athlete-training-zones.js  # Zone management
+│   ├── coach-program-blueprint.js       # Aggregated: program + variants + presets
+│   ├── coach-athlete-profile-unified.js  # Aggregated: athlete profile + perf data
+│   ├── coach-calendar-week.js           # Aggregated: weekly plan
+│   ├── admin-cleanup-athlete.js         # Test account cleanup
 │   ├── program-*.js                # Calendar/programa management
-│   ├── _lib/                       # Shared: auth, supabase, strava, training-load
+│   ├── _lib/                       # Shared: auth, supabase, strava, training-load, view-models
 │   └── ...
 │
 ├── scripts/                        # Database migrations + build scripts

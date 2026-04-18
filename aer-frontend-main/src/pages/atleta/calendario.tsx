@@ -94,6 +94,13 @@ interface WeekBundle {
   summary: WeekSummary;
 }
 
+interface PendingPreviewRow {
+  id: string;
+  dateIso: string;
+  timeSlot: number;
+  label: string;
+}
+
 function startOfDayFromIso(dateIso: string): Date {
   return new Date(`${dateIso}T00:00:00`);
 }
@@ -109,6 +116,29 @@ function getDateForDay(weekStartDate: string, dayOfWeek: number): string {
   const date = startOfDayFromIso(weekStartDate);
   date.setDate(date.getDate() + dayOfWeek);
   return date.toISOString().slice(0, 10);
+}
+
+function getWeekStartDateIso(dateIso: string): string {
+  const date = startOfDayFromIso(dateIso);
+  const day = (date.getDay() + 6) % 7;
+  date.setDate(date.getDate() - day);
+  return date.toISOString().slice(0, 10);
+}
+
+function getCurrentOrNextMondayIso(dateIso: string): string {
+  const date = startOfDayFromIso(dateIso);
+  const day = (date.getDay() + 6) % 7;
+  if (day === 0) return date.toISOString().slice(0, 10);
+  date.setDate(date.getDate() + (7 - day));
+  return date.toISOString().slice(0, 10);
+}
+
+function formatDatePtLong(dateIso: string): string {
+  return startOfDayFromIso(dateIso).toLocaleDateString("pt-PT", {
+    weekday: "short",
+    day: "2-digit",
+    month: "2-digit",
+  });
 }
 
 function summarizeWeek(rows: WeeklyPlanRow[]): WeekSummary {
@@ -365,11 +395,11 @@ function recommendPreset(
 }
 
 export default function CalendarioPage() {
-  const { session } = useOutletContext<AthleteOutletContext>();
-  return <CalendarioContent session={session} />;
+  useOutletContext<AthleteOutletContext>();
+  return <CalendarioContent />;
 }
 
-function CalendarioContent({ session: _session }: { session: AthleteOutletContext["session"] }) {
+function CalendarioContent() {
   const navigate = useNavigate();
 
   // ── State ──
@@ -388,6 +418,7 @@ function CalendarioContent({ session: _session }: { session: AthleteOutletContex
   const [planLoading, setPlanLoading] = useState(false);
   const [pendingPresetId, setPendingPresetId] = useState<string | null>(null);
   const [pendingVariantId, setPendingVariantId] = useState<string | null>(null);
+  const [pendingStartDate, setPendingStartDate] = useState<string>(new Date().toISOString().slice(0, 10));
   const [athleteProfile, setAthleteProfile] = useState<AthleteProfileData | null>(null);
   const [calendarPreferences, setCalendarPreferences] = useState<CalendarPreferences>({
     preferredTrainingDays: [],
@@ -412,6 +443,37 @@ function CalendarioContent({ session: _session }: { session: AthleteOutletContex
     () => sessions.some((s) => s.session_type === "running"),
     [sessions]
   );
+  const pendingPreset = useMemo(
+    () => presets.find((preset) => preset.id === pendingPresetId) || null,
+    [pendingPresetId, presets]
+  );
+  const pendingVariant = useMemo(
+    () => variants.find((variant) => variant.id === pendingVariantId) || null,
+    [pendingVariantId, variants]
+  );
+  const needsRunningConfig = Boolean(
+    hasRunningSessions && !pendingVariant?.running_config_preset?.initial_weekly_volume_km
+  );
+  const pendingPreviewRows = useMemo<PendingPreviewRow[]>(() => {
+    if (!pendingPreset || !pendingStartDate) return [];
+
+    const weekStartDate = getWeekStartDateIso(pendingStartDate);
+    const sessionMap = new Map(sessions.map((session) => [session.id, session]));
+
+    return (pendingPreset.slots || [])
+      .filter((slot) => Number(slot.week_number || 1) === 1)
+      .map((slot) => ({
+        id: slot.id,
+        dateIso: getDateForDay(weekStartDate, slot.day_of_week),
+        timeSlot: slot.time_slot,
+        label: sessionMap.get(slot.session_id)?.session_label || "Sessão",
+      }))
+      .filter((row) => row.dateIso >= pendingStartDate)
+      .sort((left, right) => {
+        if (left.dateIso !== right.dateIso) return left.dateIso.localeCompare(right.dateIso);
+        return left.timeSlot - right.timeSlot;
+      });
+  }, [pendingPreset, pendingStartDate, sessions]);
 
   // ── Step 1: Load all active programs/instances ──
   useEffect(() => {
@@ -689,7 +751,8 @@ function CalendarioContent({ session: _session }: { session: AthleteOutletContex
         weeklyProgressionPct: number;
         periodizationType: "linear" | "undulating" | "block";
       },
-      variantId?: string
+      variantId?: string,
+      startDate?: string
     ) => {
       if (!selectedProgram?.assignmentId) {
         setError("Nenhum assignment encontrado para gerar calendário.");
@@ -701,6 +764,7 @@ function CalendarioContent({ session: _session }: { session: AthleteOutletContex
         await generateWeeklyPlan(selectedProgram.assignmentId, presetId, {
           ...(runningConfig || {}),
           variantId,
+          startDate,
         });
         const planData = await fetchAthleteWeeklyPlan(
           selectedProgram.assignmentId,
@@ -727,17 +791,26 @@ function CalendarioContent({ session: _session }: { session: AthleteOutletContex
     [selectedProgram]
   );
 
+  const resolveDefaultGenerationStartDate = useCallback(() => {
+    const todayIso = new Date().toISOString().slice(0, 10);
+    const baseDate = selectedProgram?.startDate && selectedProgram.startDate > todayIso
+      ? selectedProgram.startDate
+      : todayIso;
+    return getCurrentOrNextMondayIso(baseDate);
+  }, [selectedProgram]);
+
+  const openGenerationModal = useCallback((presetId: string, variantId?: string | null) => {
+    setPendingPresetId(presetId);
+    setPendingVariantId(variantId || null);
+    setPendingStartDate(resolveDefaultGenerationStartDate());
+    setRunVolumeConfigError(null);
+  }, [resolveDefaultGenerationStartDate]);
+
   const handleOpenPresetGeneration = useCallback(
     (presetId: string) => {
-      setPendingVariantId(null);
-      if (!hasRunningSessions) {
-        void handleGeneratePlan(presetId);
-        return;
-      }
-      setRunVolumeConfigError(null);
-      setPendingPresetId(presetId);
+      openGenerationModal(presetId, null);
     },
-    [hasRunningSessions, handleGeneratePlan]
+    [openGenerationModal]
   );
 
   const handleVariantSelect = useCallback(
@@ -764,18 +837,9 @@ function CalendarioContent({ session: _session }: { session: AthleteOutletContex
         return;
       }
 
-      // If variant has running_config_preset, generate directly (no running config modal needed)
-      if (variant.running_config_preset?.initial_weekly_volume_km != null) {
-        void handleGeneratePlan(defaultPreset.id, undefined, variant.id);
-      } else if (hasRunningSessions) {
-        // Variant without running config + running sessions → need manual config
-        setPendingPresetId(defaultPreset.id);
-        setPendingVariantId(variant.id);
-      } else {
-        void handleGeneratePlan(defaultPreset.id, undefined, variant.id);
-      }
+      openGenerationModal(defaultPreset.id, variant.id);
     },
-    [presets, hasRunningSessions, handleGeneratePlan, sessions, calendarPreferences, athleteProfile]
+    [presets, sessions, calendarPreferences, athleteProfile, openGenerationModal]
   );
 
   const handleSaveCalendarPreferences = useCallback(async () => {
@@ -800,19 +864,8 @@ function CalendarioContent({ session: _session }: { session: AthleteOutletContex
       return;
     }
 
-    if (selectedSetupVariant.running_config_preset?.initial_weekly_volume_km != null) {
-      void handleGeneratePlan(recommendedPreset.id, undefined, selectedSetupVariant.id);
-      return;
-    }
-
-    if (hasRunningSessions) {
-      setPendingPresetId(recommendedPreset.id);
-      setPendingVariantId(selectedSetupVariant.id);
-      return;
-    }
-
-    void handleGeneratePlan(recommendedPreset.id, undefined, selectedSetupVariant.id);
-  }, [recommendedPreset, selectedSetupVariant, handleGeneratePlan, hasRunningSessions, handleOpenPresetGeneration]);
+    openGenerationModal(recommendedPreset.id, selectedSetupVariant.id);
+  }, [recommendedPreset, selectedSetupVariant, handleOpenPresetGeneration, openGenerationModal]);
 
   const handleConfirmRunningConfig = useCallback(async () => {
     if (!pendingPresetId) return;
@@ -836,6 +889,7 @@ function CalendarioContent({ session: _session }: { session: AthleteOutletContex
 
     const presetId = pendingPresetId;
     const variantId = pendingVariantId;
+    const startDate = pendingStartDate;
     setPendingPresetId(null);
     setPendingVariantId(null);
     setRunVolumeConfigError(null);
@@ -843,8 +897,24 @@ function CalendarioContent({ session: _session }: { session: AthleteOutletContex
       initialWeeklyVolumeKm,
       weeklyProgressionPct,
       periodizationType,
-    }, variantId || undefined);
-  }, [handleGeneratePlan, pendingPresetId, pendingVariantId, runVolumeConfig]);
+    }, variantId || undefined, startDate);
+  }, [handleGeneratePlan, pendingPresetId, pendingStartDate, pendingVariantId, runVolumeConfig]);
+
+  const handleConfirmGeneration = useCallback(async () => {
+    if (!pendingPresetId) return;
+    if (needsRunningConfig) {
+      await handleConfirmRunningConfig();
+      return;
+    }
+
+    const presetId = pendingPresetId;
+    const variantId = pendingVariantId;
+    const startDate = pendingStartDate;
+    setPendingPresetId(null);
+    setPendingVariantId(null);
+    setRunVolumeConfigError(null);
+    await handleGeneratePlan(presetId, undefined, variantId || undefined, startDate);
+  }, [handleConfirmRunningConfig, handleGeneratePlan, needsRunningConfig, pendingPresetId, pendingStartDate, pendingVariantId]);
 
   const handleOpenMoveModal = useCallback((row: WeeklyPlanRow) => {
     setMoveTargetDay(row.day_of_week);
@@ -1149,16 +1219,7 @@ function CalendarioContent({ session: _session }: { session: AthleteOutletContex
                               handleOpenPresetGeneration(preset.id);
                               return;
                             }
-                            if (selectedSetupVariant.running_config_preset?.initial_weekly_volume_km != null) {
-                              void handleGeneratePlan(preset.id, undefined, selectedSetupVariant.id);
-                              return;
-                            }
-                            if (hasRunningSessions) {
-                              setPendingPresetId(preset.id);
-                              setPendingVariantId(selectedSetupVariant.id);
-                              return;
-                            }
-                            void handleGeneratePlan(preset.id, undefined, selectedSetupVariant.id);
+                            openGenerationModal(preset.id, selectedSetupVariant.id);
                           }}
                           generating={generating}
                         />
@@ -1289,53 +1350,85 @@ function CalendarioContent({ session: _session }: { session: AthleteOutletContex
         {pendingPresetId && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4">
             <div className="w-full max-w-sm rounded-xl border border-[#30363d] bg-[#161b22] p-4">
-              <h3 className="text-base font-semibold text-[#f7f1e8]">Configurar Volume de Corrida</h3>
+              <h3 className="text-base font-semibold text-[#f7f1e8]">Confirmar início do calendário</h3>
               <p className="mt-1 text-xs text-[#8f99a8]">
-                Este preset inclui sessões de corrida. Define os parâmetros antes de gerar o calendário.
+                Escolhe quando queres começar e confirma a primeira semana antes de gerar o calendário.
               </p>
 
               <div className="mt-4 space-y-3">
                 <label className="block text-xs text-[#8f99a8]">
-                  Volume semanal inicial (km)
+                  Começar em
                   <input
-                    type="number"
-                    min={5}
-                    max={300}
-                    step={0.5}
-                    value={runVolumeConfig.initialWeeklyVolumeKm}
-                    onChange={(e) => setRunVolumeConfig((prev) => ({ ...prev, initialWeeklyVolumeKm: e.target.value }))}
+                    type="date"
+                    value={pendingStartDate}
+                    min={resolveDefaultGenerationStartDate()}
+                    onChange={(e) => setPendingStartDate(e.target.value)}
                     className="mt-1 w-full rounded-md border border-[#30363d] bg-[#0d1117] px-2 py-1.5 text-sm text-[#c9d1d9]"
                   />
                 </label>
 
-                <label className="block text-xs text-[#8f99a8]">
-                  Progressão semanal (%)
-                  <input
-                    type="number"
-                    min={-5}
-                    max={20}
-                    step={0.5}
-                    value={runVolumeConfig.weeklyProgressionPct}
-                    onChange={(e) => setRunVolumeConfig((prev) => ({ ...prev, weeklyProgressionPct: e.target.value }))}
-                    className="mt-1 w-full rounded-md border border-[#30363d] bg-[#0d1117] px-2 py-1.5 text-sm text-[#c9d1d9]"
-                  />
-                </label>
+                <div className="rounded-md border border-[#30363d] bg-[#0d1117] px-3 py-2 text-xs text-[#8f99a8]">
+                  <p className="font-medium text-[#c9d1d9]">Preview da 1ª semana</p>
+                  <p className="mt-1">
+                    A primeira semana só mostra sessões em ou depois de {formatDatePtLong(pendingStartDate)}.
+                  </p>
+                  <div className="mt-2 space-y-1">
+                    {pendingPreviewRows.length > 0 ? pendingPreviewRows.map((row) => (
+                      <div key={row.id} className="flex items-center justify-between gap-2 rounded bg-[#161b22] px-2 py-1">
+                        <span>{formatDatePtLong(row.dateIso)}</span>
+                        <span className="truncate text-right text-[#c9d1d9]">{row.label}</span>
+                      </div>
+                    )) : (
+                      <p>Não há sessões elegíveis nessa primeira semana com a data escolhida.</p>
+                    )}
+                  </div>
+                </div>
 
-                <label className="block text-xs text-[#8f99a8]">
-                  Periodização
-                  <select
-                    value={runVolumeConfig.periodizationType}
-                    onChange={(e) => setRunVolumeConfig((prev) => ({
-                      ...prev,
-                      periodizationType: e.target.value as "linear" | "undulating" | "block",
-                    }))}
-                    className="mt-1 w-full rounded-md border border-[#30363d] bg-[#0d1117] px-2 py-1.5 text-sm text-[#c9d1d9]"
-                  >
-                    <option value="undulating">Ondulatória</option>
-                    <option value="linear">Linear</option>
-                    <option value="block">Blocos</option>
-                  </select>
-                </label>
+                {needsRunningConfig && (
+                  <>
+                    <label className="block text-xs text-[#8f99a8]">
+                      Volume semanal inicial (km)
+                      <input
+                        type="number"
+                        min={5}
+                        max={300}
+                        step={0.5}
+                        value={runVolumeConfig.initialWeeklyVolumeKm}
+                        onChange={(e) => setRunVolumeConfig((prev) => ({ ...prev, initialWeeklyVolumeKm: e.target.value }))}
+                        className="mt-1 w-full rounded-md border border-[#30363d] bg-[#0d1117] px-2 py-1.5 text-sm text-[#c9d1d9]"
+                      />
+                    </label>
+
+                    <label className="block text-xs text-[#8f99a8]">
+                      Progressão semanal (%)
+                      <input
+                        type="number"
+                        min={-5}
+                        max={20}
+                        step={0.5}
+                        value={runVolumeConfig.weeklyProgressionPct}
+                        onChange={(e) => setRunVolumeConfig((prev) => ({ ...prev, weeklyProgressionPct: e.target.value }))}
+                        className="mt-1 w-full rounded-md border border-[#30363d] bg-[#0d1117] px-2 py-1.5 text-sm text-[#c9d1d9]"
+                      />
+                    </label>
+
+                    <label className="block text-xs text-[#8f99a8]">
+                      Periodização
+                      <select
+                        value={runVolumeConfig.periodizationType}
+                        onChange={(e) => setRunVolumeConfig((prev) => ({
+                          ...prev,
+                          periodizationType: e.target.value as "linear" | "undulating" | "block",
+                        }))}
+                        className="mt-1 w-full rounded-md border border-[#30363d] bg-[#0d1117] px-2 py-1.5 text-sm text-[#c9d1d9]"
+                      >
+                        <option value="undulating">Ondulatória</option>
+                        <option value="linear">Linear</option>
+                        <option value="block">Blocos</option>
+                      </select>
+                    </label>
+                  </>
+                )}
               </div>
 
               {runVolumeConfigError && (
@@ -1349,6 +1442,7 @@ function CalendarioContent({ session: _session }: { session: AthleteOutletContex
                   type="button"
                   onClick={() => {
                     setPendingPresetId(null);
+                    setPendingVariantId(null);
                     setRunVolumeConfigError(null);
                   }}
                   className="rounded-md border border-[#30363d] px-3 py-1.5 text-xs text-[#c9d1d9]"
@@ -1358,7 +1452,7 @@ function CalendarioContent({ session: _session }: { session: AthleteOutletContex
                 <button
                   type="button"
                   disabled={generating}
-                  onClick={() => void handleConfirmRunningConfig()}
+                  onClick={() => void handleConfirmGeneration()}
                   className="rounded-md border border-[#d4a54f] bg-[#d4a54f]/20 px-3 py-1.5 text-xs font-semibold text-[#d4a54f] disabled:opacity-50"
                 >
                   {generating ? "A gerar..." : "Gerar calendário"}

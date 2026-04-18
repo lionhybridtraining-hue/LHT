@@ -8,7 +8,7 @@ Quick reference for each phase. Detailed specs in PRODUCT-ROADMAP.md and PHASE-1
 
 **What**: MVP with strength + calendar + basic Strava  
 **Owner**: Dev team (2-3w sprint)  
-**Status**: � In Progress (~68% complete as of Apr 8, 2026)  
+**Status**: 🟡 In Progress (~75% complete as of Apr 17, 2026)  
 
 **Completed**:
 - ✅ Strength Backend (100%) + Athlete UI (100%)
@@ -17,10 +17,13 @@ Quick reference for each phase. Detailed specs in PRODUCT-ROADMAP.md and PHASE-1
 - ✅ Blog System (100%)
 - ✅ Athlete Profile Flow (100%)
 - ✅ Training Zones Backend (85%) + Coach UI (100%)
+- ✅ Aggregation Layer — view-models.js (3 composers, 47 E2E tests passing)
+- ✅ Aggregated Endpoints: coach-program-blueprint, coach-athlete-profile-unified, coach-calendar-week
+- ✅ Admin cleanup endpoint (18 tables, allowlist-only)
 
 **In Progress**:
 - 🟡 Strength Coach UI (60%)
-- 🟡 Coach Dashboard (40%)
+- 🟡 Coach Dashboard (40%) — endpoints ready, UI refactor pending
 - 🟡 Analytics events (30%)
 - 🔴 Training Zones Athlete UI (0%)
 - 🔴 Strava TSS Calculation (20% — formulas only)

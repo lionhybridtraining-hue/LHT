@@ -2784,16 +2784,39 @@ async function getStrengthPlanExercisesByIds(config, ids) {
   });
 }
 
+function buildObjectKeySignature(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return "";
+  return Object.keys(value).sort().join("|");
+}
+
 async function upsertStrengthPrescriptions(config, prescriptions) {
   if (!prescriptions.length) return [];
-  return supabaseRequest({
-    url: config.supabaseUrl,
-    serviceRoleKey: config.supabaseServiceRoleKey,
-    path: "strength_prescriptions?on_conflict=plan_exercise_id,week_number",
-    method: "POST",
-    body: prescriptions,
-    prefer: "return=representation,resolution=merge-duplicates"
-  });
+
+  const batches = new Map();
+  for (const prescription of prescriptions) {
+    const signature = buildObjectKeySignature(prescription);
+    if (!batches.has(signature)) {
+      batches.set(signature, []);
+    }
+    batches.get(signature).push(prescription);
+  }
+
+  const rows = [];
+  for (const batch of batches.values()) {
+    const result = await supabaseRequest({
+      url: config.supabaseUrl,
+      serviceRoleKey: config.supabaseServiceRoleKey,
+      path: "strength_prescriptions?on_conflict=plan_exercise_id,week_number",
+      method: "POST",
+      body: batch,
+      prefer: "return=representation,resolution=merge-duplicates"
+    });
+    if (Array.isArray(result) && result.length) {
+      rows.push(...result);
+    }
+  }
+
+  return rows;
 }
 
 async function upsertStrengthPlanPhaseNotes(config, notes) {
@@ -4406,6 +4429,24 @@ function mapEmailTemplateRow(row) {
   };
 }
 
+function isMissingEmailSchemaError(err, relationNames = []) {
+  const message = String(err && err.message ? err.message : "").toLowerCase();
+  if (!message) return false;
+
+  const missingRelation = relationNames.some((relationName) =>
+    message.includes(String(relationName || "").trim().toLowerCase())
+  );
+
+  if (!missingRelation) return false;
+
+  return (
+    message.includes("could not find the table") ||
+    message.includes("schema cache") ||
+    message.includes("does not exist") ||
+    message.includes("relation")
+  );
+}
+
 async function listEmailTemplates(config, { includeInactive = true, includeDeleted = false } = {}) {
   const filters = [
     "select=id,code,name,description,channel_type,subject_template,html_template,is_active,created_by,updated_by,created_at,updated_at,deleted_at",
@@ -4417,53 +4458,88 @@ async function listEmailTemplates(config, { includeInactive = true, includeDelet
   if (!includeInactive) {
     filters.push("is_active=eq.true");
   }
-  const rows = await supabaseRequest({
-    url: config.supabaseUrl,
-    serviceRoleKey: config.supabaseServiceRoleKey,
-    path: `email_templates?${filters.join("&")}`
-  });
-  return Array.isArray(rows) ? rows.map(mapEmailTemplateRow).filter(Boolean) : [];
+  try {
+    const rows = await supabaseRequest({
+      url: config.supabaseUrl,
+      serviceRoleKey: config.supabaseServiceRoleKey,
+      path: `email_templates?${filters.join("&")}`
+    });
+    return Array.isArray(rows) ? rows.map(mapEmailTemplateRow).filter(Boolean) : [];
+  } catch (err) {
+    if (isMissingEmailSchemaError(err, ["email_templates"])) {
+      return [];
+    }
+    throw err;
+  }
 }
 
 async function getEmailTemplateById(config, templateId) {
   if (!templateId) return null;
-  const rows = await supabaseRequest({
-    url: config.supabaseUrl,
-    serviceRoleKey: config.supabaseServiceRoleKey,
-    path: `email_templates?id=eq.${encodeURIComponent(templateId)}&deleted_at=is.null&limit=1`
-  });
-  return Array.isArray(rows) ? mapEmailTemplateRow(rows[0] || null) : null;
+  try {
+    const rows = await supabaseRequest({
+      url: config.supabaseUrl,
+      serviceRoleKey: config.supabaseServiceRoleKey,
+      path: `email_templates?id=eq.${encodeURIComponent(templateId)}&deleted_at=is.null&limit=1`
+    });
+    return Array.isArray(rows) ? mapEmailTemplateRow(rows[0] || null) : null;
+  } catch (err) {
+    if (isMissingEmailSchemaError(err, ["email_templates"])) {
+      return null;
+    }
+    throw err;
+  }
 }
 
 async function getEmailTemplateByCode(config, code) {
   const normalizedCode = normalizeEmailTemplateCode(code);
   if (!normalizedCode) return null;
-  const rows = await supabaseRequest({
-    url: config.supabaseUrl,
-    serviceRoleKey: config.supabaseServiceRoleKey,
-    path: `email_templates?code=eq.${encodeURIComponent(normalizedCode)}&deleted_at=is.null&limit=1`
-  });
-  return Array.isArray(rows) ? mapEmailTemplateRow(rows[0] || null) : null;
+  try {
+    const rows = await supabaseRequest({
+      url: config.supabaseUrl,
+      serviceRoleKey: config.supabaseServiceRoleKey,
+      path: `email_templates?code=eq.${encodeURIComponent(normalizedCode)}&deleted_at=is.null&limit=1`
+    });
+    return Array.isArray(rows) ? mapEmailTemplateRow(rows[0] || null) : null;
+  } catch (err) {
+    if (isMissingEmailSchemaError(err, ["email_templates"])) {
+      return null;
+    }
+    throw err;
+  }
 }
 
 async function getMaxEmailTemplateVersion(config, templateId) {
-  const rows = await supabaseRequest({
-    url: config.supabaseUrl,
-    serviceRoleKey: config.supabaseServiceRoleKey,
-    path: `email_template_versions?template_id=eq.${encodeURIComponent(templateId)}&select=version_number&order=version_number.desc&limit=1`
-  });
-  const row = Array.isArray(rows) ? rows[0] : null;
-  return row && Number.isInteger(row.version_number) ? row.version_number : 0;
+  try {
+    const rows = await supabaseRequest({
+      url: config.supabaseUrl,
+      serviceRoleKey: config.supabaseServiceRoleKey,
+      path: `email_template_versions?template_id=eq.${encodeURIComponent(templateId)}&select=version_number&order=version_number.desc&limit=1`
+    });
+    const row = Array.isArray(rows) ? rows[0] : null;
+    return row && Number.isInteger(row.version_number) ? row.version_number : 0;
+  } catch (err) {
+    if (isMissingEmailSchemaError(err, ["email_template_versions"])) {
+      return 0;
+    }
+    throw err;
+  }
 }
 
 async function listEmailTemplateVersions(config, templateId) {
   if (!templateId) return [];
-  const rows = await supabaseRequest({
-    url: config.supabaseUrl,
-    serviceRoleKey: config.supabaseServiceRoleKey,
-    path: `email_template_versions?template_id=eq.${encodeURIComponent(templateId)}&select=id,template_id,version_number,subject_template,html_template,change_note,created_by,created_at&order=version_number.desc,created_at.desc`
-  });
-  return Array.isArray(rows) ? rows : [];
+  try {
+    const rows = await supabaseRequest({
+      url: config.supabaseUrl,
+      serviceRoleKey: config.supabaseServiceRoleKey,
+      path: `email_template_versions?template_id=eq.${encodeURIComponent(templateId)}&select=id,template_id,version_number,subject_template,html_template,change_note,created_by,created_at&order=version_number.desc,created_at.desc`
+    });
+    return Array.isArray(rows) ? rows : [];
+  } catch (err) {
+    if (isMissingEmailSchemaError(err, ["email_template_versions"])) {
+      return [];
+    }
+    throw err;
+  }
 }
 
 async function createEmailTemplate(config, payload) {
@@ -4603,15 +4679,22 @@ async function softDeleteEmailTemplate(config, templateId, actorIdentityId = "")
 }
 
 async function createEmailSendLog(config, payload) {
-  const rows = await supabaseRequest({
-    url: config.supabaseUrl,
-    serviceRoleKey: config.supabaseServiceRoleKey,
-    path: "email_send_logs",
-    method: "POST",
-    body: [payload],
-    prefer: "return=representation"
-  });
-  return Array.isArray(rows) ? rows[0] || null : null;
+  try {
+    const rows = await supabaseRequest({
+      url: config.supabaseUrl,
+      serviceRoleKey: config.supabaseServiceRoleKey,
+      path: "email_send_logs",
+      method: "POST",
+      body: [payload],
+      prefer: "return=representation"
+    });
+    return Array.isArray(rows) ? rows[0] || null : null;
+  } catch (err) {
+    if (isMissingEmailSchemaError(err, ["email_send_logs"])) {
+      return null;
+    }
+    throw err;
+  }
 }
 
 async function listEmailSendLogs(config, filters = {}) {
@@ -4651,14 +4734,22 @@ async function listEmailSendLogs(config, filters = {}) {
     query.push(`offset=${filters.offset}`);
   }
 
-  return supabaseRequest({
-    url: config.supabaseUrl,
-    serviceRoleKey: config.supabaseServiceRoleKey,
-    path: `email_send_logs?${query.join("&")}`
-  });
+  try {
+    return await supabaseRequest({
+      url: config.supabaseUrl,
+      serviceRoleKey: config.supabaseServiceRoleKey,
+      path: `email_send_logs?${query.join("&")}`
+    });
+  } catch (err) {
+    if (isMissingEmailSchemaError(err, ["email_send_logs"])) {
+      return [];
+    }
+    throw err;
+  }
 }
 
 module.exports = {
+  supabaseRequest,
   insertTrainingSessions,
   upsertTrainingSessionsBySource,
   findExistingSessions,

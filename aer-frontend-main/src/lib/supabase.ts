@@ -8,9 +8,8 @@ function requireEnv(name: "VITE_SUPABASE_URL" | "VITE_SUPABASE_ANON_KEY") {
     name === "VITE_SUPABASE_URL"
       ? runtime?.supabaseUrl
       : runtime?.supabaseAnonKey;
-  // In production we require runtime public config to avoid baking values into the built bundle.
-  const devFallback = import.meta.env.DEV ? import.meta.env[name] : "";
-  const value = runtimeValue || devFallback;
+  const buildFallback = import.meta.env[name];
+  const value = runtimeValue || buildFallback;
   if (!value) {
     throw new Error(`Missing environment variable: ${name}`);
   }

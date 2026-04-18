@@ -1,4 +1,4 @@
-import { cpSync, existsSync, mkdirSync, rmSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
 import { resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 
@@ -6,6 +6,59 @@ const projectRoot = resolve(process.cwd());
 const frontendDir = resolve(projectRoot, "aer-frontend-main");
 const frontendDistDir = resolve(frontendDir, "dist");
 const publishDir = resolve(projectRoot, "planocorrida");
+
+function parseEnvFile(filePath) {
+  if (!existsSync(filePath)) {
+    return {};
+  }
+
+  const content = readFileSync(filePath, "utf8");
+  const parsed = {};
+
+  for (const rawLine of content.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith("#")) {
+      continue;
+    }
+
+    const separatorIndex = line.indexOf("=");
+    if (separatorIndex === -1) {
+      continue;
+    }
+
+    const key = line.slice(0, separatorIndex).trim();
+    let value = line.slice(separatorIndex + 1).trim();
+
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1);
+    }
+
+    parsed[key] = value;
+  }
+
+  return parsed;
+}
+
+function loadBuildEnv() {
+  const mode = process.env.NODE_ENV || "production";
+  const files = [
+    resolve(projectRoot, ".env"),
+    resolve(projectRoot, ".env.local"),
+    resolve(projectRoot, `.env.${mode}`),
+    resolve(projectRoot, `.env.${mode}.local`),
+    resolve(frontendDir, ".env"),
+    resolve(frontendDir, ".env.local"),
+    resolve(frontendDir, `.env.${mode}`),
+    resolve(frontendDir, `.env.${mode}.local`),
+  ];
+
+  return files.reduce((accumulator, filePath) => {
+    return { ...accumulator, ...parseEnvFile(filePath) };
+  }, {});
+}
 
 function quoteArg(arg) {
   if (arg.includes(" ")) {
@@ -41,6 +94,8 @@ function runCommand(command, args, cwd, extraEnv = {}) {
 }
 
 function main() {
+  const buildEnv = loadBuildEnv();
+
   console.log("[planocorrida] Installing frontend dependencies...");
   runCommand("npm", ["ci", "--no-audit", "--no-fund"], frontendDir);
 
@@ -50,6 +105,7 @@ function main() {
     ["run", "build"],
     frontendDir,
     {
+      ...buildEnv,
       VITE_ROUTER_BASENAME: "/planocorrida",
       VITE_ASSET_BASE_PATH: "/planocorrida/",
     }

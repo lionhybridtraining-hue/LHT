@@ -112,6 +112,56 @@ async function cleanupAthleteData(config, email) {
   });
   deletedCounts.athlete_weekly_plan = Array.isArray(weeklyPlanResult) ? weeklyPlanResult.length : 0;
 
+  // 4b. running_workout_instances (must precede running_plan_instances)
+  const runWorkoutResult = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `running_workout_instances?athlete_id=eq.${encodeURIComponent(athleteId)}`,
+    method: "DELETE",
+    prefer: "return=representation"
+  }).catch(() => []);
+  deletedCounts.running_workout_instances = Array.isArray(runWorkoutResult) ? runWorkoutResult.length : 0;
+
+  // 4c. running_plan_instances
+  const runPlanResult = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `running_plan_instances?athlete_id=eq.${encodeURIComponent(athleteId)}`,
+    method: "DELETE",
+    prefer: "return=representation"
+  }).catch(() => []);
+  deletedCounts.running_plan_instances = Array.isArray(runPlanResult) ? runPlanResult.length : 0;
+
+  // 4d. athlete_exercise_1rm
+  const oneRmResult = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `athlete_exercise_1rm?athlete_id=eq.${encodeURIComponent(athleteId)}`,
+    method: "DELETE",
+    prefer: "return=representation"
+  }).catch(() => []);
+  deletedCounts.athlete_exercise_1rm = Array.isArray(oneRmResult) ? oneRmResult.length : 0;
+
+  // 4e. athlete_running_vdot_history
+  const vdotResult = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `athlete_running_vdot_history?athlete_id=eq.${encodeURIComponent(athleteId)}`,
+    method: "DELETE",
+    prefer: "return=representation"
+  }).catch(() => []);
+  deletedCounts.athlete_running_vdot_history = Array.isArray(vdotResult) ? vdotResult.length : 0;
+
+  // 4f. login_events (if table exists)
+  const loginResult = await supabaseRequest({
+    url: config.supabaseUrl,
+    serviceRoleKey: config.supabaseServiceRoleKey,
+    path: `login_events?identity_id=eq.${encodeURIComponent(identityId || athleteId)}`,
+    method: "DELETE",
+    prefer: "return=representation"
+  }).catch(() => []);
+  deletedCounts.login_events = Array.isArray(loginResult) ? loginResult.length : 0;
+
   // 5. strength_plan_instances
   const strengthInstanceResult = await supabaseRequest({
     url: config.supabaseUrl,
