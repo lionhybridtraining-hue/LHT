@@ -2,18 +2,16 @@ import { createClient } from "@supabase/supabase-js";
 import type { Session } from "@supabase/supabase-js";
 import { getRuntimePublicConfig } from "./public-config";
 
-function requireEnv(name: "VITE_SUPABASE_URL" | "VITE_SUPABASE_ANON_KEY") {
+function getSupabasePublicConfig() {
   const runtime = getRuntimePublicConfig();
-  const runtimeValue =
-    name === "VITE_SUPABASE_URL"
-      ? runtime?.supabaseUrl
-      : runtime?.supabaseAnonKey;
-  const buildFallback = import.meta.env[name];
-  const value = runtimeValue || buildFallback;
-  if (!value) {
-    throw new Error(`Missing environment variable: ${name}`);
+  if (runtime?.supabaseUrl && runtime?.supabaseAnonKey) {
+    return {
+      supabaseUrl: runtime.supabaseUrl,
+      supabaseAnonKey: runtime.supabaseAnonKey,
+    };
   }
-  return value as string;
+
+  throw new Error("Missing Supabase public configuration");
 }
 
 const runtimeConfig = getRuntimePublicConfig();
@@ -21,8 +19,7 @@ const MAX_SESSION_AGE_SECONDS = Number(
   runtimeConfig?.authMaxSessionSeconds || import.meta.env.VITE_AUTH_MAX_SESSION_SECONDS || 24 * 60 * 60
 );
 
-const supabaseUrl = requireEnv("VITE_SUPABASE_URL");
-const supabaseAnonKey = requireEnv("VITE_SUPABASE_ANON_KEY");
+const { supabaseUrl, supabaseAnonKey } = getSupabasePublicConfig();
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
